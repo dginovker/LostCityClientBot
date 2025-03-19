@@ -9650,7 +9650,7 @@ export class Client extends GameShell {
         }
 
         if (e.primarySeqId != -1 && e.primarySeqDelay <= 1) {
-            seq = SeqType.instances[e.secondarySeqId];
+            seq = SeqType.instances[e.primarySeqId];
             if (seq.preanimMove === PreanimMove.DELAYANIM && e.preanimRouteLength > 0 && this.loopCycle >= e.forceMoveStartCycle && this.loopCycle > e.forceMoveEndCycle) {
                 e.primarySeqDelay = 1;
                 return;
