@@ -6,9 +6,12 @@ import type Jagfile from '#/io/Jagfile.ts';
 import OnDemandProvider from '#/io/OnDemandProvider.ts';
 import OnDemandRequest from '#/io/OnDemandRequest.ts';
 import Packet from '#/io/Packet.ts';
+import { downloadUrl } from '#/util/JsUtil';
 import { pako } from '#3rdparty/deps.js';
 
 export default class OnDemand extends OnDemandProvider {
+    modernized: boolean = true;
+
     versions: number[][] = [];
     crcs: number[][] = [];
     priorities: number[][] = [];
@@ -296,10 +299,7 @@ export default class OnDemand extends OnDemandProvider {
             }
 
             await this.handleExtras();
-
-            if (this.stream) {
-                await this.read();
-            }
+            await this.read();
         }
 
         let loading = false;
@@ -480,110 +480,139 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     async read() {
-        if (!this.stream) {
-            return;
-        }
+        if (this.modernized) {
+            for (let req = this.pending.head() as OnDemandRequest | null; req !== null; req = this.pending.next() as OnDemandRequest | null) {
+                this.current = req;
+                break;
+            }
 
-        try {
-            const available = this.stream.available;
+            if (this.current) {
+                // todo: download a big pack (chunk of files) instead of one http req per
+                this.current.data = await downloadUrl(`/${this.current.archive + 1}/${this.current.file}`);
 
-            if (this.partAvailable === 0 && available >= 6) {
-                this.active = true;
+                if (this.app.db) {
+                    this.app.db.write(this.current.archive + 1, this.current.file, this.current.data);
+                }
 
-                await this.stream.readBytes(this.buf, 0, 6);
-                const archive = this.buf[0] & 0xFF;
-                const file = ((this.buf[1] & 0xFF) << 8) + (this.buf[2] & 0xFF);
-                const size = ((this.buf[3] & 0xFF) << 8) + (this.buf[4] & 0xFF);
-                const part = this.buf[5] & 0xFF;
+                if (!this.current.urgent && this.current.archive === 3) {
+                    this.current.urgent = true;
+                    this.current.archive = 93;
+                }
+
+                if (this.current.urgent) {
+                    this.completed.push(this.current);
+                } else {
+                    this.current.unlink();
+                }
 
                 this.current = null;
+            }
+        } else {
+            if (!this.stream) {
+                return;
+            }
 
-                for (let req = this.pending.head() as OnDemandRequest | null; req !== null; req = this.pending.next() as OnDemandRequest | null) {
-                    if (req.archive == archive && req.file == file) {
-                        this.current = req;
+            try {
+                const available = this.stream.available;
+
+                if (this.partAvailable === 0 && available >= 6) {
+                    this.active = true;
+
+                    await this.stream.readBytes(this.buf, 0, 6);
+                    const archive = this.buf[0] & 0xFF;
+                    const file = ((this.buf[1] & 0xFF) << 8) + (this.buf[2] & 0xFF);
+                    const size = ((this.buf[3] & 0xFF) << 8) + (this.buf[4] & 0xFF);
+                    const part = this.buf[5] & 0xFF;
+
+                    this.current = null;
+
+                    for (let req = this.pending.head() as OnDemandRequest | null; req !== null; req = this.pending.next() as OnDemandRequest | null) {
+                        if (req.archive == archive && req.file == file) {
+                            this.current = req;
+                        }
+
+                        if (this.current != null) {
+                            req.cycle = 0;
+                        }
                     }
 
-                    if (this.current != null) {
-                        req.cycle = 0;
+                    if (this.current) {
+                        this.waitCycles = 0;
+
+                        if (size === 0) {
+                            console.error('rej: ' + archive + ',' + file);
+
+                            this.current.data = null;
+
+                            if (this.current.urgent) {
+                                this.completed.push(this.current);
+                            } else {
+                                this.current.unlink();
+                            }
+
+                            this.current = null;
+                        } else {
+                            if (this.current.data === null && part === 0) {
+                                this.current.data = new Uint8Array(size);
+                            }
+
+                            if (this.current.data === null && part != 0) {
+                                console.error('missing start of file');
+                                throw new Error();
+                            }
+                        }
+                    }
+
+                    this.partOffset = part * 500;
+                    this.partAvailable = 500;
+
+                    if (this.partAvailable > size - part * 500) {
+                        this.partAvailable = size - part * 500;
                     }
                 }
 
-                if (this.current) {
-                    this.waitCycles = 0;
+                if (this.partAvailable > 0 && available >= this.partAvailable) {
+                    this.active = true;
 
-                    if (size === 0) {
-                        console.error('rej: ' + archive + ',' + file);
+                    let dst = this.buf;
+                    let off = 0;
 
-                        this.current.data = null;
+                    if (this.current && this.current.data) {
+                        dst = this.current.data;
+                        off = this.partOffset;
+                    }
+
+                    await this.stream.readBytes(dst, off, this.partAvailable);
+
+                    if (this.partAvailable + this.partOffset >= dst.length && this.current) {
+                        if (this.app.db) {
+                            this.app.db.write(this.current.archive + 1, this.current.file, dst);
+                        }
+
+                        if (!this.current.urgent && this.current.archive === 3) {
+                            this.current.urgent = true;
+                            this.current.archive = 93;
+                        }
 
                         if (this.current.urgent) {
                             this.completed.push(this.current);
                         } else {
                             this.current.unlink();
                         }
-
-                        this.current = null;
-                    } else {
-                        if (this.current.data === null && part === 0) {
-                            this.current.data = new Uint8Array(size);
-                        }
-
-                        if (this.current.data === null && part != 0) {
-                            console.error('missing start of file');
-                            throw new Error();
-                        }
-                    }
-                }
-
-                this.partOffset = part * 500;
-                this.partAvailable = 500;
-
-                if (this.partAvailable > size - part * 500) {
-                    this.partAvailable = size - part * 500;
-                }
-            }
-
-            if (this.partAvailable > 0 && available >= this.partAvailable) {
-                this.active = true;
-
-                let dst = this.buf;
-                let off = 0;
-
-                if (this.current && this.current.data) {
-                    dst = this.current.data;
-                    off = this.partOffset;
-                }
-
-                await this.stream.readBytes(dst, off, this.partAvailable);
-
-                if (this.partAvailable + this.partOffset >= dst.length && this.current) {
-                    if (this.app.db) {
-                        this.app.db.write(this.current.archive + 1, this.current.file, dst);
                     }
 
-                    if (!this.current.urgent && this.current.archive === 3) {
-                        this.current.urgent = true;
-                        this.current.archive = 93;
-                    }
+                    this.partAvailable = 0;
+                }
+            } catch (err) {
+                console.error(err);
 
-                    if (this.current.urgent) {
-                        this.completed.push(this.current);
-                    } else {
-                        this.current.unlink();
-                    }
+                if (this.stream) {
+                    this.stream.close();
                 }
 
+                this.stream = null;
                 this.partAvailable = 0;
             }
-        } catch (err) {
-            console.error(err);
-
-            if (this.stream) {
-                this.stream.close();
-            }
-
-            this.stream = null;
-            this.partAvailable = 0;
         }
     }
 
@@ -601,6 +630,11 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     async send(req: OnDemandRequest) {
+        if (this.modernized) {
+            // handled by the reader
+            return;
+        }
+
         try {
             if (this.stream === null) {
                 const now = Date.now();
