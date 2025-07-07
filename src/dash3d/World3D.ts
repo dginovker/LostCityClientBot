@@ -388,7 +388,7 @@ export default class World3D {
         tile.groundDecor = null;
     }
 
-    addGroundObject(stx: number, stz: number, y: number, level: number, typecode: number, topObj: Model | null, middleObj: Model | null, bottomObj: Model | null): void {
+    addGroundObject(stx: number, stz: number, y: number, level: number, typecode: number, topObj: ModelSource | null, middleObj: ModelSource | null, bottomObj: ModelSource | null): void {
         let stackOffset: number = 0;
 
         const tile: Square | null = this.levelTiles[level][stx][stz];

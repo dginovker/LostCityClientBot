@@ -206,56 +206,56 @@ export default class LocType extends ConfigType {
     }
 
     shapeModelsAreReady(shape: number): boolean {
-		if (this.shapes === null) {
-			return true;
-		}
+        if (this.shapes === null) {
+            return true;
+        }
 
         let index = -1;
-		for (let i = 0; i < this.shapes.length; i++) {
-			if (this.shapes[i] == shape) {
-				index = i;
-				break;
-			}
-		}
-		if (index == -1) {
-			return true;
-		}
+        for (let i = 0; i < this.shapes.length; i++) {
+            if (this.shapes[i] == shape) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            return true;
+        }
 
-		if (this.models == null) {
-			return true;
-		}
+        if (this.models == null) {
+            return true;
+        }
 
-		const model = this.models[index];
-		return model == -1 ? true : Model.isReady(model & 0xFFFF);
+        const model = this.models[index];
+        return model == -1 ? true : Model.isReady(model & 0xFFFF);
     }
 
     modelsAreReady(): boolean {
-		let ready = true;
-		if (this.models == null) {
-			return true;
-		}
+        let ready = true;
+        if (this.models == null) {
+            return true;
+        }
 
-		for (let i = 0; i < this.models.length && ready; i++) {
-			const model = this.models[i];
-			if (model != -1) {
-				ready = Model.isReady(model & 0xFFFF);
-			}
-		}
+        for (let i = 0; i < this.models.length && ready; i++) {
+            const model = this.models[i];
+            if (model != -1) {
+                ready = Model.isReady(model & 0xFFFF);
+            }
+        }
 
-		return ready;
+        return ready;
     }
 
     prefetch(od: OnDemand) {
-		if (this.models == null) {
-			return;
-		}
+        if (this.models == null) {
+            return;
+        }
 
-		for (let i = 0; i < this.models.length; i++) {
-			const model = this.models[i];
-			if (model != -1) {
-				od.prefetch(0, model & 0xFFFF);
-			}
-		}
+        for (let i = 0; i < this.models.length; i++) {
+            const model = this.models[i];
+            if (model != -1) {
+                od.prefetch(0, model & 0xFFFF);
+            }
+        }
     }
 
     getModel(shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, transformId: number): Model | null {
@@ -274,7 +274,7 @@ export default class LocType extends ConfigType {
             return null;
         }
 
-        let typecode: bigint = BigInt(BigInt(this.id) << 6n) + BigInt(BigInt(index) << 3n) + BigInt(angle) + BigInt((BigInt(transformId) + 1n) << 32n);
+        let typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
         if (LocType.ignoreCache) {
             typecode = 0n;
         }
@@ -318,7 +318,7 @@ export default class LocType extends ConfigType {
             return null;
         }
 
-        const flip: boolean = ((this.mirror ? 1 : 0) ^ angle) > 3;
+        const flip: boolean = this.mirror !== angle > 3;
         if (flip) {
             modelId += 65536;
         }

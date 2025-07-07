@@ -8,7 +8,7 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
 export default class Pix32 extends DoublyLinkable {
-    readonly pixels: Int32Array;
+    pixels: Int32Array;
     readonly width2d: number;
     readonly height2d: number;
     cropX: number;
@@ -327,73 +327,63 @@ export default class Pix32 extends DoublyLinkable {
         }
     }
 
-    crop(x: number, y: number, w: number, h: number): void {
+    crop(): void {
+		const pixels = new Int32Array(this.width2d * this.height2d);
+		for (let y = 0; y < this.cropH; y++) {
+			for (let x = 0; x < this.cropW; x++) {
+				pixels[(this.cropY + y) * this.width2d + this.cropX + x] = this.pixels[this.cropW * y + x];
+			}
+		}
+
+        this.pixels = pixels;
+		this.cropW = this.width2d;
+		this.cropH = this.height2d;
+		this.cropX = 0;
+		this.cropY = 0;
+    }
+
+    drawRotated(y: number, theta: number, zoom: number, anchorX: number, anchorY: number, w: number, h: number, x: number): void {
         x |= 0;
         y |= 0;
         w |= 0;
         h |= 0;
 
         try {
-            const currentW: number = this.width2d;
-            // const currentH: number = this.height; // dead code
+            const centerX: number = (-w / 2) | 0;
+            const centerY: number = (-h / 2) | 0;
 
-            let offW: number = 0;
-            let offH: number = 0;
-            // let scaleWidth: number = (currentW << 16) / w; // dead code
-            // let scaleHeight: number = (currentH << 16) / h; // dead code
+            const sin: number = (Math.sin(theta / 326.11) * 65536.0) | 0;
+            const cos: number = (Math.cos(theta / 326.11) * 65536.0) | 0;
+            const sinZoom: number = (sin * zoom) >> 8;
+            const cosZoom: number = (cos * zoom) >> 8;
 
-            const cw: number = this.cropW;
-            const ch: number = this.cropH;
-            const scaleCropWidth: number = ((cw << 16) / w) | 0;
-            const scaleCropHeight: number = ((ch << 16) / h) | 0;
+            let leftX: number = (anchorX << 16) + (centerY * sinZoom + centerX * cosZoom);
+            let leftY: number = (anchorY << 16) + (centerY * cosZoom - centerX * sinZoom);
+            let leftOff: number = x + y * Pix2D.width2d;
 
-            x += ((this.cropX * w + cw - 1) / cw) | 0;
-            y += ((this.cropY * h + ch - 1) / ch) | 0;
+            for (let i: number = 0; i < h; i++) {
+                let dstX: number = leftOff;
+                let srcX: number = leftX;
+                let srcY: number = leftY;
 
-            if ((this.cropX * w) % cw !== 0) {
-                offW = (((cw - ((this.cropX * w) % cw)) << 16) / w) | 0;
+                for (let j: number = -w; j < 0; j++) {
+					const rgb = this.pixels[(srcX >> 16) + (srcY >> 16) * this.cropW];
+					if (rgb == 0) {
+						dstX++;
+					} else {
+						Pix2D.pixels[dstX++] = rgb;
+					}
+
+                    srcX += cosZoom;
+                    srcY -= sinZoom;
+                }
+
+                leftX += sinZoom;
+                leftY += cosZoom;
+                leftOff += Pix2D.width2d;
             }
-
-            if ((this.cropY * h) % ch !== 0) {
-                offH = (((ch - ((this.cropY * h) % ch)) << 16) / h) | 0;
-            }
-
-            w = ((w * (this.width2d - (offW >> 16))) / cw) | 0;
-            h = ((h * (this.height2d - (offH >> 16))) / ch) | 0;
-
-            let dstStep: number = x + y * Pix2D.width2d;
-            let dstOff: number = Pix2D.width2d - w;
-
-            if (y < Pix2D.top) {
-                const cutoff: number = Pix2D.top - y;
-                h -= cutoff;
-                y = 0;
-                dstStep += cutoff * Pix2D.width2d;
-                offH += scaleCropHeight * cutoff;
-            }
-
-            if (y + h > Pix2D.bottom) {
-                h -= y + h - Pix2D.bottom;
-            }
-
-            if (x < Pix2D.left) {
-                const cutoff: number = Pix2D.left - x;
-                w -= cutoff;
-                x = 0;
-                dstStep += cutoff;
-                offW += scaleCropWidth * cutoff;
-                dstOff += cutoff;
-            }
-
-            if (x + w > Pix2D.right) {
-                const cutoff: number = x + w - Pix2D.right;
-                w -= cutoff;
-                dstOff += cutoff;
-            }
-
-            this.scale(w, h, this.pixels, offW, offH, Pix2D.pixels, dstOff, dstStep, currentW, scaleCropWidth, scaleCropHeight);
         } catch (e) {
-            console.error('error in sprite clipping routine');
+            /* empty */
         }
     }
 

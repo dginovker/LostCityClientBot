@@ -31,46 +31,44 @@ export default class ClientLocAnim extends ModelSource {
         this.seqFrame = 0;
         this.seqCycle = loopCycle;
 
-        if (randomFrame && this.seq.replayoff !== -1 && this.seq.delay) {
+        if (randomFrame && this.seq.replayoff !== -1) {
             this.seqFrame = (Math.random() * this.seq.frameCount) | 0;
             this.seqCycle -= (Math.random() * this.seq.getFrameDuration(this.seqFrame)) | 0;
         }
     }
 
     getModel(loopCycle: number): Model | null {
-        this.seqCycle = loopCycle;
+        if (this.seq) {
+            let delta = loopCycle - this.seqCycle;
+            if (delta > 100 && this.seq.replayoff > 0) {
+                delta = 100;
+            }
 
-        if (this.seq != null) {
-			let delta = loopCycle - this.seqCycle;
-			if (delta > 100 && this.seq.replayoff > 0) {
-				delta = 100;
-			}
+            while (delta > this.seq.getFrameDuration(this.seqFrame)) {
+                delta -= this.seq.getFrameDuration((this.seqFrame));
+                this.seqFrame++;
 
-			while (delta > this.seq.getFrameDuration(this.seqFrame)) {
-				delta -= this.seq.getFrameDuration((this.seqFrame));
-				this.seqFrame++;
+                if (this.seqFrame < this.seq.frameCount) {
+                    continue;
+                }
 
-				if (this.seqFrame < this.seq.frameCount) {
-					this.seqFrame -= this.seq.replayoff;
-				}
+                this.seqFrame -= this.seq.replayoff;
 
-				if (this.seqFrame >= 0 && this.seqFrame < this.seq.frameCount) {
-					continue;
-				}
+                if (this.seqFrame < 0 || this.seqFrame >= this.seq.frameCount) {
+                    this.seq = null;
+                    break;
+                }
+            }
 
-				this.seq = null;
-				break;
-			}
+            this.seqCycle = loopCycle - delta;
+        }
 
-			this.seqCycle = loopCycle - delta;
-		}
+        let transformId = -1;
+        if (this.seq && this.seq.frames && typeof this.seq.frames[this.seqFrame] !== 'undefined') {
+            transformId = this.seq.frames[this.seqFrame];
+        }
 
-		let transformId = -1;
-		if (this.seq != null) {
-			transformId = this.seq.frames![this.seqFrame];
-		}
-
-		const loc = LocType.get(this.index);
-		return loc.getModel(this.shape, this.angle, this.heightmapSW, this.heightmapSE, this.heightmapNE, this.heightmapNW, transformId);
+        const loc = LocType.get(this.index);
+        return loc.getModel(this.shape, this.angle, this.heightmapSW, this.heightmapSE, this.heightmapNE, this.heightmapNW, transformId);
     }
 }

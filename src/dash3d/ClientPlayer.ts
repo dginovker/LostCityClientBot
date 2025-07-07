@@ -535,7 +535,6 @@ export default class ClientPlayer extends ClientEntity {
 			const part = this.appearance[i];
 
 			if (part >= 0x100 && part < 0x200 && !IdkType.types[part - 0x100].headModelIsReady()) {
-                console.log('head model not ready');
 				needsModel = true;
 			}
 
