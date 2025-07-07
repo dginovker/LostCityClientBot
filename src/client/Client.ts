@@ -447,7 +447,7 @@ export class Client extends GameShell {
     private staffmodlevel: number = 0;
     private designGender: boolean = true;
     private updateDesignModel: boolean = false;
-    private designIdentikits: Int32Array = new Int32Array(7);
+    private designKits: Int32Array = new Int32Array(7);
     private designColors: Int32Array = new Int32Array(5);
 
     // friends/chats
@@ -785,7 +785,7 @@ export class Client extends GameShell {
         return updated;
     }
 
-    private drawInterface(com: Component, x: number, y: number, scrollY: number, outline: boolean = false): void {
+    private drawInterface(com: Component, x: number, y: number, scrollY: number): void {
         if (com.type !== 0 || !com.children || (com.hide && this.viewportHoveredInterfaceIndex !== com.id && this.sidebarHoveredInterfaceIndex !== com.id && this.chatHoveredInterfaceIndex !== com.id)) {
             return;
         }
@@ -810,10 +810,6 @@ export class Client extends GameShell {
             childX += child.x;
             childY += child.y;
 
-            if (outline) {
-                Pix2D.drawRect(childX, childY, child.width, child.height, Colors.WHITE);
-            }
-
             if (child.clientCode > 0) {
                 this.updateInterfaceContent(child);
             }
@@ -827,7 +823,7 @@ export class Client extends GameShell {
                     child.scrollPosition = 0;
                 }
 
-                this.drawInterface(child, childX, childY, child.scrollPosition, outline);
+                this.drawInterface(child, childX, childY, child.scrollPosition);
 
                 if (child.scroll > child.height) {
                     this.drawScrollbar(childX + child.width, childY, child.scrollPosition, child.scroll, child.height);
@@ -1169,12 +1165,19 @@ export class Client extends GameShell {
             com.yan = ((Math.sin(this.loopCycle / 40.0) * 256.0) | 0) & 0x7ff;
 
             if (this.updateDesignModel) {
+                for (let i = 0; i < 7; i++) {
+                    const kit = this.designKits[i];
+                    if (kit >= 0 && !IdkType.types[kit].modelIsReady()) {
+                        return;
+                    }
+                }
+
                 this.updateDesignModel = false;
 
                 const models: (Model | null)[] = new TypedArray1d(7, null);
                 let modelCount: number = 0;
                 for (let part: number = 0; part < 7; part++) {
-                    const kit: number = this.designIdentikits[part];
+                    const kit: number = this.designKits[part];
                     if (kit >= 0) {
                         models[modelCount++] = IdkType.types[kit].getModel();
                     }
@@ -1184,24 +1187,26 @@ export class Client extends GameShell {
                 for (let part: number = 0; part < 5; part++) {
                     if (this.designColors[part] !== 0) {
                         model.recolour(ClientPlayer.DESIGN_IDK_COLORS[part][0], ClientPlayer.DESIGN_IDK_COLORS[part][this.designColors[part]]);
+
                         if (part === 1) {
                             model.recolour(ClientPlayer.TORSO_RECOLORS[0], ClientPlayer.TORSO_RECOLORS[this.designColors[part]]);
                         }
                     }
                 }
 
+                model.createLabelReferences();
+                model.calculateNormals(64, 850, -30, -50, -30, true);
+
                 if (this.localPlayer) {
                     const frames: Int16Array | null = SeqType.types[this.localPlayer.readyanim].frames;
                     if (frames) {
-                        model.createLabelReferences();
                         model.applyTransform(frames[0]);
-                        model.calculateNormals(64, 850, -30, -50, -30, true);
-
-                        com.modelType = 5;
-                        com.model = 0;
-                        Component.cacheModel(model, 0, 5);
                     }
                 }
+
+                com.modelType = 5;
+                com.model = 0;
+                Component.cacheModel(model, 5, 0);
             }
         } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE) {
             if (!this.genderButtonImage0) {
@@ -5417,7 +5422,7 @@ export class Client extends GameShell {
         if (clientCode >= ClientCode.CC_CHANGE_HEAD_L && clientCode <= ClientCode.CC_CHANGE_FEET_R) {
             const part: number = ((clientCode - 300) / 2) | 0;
             const direction: number = clientCode & 0x1;
-            let kit: number = this.designIdentikits[part];
+            let kit: number = this.designKits[part];
 
             if (kit !== -1) {
                 // eslint-disable-next-line no-constant-condition
@@ -5437,7 +5442,7 @@ export class Client extends GameShell {
                     }
 
                     if (!IdkType.types[kit].disable && IdkType.types[kit].type === part + (this.designGender ? 0 : 7)) {
-                        this.designIdentikits[part] = kit;
+                        this.designKits[part] = kit;
                         this.updateDesignModel = true;
                         break;
                     }
@@ -5483,7 +5488,7 @@ export class Client extends GameShell {
             this.out.p1isaac(ClientProt.IF_PLAYERDESIGN);
             this.out.p1(this.designGender ? 0 : 1);
             for (let i: number = 0; i < 7; i++) {
-                this.out.p1(this.designIdentikits[i]);
+                this.out.p1(this.designKits[i]);
             }
             for (let i: number = 0; i < 5; i++) {
                 this.out.p1(this.designColors[i]);
@@ -5513,11 +5518,11 @@ export class Client extends GameShell {
         this.updateDesignModel = true;
 
         for (let i: number = 0; i < 7; i++) {
-            this.designIdentikits[i] = -1;
+            this.designKits[i] = -1;
 
             for (let j: number = 0; j < IdkType.count; j++) {
                 if (!IdkType.types[j].disable && IdkType.types[j].type === i + (this.designGender ? 0 : 7)) {
-                    this.designIdentikits[i] = j;
+                    this.designKits[i] = j;
                     break;
                 }
             }
