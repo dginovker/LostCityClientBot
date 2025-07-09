@@ -7,7 +7,7 @@ import OnDemandProvider from '#/io/OnDemandProvider.ts';
 import OnDemandRequest from '#/io/OnDemandRequest.ts';
 import Packet from '#/io/Packet.ts';
 import { downloadUrl } from '#/util/JsUtil';
-import { pako } from '#3rdparty/deps.js';
+import { gunzipSync, unzipSync } from '#3rdparty/deps.js';
 
 export default class OnDemand extends OnDemandProvider {
     modernized: boolean = true;
@@ -240,7 +240,7 @@ export default class OnDemand extends OnDemandProvider {
             return req;
         }
 
-        req.data = pako.inflate(req.data);
+        req.data = gunzipSync(req.data);
         return req;
     }
 
@@ -674,6 +674,35 @@ export default class OnDemand extends OnDemandProvider {
 
             this.stream = null;
             this.partAvailable = 0;
+        }
+    }
+
+    async unzip() {
+        if (!this.app.db) {
+            return;
+        }
+
+        try {
+            const zip = unzipSync(await downloadUrl('/ondemand.zip'));
+
+            for (let archive = 0; archive < 4; archive++) {
+                const count = this.versions[archive].length;
+
+                for (let file = 0; file < count; file++) {
+                    const data = zip[`${archive + 1}.${file}`];
+                    if (typeof data === 'undefined') {
+                        continue;
+                    }
+
+                    const existing = await this.app.db.read(archive + 1, file);
+
+                    if (!existing || !this.validate(existing, this.crcs[archive][file], this.versions[archive][file])) {
+                        await this.app.db.write(archive + 1, file, data);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(err);
         }
     }
 }
