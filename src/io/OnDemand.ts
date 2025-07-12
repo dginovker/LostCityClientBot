@@ -637,7 +637,7 @@ export default class OnDemand extends OnDemandProvider {
 
         try {
             if (this.stream === null) {
-                const now = Date.now();
+                const now = performance.now();
                 if (now - this.socketOpenTime < 5000) {
                     return;
                 }
