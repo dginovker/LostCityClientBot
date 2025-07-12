@@ -1,11 +1,10 @@
-import MobileKeyboard from '#3rdparty/MobileKeyboard.ts';
-
 import { canvas, canvas2d } from '#/graphics/Canvas.js';
 import Pix3D from '#/graphics/Pix3D.js';
 import PixMap from '#/graphics/PixMap.js';
 
 import { sleep } from '#/util/JsUtil.js';
 
+import MobileKeyboard from '#/client/MobileKeyboard.js';
 import { CanvasEnabledKeys, KeyCodes } from '#/client/KeyCodes.js';
 import InputTracking from '#/client/InputTracking.js';
 

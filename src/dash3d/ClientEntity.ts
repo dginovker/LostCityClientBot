@@ -1,6 +1,6 @@
 import SeqType, { PostanimMove } from '#/config/SeqType.js';
 
-import ModelSource from '#/dash3d/ModelSource.ts';
+import ModelSource from '#/dash3d/ModelSource.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 

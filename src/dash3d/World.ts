@@ -17,8 +17,8 @@ import Model from '#/dash3d/Model.js';
 import Packet from '#/io/Packet.js';
 
 import { Int32Array2d, Int32Array3d, Uint8Array3d } from '#/util/Arrays.js';
-import type ModelSource from '#/dash3d/ModelSource.ts';
-import type OnDemand from '#/io/OnDemand.ts';
+import type ModelSource from '#/dash3d/ModelSource.js';
+import type OnDemand from '#/io/OnDemand.js';
 
 // noinspection JSSuspiciousNameCombination,DuplicatedCode
 export default class World {

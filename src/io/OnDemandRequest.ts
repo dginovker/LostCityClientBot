@@ -1,4 +1,4 @@
-import DoublyLinkable from '#/datastruct/DoublyLinkable.ts';
+import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
 
 export default class OnDemandRequest extends DoublyLinkable {
     archive: number = 0;

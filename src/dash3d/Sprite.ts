@@ -1,4 +1,4 @@
-import type ModelSource from '#/dash3d/ModelSource.ts';
+import type ModelSource from '#/dash3d/ModelSource.js';
 
 export default class Sprite {
     // constructor

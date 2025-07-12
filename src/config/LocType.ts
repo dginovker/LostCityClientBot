@@ -11,7 +11,7 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
-import type OnDemand from '#/io/OnDemand.ts';
+import type OnDemand from '#/io/OnDemand.js';
 
 export default class LocType extends ConfigType {
     static ignoreCache: boolean = false;

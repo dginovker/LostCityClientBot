@@ -1,11 +1,11 @@
-import type { Client } from '#/client/Client.ts';
-import DoublyLinkList from '#/datastruct/DoublyLinkList.ts';
-import LinkList from '#/datastruct/LinkList.ts';
-import ClientStream from '#/io/ClientStream.ts';
-import type Jagfile from '#/io/Jagfile.ts';
-import OnDemandProvider from '#/io/OnDemandProvider.ts';
-import OnDemandRequest from '#/io/OnDemandRequest.ts';
-import Packet from '#/io/Packet.ts';
+import type { Client } from '#/client/Client.js';
+import DoublyLinkList from '#/datastruct/DoublyLinkList.js';
+import LinkList from '#/datastruct/LinkList.js';
+import ClientStream from '#/io/ClientStream.js';
+import type Jagfile from '#/io/Jagfile.js';
+import OnDemandProvider from '#/io/OnDemandProvider.js';
+import OnDemandRequest from '#/io/OnDemandRequest.js';
+import Packet from '#/io/Packet.js';
 import { downloadUrl } from '#/util/JsUtil';
 import { gunzipSync, unzipSync } from '#3rdparty/deps.js';
 

@@ -1,13 +1,13 @@
-import GameShell from '#/client/GameShell.ts';
+import GameShell from '#/client/GameShell.js';
 import Pix32 from '#/graphics/Pix32';
-import Pix2D from '#/graphics/Pix2D.ts';
-import Pix8 from '#/graphics/Pix8.ts';
-import PixFont from '#/graphics/PixFont.ts';
-import Database from '#/io/Database.ts';
-import Jagfile from '#/io/Jagfile.ts';
-import Packet from '#/io/Packet.ts';
-import { TypedArray1d, TypedArray2d } from '#/util/Arrays.ts';
-import { downloadUrl, sleep } from '#/util/JsUtil.ts';
+import Pix2D from '#/graphics/Pix2D.js';
+import Pix8 from '#/graphics/Pix8.js';
+import PixFont from '#/graphics/PixFont.js';
+import Database from '#/io/Database.js';
+import Jagfile from '#/io/Jagfile.js';
+import Packet from '#/io/Packet.js';
+import { TypedArray1d, TypedArray2d } from '#/util/Arrays.js';
+import { downloadUrl, sleep } from '#/util/JsUtil.js';
 
 export class MapView extends GameShell {
     static shouldDrawBorders: boolean = false;

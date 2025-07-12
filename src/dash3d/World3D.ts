@@ -19,7 +19,7 @@ import Pix3D from '#/graphics/Pix3D.js';
 import Model from '#/dash3d/Model.js';
 
 import { Int32Array3d, TypedArray1d, TypedArray2d, TypedArray3d, TypedArray4d } from '#/util/Arrays.js';
-import type ModelSource from '#/dash3d/ModelSource.ts';
+import type ModelSource from '#/dash3d/ModelSource.js';
 import type VertexNormal from '#/dash3d/VertexNormal';
 
 export default class World3D {

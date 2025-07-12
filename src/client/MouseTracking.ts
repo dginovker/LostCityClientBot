@@ -1,4 +1,4 @@
-import type { Client } from '#/client/Client.ts';
+import type { Client } from '#/client/Client.js';
 
 export default class MouseTracking {
     app: Client;

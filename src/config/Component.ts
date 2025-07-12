@@ -10,9 +10,9 @@ import JString from '#/datastruct/JString.js';
 import Pix32 from '#/graphics/Pix32.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
-import NpcType from '#/config/NpcType.ts';
-import ObjType from '#/config/ObjType.ts';
-import type ClientPlayer from '#/dash3d/ClientPlayer.ts';
+import NpcType from '#/config/NpcType.js';
+import ObjType from '#/config/ObjType.js';
+import type ClientPlayer from '#/dash3d/ClientPlayer.js';
 
 export const enum ComponentType {
     TYPE_LAYER = 0,

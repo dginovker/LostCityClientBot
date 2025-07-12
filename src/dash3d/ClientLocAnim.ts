@@ -1,8 +1,8 @@
-import LocType from '#/config/LocType.ts';
+import LocType from '#/config/LocType.js';
 import SeqType from '#/config/SeqType.js';
-import type Model from '#/dash3d/Model.ts';
+import type Model from '#/dash3d/Model.js';
 
-import ModelSource from '#/dash3d/ModelSource.ts';
+import ModelSource from '#/dash3d/ModelSource.js';
 
 export default class ClientLocAnim extends ModelSource {
     readonly index: number;

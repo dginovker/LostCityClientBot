@@ -1,7 +1,7 @@
 import SpotAnimType from '#/config/SpotAnimType.js';
-import Model from '#/dash3d/Model.ts';
+import Model from '#/dash3d/Model.js';
 
-import ModelSource from '#/dash3d/ModelSource.ts';
+import ModelSource from '#/dash3d/ModelSource.js';
 
 export default class MapSpotAnim extends ModelSource {
     readonly spotType: SpotAnimType;

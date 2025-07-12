@@ -2,7 +2,7 @@ import { playWave, setWaveVolume, stopMidi, setMidiVolume, playMidi } from '#3rd
 
 import GameShell from '#/client/GameShell.js';
 import InputTracking from '#/client/InputTracking.js';
-import { ClientCode } from '#/client/ClientCode.ts';
+import { ClientCode } from '#/client/ClientCode.js';
 
 import FloType from '#/config/FloType.js';
 import SeqType, { PostanimMove, PreanimMove, RestartMode } from '#/config/SeqType.js';
@@ -58,13 +58,13 @@ import Database from '#/io/Database.js';
 import Isaac from '#/io/Isaac.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
-import { ServerProt, ServerProtSizes } from '#/io/ServerProt.ts';
+import { ServerProt, ServerProtSizes } from '#/io/ServerProt.js';
 
 import WordFilter from '#/wordenc/WordFilter.js';
 import WordPack from '#/wordenc/WordPack.js';
 
 import Wave from '#/sound/Wave.js';
-import OnDemand from '#/io/OnDemand.ts';
+import OnDemand from '#/io/OnDemand.js';
 
 const enum Constants {
     CLIENT_VERSION = 244,

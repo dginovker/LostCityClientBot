@@ -1,6 +1,6 @@
 import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
 import type VertexNormal from '#/dash3d/VertexNormal.js';
-import type Model from '#/dash3d/Model.ts';
+import type Model from '#/dash3d/Model.js';
 
 export default class ModelSource extends DoublyLinkable {
     public vertexNormal: (VertexNormal | null)[] | null = null;

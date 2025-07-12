@@ -1,6 +1,6 @@
-import ObjType from '#/config/ObjType.ts';
-import type Model from '#/dash3d/Model.ts';
-import ModelSource from '#/dash3d/ModelSource.ts';
+import ObjType from '#/config/ObjType.js';
+import type Model from '#/dash3d/Model.js';
+import ModelSource from '#/dash3d/ModelSource.js';
 
 export default class ClientObj extends ModelSource {
     readonly index: number;

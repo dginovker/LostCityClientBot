@@ -4,10 +4,10 @@ import Pix2D from '#/graphics/Pix2D.js';
 import Pix3D from '#/graphics/Pix3D.js';
 
 import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
-import ModelSource from '#/dash3d/ModelSource.ts';
+import ModelSource from '#/dash3d/ModelSource.js';
 import VertexNormal from '#/dash3d/VertexNormal';
-import Packet from '#/io/Packet.ts';
-import type OnDemandProvider from '#/io/OnDemandProvider.ts';
+import Packet from '#/io/Packet.js';
+import type OnDemandProvider from '#/io/OnDemandProvider.js';
 
 class Metadata {
     data: Uint8Array | null = null;

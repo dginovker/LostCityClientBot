@@ -1,4 +1,4 @@
-import { canvas, canvas2d } from "#/graphics/Canvas";
+import { canvas, canvas2d } from '#/graphics/Canvas.js';
 
 // ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"£$%^&*()-_=+[{]};:\'@#~,<.>/?\\| 
 // ^ Allowed characters in client
