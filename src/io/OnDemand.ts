@@ -240,7 +240,7 @@ export default class OnDemand extends OnDemandProvider {
             return req;
         }
 
-        req.data = gunzipSync(req.data);
+        req.data = gunzipSync(req.data.slice(0, req.data.length - 2));
         return req;
     }
 
