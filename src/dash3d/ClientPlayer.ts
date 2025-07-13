@@ -376,7 +376,7 @@ export default class ClientPlayer extends ClientEntity {
                         loc.rotateY90();
                     }
 
-                    loc.translate(this.y - this.locOffsetY, super.x - this.locOffsetX, super.z - this.locOffsetZ);
+                    loc.translate(this.y - this.locOffsetY, this.x - this.locOffsetX, this.z - this.locOffsetZ);
                 }
             }
         }

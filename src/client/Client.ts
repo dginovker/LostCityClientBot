@@ -7449,7 +7449,7 @@ export class Client extends GameShell {
 
                 let model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
                 if (model) {
-                    this.appendLoc(start + this.loopCycle, -1, angle, layer, z, shape, this.currentLevel, x, end + this.loopCycle);
+                    this.appendLoc(end + 1, -1, 0, layer, z, 0, this.currentLevel, x, start + 1);
 
                     player.locStartCycle = start + this.loopCycle;
                     player.locStopCycle = end + this.loopCycle;
