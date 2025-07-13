@@ -1382,51 +1382,63 @@ export default class Model extends ModelSource {
 
         if (!mask || secondaryId === -1) {
             this.applyTransform(primaryId);
-        } else {
-            const primary: AnimFrame = AnimFrame.instances[primaryId];
-            const secondary: AnimFrame = AnimFrame.instances[secondaryId];
-            const skeleton: AnimBase | null = primary.base;
+            return;
+        }
 
-            Model.baseX = 0;
-            Model.baseY = 0;
-            Model.baseZ = 0;
+        const primary: AnimFrame = AnimFrame.get(primaryId);
+        if (!primary) {
+            return;
+        }
 
-            let counter: number = 0;
-            let maskBase: number = mask[counter++];
+        const secondary: AnimFrame = AnimFrame.get(secondaryId);
+        if (!secondary) {
+            this.applyTransform(primaryId);
+            return;
+        }
 
-            for (let i: number = 0; i < primary.length; i++) {
-                if (!primary.groups) {
-                    continue;
-                }
-                const base: number = primary.groups[i];
-                while (base > maskBase) {
-                    maskBase = mask[counter++];
-                }
+        const skeleton: AnimBase | null = primary.base;
 
-                if (skeleton && skeleton.types && primary.x && primary.y && primary.z && skeleton.labels && (base !== maskBase || skeleton.types[base] === 0)) {
-                    this.applyTransform2(primary.x[i], primary.y[i], primary.z[i], skeleton.labels[base], skeleton.types[base]);
-                }
+        Model.baseX = 0;
+        Model.baseY = 0;
+        Model.baseZ = 0;
+
+        let counter: number = 0;
+        let maskBase: number = mask[counter++];
+
+        for (let i: number = 0; i < primary.length; i++) {
+            if (!primary.groups) {
+                continue;
             }
 
-            Model.baseX = 0;
-            Model.baseY = 0;
-            Model.baseZ = 0;
+            const base: number = primary.groups[i];
+            while (base > maskBase) {
+                maskBase = mask[counter++];
+            }
 
-            counter = 0;
-            maskBase = mask[counter++];
+            if (skeleton && skeleton.types && primary.x && primary.y && primary.z && skeleton.labels && (base !== maskBase || skeleton.types[base] === 0)) {
+                this.applyTransform2(primary.x[i], primary.y[i], primary.z[i], skeleton.labels[base], skeleton.types[base]);
+            }
+        }
 
-            for (let i: number = 0; i < secondary.length; i++) {
-                if (!secondary.groups) {
-                    continue;
-                }
-                const base: number = secondary.groups[i];
-                while (base > maskBase) {
-                    maskBase = mask[counter++];
-                }
+        Model.baseX = 0;
+        Model.baseY = 0;
+        Model.baseZ = 0;
 
-                if (skeleton && skeleton.types && secondary.x && secondary.y && secondary.z && skeleton.labels && (base === maskBase || skeleton.types[base] === 0)) {
-                    this.applyTransform2(secondary.x[i], secondary.y[i], secondary.z[i], skeleton.labels[base], skeleton.types[base]);
-                }
+        counter = 0;
+        maskBase = mask[counter++];
+
+        for (let i: number = 0; i < secondary.length; i++) {
+            if (!secondary.groups) {
+                continue;
+            }
+
+            const base: number = secondary.groups[i];
+            while (base > maskBase) {
+                maskBase = mask[counter++];
+            }
+
+            if (skeleton && skeleton.types && secondary.x && secondary.y && secondary.z && skeleton.labels && (base === maskBase || skeleton.types[base] === 0)) {
+                this.applyTransform2(secondary.x[i], secondary.y[i], secondary.z[i], skeleton.labels[base], skeleton.types[base]);
             }
         }
     }
