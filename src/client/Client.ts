@@ -3110,8 +3110,12 @@ export class Client extends GameShell {
             for (let i: number = 0; i < Component.types.length; i++) {
                 if (Component.types[i] && Component.types[i].clientCode === 600) {
                     this.reportAbuseInterfaceId = this.viewportInterfaceId = Component.types[i].layer;
-                    return;
+                    break;
                 }
+            }
+
+            if (this.isMobile) {
+                MobileKeyboard.show();
             }
         }
     }
@@ -6331,7 +6335,7 @@ export class Client extends GameShell {
                 this.redrawChatback = true;
 
                 if (this.isMobile) {
-                    MobileKeyboard.draw();
+                    MobileKeyboard.show();
                 }
 
                 this.ptype = -1;
