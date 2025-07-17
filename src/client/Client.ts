@@ -2838,6 +2838,10 @@ export class Client extends GameShell {
             return;
         }
 
+        if (this.isMobile && this.chatbackInputOpen && this.insideChatPopupArea()) {
+            return;
+        }
+
         let button: number = this.mouseClickButton;
         if (this.spellSelected === 1 && this.mouseClickX >= 516 && this.mouseClickY >= 160 && this.mouseClickX <= 765 && this.mouseClickY <= 205) {
             button = 0;
