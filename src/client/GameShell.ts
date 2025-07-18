@@ -710,7 +710,7 @@ export default abstract class GameShell {
         );
     }
 
-    private insideChatPopupArea() {
+    protected insideChatPopupArea() {
         const chatInputAreaX1: number = 17;
         const chatInputAreaY1: number = 357;
         const chatInputAreaX2: number = chatInputAreaX1 + 479;

@@ -621,7 +621,7 @@ export class Client extends GameShell {
             AnimFrame.init(this.onDemand.getAnimCount());
             Model.init(this.onDemand.getFileCount(0), this.onDemand);
 
-            await this.onDemand.unzip();
+            await this.onDemand.prefetchAll();
 
             if (!Client.lowMemory) {
                 this.midiSong = 0; // scape_main
