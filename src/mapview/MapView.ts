@@ -391,7 +391,7 @@ export class MapView extends GameShell {
         }
     }
 
-    async refresh(): Promise<void> {
+    refresh() {
         this.redrawTimer = 0;
     }
 

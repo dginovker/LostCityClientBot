@@ -1025,7 +1025,7 @@ export class Client extends GameShell {
         this.dragCycles = 0;
     }
 
-    async refresh() {
+    refresh() {
         this.redrawFrame = true;
     }
 
