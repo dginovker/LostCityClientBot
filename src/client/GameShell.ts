@@ -61,6 +61,7 @@ export default abstract class GameShell {
     private nx: number = 0;
     private ny: number = 0;
     private dragging: boolean = false;
+    private panning: boolean = false;
 
     abstract getTitleScreenState(): number;
     abstract isChatBackInputOpen(): boolean;
@@ -394,10 +395,6 @@ export default abstract class GameShell {
     }
 
     private onpointerup(e: PointerEvent) {
-        if (e.clientX < 0 || e.clientY < 0) {
-            return;
-        }
-
         const { x, y } = this.getMousePos(e);
 
         if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
@@ -440,8 +437,9 @@ export default abstract class GameShell {
                 if (InputTracking.enabled) {
                     InputTracking.mouseReleased(0, e.pointerType);
                 }
-            } else if (this.startedInViewport && this.getViewportInterfaceId() === -1 && this.exceedsGrabThreshold(20)) {
+            } else if (this.panning) {
                 // ignore up events if the player was moving the camera in the viewport
+                this.panning = false;
 
                 // release all arrow keys
                 this.actionKey[1] = 0;
@@ -533,10 +531,6 @@ export default abstract class GameShell {
     }
 
     private onpointerleave(e: PointerEvent) {
-        if (e.clientX < 0 || e.clientY < 0) {
-            return;
-        }
-
         if (e.pointerType === 'mouse') {
             this.idleCycles = performance.now();
             this.mouseX = -1;
@@ -592,7 +586,8 @@ export default abstract class GameShell {
             } else if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && this.exceedsGrabThreshold(20)) {
                 MobileKeyboard.notifyTouchMove(x, y);
             } else if (this.startedInViewport && this.getViewportInterfaceId() === -1 && this.exceedsGrabThreshold(20)) {
-                // panning camera
+                // moving camera
+                this.panning = true;
 
                 // emulate arrow keys:
                 if (this.mx - this.nx > 0) {
