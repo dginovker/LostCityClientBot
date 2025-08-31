@@ -125,7 +125,15 @@ export default abstract class GameShell {
         canvas.onpointerleave = this.onpointerleave.bind(this);
         canvas.onpointermove = this.onpointermove.bind(this);
 
-        canvas.ontouchstart = this.ontouchstart.bind(this);
+        if (this.isTouchDevice) {
+            if ('ontouchstart' in window) {
+                canvas.ontouchstart = this.ontouchstart.bind(this);
+            } else {
+                // edge case: we can't control canvas touch action behavior to allow zooming
+                // device has a touch screen but browser does not expose touchstart
+                canvas.style.touchAction = 'none';
+            }
+        }
 
         // Preventing mouse events from bubbling up to the context menu in the browser for our canvas.
         // This may need to be hooked up to our own context menu in the future.
