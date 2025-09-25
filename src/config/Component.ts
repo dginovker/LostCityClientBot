@@ -76,6 +76,7 @@ export default class Component {
     colour: number = 0;
     activeColour: number = 0;
     overColour: number = 0;
+    activeOverColour: number = 0;
     modelType: number = 0;
     model: number = 0;
     graphic: Pix32 | null = null;
@@ -86,6 +87,7 @@ export default class Component {
     draggable: boolean = false;
     interactable: boolean = false;
     usable: boolean = false;
+    swappable: boolean = false;
     fill: boolean = false;
     center: boolean = false;
     shadowed: boolean = false;
@@ -182,6 +184,7 @@ export default class Component {
                 com.draggable = data.g1() === 1;
                 com.interactable = data.g1() === 1;
                 com.usable = data.g1() === 1;
+                com.swappable = data.g1() === 1;
                 com.marginX = data.g1();
                 com.marginY = data.g1();
 
@@ -236,6 +239,7 @@ export default class Component {
             if (com.type === ComponentType.TYPE_RECT || com.type === ComponentType.TYPE_TEXT) {
                 com.activeColour = data.g4();
                 com.overColour = data.g4();
+                com.activeOverColour = data.g4();
             }
 
             if (com.type === ComponentType.TYPE_GRAPHIC) {

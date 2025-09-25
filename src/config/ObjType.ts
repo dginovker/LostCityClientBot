@@ -260,7 +260,7 @@ export default class ObjType extends ConfigType {
         } else if (code === 113) {
             this.ambient = dat.g1b();
         } else if (code === 114) {
-            this.ambient = dat.g1b() * 5;
+            this.contrast = dat.g1b() * 5;
         }
     }
 

@@ -54,6 +54,7 @@ export default class LocType extends ConfigType {
     mirror: boolean = false;
     shadow: boolean = true;
     forcedecor: boolean = false;
+    breakroutefinding: boolean = false;
     op: (string | null)[] | null = null;
 
     static unpack(config: Jagfile): void {
@@ -110,6 +111,12 @@ export default class LocType extends ConfigType {
                 loc.active = true;
             }
         }
+
+        if (loc.breakroutefinding) {
+            loc.blockwalk = false;
+            loc.blockrange = false;
+        }
+
         return loc;
     }
 
@@ -202,6 +209,8 @@ export default class LocType extends ConfigType {
             this.offsetz = dat.g2b();
         } else if (code === 73) {
             this.forcedecor = true;
+        } else if (code === 74) {
+            this.breakroutefinding = true;
         }
     }
 
@@ -432,5 +441,6 @@ export default class LocType extends ConfigType {
         this.offsety = 0;
         this.offsetz = 0;
         this.forcedecor = false;
+        this.breakroutefinding = false;
     }
 }
