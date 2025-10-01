@@ -592,18 +592,22 @@ export default abstract class GameShell {
                 // emulate arrow keys:
                 if (this.mx - this.nx > 0) {
                     // right
+                    this.actionKey[1] = 0;
                     this.actionKey[2] = 1;
                 } else if (this.mx - this.nx < 0) {
                     // left
                     this.actionKey[1] = 1;
+                    this.actionKey[2] = 0;
                 }
 
                 if (this.my - this.ny > 0) {
                     // down
+                    this.actionKey[3] = 0;
                     this.actionKey[4] = 1;
                 } else if (this.my - this.ny < 0) {
                     // up
                     this.actionKey[3] = 1;
+                    this.actionKey[4] = 0;
                 }
             } else if (this.startedInTabArea || this.getViewportInterfaceId() !== -1) {
                 if (!this.dragging && this.exceedsGrabThreshold(5)) {
