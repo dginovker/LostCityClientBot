@@ -506,10 +506,12 @@ class NativeMobileKeyboard implements Keyboard {
         this.isAndroid = navigator.userAgent.includes('Android');
         // Create the virtual input field
         this.virtualInputElement = document.createElement('input');
-        this.virtualInputElement.setAttribute('type', 'password');
+        this.virtualInputElement.setAttribute('type', 'text');
         this.virtualInputElement.setAttribute('autofocus', 'autofocus');
         this.virtualInputElement.setAttribute('spellcheck', 'false');
         this.virtualInputElement.setAttribute('autocomplete', 'off');
+        this.virtualInputElement.setAttribute('autocorrect', 'off');
+        this.virtualInputElement.setAttribute('autocapitalize', 'off');
         this.virtualInputElement.setAttribute('style', 'position: fixed; top: 0px; left: 0px; width: 1px; height: 1px; opacity: 0;');
         if (this.isAndroid) {
             // Android uses `input` event for text entry rathern than `keydown` / `keyup`
