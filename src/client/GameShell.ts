@@ -453,7 +453,7 @@ export default abstract class GameShell {
                 if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
                     // show keyboard when tapping in an input area
                     MobileKeyboard.show();
-                } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.insideMobileInputArea()) {
+                } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
                     // hide keyboard when tapping outside of an input area
                     MobileKeyboard.hide();
                     this.refresh();
