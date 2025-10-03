@@ -783,8 +783,8 @@ export default class World {
     }
 
     spreadHeight(startZ: number, startX: number, endZ: number, endX: number) {
-        for (let z: number = startZ; z < startZ + endZ; z++) {
-            for (let x: number = startX; x < startX + endX; x++) {
+        for (let z: number = startZ; z <= startZ + endZ; z++) {
+            for (let x: number = startX; x <= startX + endX; x++) {
                 if (x >= 0 && x < this.maxTileX && z >= 0 && z < this.maxTileZ) {
                     this.shadow[0][x][z] = 127;
 

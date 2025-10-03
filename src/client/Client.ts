@@ -2156,7 +2156,7 @@ export class Client extends GameShell {
                     const data: Uint8Array | null = this.sceneMapLandData[i];
 
                     if (!data && this.sceneCenterZoneZ < 800) {
-                        world.spreadHeight(x, z, 64, 64);
+                        world.spreadHeight(z, x, 64, 64);
                     }
                 }
             }
