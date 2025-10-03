@@ -897,7 +897,7 @@ export class Client extends GameShell {
             await this.drawProgress(83, 'Unpacking textures');
 
             Pix3D.unpackTextures(jagTextures);
-            Pix3D.setBrightness(0.8);
+            Pix3D.initColourTable(0.8);
             Pix3D.initPool(20);
 
             await this.drawProgress(86, 'Unpacking config');
@@ -973,7 +973,7 @@ export class Client extends GameShell {
             for (let x: number = 0; x < 9; x++) {
                 const angle: number = x * 32 + 128 + 15;
                 const offset: number = angle * 3 + 600;
-                const sin: number = Pix3D.sin[angle];
+                const sin: number = Pix3D.sinTable[angle];
                 distance[x] = (offset * sin) >> 16;
             }
 
@@ -2113,7 +2113,7 @@ export class Client extends GameShell {
                 this.levelCollisionMap[level]?.reset();
             }
 
-            const world: World = new World(CollisionConstants.SIZE, CollisionConstants.SIZE, this.levelHeightmap!, this.levelTileFlags!);
+            const world: World = new World(CollisionConstants.SIZE, CollisionConstants.SIZE, this.levelHeightmap!, this.levelTileFlags!, this.levelShadowmap!);
             World.lowMemory = World3D.lowMemory;
 
             const maps: number = this.sceneMapLandData?.length ?? 0;
@@ -2982,8 +2982,8 @@ export class Client extends GameShell {
         y -= 75;
 
         const yaw: number = (this.orbitCameraYaw + this.macroMinimapAngle) & 0x7ff;
-        let sinYaw: number = Pix3D.sin[yaw];
-        let cosYaw: number = Pix3D.cos[yaw];
+        let sinYaw: number = Pix3D.sinTable[yaw];
+        let cosYaw: number = Pix3D.cosTable[yaw];
 
         sinYaw = (sinYaw * (this.macroMinimapZoom + 256)) >> 8;
         cosYaw = (cosYaw * (this.macroMinimapZoom + 256)) >> 8;
@@ -4763,11 +4763,11 @@ export class Client extends GameShell {
                 }
 
                 player.y = this.getHeightmapY(this.currentLevel, player.x, player.z);
-                this.scene?.addTemporary(this.currentLevel, player.x, player.y, player.z, player, id, player.yaw, 60, player.needsForwardDrawPadding);
+                this.scene?.changeLoc(this.currentLevel, player.x, player.y, player.z, player, id, player.yaw, 60, player.needsForwardDrawPadding);
             } else {
                 player.lowMemory = false;
                 player.y = this.getHeightmapY(this.currentLevel, player.x, player.z);
-                this.scene?.addTemporary2(this.currentLevel, player.x, player.y, player.z, player.minTileX, player.minTileZ, player.maxTileX, player.maxTileZ, player, id, player.yaw);
+                this.scene?.changeLoc2(this.currentLevel, player.x, player.y, player.z, player.minTileX, player.minTileZ, player.maxTileX, player.maxTileZ, player, id, player.yaw);
             }
         }
     }
@@ -4796,7 +4796,7 @@ export class Client extends GameShell {
                 this.tileLastOccupiedCycle[x][z] = this.sceneCycle;
             }
 
-            this.scene?.addTemporary(this.currentLevel, npc.x, this.getHeightmapY(this.currentLevel, npc.x, npc.z), npc.z, npc, typecode, npc.yaw, (npc.size - 1) * 64 + 60, npc.needsForwardDrawPadding);
+            this.scene?.changeLoc(this.currentLevel, npc.x, this.getHeightmapY(this.currentLevel, npc.x, npc.z), npc.z, npc, typecode, npc.yaw, (npc.size - 1) * 64 + 60, npc.needsForwardDrawPadding);
         }
     }
 
@@ -4827,7 +4827,7 @@ export class Client extends GameShell {
                 }
 
                 proj.update(this.sceneDelta);
-                this.scene?.addTemporary(this.currentLevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
+                this.scene?.changeLoc(this.currentLevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
             }
         }
     }
@@ -4842,7 +4842,7 @@ export class Client extends GameShell {
                 if (spot.seqComplete) {
                     spot.unlink();
                 } else {
-                    this.scene?.addTemporary(spot.spotLevel, spot.x, spot.y, spot.z, spot, -1, 0, 60, false);
+                    this.scene?.changeLoc(spot.spotLevel, spot.x, spot.y, spot.z, spot, -1, 0, 60, false);
                 }
             }
         }
@@ -4861,16 +4861,16 @@ export class Client extends GameShell {
         let tmp: number;
 
         if (invPitch !== 0) {
-            sin = Pix3D.sin[invPitch];
-            cos = Pix3D.cos[invPitch];
+            sin = Pix3D.sinTable[invPitch];
+            cos = Pix3D.cosTable[invPitch];
             tmp = (y * cos - distance * sin) >> 16;
             z = (y * sin + distance * cos) >> 16;
             y = tmp;
         }
 
         if (invYaw !== 0) {
-            sin = Pix3D.sin[invYaw];
-            cos = Pix3D.cos[invYaw];
+            sin = Pix3D.sinTable[invYaw];
+            cos = Pix3D.cosTable[invYaw];
             tmp = (z * sin + x * cos) >> 16;
             z = (z * cos - x * sin) >> 16;
             x = tmp;
@@ -5229,10 +5229,10 @@ export class Client extends GameShell {
         let dy: number = y - this.cameraY;
         let dz: number = z - this.cameraZ;
 
-        const sinPitch: number = Pix3D.sin[this.cameraPitch];
-        const cosPitch: number = Pix3D.cos[this.cameraPitch];
-        const sinYaw: number = Pix3D.sin[this.cameraYaw];
-        const cosYaw: number = Pix3D.cos[this.cameraYaw];
+        const sinPitch: number = Pix3D.sinTable[this.cameraPitch];
+        const cosPitch: number = Pix3D.cosTable[this.cameraPitch];
+        const sinYaw: number = Pix3D.sinTable[this.cameraYaw];
+        const cosYaw: number = Pix3D.cosTable[this.cameraYaw];
 
         let tmp: number = (dz * sinYaw + dx * cosYaw) >> 16;
         dz = (dz * cosYaw - dx * sinYaw) >> 16;
@@ -9584,8 +9584,8 @@ export class Client extends GameShell {
                 Pix3D.centerX = childX + ((child.width / 2) | 0);
                 Pix3D.centerY = childY + ((child.height / 2) | 0);
 
-                const eyeY: number = (Pix3D.sin[child.xan] * child.zoom) >> 16;
-                const eyeZ: number = (Pix3D.cos[child.xan] * child.zoom) >> 16;
+                const eyeY: number = (Pix3D.sinTable[child.xan] * child.zoom) >> 16;
+                const eyeZ: number = (Pix3D.cosTable[child.xan] * child.zoom) >> 16;
 
                 const active: boolean = this.executeInterfaceScript(child);
 
@@ -10198,13 +10198,13 @@ export class Client extends GameShell {
         const value: number = this.varps[id];
         if (clientcode === 1) {
             if (value === 1) {
-                Pix3D.setBrightness(0.9);
+                Pix3D.initColourTable(0.9);
             } else if (value === 2) {
-                Pix3D.setBrightness(0.8);
+                Pix3D.initColourTable(0.8);
             } else if (value === 3) {
-                Pix3D.setBrightness(0.7);
+                Pix3D.initColourTable(0.7);
             } else if (value === 4) {
-                Pix3D.setBrightness(0.6);
+                Pix3D.initColourTable(0.6);
             }
 
             ObjType.iconCache?.clear();
@@ -10925,8 +10925,8 @@ export class Client extends GameShell {
 
         const angle: number = (this.orbitCameraYaw + this.macroMinimapAngle) & 0x7ff;
 
-        let sinAngle: number = Pix3D.sin[angle];
-        let cosAngle: number = Pix3D.cos[angle];
+        let sinAngle: number = Pix3D.sinTable[angle];
+        let cosAngle: number = Pix3D.cosTable[angle];
 
         sinAngle = ((sinAngle * 256) / (this.macroMinimapZoom + 256)) | 0;
         cosAngle = ((cosAngle * 256) / (this.macroMinimapZoom + 256)) | 0;
@@ -10953,8 +10953,8 @@ export class Client extends GameShell {
 
         const angle: number = (this.orbitCameraYaw + this.macroMinimapAngle) & 0x7ff;
 
-        let sinAngle: number = Pix3D.sin[angle];
-        let cosAngle: number = Pix3D.cos[angle];
+        let sinAngle: number = Pix3D.sinTable[angle];
+        let cosAngle: number = Pix3D.cosTable[angle];
 
         sinAngle = ((sinAngle * 256) / (this.macroMinimapZoom + 256)) | 0;
         cosAngle = ((cosAngle * 256) / (this.macroMinimapZoom + 256)) | 0;

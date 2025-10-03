@@ -60,7 +60,7 @@ export default class World {
     }
 
     static interpolate(a: number, b: number, x: number, scale: number): number {
-        const f: number = (65536 - Pix3D.cos[((x * 1024) / scale) | 0]) >> 1;
+        const f: number = (65536 - Pix3D.cosTable[((x * 1024) / scale) | 0]) >> 1;
         return ((a * (65536 - f)) >> 16) + ((b * f) >> 16);
     }
 
@@ -313,13 +313,13 @@ export default class World {
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
     private readonly heightmap: Int32Array[][];
-    private readonly levelTileFlags: Uint8Array[][];
-    private readonly levelTileUnderlayIds: Uint8Array[][];
-    private readonly levelTileOverlayIds: Uint8Array[][];
-    private readonly levelTileOverlayShape: Uint8Array[][];
-    private readonly levelTileOverlayRotation: Uint8Array[][];
+    private readonly flags: Uint8Array[][];
+    private readonly underlayType: Uint8Array[][];
+    private readonly overlayType: Uint8Array[][];
+    private readonly overlayShape: Uint8Array[][];
+    private readonly overlayAngle: Uint8Array[][];
     private readonly shadow: Uint8Array[][];
-    private readonly levelLightmap: Int32Array[];
+    private readonly lightness: Int32Array[];
     private readonly blendChroma: Int32Array;
     private readonly blendSaturation: Int32Array;
     private readonly blendLightness: Int32Array;
@@ -331,16 +331,16 @@ export default class World {
         this.maxTileX = maxTileX;
         this.maxTileZ = maxTileZ;
         this.heightmap = levelHeightmap;
-        this.levelTileFlags = levelTileFlags;
+        this.flags = levelTileFlags;
 
-        this.levelTileUnderlayIds = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.levelTileOverlayIds = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.levelTileOverlayShape = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.levelTileOverlayRotation = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.underlayType = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.overlayType = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.overlayShape = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.overlayAngle = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
 
         this.occlusion = new Int32Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
         this.shadow = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
-        this.levelLightmap = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
+        this.lightness = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
 
         this.blendChroma = new Int32Array(maxTileZ);
         this.blendSaturation = new Int32Array(maxTileZ);
@@ -353,12 +353,12 @@ export default class World {
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
             for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
                 for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                    // solid
-                    if ((this.levelTileFlags[level][x][z] & 0x1) === 1) {
+                    // block_map_square
+                    if ((this.flags[level][x][z] & 0x1) === 1) {
                         let trueLevel: number = level;
 
-                        // bridge
-                        if ((this.levelTileFlags[1][x][z] & 0x2) === 2) {
+                        // linkbelow
+                        if ((this.flags[1][x][z] & 0x2) === 2) {
                             trueLevel--;
                         }
 
@@ -398,13 +398,16 @@ export default class World {
                 for (let x: number = 1; x < this.maxTileX - 1; x++) {
                     const dx: number = this.heightmap[level][x + 1][z] - this.heightmap[level][x - 1][z];
                     const dz: number = this.heightmap[level][x][z + 1] - this.heightmap[level][x][z - 1];
-                    const len: number = Math.sqrt(dx * dx + dz * dz + 65536) | 0;
+
+                    const len: number = Math.sqrt(dx * dx + 65536 + dz * dz) | 0;
                     const normalX: number = ((dx << 8) / len) | 0;
                     const normalY: number = (65536 / len) | 0;
                     const normalZ: number = ((dz << 8) / len) | 0;
+
                     const light: number = lightAmbient + (((lightX * normalX + lightY * normalY + lightZ * normalZ) / lightMagnitude) | 0);
                     const shade: number = (shademap[x - 1][z] >> 2) + (shademap[x + 1][z] >> 3) + (shademap[x][z - 1] >> 2) + (shademap[x][z + 1] >> 3) + (shademap[x][z] >> 1);
-                    this.levelLightmap[x][z] = light - shade;
+
+                    this.lightness[x][z] = light - shade;   
                 }
             }
 
@@ -419,10 +422,9 @@ export default class World {
             for (let x0: number = -5; x0 < this.maxTileX + 5; x0++) {
                 for (let z0: number = 0; z0 < this.maxTileZ; z0++) {
                     const x1: number = x0 + 5;
-                    let debugMag: number;
 
                     if (x1 >= 0 && x1 < this.maxTileX) {
-                        const underlayId: number = this.levelTileUnderlayIds[level][x1][z0] & 0xff;
+                        const underlayId: number = this.underlayType[level][x1][z0] & 0xff;
 
                         if (underlayId > 0) {
                             const flu: FloType = FloType.types[underlayId - 1];
@@ -430,13 +432,13 @@ export default class World {
                             this.blendSaturation[z0] += flu.saturation;
                             this.blendLightness[z0] += flu.lightness;
                             this.blendLuminance[z0] += flu.luminance;
-                            debugMag = this.blendMagnitude[z0]++;
+                            this.blendMagnitude[z0]++;
                         }
                     }
 
                     const x2: number = x0 - 5;
                     if (x2 >= 0 && x2 < this.maxTileX) {
-                        const underlayId: number = this.levelTileUnderlayIds[level][x2][z0] & 0xff;
+                        const underlayId: number = this.underlayType[level][x2][z0] & 0xff;
 
                         if (underlayId > 0) {
                             const flu: FloType = FloType.types[underlayId - 1];
@@ -444,7 +446,7 @@ export default class World {
                             this.blendSaturation[z0] -= flu.saturation;
                             this.blendLightness[z0] -= flu.lightness;
                             this.blendLuminance[z0] -= flu.luminance;
-                            debugMag = this.blendMagnitude[z0]--;
+                            this.blendMagnitude[z0]--;
                         }
                     }
                 }
@@ -475,9 +477,9 @@ export default class World {
                             magnitudeAccumulator -= this.blendMagnitude[dz2];
                         }
 
-                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMemory || ((this.levelTileFlags[level][x0][z0] & 0x10) === 0 && this.getDrawLevel(level, x0, z0) === World.levelBuilt))) {
-                            const underlayId: number = this.levelTileUnderlayIds[level][x0][z0] & 0xff;
-                            const overlayId: number = this.levelTileOverlayIds[level][x0][z0] & 0xff;
+                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMemory || ((this.flags[level][x0][z0] & 0x10) === 0 && this.getDrawLevel(level, x0, z0) === World.levelBuilt))) {
+                            const underlayId: number = this.underlayType[level][x0][z0] & 0xff;
+                            const overlayId: number = this.overlayType[level][x0][z0] & 0xff;
 
                             if (underlayId > 0 || overlayId > 0) {
                                 const heightSW: number = this.heightmap[level][x0][z0];
@@ -485,10 +487,10 @@ export default class World {
                                 const heightNE: number = this.heightmap[level][x0 + 1][z0 + 1];
                                 const heightNW: number = this.heightmap[level][x0][z0 + 1];
 
-                                const lightSW: number = this.levelLightmap[x0][z0];
-                                const lightSE: number = this.levelLightmap[x0 + 1][z0];
-                                const lightNE: number = this.levelLightmap[x0 + 1][z0 + 1];
-                                const lightNW: number = this.levelLightmap[x0][z0 + 1];
+                                const lightSW: number = this.lightness[x0][z0];
+                                const lightSE: number = this.lightness[x0 + 1][z0];
+                                const lightNE: number = this.lightness[x0 + 1][z0 + 1];
+                                const lightNW: number = this.lightness[x0][z0 + 1];
 
                                 let baseColor: number = -1;
                                 let tintColor: number = -1;
@@ -498,18 +500,21 @@ export default class World {
                                     const saturation: number = (saturationAccumulator / magnitudeAccumulator) | 0;
                                     let lightness: number = (lightnessAccumulator / magnitudeAccumulator) | 0;
                                     baseColor = this.hsl24to16(hue, saturation, lightness);
+
                                     const randomHue: number = (hue + World.randomHueOffset) & 0xff;
+
                                     lightness += World.randomLightnessOffset;
                                     if (lightness < 0) {
                                         lightness = 0;
                                     } else if (lightness > 255) {
                                         lightness = 255;
                                     }
+
                                     tintColor = this.hsl24to16(randomHue, saturation, lightness);
                                 }
 
                                 if (level > 0) {
-                                    let occludes: boolean = underlayId !== 0 || this.levelTileOverlayShape[level][x0][z0] === OverlayShape.PLAIN;
+                                    let occludes: boolean = underlayId !== 0 || this.overlayShape[level][x0][z0] === OverlayShape.PLAIN;
 
                                     if (overlayId > 0 && !FloType.types[overlayId - 1].occlude) {
                                         occludes = false;
@@ -523,7 +528,7 @@ export default class World {
 
                                 let shadeColor: number = 0;
                                 if (baseColor !== -1) {
-                                    shadeColor = Pix3D.hslPal[World.mulHSL(tintColor, 96)];
+                                    shadeColor = Pix3D.colourTable[World.mulHSL(tintColor, 96)];
                                 }
 
                                 if (overlayId === 0) {
@@ -550,15 +555,15 @@ export default class World {
                                         Colors.BLACK
                                     );
                                 } else {
-                                    const shape: number = this.levelTileOverlayShape[level][x0][z0] + 1;
-                                    const rotation: number = this.levelTileOverlayRotation[level][x0][z0];
+                                    const shape: number = this.overlayShape[level][x0][z0] + 1;
+                                    const rotation: number = this.overlayAngle[level][x0][z0];
                                     const flo: FloType = FloType.types[overlayId - 1];
                                     let textureId: number = flo.texture;
                                     let hsl: number;
                                     let rgb: number;
 
                                     if (textureId >= 0) {
-                                        rgb = Pix3D.getAverageTextureRGB(textureId);
+                                        rgb = Pix3D.getAverageTextureRgb(textureId);
                                         hsl = -1;
                                     } else if (flo.rgb === Colors.MAGENTA) {
                                         rgb = 0;
@@ -566,7 +571,7 @@ export default class World {
                                         textureId = -1;
                                     } else {
                                         hsl = this.hsl24to16(flo.hue, flo.saturation, flo.lightness);
-                                        rgb = Pix3D.hslPal[this.adjustLightness(flo.hsl, 96)];
+                                        rgb = Pix3D.colourTable[this.adjustLightness(flo.hsl, 96)];
                                     }
 
                                     scene?.setTile(
@@ -611,8 +616,8 @@ export default class World {
 
         for (let x: number = 0; x < this.maxTileX; x++) {
             for (let z: number = 0; z < this.maxTileZ; z++) {
-                if ((this.levelTileFlags[1][x][z] & 0x2) === 2) {
-                    scene?.setBridge(x, z);
+                if ((this.flags[1][x][z] & 0x2) === 2) {
+                    scene?.setLinkBelow(x, z);
                 }
             }
         }
@@ -780,25 +785,25 @@ export default class World {
     spreadHeight(startZ: number, startX: number, endZ: number, endX: number) {
         for (let z: number = startZ; z < startZ + endZ; z++) {
             for (let x: number = startX; x < startX + endX; x++) {
-				if (x >= 0 && x < this.maxTileX && z >= 0 && z < this.maxTileZ) {
-					this.shadow[0][x][z] = 127;
+                if (x >= 0 && x < this.maxTileX && z >= 0 && z < this.maxTileZ) {
+                    this.shadow[0][x][z] = 127;
 
-					if (startX == x && x > 0) {
-						this.heightmap[0][x][z] = this.heightmap[0][x - 1][z];
-					}
+                    if (startX == x && x > 0) {
+                        this.heightmap[0][x][z] = this.heightmap[0][x - 1][z];
+                    }
 
-					if (startX + endX == x && x < this.maxTileX - 1) {
-						this.heightmap[0][x][z] = this.heightmap[0][x + 1][z];
-					}
+                    if (startX + endX == x && x < this.maxTileX - 1) {
+                        this.heightmap[0][x][z] = this.heightmap[0][x + 1][z];
+                    }
 
-					if (startZ == z && z > 0) {
-						this.heightmap[0][x][z] = this.heightmap[0][x][z - 1];
-					}
+                    if (startZ == z && z > 0) {
+                        this.heightmap[0][x][z] = this.heightmap[0][x][z - 1];
+                    }
 
-					if (startZ + endZ == z && z < this.maxTileZ - 1) {
-						this.heightmap[0][x][z] = this.heightmap[0][x][z + 1];
-					}
-				}
+                    if (startZ + endZ == z && z < this.maxTileZ - 1) {
+                        this.heightmap[0][x][z] = this.heightmap[0][x][z + 1];
+                    }
+                }
             }
         }
     }
@@ -814,7 +819,8 @@ export default class World {
                     let opcode: number;
 
                     if (stx >= 0 && stx < CollisionConstants.SIZE && stz >= 0 && stz < CollisionConstants.SIZE) {
-                        this.levelTileFlags[level][stx][stz] = 0;
+                        this.flags[level][stx][stz] = 0;
+
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             opcode = buf.g1();
@@ -841,13 +847,13 @@ export default class World {
                             }
 
                             if (opcode <= 49) {
-                                this.levelTileOverlayIds[level][stx][stz] = buf.g1b();
-                                this.levelTileOverlayShape[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
-                                this.levelTileOverlayRotation[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
+                                this.overlayType[level][stx][stz] = buf.g1b();
+                                this.overlayShape[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
+                                this.overlayAngle[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
                             } else if (opcode <= 81) {
-                                this.levelTileFlags[level][stx][stz] = ((opcode - 49) << 24) >> 24;
+                                this.flags[level][stx][stz] = ((opcode - 49) << 24) >> 24;
                             } else {
-                                this.levelTileUnderlayIds[level][stx][stz] = ((opcode - 81) << 24) >> 24;
+                                this.underlayType[level][stx][stz] = ((opcode - 81) << 24) >> 24;
                             }
                         }
                     } else {
@@ -987,7 +993,7 @@ export default class World {
 
                 if (stx > 0 && stz > 0 && stx < CollisionConstants.SIZE - 1 && stz < CollisionConstants.SIZE - 1) {
                     let currentLevel: number = level;
-                    if ((this.levelTileFlags[1][stx][stz] & 0x2) === 2) {
+                    if ((this.flags[1][stx][stz] & 0x2) === 2) {
                         currentLevel = level - 1;
                     }
 
@@ -1004,7 +1010,7 @@ export default class World {
 
     private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, collision: CollisionMap | null, locId: number, shape: number, angle: number): void {
         if (World.lowMemory) {
-            if ((this.levelTileFlags[level][x][z] & 0x10) !== 0) {
+            if ((this.flags[level][x][z] & 0x10) !== 0) {
                 return;
             }
 
@@ -1349,8 +1355,8 @@ export default class World {
     }
 
     private getDrawLevel(level: number, stx: number, stz: number): number {
-        if ((this.levelTileFlags[level][stx][stz] & 0x8) === 0) {
-            return level <= 0 || (this.levelTileFlags[1][stx][stz] & 0x2) === 0 ? level : level - 1;
+        if ((this.flags[level][stx][stz] & 0x8) === 0) {
+            return level <= 0 || (this.flags[1][stx][stz] & 0x2) === 0 ? level : level - 1;
         }
 
         return 0;

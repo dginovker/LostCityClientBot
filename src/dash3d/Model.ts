@@ -1524,24 +1524,24 @@ export default class Model extends ModelSource {
                         let cos: number;
 
                         if (roll !== 0) {
-                            sin = Pix3D.sin[roll];
-                            cos = Pix3D.cos[roll];
+                            sin = Pix3D.sinTable[roll];
+                            cos = Pix3D.cosTable[roll];
                             const x_: number = (this.vertexY![v] * sin + this.vertexX![v] * cos) >> 16;
                             this.vertexY![v] = (this.vertexY![v] * cos - this.vertexX![v] * sin) >> 16;
                             this.vertexX![v] = x_;
                         }
 
                         if (pitch !== 0) {
-                            sin = Pix3D.sin[pitch];
-                            cos = Pix3D.cos[pitch];
+                            sin = Pix3D.sinTable[pitch];
+                            cos = Pix3D.cosTable[pitch];
                             const y_: number = (this.vertexY![v] * cos - this.vertexZ![v] * sin) >> 16;
                             this.vertexZ![v] = (this.vertexY![v] * sin + this.vertexZ![v] * cos) >> 16;
                             this.vertexY![v] = y_;
                         }
 
                         if (yaw !== 0) {
-                            sin = Pix3D.sin[yaw];
-                            cos = Pix3D.cos[yaw];
+                            sin = Pix3D.sinTable[yaw];
+                            cos = Pix3D.cosTable[yaw];
                             const x_: number = (this.vertexZ![v] * sin + this.vertexX![v] * cos) >> 16;
                             this.vertexZ![v] = (this.vertexZ![v] * cos - this.vertexX![v] * sin) >> 16;
                             this.vertexX![v] = x_;
@@ -1614,8 +1614,8 @@ export default class Model extends ModelSource {
     }
 
     rotateX(angle: number): void {
-        const sin: number = Pix3D.sin[angle];
-        const cos: number = Pix3D.cos[angle];
+        const sin: number = Pix3D.sinTable[angle];
+        const cos: number = Pix3D.cosTable[angle];
 
         for (let v: number = 0; v < this.vertexCount; v++) {
             const tmp: number = (this.vertexY![v] * cos - this.vertexZ![v] * sin) >> 16;
@@ -1857,17 +1857,17 @@ export default class Model extends ModelSource {
 
     // this function is NOT near-clipped (helps with performance) so be careful how you use it!
     drawSimple(pitch: number, yaw: number, roll: number, eyePitch: number, eyeX: number, eyeY: number, eyeZ: number): void {
-        const sinPitch: number = Pix3D.sin[pitch];
-        const cosPitch: number = Pix3D.cos[pitch];
+        const sinPitch: number = Pix3D.sinTable[pitch];
+        const cosPitch: number = Pix3D.cosTable[pitch];
 
-        const sinYaw: number = Pix3D.sin[yaw];
-        const cosYaw: number = Pix3D.cos[yaw];
+        const sinYaw: number = Pix3D.sinTable[yaw];
+        const cosYaw: number = Pix3D.cosTable[yaw];
 
-        const sinRoll: number = Pix3D.sin[roll];
-        const cosRoll: number = Pix3D.cos[roll];
+        const sinRoll: number = Pix3D.sinTable[roll];
+        const cosRoll: number = Pix3D.cosTable[roll];
 
-        const sinEyePitch: number = Pix3D.sin[eyePitch];
-        const cosEyePitch: number = Pix3D.cos[eyePitch];
+        const sinEyePitch: number = Pix3D.sinTable[eyePitch];
+        const cosEyePitch: number = Pix3D.cosTable[eyePitch];
 
         const midZ: number = (eyeY * sinEyePitch + eyeZ * cosEyePitch) >> 16;
 
@@ -2004,8 +2004,8 @@ export default class Model extends ModelSource {
         let sinYaw: number = 0;
         let cosYaw: number = 0;
         if (yaw !== 0) {
-            sinYaw = Pix3D.sin[yaw];
-            cosYaw = Pix3D.cos[yaw];
+            sinYaw = Pix3D.sinTable[yaw];
+            cosYaw = Pix3D.cosTable[yaw];
         }
 
         for (let v: number = 0; v < this.vertexCount; v++) {
@@ -2347,11 +2347,11 @@ export default class Model extends ModelSource {
         }
 
         if (wireframe && Model.vertexScreenX && Model.vertexScreenY && this.faceColourA && this.faceColourB && this.faceColourC) {
-            Pix3D.drawLine(Model.vertexScreenX[a], Model.vertexScreenY[a], Model.vertexScreenX[b], Model.vertexScreenY[b], Pix3D.hslPal[this.faceColourA[face]]);
-            Pix3D.drawLine(Model.vertexScreenX[b], Model.vertexScreenY[b], Model.vertexScreenX[c], Model.vertexScreenY[c], Pix3D.hslPal[this.faceColourB[face]]);
-            Pix3D.drawLine(Model.vertexScreenX[c], Model.vertexScreenY[c], Model.vertexScreenX[a], Model.vertexScreenY[a], Pix3D.hslPal[this.faceColourC[face]]);
+            Pix3D.drawLine(Model.vertexScreenX[a], Model.vertexScreenY[a], Model.vertexScreenX[b], Model.vertexScreenY[b], Pix3D.colourTable[this.faceColourA[face]]);
+            Pix3D.drawLine(Model.vertexScreenX[b], Model.vertexScreenY[b], Model.vertexScreenX[c], Model.vertexScreenY[c], Pix3D.colourTable[this.faceColourB[face]]);
+            Pix3D.drawLine(Model.vertexScreenX[c], Model.vertexScreenY[c], Model.vertexScreenX[a], Model.vertexScreenY[a], Pix3D.colourTable[this.faceColourC[face]]);
         } else if (type === 0 && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY) {
-            Pix3D.fillGouraudTriangle(
+            Pix3D.gouraudTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
                 Model.vertexScreenX[c],
@@ -2363,13 +2363,13 @@ export default class Model extends ModelSource {
                 this.faceColourC[face]
             );
         } else if (type === 1 && this.faceColourA && Model.vertexScreenX && Model.vertexScreenY) {
-            Pix3D.fillTriangle(Model.vertexScreenX[a], Model.vertexScreenX[b], Model.vertexScreenX[c], Model.vertexScreenY[a], Model.vertexScreenY[b], Model.vertexScreenY[c], Pix3D.hslPal[this.faceColourA[face]]);
+            Pix3D.flatTriangle(Model.vertexScreenX[a], Model.vertexScreenX[b], Model.vertexScreenX[c], Model.vertexScreenY[a], Model.vertexScreenY[b], Model.vertexScreenY[c], Pix3D.colourTable[this.faceColourA[face]]);
         } else if (type === 2 && this.faceInfo && this.faceColour && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
             const texturedFace: number = this.faceInfo[face] >> 2;
             const tA: number = this.texturedVertexA![texturedFace];
             const tB: number = this.texturedVertexB![texturedFace];
             const tC: number = this.texturedVertexC![texturedFace];
-            Pix3D.fillTexturedTriangle(
+            Pix3D.textureTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
                 Model.vertexScreenX[c],
@@ -2395,7 +2395,7 @@ export default class Model extends ModelSource {
             const tA: number = this.texturedVertexA![texturedFace];
             const tB: number = this.texturedVertexB![texturedFace];
             const tC: number = this.texturedVertexC![texturedFace];
-            Pix3D.fillTexturedTriangle(
+            Pix3D.textureTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
                 Model.vertexScreenX[c],
@@ -2444,14 +2444,14 @@ export default class Model extends ModelSource {
                 const colorA: number = this.faceColourA[face];
 
                 if (zC >= 50 && this.faceColourC) {
-                    const scalar: number = (50 - zA) * Pix3D.reciprocal16[zC - zA];
+                    const scalar: number = (50 - zA) * Pix3D.divTable2[zC - zA];
                     Model.clippedX[elements] = centerX + ((((xA + (((Model.vertexViewSpaceX[c] - xA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yA + (((Model.vertexViewSpaceY[c] - yA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorA + (((this.faceColourC[face] - colorA) * scalar) >> 16);
                 }
 
                 if (zB >= 50 && this.faceColourB) {
-                    const scalar: number = (50 - zA) * Pix3D.reciprocal16[zB - zA];
+                    const scalar: number = (50 - zA) * Pix3D.divTable2[zB - zA];
                     Model.clippedX[elements] = centerX + ((((xA + (((Model.vertexViewSpaceX[b] - xA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yA + (((Model.vertexViewSpaceY[b] - yA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorA + (((this.faceColourB[face] - colorA) * scalar) >> 16);
@@ -2468,14 +2468,14 @@ export default class Model extends ModelSource {
                 const colorB: number = this.faceColourB[face];
 
                 if (zA >= 50 && this.faceColourA) {
-                    const scalar: number = (50 - zB) * Pix3D.reciprocal16[zA - zB];
+                    const scalar: number = (50 - zB) * Pix3D.divTable2[zA - zB];
                     Model.clippedX[elements] = centerX + ((((xB + (((Model.vertexViewSpaceX[a] - xB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yB + (((Model.vertexViewSpaceY[a] - yB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorB + (((this.faceColourA[face] - colorB) * scalar) >> 16);
                 }
 
                 if (zC >= 50 && this.faceColourC) {
-                    const scalar: number = (50 - zB) * Pix3D.reciprocal16[zC - zB];
+                    const scalar: number = (50 - zB) * Pix3D.divTable2[zC - zB];
                     Model.clippedX[elements] = centerX + ((((xB + (((Model.vertexViewSpaceX[c] - xB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yB + (((Model.vertexViewSpaceY[c] - yB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorB + (((this.faceColourC[face] - colorB) * scalar) >> 16);
@@ -2492,14 +2492,14 @@ export default class Model extends ModelSource {
                 const colorC: number = this.faceColourC[face];
 
                 if (zB >= 50 && this.faceColourB) {
-                    const scalar: number = (50 - zC) * Pix3D.reciprocal16[zB - zC];
+                    const scalar: number = (50 - zC) * Pix3D.divTable2[zB - zC];
                     Model.clippedX[elements] = centerX + ((((xC + (((Model.vertexViewSpaceX[b] - xC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yC + (((Model.vertexViewSpaceY[b] - yC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorC + (((this.faceColourB[face] - colorC) * scalar) >> 16);
                 }
 
                 if (zA >= 50 && this.faceColourA) {
-                    const scalar: number = (50 - zC) * Pix3D.reciprocal16[zA - zC];
+                    const scalar: number = (50 - zC) * Pix3D.divTable2[zA - zC];
                     Model.clippedX[elements] = centerX + ((((xC + (((Model.vertexViewSpaceX[a] - xC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yC + (((Model.vertexViewSpaceY[a] - yC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedColour[elements++] = colorC + (((this.faceColourA[face] - colorC) * scalar) >> 16);
@@ -2537,15 +2537,15 @@ export default class Model extends ModelSource {
                 Pix3D.drawLine(x1, x2, y1, y2, Model.clippedColour[1]);
                 Pix3D.drawLine(x2, x0, y2, y0, Model.clippedColour[2]);
             } else if (type === 0) {
-                Pix3D.fillGouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
+                Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
             } else if (type === 1 && this.faceColourA) {
-                Pix3D.fillTriangle(x0, x1, x2, y0, y1, y2, Pix3D.hslPal[this.faceColourA[face]]);
+                Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, Pix3D.colourTable[this.faceColourA[face]]);
             } else if (type === 2 && this.faceInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
                 const texturedFace: number = this.faceInfo[face] >> 2;
                 const tA: number = this.texturedVertexA![texturedFace];
                 const tB: number = this.texturedVertexB![texturedFace];
                 const tC: number = this.texturedVertexC![texturedFace];
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x1,
                     x2,
@@ -2571,7 +2571,7 @@ export default class Model extends ModelSource {
                 const tA: number = this.texturedVertexA![texturedFace];
                 const tB: number = this.texturedVertexB![texturedFace];
                 const tC: number = this.texturedVertexC![texturedFace];
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x1,
                     x2,
@@ -2611,20 +2611,20 @@ export default class Model extends ModelSource {
                 Pix3D.drawLine(x2, Model.clippedX[3], y2, Model.clippedY[3], Model.clippedColour[2]);
                 Pix3D.drawLine(Model.clippedX[3], x0, Model.clippedY[3], y0, Model.clippedColour[3]);
             } else if (type === 0) {
-                Pix3D.fillGouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
-                Pix3D.fillGouraudTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], Model.clippedColour[0], Model.clippedColour[2], Model.clippedColour[3]);
+                Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
+                Pix3D.gouraudTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], Model.clippedColour[0], Model.clippedColour[2], Model.clippedColour[3]);
             } else if (type === 1) {
                 if (this.faceColourA) {
-                    const colorA: number = Pix3D.hslPal[this.faceColourA[face]];
-                    Pix3D.fillTriangle(x0, x1, x2, y0, y1, y2, colorA);
-                    Pix3D.fillTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], colorA);
+                    const colorA: number = Pix3D.colourTable[this.faceColourA[face]];
+                    Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, colorA);
+                    Pix3D.flatTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], colorA);
                 }
             } else if (type === 2 && this.faceInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
                 const texturedFace: number = this.faceInfo[face] >> 2;
                 const tA: number = this.texturedVertexA![texturedFace];
                 const tB: number = this.texturedVertexB![texturedFace];
                 const tC: number = this.texturedVertexC![texturedFace];
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x1,
                     x2,
@@ -2645,7 +2645,7 @@ export default class Model extends ModelSource {
                     Model.vertexViewSpaceZ[tC],
                     this.faceColour[face]
                 );
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x2,
                     Model.clippedX[3],
@@ -2671,7 +2671,7 @@ export default class Model extends ModelSource {
                 const tA: number = this.texturedVertexA![texturedFace];
                 const tB: number = this.texturedVertexB![texturedFace];
                 const tC: number = this.texturedVertexC![texturedFace];
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x1,
                     x2,
@@ -2692,7 +2692,7 @@ export default class Model extends ModelSource {
                     Model.vertexViewSpaceZ[tC],
                     this.faceColour[face]
                 );
-                Pix3D.fillTexturedTriangle(
+                Pix3D.textureTriangle(
                     x0,
                     x2,
                     Model.clippedX[3],

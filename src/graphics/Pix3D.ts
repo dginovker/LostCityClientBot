@@ -8,11 +8,11 @@ import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
 export default class Pix3D extends Pix2D {
     static lowMemory: boolean = false;
 
-    static reciprocal15: Int32Array = new Int32Array(512);
-    static reciprocal16: Int32Array = new Int32Array(2048);
-    static sin: Int32Array = new Int32Array(2048);
-    static cos: Int32Array = new Int32Array(2048);
-    static hslPal: Int32Array = new Int32Array(65536);
+    static divTable: Int32Array = new Int32Array(512);
+    static divTable2: Int32Array = new Int32Array(2048);
+    static sinTable: Int32Array = new Int32Array(2048);
+    static cosTable: Int32Array = new Int32Array(2048);
+    static colourTable: Int32Array = new Int32Array(65536);
 
     static textures: (Pix8 | null)[] = new TypedArray1d(50, null);
     static textureCount: number = 0;
@@ -34,22 +34,22 @@ export default class Pix3D extends Pix2D {
 
     private static opaque: boolean = false;
     private static textureTranslucent: boolean[] = new TypedArray1d(50, false);
-    private static averageTextureRGB: Int32Array = new Int32Array(50);
+    private static averageTextureRgb: Int32Array = new Int32Array(50);
 
     static {
         for (let i: number = 1; i < 512; i++) {
-            this.reciprocal15[i] = (32768 / i) | 0;
+            this.divTable[i] = (32768 / i) | 0;
         }
 
         for (let i: number = 1; i < 2048; i++) {
-            this.reciprocal16[i] = (65536 / i) | 0;
+            this.divTable2[i] = (65536 / i) | 0;
         }
 
         for (let i: number = 0; i < 2048; i++) {
             // angular frequency: 2 * pi / 2048 = 0.0030679615757712823
             // * 65536 = maximum amplitude
-            this.sin[i] = (Math.sin(i * 0.0030679615757712823) * 65536.0) | 0;
-            this.cos[i] = (Math.cos(i * 0.0030679615757712823) * 65536.0) | 0;
+            this.sinTable[i] = (Math.sin(i * 0.0030679615757712823) * 65536.0) | 0;
+            this.cosTable[i] = (Math.cos(i * 0.0030679615757712823) * 65536.0) | 0;
         }
     }
 
@@ -94,9 +94,9 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    static getAverageTextureRGB(id: number): number {
-        if (this.averageTextureRGB[id] !== 0) {
-            return this.averageTextureRGB[id];
+    static getAverageTextureRgb(id: number): number {
+        if (this.averageTextureRgb[id] !== 0) {
+            return this.averageTextureRgb[id];
         }
 
         const palette: Int32Array | null = this.texPal[id];
@@ -115,15 +115,15 @@ export default class Pix3D extends Pix2D {
         }
 
         let rgb: number = (((r / length) | 0) << 16) + (((g / length) | 0) << 8) + ((b / length) | 0);
-        rgb = this.setGamma(rgb, 1.4);
+        rgb = this.gammaCorrect(rgb, 1.4);
         if (rgb === 0) {
             rgb = 1;
         }
-        this.averageTextureRGB[id] = rgb;
+        this.averageTextureRgb[id] = rgb;
         return rgb;
     }
 
-    static setBrightness(brightness: number): void {
+    static initColourTable(brightness: number): void {
         const randomBrightness: number = brightness + Math.random() * 0.03 - 0.015;
         let offset: number = 0;
         for (let y: number = 0; y < 512; y++) {
@@ -182,7 +182,7 @@ export default class Pix3D extends Pix2D {
                 const intG: number = (g * 256.0) | 0;
                 const intB: number = (b * 256.0) | 0;
                 const rgb: number = (intR << 16) + (intG << 8) + intB;
-                this.hslPal[offset++] = this.setGamma(rgb, randomBrightness);
+                this.colourTable[offset++] = this.gammaCorrect(rgb, randomBrightness);
             }
         }
         for (let id: number = 0; id < 50; id++) {
@@ -197,7 +197,7 @@ export default class Pix3D extends Pix2D {
                 if (!texturePalette) {
                     continue;
                 }
-                texturePalette[i] = this.setGamma(palette[i], randomBrightness);
+                texturePalette[i] = this.gammaCorrect(palette[i], randomBrightness);
             }
         }
 
@@ -206,7 +206,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    private static setGamma(rgb: number, gamma: number): number {
+    private static gammaCorrect(rgb: number, gamma: number): number {
         const r: number = (rgb >> 16) / 256.0;
         const g: number = ((rgb >> 8) & 0xff) / 256.0;
         const b: number = (rgb & 0xff) / 256.0;
@@ -223,16 +223,97 @@ export default class Pix3D extends Pix2D {
         if (this.texelPool) {
             return;
         }
+
         this.poolSize = size;
+
         if (this.lowMemory) {
             this.texelPool = new Int32Array2d(size, 16384);
         } else {
             this.texelPool = new Int32Array2d(size, 65536);
         }
+
         this.activeTexels.fill(null);
     }
 
-    static fillGouraudTriangle(xA: number, xB: number, xC: number, yA: number, yB: number, yC: number, colorA: number, colorB: number, colorC: number): void {
+    static pushTexture(id: number): void {
+        if (this.activeTexels[id] && this.texelPool) {
+            this.texelPool[this.poolSize++] = this.activeTexels[id];
+            this.activeTexels[id] = null;
+        }
+    }
+
+    private static getTexels(id: number): Int32Array | null {
+        this.textureCycle[id] = this.cycle++;
+        if (this.activeTexels[id]) {
+            return this.activeTexels[id];
+        }
+
+        let texels: Int32Array | null;
+        if (this.poolSize > 0 && this.texelPool) {
+            texels = this.texelPool[--this.poolSize];
+            this.texelPool[this.poolSize] = null;
+        } else {
+            let cycle: number = 0;
+            let selected: number = -1;
+            for (let t: number = 0; t < this.textureCount; t++) {
+                if (this.activeTexels[t] && (this.textureCycle[t] < cycle || selected === -1)) {
+                    cycle = this.textureCycle[t];
+                    selected = t;
+                }
+            }
+            texels = this.activeTexels[selected];
+            this.activeTexels[selected] = null;
+        }
+
+        this.activeTexels[id] = texels;
+        const texture: Pix8 | null = this.textures[id];
+        const palette: Int32Array | null = this.texPal[id];
+
+        if (!texels || !texture || !palette) {
+            return null;
+        }
+
+        if (this.lowMemory) {
+            this.textureTranslucent[id] = false;
+            for (let i: number = 0; i < 4096; i++) {
+                const rgb: number = (texels[i] = palette[texture.pixels[i]] & 0xf8f8ff);
+                if (rgb === 0) {
+                    this.textureTranslucent[id] = true;
+                }
+                texels[i + 4096] = (rgb - (rgb >>> 3)) & 0xf8f8ff;
+                texels[i + 8192] = (rgb - (rgb >>> 2)) & 0xf8f8ff;
+                texels[i + 12288] = (rgb - (rgb >>> 2) - (rgb >>> 3)) & 0xf8f8ff;
+            }
+        } else {
+            if (texture.width2d === 64) {
+                for (let y: number = 0; y < 128; y++) {
+                    for (let x: number = 0; x < 128; x++) {
+                        texels[x + ((y << 7) | 0)] = palette[texture.pixels[(x >> 1) + (((y >> 1) << 6) | 0)]];
+                    }
+                }
+            } else {
+                for (let i: number = 0; i < 16384; i++) {
+                    texels[i] = palette[texture.pixels[i]];
+                }
+            }
+
+            this.textureTranslucent[id] = false;
+            for (let i: number = 0; i < 16384; i++) {
+                texels[i] &= 0xf8f8ff;
+                const rgb: number = texels[i];
+                if (rgb === 0) {
+                    this.textureTranslucent[id] = true;
+                }
+                texels[i + 16384] = (rgb - (rgb >>> 3)) & 0xf8f8ff;
+                texels[i + 32768] = (rgb - (rgb >>> 2)) & 0xf8f8ff;
+                texels[i + 49152] = (rgb - (rgb >>> 2) - (rgb >>> 3)) & 0xf8f8ff;
+            }
+        }
+
+        return texels;
+    }
+
+    static gouraudTriangle(xA: number, xB: number, xC: number, yA: number, yB: number, yC: number, colorA: number, colorB: number, colorC: number): void {
         let xStepAB: number = 0;
         let colorStepAB: number = 0;
         if (yB !== yA) {
@@ -293,7 +374,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yA, 0);
+                                    this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yA, 0);
                                     xC += xStepAC;
                                     xB += xStepBC;
                                     colorC += colorStepAC;
@@ -301,7 +382,7 @@ export default class Pix3D extends Pix2D {
                                     yA += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
+                            this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
                             xC += xStepAC;
                             xA += xStepAB;
                             colorC += colorStepAC;
@@ -322,7 +403,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
+                                    this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
                                     xC += xStepAC;
                                     xB += xStepBC;
                                     colorC += colorStepAC;
@@ -330,7 +411,7 @@ export default class Pix3D extends Pix2D {
                                     yA += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
+                            this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
                             xC += xStepAC;
                             xA += xStepAB;
                             colorC += colorStepAC;
@@ -369,7 +450,7 @@ export default class Pix3D extends Pix2D {
                                     if (yB < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
+                                    this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
                                     xC += xStepBC;
                                     xA += xStepAB;
                                     colorC += colorStepBC;
@@ -377,7 +458,7 @@ export default class Pix3D extends Pix2D {
                                     yA += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
+                            this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
                             xB += xStepAC;
                             xA += xStepAB;
                             colorB += colorStepAC;
@@ -398,7 +479,7 @@ export default class Pix3D extends Pix2D {
                                     if (yB < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
+                                    this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
                                     xC += xStepBC;
                                     xA += xStepAB;
                                     colorC += colorStepBC;
@@ -406,7 +487,7 @@ export default class Pix3D extends Pix2D {
                                     yA += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yA, 0);
+                            this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yA, 0);
                             xB += xStepAC;
                             xA += xStepAB;
                             colorB += colorStepAC;
@@ -455,7 +536,7 @@ export default class Pix3D extends Pix2D {
                                     if (yA < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yB, 0);
+                                    this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yB, 0);
                                     xA += xStepAB;
                                     xC += xStepAC;
                                     colorA += colorStepAB;
@@ -463,7 +544,7 @@ export default class Pix3D extends Pix2D {
                                     yB += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
+                            this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
                             xA += xStepAB;
                             xB += xStepBC;
                             colorA += colorStepAB;
@@ -484,7 +565,7 @@ export default class Pix3D extends Pix2D {
                                     if (yA < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
+                                    this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
                                     xA += xStepAB;
                                     xC += xStepAC;
                                     colorA += colorStepAB;
@@ -492,7 +573,7 @@ export default class Pix3D extends Pix2D {
                                     yB += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
+                            this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
                             xA += xStepAB;
                             xB += xStepBC;
                             colorA += colorStepAB;
@@ -531,7 +612,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
+                                    this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
                                     xA += xStepAC;
                                     xB += xStepBC;
                                     colorA += colorStepAC;
@@ -539,7 +620,7 @@ export default class Pix3D extends Pix2D {
                                     yB += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
+                            this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
                             xC += xStepAB;
                             xB += xStepBC;
                             colorC += colorStepAB;
@@ -557,7 +638,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawGouraudScanline(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
+                                    this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
                                     xA += xStepAC;
                                     xB += xStepBC;
                                     colorA += colorStepAC;
@@ -565,7 +646,7 @@ export default class Pix3D extends Pix2D {
                                     yB += Pix2D.width2d;
                                 }
                             }
-                            this.drawGouraudScanline(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yB, 0);
+                            this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yB, 0);
                             xC += xStepAB;
                             xB += xStepBC;
                             colorC += colorStepAB;
@@ -613,7 +694,7 @@ export default class Pix3D extends Pix2D {
                                 if (yB < 0) {
                                     return;
                                 }
-                                this.drawGouraudScanline(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yC, 0);
+                                this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yC, 0);
                                 xB += xStepBC;
                                 xA += xStepAB;
                                 colorB += colorStepBC;
@@ -621,7 +702,7 @@ export default class Pix3D extends Pix2D {
                                 yC += Pix2D.width2d;
                             }
                         }
-                        this.drawGouraudScanline(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
+                        this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
                         xB += xStepBC;
                         xC += xStepAC;
                         colorB += colorStepBC;
@@ -639,7 +720,7 @@ export default class Pix3D extends Pix2D {
                                 if (yB < 0) {
                                     return;
                                 }
-                                this.drawGouraudScanline(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
+                                this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
                                 xB += xStepBC;
                                 xA += xStepAB;
                                 colorB += colorStepBC;
@@ -647,7 +728,7 @@ export default class Pix3D extends Pix2D {
                                 yC += Pix2D.width2d;
                             }
                         }
-                        this.drawGouraudScanline(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
+                        this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
                         xB += xStepBC;
                         xC += xStepAC;
                         colorB += colorStepBC;
@@ -686,7 +767,7 @@ export default class Pix3D extends Pix2D {
                                 if (yA < 0) {
                                     return;
                                 }
-                                this.drawGouraudScanline(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
+                                this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
                                 xB += xStepAB;
                                 xC += xStepAC;
                                 colorB += colorStepAB;
@@ -694,7 +775,7 @@ export default class Pix3D extends Pix2D {
                                 yC += Pix2D.width2d;
                             }
                         }
-                        this.drawGouraudScanline(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
+                        this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
                         xA += xStepBC;
                         xC += xStepAC;
                         colorA += colorStepBC;
@@ -712,7 +793,7 @@ export default class Pix3D extends Pix2D {
                                 if (yA < 0) {
                                     return;
                                 }
-                                this.drawGouraudScanline(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
+                                this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
                                 xB += xStepAB;
                                 xC += xStepAC;
                                 colorB += colorStepAB;
@@ -720,7 +801,7 @@ export default class Pix3D extends Pix2D {
                                 yC += Pix2D.width2d;
                             }
                         }
-                        this.drawGouraudScanline(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yC, 0);
+                        this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yC, 0);
                         xA += xStepBC;
                         xC += xStepAC;
                         colorA += colorStepBC;
@@ -732,7 +813,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    private static drawGouraudScanline(x0: number, x1: number, color0: number, color1: number, dst: Int32Array, offset: number, length: number): void {
+    private static gouraudRaster(x0: number, x1: number, color0: number, color1: number, dst: Int32Array, offset: number, length: number): void {
         let rgb: number;
 
         if (Pix3D.jagged) {
@@ -761,7 +842,7 @@ export default class Pix3D extends Pix2D {
                 offset += x0;
                 length = (x1 - x0) >> 2;
                 if (length > 0) {
-                    colorStep = ((color1 - color0) * Pix3D.reciprocal15[length]) >> 15;
+                    colorStep = ((color1 - color0) * Pix3D.divTable[length]) >> 15;
                 } else {
                     colorStep = 0;
                 }
@@ -776,7 +857,7 @@ export default class Pix3D extends Pix2D {
                     if (length < 0) {
                         length = (x1 - x0) & 0x3;
                         if (length > 0) {
-                            rgb = Pix3D.hslPal[color0 >> 8];
+                            rgb = Pix3D.colourTable[color0 >> 8];
                             do {
                                 dst[offset++] = rgb;
                                 length--;
@@ -785,7 +866,7 @@ export default class Pix3D extends Pix2D {
                         }
                         break;
                     }
-                    rgb = Pix3D.hslPal[color0 >> 8];
+                    rgb = Pix3D.colourTable[color0 >> 8];
                     color0 += colorStep;
                     dst[offset++] = rgb;
                     dst[offset++] = rgb;
@@ -801,7 +882,7 @@ export default class Pix3D extends Pix2D {
                     if (length < 0) {
                         length = (x1 - x0) & 0x3;
                         if (length > 0) {
-                            rgb = Pix3D.hslPal[color0 >> 8];
+                            rgb = Pix3D.colourTable[color0 >> 8];
                             rgb = ((((rgb & 0xff00ff) * invAlpha) >> 8) & 0xff00ff) + ((((rgb & 0xff00) * invAlpha) >> 8) & 0xff00);
                             do {
                                 dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
@@ -810,7 +891,7 @@ export default class Pix3D extends Pix2D {
                         }
                         break;
                     }
-                    rgb = Pix3D.hslPal[color0 >> 8];
+                    rgb = Pix3D.colourTable[color0 >> 8];
                     color0 += colorStep;
                     rgb = ((((rgb & 0xff00ff) * invAlpha) >> 8) & 0xff00ff) + ((((rgb & 0xff00) * invAlpha) >> 8) & 0xff00);
                     dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
@@ -837,7 +918,7 @@ export default class Pix3D extends Pix2D {
             length = x1 - x0;
             if (Pix3D.alpha === 0) {
                 do {
-                    dst[offset++] = Pix3D.hslPal[color0 >> 8];
+                    dst[offset++] = Pix3D.colourTable[color0 >> 8];
                     color0 += colorStep;
                     length--;
                 } while (length > 0);
@@ -845,7 +926,7 @@ export default class Pix3D extends Pix2D {
                 const alpha: number = Pix3D.alpha;
                 const invAlpha: number = 256 - Pix3D.alpha;
                 do {
-                    rgb = Pix3D.hslPal[color0 >> 8];
+                    rgb = Pix3D.colourTable[color0 >> 8];
                     color0 += colorStep;
                     rgb = ((((rgb & 0xff00ff) * invAlpha) >> 8) & 0xff00ff) + ((((rgb & 0xff00) * invAlpha) >> 8) & 0xff00);
                     dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
@@ -855,7 +936,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    static fillTriangle(x0: number, x1: number, x2: number, y0: number, y1: number, y2: number, color: number): void {
+    static flatTriangle(x0: number, x1: number, x2: number, y0: number, y1: number, y2: number, color: number): void {
         let xStepAB: number = 0;
         if (y1 !== y0) {
             xStepAB = (((x1 - x0) << 16) / (y1 - y0)) | 0;
@@ -902,13 +983,13 @@ export default class Pix3D extends Pix2D {
                                     if (y2 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x2 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
+                                    this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepAC;
                                     x1 += xStepBC;
                                     y0 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
+                            this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                             x2 += xStepAC;
                             x0 += xStepAB;
                             y0 += Pix2D.width2d;
@@ -927,13 +1008,13 @@ export default class Pix3D extends Pix2D {
                                     if (y2 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x1 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
+                                    this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepAC;
                                     x1 += xStepBC;
                                     y0 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
+                            this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                             x2 += xStepAC;
                             x0 += xStepAB;
                             y0 += Pix2D.width2d;
@@ -965,13 +1046,13 @@ export default class Pix3D extends Pix2D {
                                     if (y1 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
+                                    this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepBC;
                                     x0 += xStepAB;
                                     y0 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x1 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
+                            this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                             x1 += xStepAC;
                             x0 += xStepAB;
                             y0 += Pix2D.width2d;
@@ -990,13 +1071,13 @@ export default class Pix3D extends Pix2D {
                                     if (y1 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
+                                    this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepBC;
                                     x0 += xStepAB;
                                     y0 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x0 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
+                            this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
                             x1 += xStepAC;
                             x0 += xStepAB;
                             y0 += Pix2D.width2d;
@@ -1038,13 +1119,13 @@ export default class Pix3D extends Pix2D {
                                     if (y0 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x0 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
+                                    this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAB;
                                     x2 += xStepAC;
                                     y1 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
+                            this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                             x0 += xStepAB;
                             x1 += xStepBC;
                             y1 += Pix2D.width2d;
@@ -1063,13 +1144,13 @@ export default class Pix3D extends Pix2D {
                                     if (y0 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x2 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
+                                    this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAB;
                                     x2 += xStepAC;
                                     y1 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
+                            this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                             x0 += xStepAB;
                             x1 += xStepBC;
                             y1 += Pix2D.width2d;
@@ -1101,13 +1182,13 @@ export default class Pix3D extends Pix2D {
                                     if (y2 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
+                                    this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAC;
                                     x1 += xStepBC;
                                     y1 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x2 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
+                            this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                             x2 += xStepAB;
                             x1 += xStepBC;
                             y1 += Pix2D.width2d;
@@ -1126,13 +1207,13 @@ export default class Pix3D extends Pix2D {
                                     if (y2 < 0) {
                                         return;
                                     }
-                                    this.drawScanline(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
+                                    this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAC;
                                     x1 += xStepBC;
                                     y1 += Pix2D.width2d;
                                 }
                             }
-                            this.drawScanline(x1 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
+                            this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
                             x2 += xStepAB;
                             x1 += xStepBC;
                             y1 += Pix2D.width2d;
@@ -1173,13 +1254,13 @@ export default class Pix3D extends Pix2D {
                                 if (y1 < 0) {
                                     return;
                                 }
-                                this.drawScanline(x1 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
+                                this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepBC;
                                 x0 += xStepAB;
                                 y2 += Pix2D.width2d;
                             }
                         }
-                        this.drawScanline(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
+                        this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                         x1 += xStepBC;
                         x2 += xStepAC;
                         y2 += Pix2D.width2d;
@@ -1198,13 +1279,13 @@ export default class Pix3D extends Pix2D {
                                 if (y1 < 0) {
                                     return;
                                 }
-                                this.drawScanline(x0 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
+                                this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepBC;
                                 x0 += xStepAB;
                                 y2 += Pix2D.width2d;
                             }
                         }
-                        this.drawScanline(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
+                        this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                         x1 += xStepBC;
                         x2 += xStepAC;
                         y2 += Pix2D.width2d;
@@ -1236,13 +1317,13 @@ export default class Pix3D extends Pix2D {
                                 if (y0 < 0) {
                                     return;
                                 }
-                                this.drawScanline(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
+                                this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepAB;
                                 x2 += xStepAC;
                                 y2 += Pix2D.width2d;
                             }
                         }
-                        this.drawScanline(x0 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
+                        this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                         x0 += xStepBC;
                         x2 += xStepAC;
                         y2 += Pix2D.width2d;
@@ -1261,13 +1342,13 @@ export default class Pix3D extends Pix2D {
                                 if (y0 < 0) {
                                     return;
                                 }
-                                this.drawScanline(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
+                                this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepAB;
                                 x2 += xStepAC;
                                 y2 += Pix2D.width2d;
                             }
                         }
-                        this.drawScanline(x2 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
+                        this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
                         x0 += xStepBC;
                         x2 += xStepAC;
                         y2 += Pix2D.width2d;
@@ -1277,7 +1358,72 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    static fillTexturedTriangle(
+    private static flatRaster(x0: number, x1: number, dst: Int32Array, offset: number, rgb: number): void {
+        if (this.clipX) {
+            if (x1 > Pix2D.boundX) {
+                x1 = Pix2D.boundX;
+            }
+            if (x0 < 0) {
+                x0 = 0;
+            }
+        }
+
+        if (x0 >= x1) {
+            return;
+        }
+
+        offset += x0;
+        let length: number = (x1 - x0) >> 2;
+
+        if (this.alpha === 0) {
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                length--;
+                if (length < 0) {
+                    length = (x1 - x0) & 0x3;
+                    // eslint-disable-next-line no-constant-condition
+                    while (true) {
+                        length--;
+                        if (length < 0) {
+                            return;
+                        }
+                        dst[offset++] = rgb;
+                    }
+                }
+                dst[offset++] = rgb;
+                dst[offset++] = rgb;
+                dst[offset++] = rgb;
+                dst[offset++] = rgb;
+            }
+        }
+
+        const alpha: number = this.alpha;
+        const invAlpha: number = 256 - this.alpha;
+        rgb = ((((rgb & 0xff00ff) * invAlpha) >> 8) & 0xff00ff) + ((((rgb & 0xff00) * invAlpha) >> 8) & 0xff00);
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            length--;
+            if (length < 0) {
+                length = (x1 - x0) & 0x3;
+                // eslint-disable-next-line no-constant-condition
+                while (true) {
+                    length--;
+                    if (length < 0) {
+                        return;
+                    }
+                    dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
+                }
+            }
+
+            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
+            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
+            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
+            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
+        }
+    }
+
+    static textureTriangle(
         xA: number,
         xB: number,
         xC: number,
@@ -1390,7 +1536,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xC >> 16, xB >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
+                                    this.textureRaster(xC >> 16, xB >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
                                     xC += xStepAC;
                                     xB += xStepBC;
                                     shadeC += shadeStepAC;
@@ -1404,7 +1550,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xC >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
+                            this.textureRaster(xC >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
                             xC += xStepAC;
                             xA += xStepAB;
                             shadeC += shadeStepAC;
@@ -1431,7 +1577,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xB >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
+                                    this.textureRaster(xB >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
                                     xC += xStepAC;
                                     xB += xStepBC;
                                     shadeC += shadeStepAC;
@@ -1445,7 +1591,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xA >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
+                            this.textureRaster(xA >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
                             xC += xStepAC;
                             xA += xStepAB;
                             shadeC += shadeStepAC;
@@ -1497,7 +1643,7 @@ export default class Pix3D extends Pix2D {
                                     if (yB < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xA >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
+                                    this.textureRaster(xA >> 16, xC >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
                                     xC += xStepBC;
                                     xA += xStepAB;
                                     shadeC += shadeStepBC;
@@ -1511,7 +1657,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xA >> 16, xB >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
+                            this.textureRaster(xA >> 16, xB >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
                             xB += xStepAC;
                             xA += xStepAB;
                             shadeB += shadeStepAC;
@@ -1538,7 +1684,7 @@ export default class Pix3D extends Pix2D {
                                     if (yB < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xC >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
+                                    this.textureRaster(xC >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
                                     xC += xStepBC;
                                     xA += xStepAB;
                                     shadeC += shadeStepBC;
@@ -1552,7 +1698,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xB >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
+                            this.textureRaster(xB >> 16, xA >> 16, Pix2D.pixels, yA, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
                             xB += xStepAC;
                             xA += xStepAB;
                             shadeB += shadeStepAC;
@@ -1614,7 +1760,7 @@ export default class Pix3D extends Pix2D {
                                     if (yA < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xA >> 16, xC >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
+                                    this.textureRaster(xA >> 16, xC >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
                                     xA += xStepAB;
                                     xC += xStepAC;
                                     shadeA += shadeStepAB;
@@ -1628,7 +1774,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xA >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
+                            this.textureRaster(xA >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
                             xA += xStepAB;
                             xB += xStepBC;
                             shadeA += shadeStepAB;
@@ -1655,7 +1801,7 @@ export default class Pix3D extends Pix2D {
                                     if (yA < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xC >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
+                                    this.textureRaster(xC >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
                                     xA += xStepAB;
                                     xC += xStepAC;
                                     shadeA += shadeStepAB;
@@ -1669,7 +1815,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xB >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
+                            this.textureRaster(xB >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
                             xA += xStepAB;
                             xB += xStepBC;
                             shadeA += shadeStepAB;
@@ -1721,7 +1867,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xA >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
+                                    this.textureRaster(xA >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
                                     xA += xStepAC;
                                     xB += xStepBC;
                                     shadeA += shadeStepAC;
@@ -1735,7 +1881,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xC >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
+                            this.textureRaster(xC >> 16, xB >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
                             xC += xStepAB;
                             xB += xStepBC;
                             shadeC += shadeStepAB;
@@ -1759,7 +1905,7 @@ export default class Pix3D extends Pix2D {
                                     if (yC < 0) {
                                         return;
                                     }
-                                    this.drawTexturedScanline(xB >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
+                                    this.textureRaster(xB >> 16, xA >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
                                     xA += xStepAC;
                                     xB += xStepBC;
                                     shadeA += shadeStepAC;
@@ -1773,7 +1919,7 @@ export default class Pix3D extends Pix2D {
                                     w |= 0;
                                 }
                             }
-                            this.drawTexturedScanline(xB >> 16, xC >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
+                            this.textureRaster(xB >> 16, xC >> 16, Pix2D.pixels, yB, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
                             xC += xStepAB;
                             xB += xStepBC;
                             shadeC += shadeStepAB;
@@ -1834,7 +1980,7 @@ export default class Pix3D extends Pix2D {
                                 if (yB < 0) {
                                     return;
                                 }
-                                this.drawTexturedScanline(xB >> 16, xA >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
+                                this.textureRaster(xB >> 16, xA >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeA >> 8);
                                 xB += xStepBC;
                                 xA += xStepAB;
                                 shadeB += shadeStepBC;
@@ -1848,7 +1994,7 @@ export default class Pix3D extends Pix2D {
                                 w |= 0;
                             }
                         }
-                        this.drawTexturedScanline(xB >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
+                        this.textureRaster(xB >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
                         xB += xStepBC;
                         xC += xStepAC;
                         shadeB += shadeStepBC;
@@ -1872,7 +2018,7 @@ export default class Pix3D extends Pix2D {
                                 if (yB < 0) {
                                     return;
                                 }
-                                this.drawTexturedScanline(xA >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
+                                this.textureRaster(xA >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeB >> 8);
                                 xB += xStepBC;
                                 xA += xStepAB;
                                 shadeB += shadeStepBC;
@@ -1886,7 +2032,7 @@ export default class Pix3D extends Pix2D {
                                 w |= 0;
                             }
                         }
-                        this.drawTexturedScanline(xC >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
+                        this.textureRaster(xC >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
                         xB += xStepBC;
                         xC += xStepAC;
                         shadeB += shadeStepBC;
@@ -1938,7 +2084,7 @@ export default class Pix3D extends Pix2D {
                                 if (yA < 0) {
                                     return;
                                 }
-                                this.drawTexturedScanline(xB >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
+                                this.textureRaster(xB >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeB >> 8, shadeC >> 8);
                                 xB += xStepAB;
                                 xC += xStepAC;
                                 shadeB += shadeStepAB;
@@ -1952,7 +2098,7 @@ export default class Pix3D extends Pix2D {
                                 w |= 0;
                             }
                         }
-                        this.drawTexturedScanline(xA >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
+                        this.textureRaster(xA >> 16, xC >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeA >> 8, shadeC >> 8);
                         xA += xStepBC;
                         xC += xStepAC;
                         shadeA += shadeStepBC;
@@ -1976,7 +2122,7 @@ export default class Pix3D extends Pix2D {
                                 if (yA < 0) {
                                     return;
                                 }
-                                this.drawTexturedScanline(xC >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
+                                this.textureRaster(xC >> 16, xB >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeB >> 8);
                                 xB += xStepAB;
                                 xC += xStepAC;
                                 shadeB += shadeStepAB;
@@ -1990,7 +2136,7 @@ export default class Pix3D extends Pix2D {
                                 w |= 0;
                             }
                         }
-                        this.drawTexturedScanline(xC >> 16, xA >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
+                        this.textureRaster(xC >> 16, xA >> 16, Pix2D.pixels, yC, texels, 0, 0, u, v, w, uStride, vStride, wStride, shadeC >> 8, shadeA >> 8);
                         xA += xStepBC;
                         xC += xStepAC;
                         shadeA += shadeStepBC;
@@ -2008,7 +2154,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    private static drawTexturedScanline(
+    private static textureRaster(
         xA: number,
         xB: number,
         dst: Int32Array,
@@ -2052,7 +2198,7 @@ export default class Pix3D extends Pix2D {
         } else {
             if (xB - xA > 7) {
                 strides = (xB - xA) >> 3;
-                shadeStrides = ((shadeB - shadeA) * this.reciprocal15[strides]) >> 6;
+                shadeStrides = ((shadeB - shadeA) * this.divTable[strides]) >> 6;
             } else {
                 strides = 0;
                 shadeStrides = 0;
@@ -2424,148 +2570,5 @@ export default class Pix3D extends Pix2D {
             curU += stepU;
             curV += stepV;
         }
-    }
-
-    private static drawScanline(x0: number, x1: number, dst: Int32Array, offset: number, rgb: number): void {
-        if (this.clipX) {
-            if (x1 > Pix2D.boundX) {
-                x1 = Pix2D.boundX;
-            }
-            if (x0 < 0) {
-                x0 = 0;
-            }
-        }
-
-        if (x0 >= x1) {
-            return;
-        }
-
-        offset += x0;
-        let length: number = (x1 - x0) >> 2;
-
-        if (this.alpha === 0) {
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-                length--;
-                if (length < 0) {
-                    length = (x1 - x0) & 0x3;
-                    // eslint-disable-next-line no-constant-condition
-                    while (true) {
-                        length--;
-                        if (length < 0) {
-                            return;
-                        }
-                        dst[offset++] = rgb;
-                    }
-                }
-                dst[offset++] = rgb;
-                dst[offset++] = rgb;
-                dst[offset++] = rgb;
-                dst[offset++] = rgb;
-            }
-        }
-
-        const alpha: number = this.alpha;
-        const invAlpha: number = 256 - this.alpha;
-        rgb = ((((rgb & 0xff00ff) * invAlpha) >> 8) & 0xff00ff) + ((((rgb & 0xff00) * invAlpha) >> 8) & 0xff00);
-
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-            length--;
-            if (length < 0) {
-                length = (x1 - x0) & 0x3;
-                // eslint-disable-next-line no-constant-condition
-                while (true) {
-                    length--;
-                    if (length < 0) {
-                        return;
-                    }
-                    dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
-                }
-            }
-
-            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
-            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
-            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
-            dst[offset++] = rgb + ((((dst[offset] & 0xff00ff) * alpha) >> 8) & 0xff00ff) + ((((dst[offset] & 0xff00) * alpha) >> 8) & 0xff00);
-        }
-    }
-
-    static pushTexture(id: number): void {
-        if (this.activeTexels[id] && this.texelPool) {
-            this.texelPool[this.poolSize++] = this.activeTexels[id];
-            this.activeTexels[id] = null;
-        }
-    }
-
-    private static getTexels(id: number): Int32Array | null {
-        this.textureCycle[id] = this.cycle++;
-        if (this.activeTexels[id]) {
-            return this.activeTexels[id];
-        }
-
-        let texels: Int32Array | null;
-        if (this.poolSize > 0 && this.texelPool) {
-            texels = this.texelPool[--this.poolSize];
-            this.texelPool[this.poolSize] = null;
-        } else {
-            let cycle: number = 0;
-            let selected: number = -1;
-            for (let t: number = 0; t < this.textureCount; t++) {
-                if (this.activeTexels[t] && (this.textureCycle[t] < cycle || selected === -1)) {
-                    cycle = this.textureCycle[t];
-                    selected = t;
-                }
-            }
-            texels = this.activeTexels[selected];
-            this.activeTexels[selected] = null;
-        }
-
-        this.activeTexels[id] = texels;
-        const texture: Pix8 | null = this.textures[id];
-        const palette: Int32Array | null = this.texPal[id];
-
-        if (!texels || !texture || !palette) {
-            return null;
-        }
-
-        if (this.lowMemory) {
-            this.textureTranslucent[id] = false;
-            for (let i: number = 0; i < 4096; i++) {
-                const rgb: number = (texels[i] = palette[texture.pixels[i]] & 0xf8f8ff);
-                if (rgb === 0) {
-                    this.textureTranslucent[id] = true;
-                }
-                texels[i + 4096] = (rgb - (rgb >>> 3)) & 0xf8f8ff;
-                texels[i + 8192] = (rgb - (rgb >>> 2)) & 0xf8f8ff;
-                texels[i + 12288] = (rgb - (rgb >>> 2) - (rgb >>> 3)) & 0xf8f8ff;
-            }
-        } else {
-            if (texture.width2d === 64) {
-                for (let y: number = 0; y < 128; y++) {
-                    for (let x: number = 0; x < 128; x++) {
-                        texels[x + ((y << 7) | 0)] = palette[texture.pixels[(x >> 1) + (((y >> 1) << 6) | 0)]];
-                    }
-                }
-            } else {
-                for (let i: number = 0; i < 16384; i++) {
-                    texels[i] = palette[texture.pixels[i]];
-                }
-            }
-
-            this.textureTranslucent[id] = false;
-            for (let i: number = 0; i < 16384; i++) {
-                texels[i] &= 0xf8f8ff;
-                const rgb: number = texels[i];
-                if (rgb === 0) {
-                    this.textureTranslucent[id] = true;
-                }
-                texels[i + 16384] = (rgb - (rgb >>> 3)) & 0xf8f8ff;
-                texels[i + 32768] = (rgb - (rgb >>> 2)) & 0xf8f8ff;
-                texels[i + 49152] = (rgb - (rgb >>> 2) - (rgb >>> 3)) & 0xf8f8ff;
-            }
-        }
-
-        return texels;
     }
 }
