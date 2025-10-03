@@ -419,11 +419,6 @@ export default abstract class GameShell {
         // custom: up event comes before and potentially without move event
         this.mouseX = x;
         this.mouseY = y;
-
-        // custom: moving off-canvas may have a stuck mouse event
-        this.nextMouseClickX = -1;
-        this.nextMouseClickY = -1;
-        this.nextMouseClickButton = 0;
     }
 
     private onpointerup(e: PointerEvent) {
@@ -520,12 +515,6 @@ export default abstract class GameShell {
             if (InputTracking.enabled) {
                 InputTracking.mouseEntered();
             }
-
-            // custom: moving off-canvas may have a stuck mouse event
-            this.nextMouseClickX = -1;
-            this.nextMouseClickY = -1;
-            this.nextMouseClickButton = 0;
-            this.mouseButton = 0;
         } else {
             // custom: touchscreen support
 
