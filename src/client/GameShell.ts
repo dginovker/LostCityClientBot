@@ -461,7 +461,7 @@ export default abstract class GameShell {
             } else {
                 if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
                     // show keyboard when tapping in an input area
-                    MobileKeyboard.show();
+                    MobileKeyboard.show(x, y, e.clientX, e.clientY);
                 } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
                     // hide keyboard when tapping outside of an input area
                     MobileKeyboard.hide();
@@ -488,9 +488,6 @@ export default abstract class GameShell {
 
                 // release after a client cycle has passed
                 setTimeout(() => {
-                    this.nextMouseClickX = -1;
-                    this.nextMouseClickY = -1;
-                    this.nextMouseClickButton = 0;
                     this.mouseButton = 0;
 
                     if (InputTracking.enabled) {

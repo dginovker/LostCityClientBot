@@ -102,17 +102,17 @@ class MobileKeyboard {
         }
     }
 
-    public show(originX?: number, originY?: number) {
+    public show(originX?: number, originY?: number, clientX?: number, clientY?: number) {
         if (this.mode === UserKeyboardMode.Hybrid) {
             if (isFullScreen()) {
                 this.canvasKeyboard.show(originX, originY);
             } else {
-                this.nativeKeyboard.show(originX, originY);
+                this.nativeKeyboard.show(clientX ?? originX, clientY ?? originY);
             }
         } else if (this.mode === UserKeyboardMode.Canvas) {
             this.canvasKeyboard.show(originX, originY);
         } else if (this.mode === UserKeyboardMode.Native) {
-            this.nativeKeyboard.show(originX, originY);
+            this.nativeKeyboard.show(clientX ?? originX, clientY ?? originY);
         }
     }
 
@@ -506,7 +506,7 @@ class NativeMobileKeyboard implements Keyboard {
         this.isAndroid = navigator.userAgent.includes('Android');
         // Create the virtual input field
         this.virtualInputElement = document.createElement('input');
-        this.virtualInputElement.setAttribute('type', 'text');
+        this.virtualInputElement.setAttribute('type', 'password'); // "text" fields use a different key press flow on android
         this.virtualInputElement.setAttribute('autofocus', 'autofocus');
         this.virtualInputElement.setAttribute('spellcheck', 'false');
         this.virtualInputElement.setAttribute('autocomplete', 'off');
