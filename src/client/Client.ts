@@ -572,8 +572,6 @@ export class Client extends GameShell {
 
         this.alreadyStarted = true;
 
-        // todo: host check
-
         try {
             this.db = new Database(await Database.openDatabase());
         } catch (err) {
@@ -596,7 +594,7 @@ export class Client extends GameShell {
             this.fontQuill8 = PixFont.fromArchive(this.jagTitle, 'q8');
 
             await this.loadTitleBackground();
-            await this.loadTitleImages();
+            this.loadTitleImages();
 
             const jagConfig: Jagfile = await this.getJagFile('config', 'config', 2, 30);
             const jagInterface: Jagfile = await this.getJagFile('interface', 'interface', 3, 35);
@@ -4089,7 +4087,7 @@ export class Client extends GameShell {
 
         if (this.jagTitle) {
             await this.loadTitleBackground();
-            await this.loadTitleImages();
+            this.loadTitleImages();
         }
 
         this.redrawFrame = true;
@@ -4164,7 +4162,7 @@ export class Client extends GameShell {
         logo.draw(((this.width / 2) | 0) - ((logo.cropRight / 2) | 0) - 128, 18);
     }
 
-    private async loadTitleImages(): Promise<void> {
+    private loadTitleImages(): void {
         if (!this.jagTitle) {
             return;
         }
@@ -4229,12 +4227,12 @@ export class Client extends GameShell {
         this.flameBuffer3 = new Int32Array(32768);
         this.flameBuffer2 = new Int32Array(32768);
 
-        await this.drawProgress(10, 'Connecting to fileserver');
-
-        if (!this.flameActive) {
-            this.flameActive = true;
-            this.flamesInterval = setInterval(this.runFlames.bind(this), 35);
-        }
+        this.drawProgress(10, 'Connecting to fileserver').then((): void => {
+            if (!this.flameActive) {
+                this.flameActive = true;
+                this.flamesInterval = setInterval(this.runFlames.bind(this), 35);
+            }
+        });
     }
 
     private async drawTitle(): Promise<void> {
