@@ -703,12 +703,12 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     async prefetchAll() {
-        if (!this.app.db) {
-            return;
-        }
-
         let success = false;
         for (let retry = 0; retry < 3 && !success; retry++) {
+            if (!this.app.db) {
+                return;
+            }
+
             const remote = await downloadUrl('/build');
             const local = await this.app.db.cacheload('build');
 
@@ -721,6 +721,7 @@ export default class OnDemand extends OnDemandProvider {
             try {
                 const zip = unzipSync(await downloadUrl('/ondemand.zip'));
 
+                const start = performance.now();
                 for (let archive = 0; archive < 4; archive++) {
                     const count = this.versions[archive].length;
 
@@ -731,9 +732,14 @@ export default class OnDemand extends OnDemandProvider {
                         }
 
                         const existing = await this.app.db.read(archive + 1, file);
-
                         if (!existing || !this.validate(existing, this.crcs[archive][file], this.versions[archive][file])) {
                             await this.app.db.write(archive + 1, file, data);
+                        }
+
+                        if (file % 100 === 0 && performance.now() - start > 15_000) {
+                            // user's CPU or I/O is too slow, since this is blocking playing it's better to operate in memory only
+                            this.app.db = null;
+                            return;
                         }
                     }
                 }
