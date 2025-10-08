@@ -69,7 +69,7 @@ export default class Jagfile {
         }
 
         const offset: number = this.fileOffset[index];
-        const length: number = offset + this.filePackedSize[index];
+        const length: number = this.filePackedSize[index];
         const src: Uint8Array = new Uint8Array(this.jagSrc.subarray(offset, offset + length));
         if (this.compressedWhole) {
             this.fileUnpacked[index] = src;
