@@ -43,7 +43,7 @@ export const enum ClientProt {
     OPLOC1 = 1, // index: 120 - NXT naming
     OPLOC2 = 219, // index: 121 - NXT naming
     OPLOC3 = 226, // index: 122 - NXT naming
-    OPLOC4 = 55, // index: 123 - NXT naming
+    OPLOC4 = 204, // index: 123 - NXT naming
     OPLOC5 = 86, // index: 124 - NXT naming
     OPLOCT = 208, // index: 128 - NXT naming
     OPLOCU = 147, // index: 129 - NXT naming
