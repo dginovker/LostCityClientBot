@@ -14,7 +14,6 @@ export default class SpotAnimType extends ConfigType {
     model: number = 0;
     anim: number = -1;
     seq: SeqType | null = null;
-    animHasAlpha: boolean = false;
     recol_s: Uint16Array = new Uint16Array(6);
     recol_d: Uint16Array = new Uint16Array(6);
     resizeh: number = 128;
@@ -41,8 +40,6 @@ export default class SpotAnimType extends ConfigType {
             if (SeqType.types) {
                 this.seq = SeqType.types[this.anim];
             }
-        } else if (code === 3) {
-            this.animHasAlpha = true;
         } else if (code === 4) {
             this.resizeh = dat.g2();
         } else if (code === 5) {

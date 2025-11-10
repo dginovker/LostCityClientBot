@@ -11,9 +11,14 @@ export default class AnimFrame {
     x: Int32Array | null = null;
     y: Int32Array | null = null;
     z: Int32Array | null = null;
+    static opaque: boolean[] = [];
 
     static init(total: number) {
         this.instances = new Array(total + 1);
+        this.opaque = new Array(total + 1);
+        for (let i = 0; i < total + 1; i++) {
+            this.opaque[i] = true;
+        }
     }
 
     static unpack(data: Uint8Array) {
@@ -110,6 +115,10 @@ export default class AnimFrame {
 
                     lastGroup = j;
                     current++;
+
+                    if (base.types[j] === 5) {
+                        this.opaque[id] = false;
+                    }
                 }
             }
 
@@ -130,5 +139,9 @@ export default class AnimFrame {
 
     static get(id: number) {
         return AnimFrame.instances[id];
+    }
+
+    static shareAlpha(frame: number) {
+        return frame === -1;
     }
 }

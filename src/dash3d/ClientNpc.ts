@@ -4,6 +4,7 @@ import SpotAnimType from '#/config/SpotAnimType.js';
 
 import ClientEntity from '#/dash3d/ClientEntity.js';
 
+import AnimFrame from '#/dash3d/AnimFrame.js';
 import Model from '#/dash3d/Model.js';
 
 export const enum NpcUpdate {
@@ -37,7 +38,7 @@ export default class ClientNpc extends ClientEntity {
             let spotModel = spot.getModel();
 
             if (spotModel != null) {
-                const temp: Model = Model.modelShareColored(spotModel, true, !spot.animHasAlpha, false);
+                const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
                 temp.translate(-this.spotanimHeight, 0, 0);
                 temp.createLabelReferences();
                 if (spot.seq && spot.seq.frames) {

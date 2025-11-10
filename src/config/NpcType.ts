@@ -2,6 +2,7 @@ import { ConfigType } from '#/config/ConfigType.js';
 
 import LruCache from '#/datastruct/LruCache.js';
 
+import AnimFrame from '#/dash3d/AnimFrame.js';
 import Model from '#/dash3d/Model.js';
 
 import Jagfile from '#/io/Jagfile.js';
@@ -25,7 +26,6 @@ export default class NpcType extends ConfigType {
     walkanim_b: number = -1;
     walkanim_r: number = -1;
     walkanim_l: number = -1;
-    animHasAlpha: boolean = false;
     recol_s: Uint16Array | null = null;
     recol_d: Uint16Array | null = null;
     op: (string | null)[] | null = null;
@@ -38,6 +38,7 @@ export default class NpcType extends ConfigType {
     resizev: number = 128;
     alwaysontop: boolean = false;
     headicon: number = -1;
+    turnspeed: number = 32;
     static modelCache: LruCache | null = new LruCache(30);
     ambient: number = 0;
     contrast: number = 0;
@@ -99,8 +100,6 @@ export default class NpcType extends ConfigType {
             this.readyanim = dat.g2();
         } else if (code === 14) {
             this.walkanim = dat.g2();
-        } else if (code === 16) {
-            this.animHasAlpha = true;
         } else if (code === 17) {
             this.walkanim = dat.g2();
             this.walkanim_b = dat.g2();
@@ -153,6 +152,8 @@ export default class NpcType extends ConfigType {
             this.contrast = dat.g1b() * 5;
         } else if (code === 102) {
             this.headicon = dat.g2();
+        } else if (code === 103) {
+            this.turnspeed = dat.g2();
         }
     }
 
@@ -198,28 +199,29 @@ export default class NpcType extends ConfigType {
             }
         }
 
-        let tmp: Model | null = null;
+        if (!model) {
+            return null;
+        }
 
-        if (model) {
-            tmp = Model.modelShareAlpha(model, !this.animHasAlpha);
+        const tmp = Model.empty;
+        tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) || AnimFrame.shareAlpha(secondaryTransformId));
 
-            if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
-                tmp.applyTransforms(primaryTransformId, secondaryTransformId, seqMask);
-            } else if (primaryTransformId !== -1) {
-                tmp.applyTransform(primaryTransformId);
-            }
+        if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
+            tmp.applyTransforms(primaryTransformId, secondaryTransformId, seqMask);
+        } else if (primaryTransformId !== -1) {
+            tmp.applyTransform(primaryTransformId);
+        }
 
-            if (this.resizeh !== 128 || this.resizev !== 128) {
-                tmp.scale(this.resizeh, this.resizev, this.resizeh);
-            }
+        if (this.resizeh !== 128 || this.resizev !== 128) {
+            tmp.scale(this.resizeh, this.resizev, this.resizeh);
+        }
 
-            tmp.calculateBoundsCylinder();
-            tmp.labelFaces = null;
-            tmp.labelVertices = null;
+        tmp.calculateBoundsCylinder();
+        tmp.labelFaces = null;
+        tmp.labelVertices = null;
 
-            if (this.size === 1) {
-                tmp.picking = true;
-            }
+        if (this.size === 1) {
+            tmp.picking = true;
         }
 
         return tmp;

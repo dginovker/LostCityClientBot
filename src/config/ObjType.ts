@@ -31,7 +31,6 @@ export default class ObjType extends ConfigType {
     zan2d: number = 0;
     xof2d: number = 0;
     yof2d: number = 0;
-    code9: boolean = false;
     code10: number = -1;
     stackable: boolean = false;
     cost: number = 1;
@@ -129,7 +128,6 @@ export default class ObjType extends ConfigType {
         this.zan2d = 0;
         this.xof2d = 0;
         this.yof2d = 0;
-        this.code9 = false;
         this.code10 = -1;
         this.stackable = false;
         this.cost = 1;
@@ -182,8 +180,6 @@ export default class ObjType extends ConfigType {
             if (this.yof2d > 32767) {
                 this.yof2d -= 65536;
             }
-        } else if (code === 9) {
-            this.code9 = true;
         } else if (code === 10) {
             this.code10 = dat.g2();
         } else if (code === 11) {

@@ -1,5 +1,6 @@
 import SpotAnimType from '#/config/SpotAnimType.js';
 
+import AnimFrame from '#/dash3d/AnimFrame.js';
 import Model from '#/dash3d/Model.js';
 import ModelSource from '#/dash3d/ModelSource.js';
 
@@ -97,11 +98,16 @@ export default class ClientProj extends ModelSource {
             return null;
         }
 
-        const model: Model = Model.modelShareColored(spotModel, true, !this.spotanim.animHasAlpha, false);
-
+        let frame = -1;
         if (this.spotanim.seq && this.spotanim.seq.frames) {
+            frame = this.spotanim.seq.frames[this.seqFrame];
+        }
+
+        const model: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(frame), false);
+
+        if (frame !== -1) {
             model.createLabelReferences();
-            model.applyTransform(this.spotanim.seq.frames[this.seqFrame]);
+            model.applyTransform(frame);
             model.labelFaces = null;
             model.labelVertices = null;
         }

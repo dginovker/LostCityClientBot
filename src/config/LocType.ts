@@ -2,6 +2,7 @@ import { ConfigType } from '#/config/ConfigType.js';
 
 import LruCache from '#/datastruct/LruCache.js';
 
+import AnimFrame from '#/dash3d/AnimFrame.js';
 import LocShape from '#/dash3d/LocShape.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 
@@ -14,7 +15,6 @@ import { TypedArray1d } from '#/util/Arrays.js';
 import type OnDemand from '#/io/OnDemand.js';
 
 export default class LocType extends ConfigType {
-    static ignoreCache: boolean = false;
     static count: number = 0;
     static idx: Int32Array | null = null;
     static data: Packet | null = null;
@@ -50,12 +50,13 @@ export default class LocType extends ConfigType {
     offsety: number = 0;
     offsetz: number = 0;
     forceapproach: number = 0;
-    animHasAlpha: boolean = false;
+    raiseobject: number = 0;
     mirror: boolean = false;
     shadow: boolean = true;
     forcedecor: boolean = false;
     breakroutefinding: boolean = false;
     op: (string | null)[] | null = null;
+    static temp: Model[] = new Array(4);
 
     static unpack(config: Jagfile): void {
         this.data = new Packet(config.read('loc.dat'));
@@ -100,12 +101,12 @@ export default class LocType extends ConfigType {
         loc.reset();
         loc.unpackType(this.data);
 
-        if (!loc.shapes) {
-            loc.shapes = new Int32Array(1);
-        }
+        if (loc._active === -1) {
+            loc.active = false;
 
-        if (loc._active === -1 && loc.shapes) {
-            loc.active = loc.shapes.length > 0 && loc.shapes[0] === LocShape.CENTREPIECE_STRAIGHT.id;
+            if (loc.models && (!loc.shapes || (loc.shapes && loc.shapes[0] === LocShape.CENTREPIECE_STRAIGHT.id))) {
+                loc.active = true;
+            }
 
             if (loc.op) {
                 loc.active = true;
@@ -115,6 +116,10 @@ export default class LocType extends ConfigType {
         if (loc.breakroutefinding) {
             loc.blockwalk = false;
             loc.blockrange = false;
+        }
+
+        if (loc.raiseobject === -1) {
+            loc.raiseobject = loc.blockwalk ? 1 : 0;
         }
 
         return loc;
@@ -134,6 +139,14 @@ export default class LocType extends ConfigType {
             this.name = dat.gjstr();
         } else if (code === 3) {
             this.desc = dat.gjstr();
+        } else if (code === 5) {
+            const count: number = dat.g1();
+            this.models = new Int32Array(count);
+            this.shapes = null;
+
+            for (let i: number = 0; i < count; i++) {
+                this.models[i] = dat.g2();
+            }
         } else if (code === 14) {
             this.width = dat.g1();
         } else if (code === 15) {
@@ -159,8 +172,6 @@ export default class LocType extends ConfigType {
             if (this.anim === 65535) {
                 this.anim = -1;
             }
-        } else if (code === 25) {
-            this.animHasAlpha = true;
         } else if (code === 28) {
             this.wallwidth = dat.g1();
         } else if (code === 29) {
@@ -211,46 +222,45 @@ export default class LocType extends ConfigType {
             this.forcedecor = true;
         } else if (code === 74) {
             this.breakroutefinding = true;
+        } else if (code === 75) {
+            this.raiseobject = dat.g1();
         }
     }
 
     shapeModelsAreReady(shape: number): boolean {
-        if (this.shapes === null) {
+        if (this.models === null) {
             return true;
         }
 
-        let index = -1;
-        for (let i = 0; i < this.shapes.length; i++) {
-            if (this.shapes[i] == shape) {
-                index = i;
-                break;
+        if (this.shapes !== null) {
+            for (let i = 0; i < this.shapes.length; i++) {
+                if (this.shapes[i] === shape) {
+                    return Model.isReady(this.models[i] & 0xFFFF);
+                }
             }
-        }
-        if (index == -1) {
             return true;
+        } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id) {
+            let ready = true;
+            for (let i = 0; i < this.models.length; i++) {
+                const model = this.models[i];
+                ready &&= Model.isReady(model & 0xFFFF);
+            }
+            return ready;
         }
 
-        if (this.models == null) {
-            return true;
-        }
-
-        const model = this.models[index];
-        return model == -1 ? true : Model.isReady(model & 0xFFFF);
+        return true;
     }
 
     modelsAreReady(): boolean {
-        let ready = true;
         if (this.models == null) {
             return true;
         }
 
+        let ready = true;
         for (let i = 0; i < this.models.length; i++) {
             const model = this.models[i];
-            if (model != -1) {
-                ready &&= Model.isReady(model & 0xFFFF);
-            }
+            ready &&= Model.isReady(model & 0xFFFF);
         }
-
         return ready;
     }
 
@@ -268,88 +278,142 @@ export default class LocType extends ConfigType {
     }
 
     getModel(shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, transformId: number): Model | null {
-        if (!this.shapes) {
+        let modified = this.getModelBase(shape, angle, transformId);
+        if (!modified) {
             return null;
         }
 
-        let index: number = -1;
-        for (let i: number = 0; i < this.shapes.length; i++) {
-            if (this.shapes[i] === shape) {
-                index = i;
-                break;
-            }
-        }
-        if (index === -1) {
-            return null;
+        if (this.hillskew || this.sharelight) {
+            modified = Model.modelCopyFaces(modified, this.hillskew, this.sharelight);
         }
 
-        let typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
-        if (LocType.ignoreCache) {
-            typecode = 0n;
-        }
+        if (this.hillskew) {
+            const groundY: number = ((heightmapSW + heightmapSE + heightmapNE + heightmapNW) / 4) | 0;
 
-        let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
-        if (cached) {
-            if (LocType.ignoreCache) {
-                return cached;
+            for (let i: number = 0; i < modified.vertexCount; i++) {
+                const x: number = modified.vertexX![i];
+                const z: number = modified.vertexZ![i];
+
+                const heightS: number = heightmapSW + ((((heightmapSE - heightmapSW) * (x + 64)) / 128) | 0);
+                const heightN: number = heightmapNW + ((((heightmapNE - heightmapNW) * (x + 64)) / 128) | 0);
+                const y: number = heightS + ((((heightN - heightS) * (z + 64)) / 128) | 0);
+
+                modified.vertexY![i] += y - groundY;
             }
 
-            if (this.hillskew || this.sharelight) {
-                cached = Model.modelCopyFaces(cached, this.hillskew, this.sharelight);
-            }
-
-            if (this.hillskew) {
-                const groundY: number = ((heightmapSW + heightmapSE + heightmapNE + heightmapNW) / 4) | 0;
-
-                for (let i: number = 0; i < cached.vertexCount; i++) {
-                    const x: number = cached.vertexX![i];
-                    const z: number = cached.vertexZ![i];
-
-                    const heightS: number = heightmapSW + ((((heightmapSE - heightmapSW) * (x + 64)) / 128) | 0);
-                    const heightN: number = heightmapNW + ((((heightmapNE - heightmapNW) * (x + 64)) / 128) | 0);
-                    const y: number = heightS + ((((heightN - heightS) * (z + 64)) / 128) | 0);
-
-                    cached.vertexY![i] += y - groundY;
-                }
-
-                cached.calculateBoundsY();
-            }
-
-            return cached;
+            modified.calculateBoundsY();
         }
 
-        if (!this.models || index >= this.models.length) {
-            return null;
-        }
+        return modified;
+    }
 
-        let modelId: number = this.models[index];
-        if (modelId === -1) {
-            return null;
-        }
+    getModelBase(shape: number, angle: number, transformId: number): Model | null {
+        let model: Model | null = null;
+        let typecode: bigint = 0n;
 
-        const flip: boolean = this.mirror !== angle > 3;
-        if (flip) {
-            modelId += 65536;
-        }
-
-        let model: Model | null = LocType.modelCacheStatic?.get(BigInt(modelId)) as Model | null;
-        if (!model) {
-            model = Model.tryGet(modelId & 0xffff);
-            if (!model) {
+        if (this.shapes === null) {
+            if (shape !== LocShape.CENTREPIECE_STRAIGHT.id) {
                 return null;
             }
 
-            if (flip) {
-                model.rotateY180();
+            typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n);
+
+            let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
+            if (cached) {
+                return cached;
             }
 
-            LocType.modelCacheStatic?.put(BigInt(modelId), model);
+            if (!this.models) {
+                return null;
+            }
+
+            const flip: boolean = this.mirror !== angle > 3;
+            const modelCount: number = this.models.length;
+
+            for (let i = 0; i < modelCount; i++) {
+                let modelId = this.models[i];
+                if (flip) {
+                    modelId += 65536;
+                }
+
+                model = LocType.modelCacheStatic?.get(BigInt(modelId)) as Model | null;
+                if (!model) {
+                    model = Model.tryGet(modelId & 0xffff);
+                    if (!model) {
+                        return null;
+                    }
+
+                    if (flip) {
+                        model.rotateY180();
+                    }
+
+                    LocType.modelCacheStatic?.put(BigInt(modelId), model);
+                }
+
+                if (modelCount > 1) {
+                    LocType.temp[i] = model;
+                }
+            }
+
+            if (modelCount > 1) {
+                model = Model.modelFromModels(LocType.temp, modelCount);
+            }
+        } else {
+            let index: number = -1;
+            for (let i: number = 0; i < this.shapes.length; i++) {
+                if (this.shapes[i] === shape) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index === -1) {
+                return null;
+            }
+
+            typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
+
+            let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
+            if (cached) {
+                return cached;
+            }
+
+            if (!this.models || index >= this.models.length) {
+                return null;
+            }
+
+            let modelId: number = this.models[index];
+            if (modelId === -1) {
+                return null;
+            }
+
+            const flip: boolean = this.mirror !== angle > 3;
+            if (flip) {
+                modelId += 65536;
+            }
+
+            model = LocType.modelCacheStatic?.get(BigInt(modelId)) as Model | null;
+            if (!model) {
+                model = Model.tryGet(modelId & 0xffff);
+                if (!model) {
+                    return null;
+                }
+
+                if (flip) {
+                    model.rotateY180();
+                }
+
+                LocType.modelCacheStatic?.put(BigInt(modelId), model);
+            }
+        }
+
+        if (!model) {
+            return null;
         }
 
         const scaled: boolean = this.resizex !== 128 || this.resizey !== 128 || this.resizez !== 128;
         const translated: boolean = this.offsetx !== 0 || this.offsety !== 0 || this.offsetz !== 0;
 
-        let modified: Model = Model.modelShareColored(model, !this.recol_s, !this.animHasAlpha, angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
+        let modified: Model = Model.modelShareColored(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
         if (transformId !== -1) {
             modified.createLabelReferences();
             modified.applyTransform(transformId);
@@ -377,33 +441,11 @@ export default class LocType extends ConfigType {
 
         modified.calculateNormals((this.ambient & 0xff) + 64, (this.contrast & 0xff) * 5 + 768, -50, -10, -50, !this.sharelight);
 
-        if (this.blockwalk) {
+        if (this.raiseobject === 1) {
             modified.objRaise = modified.minY;
         }
 
         LocType.modelCacheDynamic?.put(typecode, modified);
-
-        if (this.hillskew || this.sharelight) {
-            modified = Model.modelCopyFaces(modified, this.hillskew, this.sharelight);
-        }
-
-        if (this.hillskew) {
-            const groundY: number = ((heightmapSW + heightmapSE + heightmapNE + heightmapNW) / 4) | 0;
-
-            for (let i: number = 0; i < modified.vertexCount; i++) {
-                const x: number = modified.vertexX![i];
-                const z: number = modified.vertexZ![i];
-
-                const heightS: number = heightmapSW + ((((heightmapSE - heightmapSW) * (x + 64)) / 128) | 0);
-                const heightN: number = heightmapNW + ((((heightmapNE - heightmapNW) * (x + 64)) / 128) | 0);
-                const y: number = heightS + ((((heightN - heightS) * (z + 64)) / 128) | 0);
-
-                modified.vertexY![i] += y - groundY;
-            }
-
-            modified.calculateBoundsY();
-        }
-
         return modified;
     }
 
@@ -428,7 +470,6 @@ export default class LocType extends ConfigType {
         this.ambient = 0;
         this.contrast = 0;
         this.op = null;
-        this.animHasAlpha = false;
         this.mapfunction = -1;
         this.mapscene = -1;
         this.mirror = false;
@@ -442,5 +483,6 @@ export default class LocType extends ConfigType {
         this.offsetz = 0;
         this.forcedecor = false;
         this.breakroutefinding = false;
+        this.raiseobject = -1;
     }
 }

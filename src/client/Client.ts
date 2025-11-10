@@ -12,6 +12,7 @@ import NpcType from '#/config/NpcType.js';
 import IdkType from '#/config/IdkType.js';
 import SpotAnimType from '#/config/SpotAnimType.js';
 import VarpType from '#/config/VarpType.js';
+import VarBitType from '#/config/VarbitType.js';
 import Component from '#/config/Component.js';
 import { ComponentType, ButtonType } from '#/config/Component.js';
 
@@ -68,7 +69,7 @@ import OnDemand from '#/io/OnDemand.js';
 import MobileKeyboard from '#/client/MobileKeyboard.js';
 
 const enum Constants {
-    CLIENT_VERSION = 245,
+    CLIENT_VERSION = 254,
     MAX_CHATS = 50,
     MAX_PLAYER_COUNT = 2048,
     LOCAL_PLAYER_INDEX = 2047
@@ -85,6 +86,10 @@ export class Client extends GameShell {
     static cyclelogic4: number = 0;
     static cyclelogic5: number = 0;
     static cyclelogic6: number = 0;
+    static cyclelogic7: number = 0;
+    static cyclelogic8: number = 0;
+    static cyclelogic9: number = 0;
+    static cyclelogic10: number = 0;
 
     static oplogic1: number = 0;
     static oplogic2: number = 0;
@@ -95,6 +100,7 @@ export class Client extends GameShell {
     static oplogic7: number = 0;
     static oplogic8: number = 0;
     static oplogic9: number = 0;
+    static oplogic10: number = 0;
 
     private alreadyStarted: boolean = false;
     private errorStarted: boolean = false;
@@ -421,9 +427,9 @@ export class Client extends GameShell {
     private entityUpdateIds: Int32Array = new Int32Array(Constants.MAX_PLAYER_COUNT);
     private entityRemovalIds: Int32Array = new Int32Array(1000);
     private playerAppearanceBuffer: (Packet | null)[] = new TypedArray1d(Constants.MAX_PLAYER_COUNT, null);
-    private npcs: (ClientNpc | null)[] = new TypedArray1d(8192, null);
+    private npcs: (ClientNpc | null)[] = new TypedArray1d(16384, null);
     private npcCount: number = 0;
-    private npcIds: Int32Array = new Int32Array(8192);
+    private npcIds: Int32Array = new Int32Array(16384);
     private projectiles: LinkList = new LinkList();
     private spotanims: LinkList = new LinkList();
     private objStacks: (LinkList | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
@@ -497,7 +503,6 @@ export class Client extends GameShell {
     sceneLoadStartTime: number = 0;
     viewportOverlayInterfaceId: number = -1;
     bankArrangeMode: number = 0;
-    field1264: number = 0;
     warnMembersInNonMembers: number = 0;
     membersAccount: number = 0;
     flameCycle: number = 0;
@@ -909,6 +914,7 @@ export class Client extends GameShell {
             IdkType.unpack(jagConfig);
             SpotAnimType.unpack(jagConfig);
             VarpType.unpack(jagConfig);
+            VarBitType.unpack(jagConfig);
 
             if (!Client.lowMemory) {
                 await this.drawProgress(90, 'Unpacking sounds');
@@ -1467,20 +1473,16 @@ export class Client extends GameShell {
             if (reply === 1) {
                 await sleep(2000);
                 await this.login(username, password, reconnect);
-            } else if (reply === 2 || reply === 18 || reply === 19) {
-                this.staffmodlevel = 0;
-                if (reply === 18) {
-                    this.staffmodlevel = 1;
-                } else if (reply === 19) {
-                    this.staffmodlevel = 2;
-                }
+            } else if (reply === 2) {
+                this.staffmodlevel = await this.stream.read();
+                await this.stream.read(); // tracked
 
                 InputTracking.setDisabled();
-                // this.field1402 = 0L;
-                // this.field1403 = 0;
+                // this.prevMousePressTime = 0L;
+                // this.lastWriteDuplicates = 0;
                 // this.mouseTracking.length = 0;
                 this.hasFocus = true;
-                // this.field1252 = true;
+                // this.focused = true;
                 this.ingame = true;
                 this.out.pos = 0;
                 this.in.pos = 0;
@@ -1493,7 +1495,6 @@ export class Client extends GameShell {
                 this.systemUpdateTimer = 0;
                 this.idleTimeout = 0;
                 this.hintType = 0;
-                this.field1264 = 0;
                 this.menuSize = 0;
                 this.menuVisible = false;
                 this.idleCycles = performance.now();
@@ -1526,7 +1527,7 @@ export class Client extends GameShell {
                     this.playerAppearanceBuffer[i] = null;
                 }
 
-                for (let i: number = 0; i < 8192; i++) {
+                for (let i: number = 0; i < 16384; i++) {
                     this.npcs[i] = null;
                 }
 
@@ -1544,6 +1545,7 @@ export class Client extends GameShell {
                 }
 
                 this.locChanges = new LinkList();
+                // this.friendListStatus = 0;
                 this.friendCount = 0;
                 this.stickyChatInterfaceId = -1;
                 this.chatInterfaceId = -1;
@@ -1565,6 +1567,11 @@ export class Client extends GameShell {
                     this.designColours[i] = 0;
                 }
 
+                for (let i = 0; i < 5; i++) {
+                    // this.playerOptions[i] = null;
+                    // this.playerOptionsPushDown[i] = false;
+                }
+
                 Client.oplogic1 = 0;
                 Client.oplogic2 = 0;
                 Client.oplogic3 = 0;
@@ -1574,6 +1581,7 @@ export class Client extends GameShell {
                 Client.oplogic7 = 0;
                 Client.oplogic8 = 0;
                 Client.oplogic9 = 0;
+                Client.oplogic10 = 0;
 
                 this.prepareGame();
             } else if (reply === 3) {
@@ -1732,10 +1740,6 @@ export class Client extends GameShell {
             this.idleTimeout--;
         }
 
-        if (this.field1264 > 0) {
-            this.field1264 -= 2;
-        }
-
         for (let i: number = 0; i < 5 && (await this.readPacket()); i++) {
             /* empty */
         }
@@ -1860,13 +1864,6 @@ export class Client extends GameShell {
                 }
             }
 
-            Client.cyclelogic3++;
-            if (Client.cyclelogic3 > 127) {
-                Client.cyclelogic3 = 0;
-                this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC3);
-                this.out.p3(4991788);
-            }
-
             if (World3D.clickTileX !== -1) {
                 if (this.localPlayer) {
                     const x: number = World3D.clickTileX;
@@ -1988,13 +1985,6 @@ export class Client extends GameShell {
                 this.macroMinimapZoomModifier = -1;
             }
 
-            Client.cyclelogic4++;
-            if (Client.cyclelogic4 > 110) {
-                Client.cyclelogic4 = 0;
-                this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC4);
-                this.out.p4(0);
-            }
-
             this.noTimeoutCycle++;
             if (this.noTimeoutCycle > 50) {
                 this.out.p1isaac(ClientProt.NO_TIMEOUT);
@@ -2051,7 +2041,7 @@ export class Client extends GameShell {
         if (this.sceneState === 1) {
             const status = this.checkScene();
             if (status != 0 && performance.now() - this.sceneLoadStartTime > 360000) {
-                console.log(`${this.username} glcfb ${this.serverSeed},${status},${Client.lowMemory},${this.db},${this.onDemand?.remaining()},${this.currentLevel},${this.sceneCenterZoneX},${this.sceneCenterZoneZ}`);
+                console.log(`${this.username} glcfb ${this.serverSeed},${status},${Client.lowMemory},${this.db !== null},${this.onDemand?.remaining()},${this.currentLevel},${this.sceneCenterZoneX},${this.sceneCenterZoneZ}`);
                 this.sceneLoadStartTime = performance.now();
             }
         }
@@ -2096,6 +2086,7 @@ export class Client extends GameShell {
         this.sceneState = 2;
         World.levelBuilt = this.currentLevel;
         this.buildScene();
+        this.out.p1isaac(ClientProt.MAP_BUILD_COMPLETE);
         return 0;
     }
 
@@ -2379,12 +2370,6 @@ export class Client extends GameShell {
                 this.addLoc(loc.level, loc.x, loc.z, loc.oldType, loc.oldAngle, loc.oldShape, loc.layer);
                 loc.unlink();
             }
-        }
-
-        Client.cyclelogic5++;
-        if (Client.cyclelogic5 > 85) {
-            Client.cyclelogic5 = 0;
-            this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC5);
         }
     }
 
@@ -3072,13 +3057,6 @@ export class Client extends GameShell {
             this.selectedTab = 13;
             this.redrawSideicons = true;
         }
-
-        Client.cyclelogic1++;
-        if (Client.cyclelogic1 > 150) {
-            Client.cyclelogic1 = 0;
-            this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC1);
-            this.out.p1(43);
-        }
     }
 
     private handleChatModeInput(): void {
@@ -3652,32 +3630,6 @@ export class Client extends GameShell {
             if (player) {
                 this.updateEntity(player);
             }
-        }
-
-        Client.cyclelogic6++;
-        if (Client.cyclelogic6 > 1406) {
-            Client.cyclelogic6 = 0;
-
-            this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC6);
-            this.out.p1(0);
-            const start: number = this.out.pos;
-            this.out.p1(162);
-            this.out.p1(22);
-            if (((Math.random() * 2.0) | 0) === 0) {
-                this.out.p1(84);
-            }
-            this.out.p2(31824);
-            this.out.p2(13490);
-            if (((Math.random() * 2.0) | 0) === 0) {
-                this.out.p1(123);
-            }
-            if (((Math.random() * 2.0) | 0) === 0) {
-                this.out.p1(134);
-            }
-            this.out.p1(100);
-            this.out.p1(94);
-            this.out.p2(35521);
-            this.out.psize1(this.out.pos - start);
         }
     }
 
@@ -4631,29 +4583,6 @@ export class Client extends GameShell {
             if (this.localPlayer) {
                 this.orbitCamera(this.orbitCameraX, this.getHeightmapY(this.currentLevel, this.localPlayer.x, this.localPlayer.z) - 50, this.orbitCameraZ, yaw, pitch, pitch * 3 + 600);
             }
-
-            Client.cyclelogic2++;
-            if (Client.cyclelogic2 > 1802) {
-                Client.cyclelogic2 = 0;
-                this.out.p1isaac(ClientProt.ANTICHEAT_CYCLELOGIC2);
-                this.out.p1(0);
-                const start: number = this.out.pos;
-                this.out.p2(29711);
-                this.out.p1(70);
-                this.out.p1((Math.random() * 256.0) | 0);
-                this.out.p1(242);
-                this.out.p1(186);
-                this.out.p1(39);
-                this.out.p1(61);
-                if (((Math.random() * 2.0) | 0) === 0) {
-                    this.out.p1(13);
-                }
-                if (((Math.random() * 2.0) | 0) === 0) {
-                    this.out.p2(57856);
-                }
-                this.out.p2((Math.random() * 65536.0) | 0);
-                this.out.psize1(this.out.pos - start);
-            }
         }
 
         let level: number;
@@ -5330,15 +5259,6 @@ export class Client extends GameShell {
         if (this.viewportOverlayInterfaceId !== -1) {
             this.updateInterfaceAnimation(this.viewportOverlayInterfaceId, this.sceneDelta);
             this.drawInterface(Component.types[this.viewportOverlayInterfaceId], 0, 0, 0);
-        }
-
-        if (this.field1264 > 0) {
-            let offset = 302 - (Math.abs(Math.sin(this.field1264 / 10.0) * 10.0) | 0);
-
-            for (let i = 0; i < 30; i++) {
-                let w = (30 - i) * 16;
-                Pix2D.drawHorizontalLineAlpha(256 - w / 2, offset + i, 16776960, w, this.field1264);
-            }
         }
 
         if (this.viewportInterfaceId !== -1) {
@@ -6253,8 +6173,7 @@ export class Client extends GameShell {
                 return true;
             }
 
-            if (this.ptype == 115) {
-                // IF_OPENOVERLAY
+            if (this.ptype === ServerProt.IF_OPENOVERLAY) {
                 const com = this.in.g2b();
                 this.viewportOverlayInterfaceId = com;
 
@@ -6411,13 +6330,6 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.TUT_OPEN) {
                 this.stickyChatInterfaceId = this.in.g2b();
                 this.redrawChatback = true;
-
-                this.ptype = -1;
-                return true;
-            }
-
-            if (this.ptype == 108) {
-                this.field1264 = 255;
 
                 this.ptype = -1;
                 return true;
@@ -7038,7 +6950,7 @@ export class Client extends GameShell {
                 this.scenePrevBaseTileX = this.sceneBaseTileX;
                 this.scenePrevBaseTileZ = this.sceneBaseTileZ;
 
-                for (let i: number = 0; i < 8192; i++) {
+                for (let i: number = 0; i < 16384; i++) {
                     const npc: ClientNpc | null = this.npcs[i];
                     if (npc) {
                         for (let j: number = 0; j < 10; j++) {
@@ -8204,8 +8116,8 @@ export class Client extends GameShell {
 
     private getNpcPosNewVis(buf: Packet, size: number): void {
         while (buf.bitPos + 21 < size * 8) {
-            const index: number = buf.gBit(13);
-            if (index === 8191) {
+            const index: number = buf.gBit(14);
+            if (index === 16383) {
                 break;
             }
 
@@ -8598,15 +8510,6 @@ export class Client extends GameShell {
                 }
 
                 if (action === 6) {
-                    if ((a & 0x3) === 0) {
-                        Client.oplogic2++;
-                    }
-
-                    if (Client.oplogic2 >= 124) {
-                        this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC2);
-                        this.out.p4(0);
-                    }
-
                     this.out.p1isaac(ClientProt.OPNPC3);
                 }
 
@@ -8615,15 +8518,6 @@ export class Client extends GameShell {
                 }
 
                 if (action === 245) {
-                    if ((a & 0x3) === 0) {
-                        Client.oplogic4++;
-                    }
-
-                    if (Client.oplogic4 >= 85) {
-                        this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC4);
-                        this.out.p2(39596);
-                    }
-
                     this.out.p1isaac(ClientProt.OPNPC5);
                 }
 
@@ -8695,25 +8589,10 @@ export class Client extends GameShell {
         }
 
         if (action === 581) {
-            if ((a & 0x3) === 0) {
-                Client.oplogic1++;
-            }
-
-            if (Client.oplogic1 >= 99) {
-                this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC1);
-                this.out.p4(0);
-            }
-
             this.interactWithLoc(ClientProt.OPLOC4, b, c, a);
         }
 
         if (action === 1501) {
-            Client.oplogic6 += this.sceneBaseTileZ;
-            if (Client.oplogic6 >= 92) {
-                this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC6);
-                this.out.p4(0);
-            }
-
             this.interactWithLoc(ClientProt.OPLOC5, b, c, a);
         }
 
@@ -8761,12 +8640,6 @@ export class Client extends GameShell {
                 }
 
                 if (action === 151) {
-                    Client.oplogic8++;
-                    if (Client.oplogic8 >= 90) {
-                        this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC8);
-                        this.out.p2(31114);
-                    }
-
                     this.out.p1isaac(ClientProt.OPPLAYER2);
                 }
 
@@ -8854,12 +8727,6 @@ export class Client extends GameShell {
 
         if (action === 405 || action === 38 || action === 422 || action === 478 || action === 347) {
             if (action === 405) {
-                Client.oplogic3 += a;
-                if (Client.oplogic3 >= 97) {
-                    this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC3);
-                    this.out.p3(14953816);
-                }
-
                 this.out.p1isaac(ClientProt.OPHELD1);
             }
 
@@ -8872,14 +8739,6 @@ export class Client extends GameShell {
             }
 
             if (action === 478) {
-                if ((b & 0x3) === 0) {
-                    Client.oplogic5++;
-                }
-
-                if (Client.oplogic5 >= 90) {
-                    this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC5);
-                }
-
                 this.out.p1isaac(ClientProt.OPHELD4);
             }
 
@@ -9020,28 +8879,10 @@ export class Client extends GameShell {
             }
 
             if (action === 892) {
-                if ((b & 0x3) === 0) {
-                    Client.oplogic9++;
-                }
-
-                if (Client.oplogic9 >= 130) {
-                    this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC9);
-                    this.out.p1(177);
-                }
-
                 this.out.p1isaac(ClientProt.INV_BUTTON4);
             }
 
             if (action === 415) {
-                if ((c & 0x3) === 0) {
-                    Client.oplogic7++;
-                }
-
-                if (Client.oplogic7 >= 55) {
-                    this.out.p1isaac(ClientProt.ANTICHEAT_OPLOGIC7);
-                    this.out.p4(0);
-                }
-
                 this.out.p1isaac(ClientProt.INV_BUTTON5);
             }
 

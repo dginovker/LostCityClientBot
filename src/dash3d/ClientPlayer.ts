@@ -6,8 +6,8 @@ import SeqType from '#/config/SeqType.js';
 import LruCache from '#/datastruct/LruCache.js';
 import JString from '#/datastruct/JString.js';
 
+import AnimFrame from '#/dash3d/AnimFrame.js';
 import ClientEntity from '#/dash3d/ClientEntity.js';
-
 import Model from '#/dash3d/Model.js';
 
 import Packet from '#/io/Packet.js';
@@ -323,7 +323,7 @@ export default class ClientPlayer extends ClientEntity {
             const spotModel = spot.getModel();
 
             if (spotModel != null) {
-                const temp: Model = Model.modelShareColored(spotModel, true, !spot.animHasAlpha, false);
+                const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
                 temp.translate(-this.spotanimHeight, 0, 0);
                 temp.createLabelReferences();
                 if (spot.seq && spot.seq.frames) {
@@ -511,7 +511,9 @@ export default class ClientPlayer extends ClientEntity {
             return model;
         }
 
-        const tmp: Model = Model.modelShareAlpha(model, true);
+        const tmp = Model.empty;
+        tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) || AnimFrame.shareAlpha(secondaryTransformId));
+
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
             tmp.applyTransforms(primaryTransformId, secondaryTransformId, SeqType.types[this.primarySeqId].walkmerge);
         } else if (primaryTransformId !== -1) {
