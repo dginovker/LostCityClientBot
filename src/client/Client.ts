@@ -12,7 +12,7 @@ import NpcType from '#/config/NpcType.js';
 import IdkType from '#/config/IdkType.js';
 import SpotAnimType from '#/config/SpotAnimType.js';
 import VarpType from '#/config/VarpType.js';
-import VarBitType from '#/config/VarbitType.js';
+import VarBitType from '#/config/VarBitType.js';
 import Component from '#/config/Component.js';
 import { ComponentType, ButtonType } from '#/config/Component.js';
 
@@ -7881,7 +7881,7 @@ export class Client extends GameShell {
                 } else if (restartMode == RestartMode.RESETLOOP) {
                     player.primarySeqLoop = 0;
                 }
-            } else if (seqId === -1 || player.primarySeqId === -1 || SeqType.types[seqId].priority > SeqType.types[player.primarySeqId].priority || SeqType.types[player.primarySeqId].priority === 0) {
+            } else if (seqId === -1 || player.primarySeqId === -1 || SeqType.types[seqId].priority >= SeqType.types[player.primarySeqId].priority) {
                 player.primarySeqId = seqId;
                 player.primarySeqFrame = 0;
                 player.primarySeqCycle = 0;
