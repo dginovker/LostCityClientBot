@@ -1,4 +1,5 @@
 import IdkType from '#/config/IdkType.js';
+import NpcType from '#/config/NpcType.ts';
 import ObjType from '#/config/ObjType.js';
 import SpotAnimType from '#/config/SpotAnimType.js';
 import SeqType from '#/config/SeqType.js';
@@ -216,6 +217,7 @@ export default class ClientPlayer extends ClientEntity {
     minTileZ: number = 0;
     maxTileX: number = 0;
     maxTileZ: number = 0;
+    transmog: NpcType | null = null;
 
     /*@__MANGLE_PROP__*/
     read(buf: Packet): void {
@@ -223,6 +225,7 @@ export default class ClientPlayer extends ClientEntity {
 
         this.gender = buf.g1();
         this.headicons = buf.g1();
+        this.transmog = null;
 
         for (let part: number = 0; part < 12; part++) {
             const msb: number = buf.g1();
@@ -230,6 +233,10 @@ export default class ClientPlayer extends ClientEntity {
                 this.appearance[part] = 0;
             } else {
                 this.appearance[part] = (msb << 8) + buf.g1();
+                if (part === 0 && this.appearance[0] === 65535) {
+                    this.transmog = NpcType.get(buf.g2());
+                    break;
+                }
             }
         }
 
@@ -386,6 +393,22 @@ export default class ClientPlayer extends ClientEntity {
     }
 
     getAnimatedModel(): Model | null {
+        if (this.transmog != null) {
+            let transformId = -1;
+            if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
+                const frames = SeqType.types[this.primarySeqId].frames;
+                if (frames) {
+                    transformId = frames[this.primarySeqFrame];
+                }
+            } else if (this.secondarySeqId >= 0) {
+                const frames = SeqType.types[this.secondarySeqId].frames;
+                if (frames) {
+                    transformId = frames[this.secondarySeqFrame];
+                }
+            }
+            return this.transmog.getModel(transformId, -1, null);
+        }
+
         let hash: bigint = this.hash;
         let primaryTransformId: number = -1;
         let secondaryTransformId: number = -1;
