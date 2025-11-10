@@ -316,7 +316,7 @@ export default class LocType extends ConfigType {
                 return null;
             }
 
-            typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n);
+            typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + BigInt(angle);
 
             let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
             if (cached) {
