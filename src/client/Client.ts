@@ -249,7 +249,7 @@ export class Client extends GameShell {
     private crossCycle: number = 0;
     private crossX: number = 0;
     private crossY: number = 0;
-    private overrideChat: number = 0;
+    private chatDisabled: number = 0;
     private menuVisible: boolean = false;
     private menuArea: number = 0;
     private menuX: number = 0;
@@ -449,8 +449,6 @@ export class Client extends GameShell {
     private localPid: number = -1;
     private runweight: number = 0;
     private noTimeoutCycle: number = 0;
-    private wildernessLevel: number = 0;
-    private worldLocationState: number = 0;
     private staffmodlevel: number = 0;
     private designGender: boolean = true;
     private updateDesignModel: boolean = false;
@@ -510,6 +508,8 @@ export class Client extends GameShell {
     sendCameraDelay: number = 0;
     sendCamera: boolean = false;
     focused: boolean = false;
+    playerOptions: (string | null)[] = new TypedArray1d(5, null);
+    playerOptionsPushDown: boolean[] = new TypedArray1d(5, false);
 
     // ----
 
@@ -1572,8 +1572,8 @@ export class Client extends GameShell {
                 }
 
                 for (let i = 0; i < 5; i++) {
-                    // this.playerOptions[i] = null;
-                    // this.playerOptionsPushDown[i] = false;
+                    this.playerOptions[i] = null;
+                    this.playerOptionsPushDown[i] = false;
                 }
 
                 Client.oplogic1 = 0;
@@ -5331,7 +5331,7 @@ export class Client extends GameShell {
             this.drawInterface(Component.types[this.viewportInterfaceId], 0, 0, 0);
         }
 
-        this.updateWorldLocation();
+        this.updateChatOverride();
 
         if (!this.menuVisible) {
             this.handleInput();
@@ -5341,21 +5341,7 @@ export class Client extends GameShell {
         }
 
         if (this.inMultizone === 1) {
-            if (this.wildernessLevel > 0 || this.worldLocationState === 1) {
-                this.imageHeadicon[1]?.draw(472, 258);
-            } else {
-                this.imageHeadicon[1]?.draw(472, 296);
-            }
-        }
-
-        if (this.wildernessLevel > 0) {
-            this.imageHeadicon[0]?.draw(472, 296);
-            this.fontPlain12?.drawStringCenter(484, 329, 'Level: ' + this.wildernessLevel, Colors.YELLOW);
-        }
-
-        if (this.worldLocationState === 1) {
-            this.imageHeadicon[6]?.draw(472, 296);
-            this.fontPlain12?.drawStringCenter(484, 329, 'Arena', Colors.YELLOW);
+            this.imageHeadicon[1]?.draw(472, 296);
         }
 
         if (this.displayFps) {
@@ -5469,7 +5455,7 @@ export class Client extends GameShell {
         }
     }
 
-    private updateWorldLocation(): void {
+    private updateChatOverride(): void {
         if (!this.localPlayer) {
             return;
         }
@@ -5477,47 +5463,17 @@ export class Client extends GameShell {
         const x: number = (this.localPlayer.x >> 7) + this.sceneBaseTileX;
         const z: number = (this.localPlayer.z >> 7) + this.sceneBaseTileZ;
 
-        if (x >= 2944 && x < 3392 && z >= 3520 && z < 6400) {
-            this.wildernessLevel = (((z - 3520) / 8) | 0) + 1;
-        } else if (x >= 2944 && x < 3392 && z >= 9920 && z < 12800) {
-            this.wildernessLevel = (((z - 9920) / 8) | 0) + 1;
-        } else {
-            this.wildernessLevel = 0;
-        }
+        this.chatDisabled = 0;
 
-        this.worldLocationState = 0;
-        if (x >= 3328 && x < 3392 && z >= 3200 && z < 3264) {
-            const localX: number = x & 63;
-            const localZ: number = z & 63;
-
-            if (localX >= 4 && localX <= 29 && localZ >= 44 && localZ <= 58) {
-                this.worldLocationState = 1;
-            } else if (localX >= 36 && localX <= 61 && localZ >= 44 && localZ <= 58) {
-                this.worldLocationState = 1;
-            } else if (localX >= 4 && localX <= 29 && localZ >= 25 && localZ <= 39) {
-                this.worldLocationState = 1;
-            } else if (localX >= 36 && localX <= 61 && localZ >= 25 && localZ <= 39) {
-                this.worldLocationState = 1;
-            } else if (localX >= 4 && localX <= 29 && localZ >= 6 && localZ <= 20) {
-                this.worldLocationState = 1;
-            } else if (localX >= 36 && localX <= 61 && localZ >= 6 && localZ <= 20) {
-                this.worldLocationState = 1;
-            }
-        }
-
-        if (this.worldLocationState === 0 && x >= 3328 && x <= 3393 && z >= 3203 && z <= 3325) {
-            this.worldLocationState = 2;
-        }
-
-        this.overrideChat = 0;
+        // tutorial island
         if (x >= 3053 && x <= 3156 && z >= 3056 && z <= 3136) {
-            this.overrideChat = 1;
+            this.chatDisabled = 1;
         } else if (x >= 3072 && x <= 3118 && z >= 9492 && z <= 9535) {
-            this.overrideChat = 1;
+            this.chatDisabled = 1;
         }
 
-        if (this.overrideChat === 1 && x >= 3139 && x <= 3199 && z >= 3008 && z <= 3062) {
-            this.overrideChat = 0;
+        if (this.chatDisabled === 1 && x >= 3139 && x <= 3199 && z >= 3008 && z <= 3062) {
+            this.chatDisabled = 0;
         }
     }
 
@@ -6607,7 +6563,7 @@ export class Client extends GameShell {
                         }
                     }
 
-                    if (!ignored && this.overrideChat === 0) {
+                    if (!ignored && this.chatDisabled === 0) {
                         this.addMessage(4, 'wishes to trade with you.', player);
                     }
                 } else if (message.endsWith(':duelreq:')) {
@@ -6622,7 +6578,7 @@ export class Client extends GameShell {
                         }
                     }
 
-                    if (!ignored && this.overrideChat === 0) {
+                    if (!ignored && this.chatDisabled === 0) {
                         this.addMessage(8, 'wishes to duel with you.', player);
                     }
                 } else {
@@ -6677,7 +6633,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (!ignored && this.overrideChat === 0) {
+                if (!ignored && this.chatDisabled === 0) {
                     try {
                         this.messageTextIds[this.privateMessageCount] = messageId;
                         this.privateMessageCount = (this.privateMessageCount + 1) % 100;
@@ -6938,6 +6894,24 @@ export class Client extends GameShell {
 
             if (this.ptype === ServerProt.SET_MULTIWAY) {
                 this.inMultizone = this.in.g1();
+
+                this.ptype = -1;
+                return true;
+            }
+
+            if (this.ptype === ServerProt.SET_PLAYER_OP) {
+                const index = this.in.g1();
+                const priority = this.in.g1();
+                let op: string | null = this.in.gjstr();
+
+                if (index >= 1 && index <= 5) {
+                    if (op.toLowerCase() === 'null') {
+                        op = null;
+                    }
+
+                    this.playerOptions[index - 1] = op;
+                    this.playerOptionsPushDown[index - 1] = priority === 0;
+                }
 
                 this.ptype = -1;
                 return true;
@@ -8008,7 +7982,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (!ignored && this.overrideChat === 0) {
+                if (!ignored && this.chatDisabled === 0) {
                     try {
                         const uncompressed: string = WordPack.unpack(buf, length);
                         const filtered: string = WordFilter.filter(uncompressed);
@@ -8690,7 +8664,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 1373 || action === 1544 || action === 151 || action === 1101) {
+        if (action === 639 || action === 499 || action === 27 || action === 387 || action === 185) {
             const player: ClientPlayer | null = this.players[a];
             if (player && this.localPlayer) {
                 this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
@@ -8700,20 +8674,24 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                if (action === 1101) {
+                if (action === 639) {
                     this.out.p1isaac(ClientProt.OPPLAYER1);
                 }
 
-                if (action === 151) {
+                if (action === 499) {
                     this.out.p1isaac(ClientProt.OPPLAYER2);
                 }
 
-                if (action === 1544) {
+                if (action === 27) {
                     this.out.p1isaac(ClientProt.OPPLAYER3);
                 }
 
-                if (action === 1373) {
+                if (action === 387) {
                     this.out.p1isaac(ClientProt.OPPLAYER4);
+                }
+
+                if (action === 185) {
+                    this.out.p1isaac(ClientProt.OPPLAYER5);
                 }
 
                 this.out.p2(a);
@@ -9208,60 +9186,50 @@ export class Client extends GameShell {
             this.menuParamB[this.menuSize] = b;
             this.menuParamC[this.menuSize] = c;
             this.menuSize++;
-        } else if (this.spellSelected !== 1) {
-            this.menuOption[this.menuSize] = 'Follow @whi@' + tooltip;
-            this.menuAction[this.menuSize] = 1544;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
-
-            if (this.overrideChat === 0) {
-                this.menuOption[this.menuSize] = 'Trade with @whi@' + tooltip;
-                this.menuAction[this.menuSize] = 1373;
+        } else if (this.spellSelected === 1) {
+            if ((this.activeSpellFlags & 0x8) === 8) {
+                this.menuOption[this.menuSize] = this.spellCaption + ' @whi@' + tooltip;
+                this.menuAction[this.menuSize] = 651;
                 this.menuParamA[this.menuSize] = a;
                 this.menuParamB[this.menuSize] = b;
                 this.menuParamC[this.menuSize] = c;
                 this.menuSize++;
             }
-
-            if (this.wildernessLevel > 0) {
-                this.menuOption[this.menuSize] = 'Attack @whi@' + tooltip;
-                if (this.localPlayer && this.localPlayer.combatLevel >= player.combatLevel) {
-                    this.menuAction[this.menuSize] = 151;
-                } else {
-                    this.menuAction[this.menuSize] = 2151;
+        } else {
+            for (let i = 4; i >= 0; i--) {
+                const op = this.playerOptions[i];
+                if (op === null || !this.localPlayer) {
+                    continue;
                 }
-                this.menuParamA[this.menuSize] = a;
-                this.menuParamB[this.menuSize] = b;
-                this.menuParamC[this.menuSize] = c;
-                this.menuSize++;
-            }
 
-            if (this.worldLocationState === 1) {
-                this.menuOption[this.menuSize] = 'Fight @whi@' + tooltip;
-                this.menuAction[this.menuSize] = 151;
-                this.menuParamA[this.menuSize] = a;
-                this.menuParamB[this.menuSize] = b;
-                this.menuParamC[this.menuSize] = c;
-                this.menuSize++;
-            }
+                this.menuOption[this.menuSize] = op + ' @whi@' + tooltip;
 
-            if (this.worldLocationState === 2) {
-                this.menuOption[this.menuSize] = 'Duel-with @whi@' + tooltip;
-                this.menuAction[this.menuSize] = 1101;
+                let action = 0;
+                if (op.toLowerCase() === 'attack') {
+                    if (player.combatLevel > this.localPlayer.combatLevel) {
+                        action = 2000;
+                    }
+                } else if (this.playerOptionsPushDown[i]) {
+                    action = 2000;
+                }
+
+                if (i === 0) {
+                    this.menuAction[this.menuSize] = action + 639;
+                } else if (i === 1) {
+                    this.menuAction[this.menuSize] = action + 499;
+                } else if (i === 2) {
+                    this.menuAction[this.menuSize] = action + 27;
+                } else if (i === 3) {
+                    this.menuAction[this.menuSize] = action + 387;
+                } else if (i === 4) {
+                    this.menuAction[this.menuSize] = action + 185;
+                }
+
                 this.menuParamA[this.menuSize] = a;
                 this.menuParamB[this.menuSize] = b;
                 this.menuParamC[this.menuSize] = c;
                 this.menuSize++;
             }
-        } else if ((this.activeSpellFlags & 0x8) === 8) {
-            this.menuOption[this.menuSize] = this.spellCaption + ' @whi@' + tooltip;
-            this.menuAction[this.menuSize] = 651;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
         }
 
         for (let i: number = 0; i < this.menuSize; i++) {
