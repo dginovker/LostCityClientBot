@@ -921,7 +921,10 @@ export default class World {
                     if (stx > 0 && stz > 0 && stx < 103 && stz < 103) {
                         const loc = LocType.get(locId);
                         if (shape != 22 || !World.lowMemory || loc.active || loc.forcedecor) {
-                            ready &&= loc.modelsAreReady();
+                            if (!loc.modelsAreReady()) {
+                                ready = false;
+                            }
+
                             skip = true;
                         }
                     }
