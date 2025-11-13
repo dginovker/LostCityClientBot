@@ -506,6 +506,10 @@ export class Client extends GameShell {
     warnMembersInNonMembers: number = 0;
     membersAccount: number = 0;
     flameCycle: number = 0;
+    prevMousePressTime: number = 0;
+    sendCameraDelay: number = 0;
+    sendCamera: boolean = false;
+    focused: boolean = false;
 
     // ----
 
@@ -1478,11 +1482,11 @@ export class Client extends GameShell {
                 await this.stream.read(); // tracked
 
                 InputTracking.setDisabled();
-                // this.prevMousePressTime = 0L;
+                this.prevMousePressTime = 0;
                 // this.lastWriteDuplicates = 0;
                 // this.mouseTracking.length = 0;
                 this.hasFocus = true;
-                // this.focused = true;
+                this.focused = true;
                 this.ingame = true;
                 this.out.pos = 0;
                 this.in.pos = 0;
@@ -1745,6 +1749,65 @@ export class Client extends GameShell {
         }
 
         if (this.ingame) {
+            if (this.mouseClickButton !== 0) {
+                let delta = (this.mouseClickTime - this.prevMousePressTime) / 50;
+                if (delta > 4095) {
+                    delta = 4095;
+                }
+
+                this.prevMousePressTime = this.mouseClickTime;
+
+                let y = this.mouseClickY;
+                if (y < 0) {
+                    y = 0;
+                } else if (y > 502) {
+                    y = 502;
+                }
+
+                let x = this.mouseClickX;
+                if (x < 0) {
+                    x = 0;
+                } else if (x > 764) {
+                    x = 764;
+                }
+
+                const pos = y * 764 + x;
+
+                let button = 0;
+                if (this.mouseClickButton === 2) {
+                    button = 1;
+                }
+
+                this.out.p1isaac(ClientProt.EVENT_MOUSE_CLICK);
+                this.out.p4(((delta | 0) << 20) + (button << 19) + pos);
+            }
+
+            if (this.sendCameraDelay > 0) {
+                this.sendCameraDelay--;
+            }
+
+            if (this.actionKey[1] === 1 || this.actionKey[2] === 1 || this.actionKey[3] === 1 || this.actionKey[4] === 1) {
+                this.sendCamera = true;
+            }
+
+            if (this.sendCamera && this.sendCameraDelay <= 0) {
+                this.sendCameraDelay = 20;
+                this.sendCamera = false;
+                this.out.p1isaac(ClientProt.EVENT_CAMERA_POSITION);
+                this.out.p2(this.orbitCameraPitch);
+                this.out.p2(this.orbitCameraYaw);
+            }
+
+            if (this.hasFocus && !this.focused) {
+                this.focused = true;
+                this.out.p1isaac(ClientProt.EVENT_APPLET_FOCUS);
+                this.out.p1(0);
+            } else if (!this.hasFocus && this.focused) {
+                this.focused = false;
+                this.out.p1isaac(ClientProt.EVENT_APPLET_FOCUS);
+                this.out.p1(0);
+            }
+
             this.updateSceneState();
             this.updateLocChanges();
             await this.updateAudio();
