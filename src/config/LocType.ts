@@ -243,7 +243,9 @@ export default class LocType extends ConfigType {
             let ready = true;
             for (let i = 0; i < this.models.length; i++) {
                 const model = this.models[i];
-                ready &&= Model.isReady(model & 0xFFFF);
+                if (!Model.isReady(model & 0xFFFF)) {
+                    ready = false;
+                }
             }
             return ready;
         }
@@ -259,7 +261,9 @@ export default class LocType extends ConfigType {
         let ready = true;
         for (let i = 0; i < this.models.length; i++) {
             const model = this.models[i];
-            ready &&= Model.isReady(model & 0xFFFF);
+            if (!Model.isReady(model & 0xFFFF)) {
+                ready = false;
+            }
         }
         return ready;
     }

@@ -2073,7 +2073,9 @@ export class Client extends GameShell {
             if (data != null) {
                 const x = (this.sceneMapIndex[i] >> 8) * 64 - this.sceneBaseTileX;
                 const z = (this.sceneMapIndex[i] & 0xFF) * 64 - this.sceneBaseTileZ;
-                ready &&= World.locsAreReady(data, x, z);
+                if (!World.locsAreReady(data, x, z)) {
+                    ready = false;
+                }
             }
         }
 
