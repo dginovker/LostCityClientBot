@@ -142,7 +142,7 @@ export default class PixFont extends DoublyLinkable {
         }
     }
 
-    drawStringTaggable(x: number, y: number, str: string, color: number, shadowed: boolean): void {
+    drawStringTag(x: number, y: number, str: string, color: number, shadowed: boolean): void {
         x |= 0;
         y |= 0;
 
@@ -167,7 +167,7 @@ export default class PixFont extends DoublyLinkable {
         }
     }
 
-    stringWidth(str: string | null): number {
+    stringWid(str: string | null): number {
         if (!str) {
             return 0;
         }
@@ -185,14 +185,14 @@ export default class PixFont extends DoublyLinkable {
         return w;
     }
 
-    drawStringTaggableCenter(x: number, y: number, str: string, color: number, shadowed: boolean): void {
+    centreStringTag(x: number, y: number, str: string, color: number, shadowed: boolean): void {
         x |= 0;
         y |= 0;
 
-        this.drawStringTaggable(x - ((this.stringWidth(str) / 2) | 0), y, str, color, shadowed);
+        this.drawStringTag(x - ((this.stringWid(str) / 2) | 0), y, str, color, shadowed);
     }
 
-    drawStringCenter(x: number, y: number, str: string | null, color: number): void {
+    centreString(x: number, y: number, str: string | null, color: number): void {
         if (!str) {
             return;
         }
@@ -200,10 +200,10 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
-        this.drawString(x - ((this.stringWidth(str) / 2) | 0), y, str, color);
+        this.drawString(x - ((this.stringWid(str) / 2) | 0), y, str, color);
     }
 
-    drawStringTooltip(x: number, y: number, str: string, color: number, shadowed: boolean, seed: number): void {
+    drawStringAntiMacro(x: number, y: number, str: string, color: number, shadowed: boolean, seed: number): void {
         x |= 0;
         y |= 0;
 
@@ -238,12 +238,12 @@ export default class PixFont extends DoublyLinkable {
         y |= 0;
 
         if (shadowed) {
-            this.drawString(x - this.stringWidth(str) + 1, y + 1, str, Colors.BLACK);
+            this.drawString(x - this.stringWid(str) + 1, y + 1, str, Colors.BLACK);
         }
-        this.drawString(x - this.stringWidth(str), y, str, color);
+        this.drawString(x - this.stringWid(str), y, str, color);
     }
 
-    drawCenteredWave(x: number, y: number, str: string | null, color: number, phase: number): void {
+    centerStringWave(x: number, y: number, str: string | null, color: number, phase: number): void {
         if (!str) {
             return;
         }
@@ -251,7 +251,7 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
-        x -= (this.stringWidth(str) / 2) | 0;
+        x -= (this.stringWid(str) / 2) | 0;
         const offY: number = y - this.height2d;
 
         for (let i: number = 0; i < str.length; i++) {
@@ -475,7 +475,7 @@ export default class PixFont extends DoublyLinkable {
         const lines: string[] = [];
         while (str.length > 0) {
             // check if the string even needs to be broken up
-            const width: number = this.stringWidth(str);
+            const width: number = this.stringWid(str);
             if (width <= maxWidth && str.indexOf('|') === -1) {
                 lines.push(str);
                 break;
@@ -487,7 +487,7 @@ export default class PixFont extends DoublyLinkable {
             // check the width at every space to see where we can cut the line
             for (let i: number = 0; i < str.length; i++) {
                 if (str[i] === ' ') {
-                    const w: number = this.stringWidth(str.substring(0, i));
+                    const w: number = this.stringWid(str.substring(0, i));
                     if (w > maxWidth) {
                         break;
                     }

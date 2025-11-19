@@ -7,20 +7,20 @@ import Packet from '#/io/Packet.js';
 
 export default class Pix32 extends Pix2D {
     pixels: Int32Array;
-    cropRight: number;
-    cropBottom: number;
-    cropLeft: number;
-    cropTop: number;
-    width: number;
-    height: number;
+    wi: number;
+    hi: number;
+    xof: number;
+    yof: number;
+    owi: number;
+    ohi: number;
 
     constructor(width: number, height: number) {
         super();
 
         this.pixels = new Int32Array(width * height);
-        this.cropRight = this.width = width;
-        this.cropBottom = this.height = height;
-        this.cropLeft = this.cropTop = 0;
+        this.wi = this.owi = width;
+        this.hi = this.ohi = height;
+        this.xof = this.yof = 0;
     }
 
     static async fromJpeg(archive: Jagfile, name: string): Promise<Pix32> {
@@ -47,20 +47,20 @@ export default class Pix32 extends Pix2D {
 
         // cropW/cropH are shared across all sprites in a single image
         index.pos = dat.g2();
-        const cropW: number = index.g2();
-        const cropH: number = index.g2();
+        const owi: number = index.g2();
+        const ohi: number = index.g2();
 
         // palette is shared across all images in a single archive
-        const paletteCount: number = index.g1();
-        const palette: number[] = [];
-        const length: number = paletteCount - 1;
+        const bpalCount: number = index.g1();
+        const bpal: number[] = [];
+        const length: number = bpalCount - 1;
         for (let i: number = 0; i < length; i++) {
             // the first color (0) is reserved for transparency
-            palette[i + 1] = index.g3();
+            bpal[i + 1] = index.g3();
 
             // black (0) will become transparent, make it black (1) so it's visible
-            if (palette[i + 1] === 0) {
-                palette[i + 1] = 1;
+            if (bpal[i + 1] === 0) {
+                bpal[i + 1] = 1;
             }
         }
 
@@ -76,29 +76,29 @@ export default class Pix32 extends Pix2D {
         }
 
         // read sprite
-        const cropX: number = index.g1();
-        const cropY: number = index.g1();
-        const width: number = index.g2();
-        const height: number = index.g2();
+        const xof: number = index.g1();
+        const yof: number = index.g1();
+        const wi: number = index.g2();
+        const hi: number = index.g2();
 
-        const image: Pix32 = new Pix32(width, height);
-        image.cropLeft = cropX;
-        image.cropTop = cropY;
-        image.width = cropW;
-        image.height = cropH;
+        const image: Pix32 = new Pix32(wi, hi);
+        image.xof = xof;
+        image.yof = yof;
+        image.owi = owi;
+        image.ohi = ohi;
 
-        const pixelOrder: number = index.g1();
-        if (pixelOrder === 0) {
-            const length: number = image.cropRight * image.cropBottom;
+        const encoding: number = index.g1();
+        if (encoding === 0) {
+            const length: number = image.wi * image.hi;
             for (let i: number = 0; i < length; i++) {
-                image.pixels[i] = palette[dat.g1()];
+                image.pixels[i] = bpal[dat.g1()];
             }
-        } else if (pixelOrder === 1) {
-            const width: number = image.cropRight;
+        } else if (encoding === 1) {
+            const width: number = image.wi;
             for (let x: number = 0; x < width; x++) {
-                const height: number = image.cropBottom;
+                const height: number = image.hi;
                 for (let y: number = 0; y < height; y++) {
-                    image.pixels[x + y * width] = palette[dat.g1()];
+                    image.pixels[x + y * width] = bpal[dat.g1()];
                 }
             }
         }
@@ -106,22 +106,106 @@ export default class Pix32 extends Pix2D {
         return image;
     }
 
+    trim(): void {
+		const pixels = new Int32Array(this.owi * this.ohi);
+		for (let y = 0; y < this.hi; y++) {
+			for (let x = 0; x < this.wi; x++) {
+				pixels[(this.yof + y) * this.owi + this.xof + x] = this.pixels[this.wi * y + x];
+			}
+		}
+
+        this.pixels = pixels;
+		this.wi = this.owi;
+		this.hi = this.ohi;
+		this.xof = 0;
+		this.yof = 0;
+    }
+
+    hflip(): void {
+        const pixels: Int32Array = this.pixels;
+        const width: number = this.wi;
+        const height: number = this.hi;
+
+        for (let y: number = 0; y < height; y++) {
+            const div: number = (width / 2) | 0;
+            for (let x: number = 0; x < div; x++) {
+                const off1: number = x + y * width;
+                const off2: number = width - x - 1 + y * width;
+
+                const tmp: number = pixels[off1];
+                pixels[off1] = pixels[off2];
+                pixels[off2] = tmp;
+            }
+        }
+    }
+
+    vflip(): void {
+        const pixels: Int32Array = this.pixels;
+        const width: number = this.wi;
+        const height: number = this.hi;
+
+        for (let y: number = 0; y < ((height / 2) | 0); y++) {
+            for (let x: number = 0; x < width; x++) {
+                const off1: number = x + y * width;
+                const off2: number = x + (height - y - 1) * width;
+
+                const tmp: number = pixels[off1];
+                pixels[off1] = pixels[off2];
+                pixels[off2] = tmp;
+            }
+        }
+    }
+
+    rgbAdjust(r: number, g: number, b: number): void {
+        for (let i: number = 0; i < this.pixels.length; i++) {
+            const rgb: number = this.pixels[i];
+
+            if (rgb !== 0) {
+                let red: number = (rgb >> 16) & 0xff;
+                red += r;
+                if (red < 1) {
+                    red = 1;
+                } else if (red > 255) {
+                    red = 255;
+                }
+
+                let green: number = (rgb >> 8) & 0xff;
+                green += g;
+                if (green < 1) {
+                    green = 1;
+                } else if (green > 255) {
+                    green = 255;
+                }
+
+                let blue: number = rgb & 0xff;
+                blue += b;
+                if (blue < 1) {
+                    blue = 1;
+                } else if (blue > 255) {
+                    blue = 255;
+                }
+
+                this.pixels[i] = (red << 16) + (green << 8) + blue;
+            }
+        }
+    }
+
     bind(): void {
-        Pix2D.bind(this.pixels, this.cropRight, this.cropBottom);
+        Pix2D.bind(this.pixels, this.wi, this.hi);
     }
 
     draw(x: number, y: number): void {
         x |= 0;
         y |= 0;
 
-        x += this.cropLeft;
-        y += this.cropTop;
+        x += this.xof;
+        y += this.yof;
 
         let dstOff: number = x + y * Pix2D.width2d;
         let srcOff: number = 0;
 
-        let h: number = this.cropBottom;
-        let w: number = this.cropRight;
+        let h: number = this.hi;
+        let w: number = this.wi;
 
         let dstStep: number = Pix2D.width2d - w;
         let srcStep: number = 0;
@@ -164,13 +248,13 @@ export default class Pix32 extends Pix2D {
         x |= 0;
         y |= 0;
 
-        x += this.cropLeft;
-        y += this.cropTop;
+        x += this.xof;
+        y += this.yof;
 
         let dstStep: number = x + y * Pix2D.width2d;
         let srcStep: number = 0;
-        let h: number = this.cropBottom;
-        let w: number = this.cropRight;
+        let h: number = this.hi;
+        let w: number = this.wi;
         let dstOff: number = Pix2D.width2d - w;
         let srcOff: number = 0;
 
@@ -212,14 +296,14 @@ export default class Pix32 extends Pix2D {
         x |= 0;
         y |= 0;
 
-        x += this.cropLeft;
-        y += this.cropTop;
+        x += this.xof;
+        y += this.yof;
 
         let dstOff: number = x + y * Pix2D.width2d;
         let srcOff: number = 0;
 
-        let h: number = this.cropBottom;
-        let w: number = this.cropRight;
+        let h: number = this.hi;
+        let w: number = this.wi;
 
         let dstStep: number = Pix2D.width2d - w;
         let srcStep: number = 0;
@@ -258,90 +342,6 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    flipHorizontally(): void {
-        const pixels: Int32Array = this.pixels;
-        const width: number = this.cropRight;
-        const height: number = this.cropBottom;
-
-        for (let y: number = 0; y < height; y++) {
-            const div: number = (width / 2) | 0;
-            for (let x: number = 0; x < div; x++) {
-                const off1: number = x + y * width;
-                const off2: number = width - x - 1 + y * width;
-
-                const tmp: number = pixels[off1];
-                pixels[off1] = pixels[off2];
-                pixels[off2] = tmp;
-            }
-        }
-    }
-
-    flipVertically(): void {
-        const pixels: Int32Array = this.pixels;
-        const width: number = this.cropRight;
-        const height: number = this.cropBottom;
-
-        for (let y: number = 0; y < ((height / 2) | 0); y++) {
-            for (let x: number = 0; x < width; x++) {
-                const off1: number = x + y * width;
-                const off2: number = x + (height - y - 1) * width;
-
-                const tmp: number = pixels[off1];
-                pixels[off1] = pixels[off2];
-                pixels[off2] = tmp;
-            }
-        }
-    }
-
-    translate2d(r: number, g: number, b: number): void {
-        for (let i: number = 0; i < this.pixels.length; i++) {
-            const rgb: number = this.pixels[i];
-
-            if (rgb !== 0) {
-                let red: number = (rgb >> 16) & 0xff;
-                red += r;
-                if (red < 1) {
-                    red = 1;
-                } else if (red > 255) {
-                    red = 255;
-                }
-
-                let green: number = (rgb >> 8) & 0xff;
-                green += g;
-                if (green < 1) {
-                    green = 1;
-                } else if (green > 255) {
-                    green = 255;
-                }
-
-                let blue: number = rgb & 0xff;
-                blue += b;
-                if (blue < 1) {
-                    blue = 1;
-                } else if (blue > 255) {
-                    blue = 255;
-                }
-
-                this.pixels[i] = (red << 16) + (green << 8) + blue;
-            }
-        }
-    }
-
-    crop(): void {
-		const pixels = new Int32Array(this.width * this.height);
-		for (let y = 0; y < this.cropBottom; y++) {
-			for (let x = 0; x < this.cropRight; x++) {
-				pixels[(this.cropTop + y) * this.width + this.cropLeft + x] = this.pixels[this.cropRight * y + x];
-			}
-		}
-
-        this.pixels = pixels;
-		this.cropRight = this.width;
-		this.cropBottom = this.height;
-		this.cropLeft = 0;
-		this.cropTop = 0;
-    }
-
     drawRotated(y: number, theta: number, zoom: number, anchorX: number, anchorY: number, w: number, h: number, x: number): void {
         x |= 0;
         y |= 0;
@@ -367,7 +367,7 @@ export default class Pix32 extends Pix2D {
                 let srcY: number = leftY;
 
                 for (let j: number = -w; j < 0; j++) {
-					const rgb = this.pixels[(srcX >> 16) + (srcY >> 16) * this.width];
+					const rgb = this.pixels[(srcX >> 16) + (srcY >> 16) * this.owi];
 					if (rgb == 0) {
 						dstX++;
 					} else {
@@ -414,7 +414,7 @@ export default class Pix32 extends Pix2D {
                 let srcY: number = leftY - sinZoom * dstOff;
 
                 for (let j: number = -lineWidth[i]; j < 0; j++) {
-                    Pix2D.pixels[dstX++] = this.pixels[(srcX >> 16) + (srcY >> 16) * this.cropRight];
+                    Pix2D.pixels[dstX++] = this.pixels[(srcX >> 16) + (srcY >> 16) * this.wi];
                     srcX += cosZoom;
                     srcY -= sinZoom;
                 }
@@ -432,13 +432,13 @@ export default class Pix32 extends Pix2D {
         x |= 0;
         y |= 0;
 
-        x += this.cropLeft;
-        y += this.cropTop;
+        x += this.xof;
+        y += this.yof;
 
         let dstStep: number = x + y * Pix2D.width2d;
         let srcStep: number = 0;
-        let h: number = this.cropBottom;
-        let w: number = this.cropRight;
+        let h: number = this.hi;
+        let w: number = this.wi;
         let dstOff: number = Pix2D.width2d - w;
         let srcOff: number = 0;
 

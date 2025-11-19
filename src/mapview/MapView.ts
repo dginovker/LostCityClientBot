@@ -296,7 +296,7 @@ export class MapView extends GameShell {
             if (this.showOverview) {
                 this.imageOverview?.blitOpaque(this.overviewX, this.overviewY);
 
-                Pix2D.fillRectAlpha(
+                Pix2D.fillRectTrans(
                     (this.overviewX + (this.imageOverviewWidth * left) / this.sizeX) | 0,
                     (this.overviewY + (this.imageOverviewHeight * top) / this.sizeZ) | 0,
                     (((right - left) * this.imageOverviewWidth) / this.sizeX) | 0,
@@ -642,14 +642,14 @@ export class MapView extends GameShell {
         const widthPad: number = width - 2;
         const heightPad: number = height - 2;
 
-        Pix2D.fillRect2d(xPad, yPad, widthPad, heightPad, fillColor);
+        Pix2D.fillRect(xPad, yPad, widthPad, heightPad, fillColor);
         Pix2D.hline(xPad, yPad, colorBorderTL, widthPad);
         Pix2D.vline(xPad, yPad, colorBorderTL, heightPad);
         Pix2D.hline(xPad, yPad + heightPad - 1, colorBorderBR, widthPad);
         Pix2D.vline(xPad + widthPad - 1, yPad, colorBorderBR, heightPad);
 
-        this.b12?.drawStringCenter(xPad + widthPad / 2 + 1, yPad + heightPad / 2 + 1 + 4, str, 0);
-        this.b12?.drawStringCenter(xPad + widthPad / 2, yPad + heightPad / 2 + 4, str, 0xffffff);
+        this.b12?.centreString(xPad + widthPad / 2 + 1, yPad + heightPad / 2 + 1 + 4, str, 0);
+        this.b12?.centreString(xPad + widthPad / 2, yPad + heightPad / 2 + 4, str, 0xffffff);
     }
 
     clearEmptyTiles(): void {
@@ -924,12 +924,12 @@ export class MapView extends GameShell {
 
                 const overlay: number = this.overlayTiles[x + left][y + top];
                 if (overlay === 0) {
-                    Pix2D.fillRect2d(startX, startY, endX - startX, endY - startY, this.floormapColors[x + left][y + top]);
+                    Pix2D.fillRect(startX, startY, endX - startX, endY - startY, this.floormapColors[x + left][y + top]);
                 } else {
                     const info: number = this.overlayInfo[x + left][y + top];
                     const shape: number = info & 0xfc;
                     if (shape == 0 || lengthX <= 1 || lengthY <= 1) {
-                        Pix2D.fillRect2d(startX, startY, lengthX, lengthY, overlay);
+                        Pix2D.fillRect(startX, startY, lengthX, lengthY, overlay);
                     } else {
                         this.drawSmoothEdges(Pix2D.pixels, startY * Pix2D.width2d + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
                     }
@@ -1169,14 +1169,14 @@ export class MapView extends GameShell {
                     while (true) {
                         let newline = label.indexOf('/');
                         if (newline === -1) {
-                            font.drawStringCenter(drawX + 1, drawY + 1, label, 0);
-                            font.drawStringCenter(drawX, drawY, label, rgb);
+                            font.centreString(drawX + 1, drawY + 1, label, 0);
+                            font.centreString(drawX, drawY, label, rgb);
                             break;
                         }
 
                         let part = label.substring(0, newline);
-                        font.drawStringCenter(drawX + 1, drawY + 1, part, 0);
-                        font.drawStringCenter(drawX, drawY, part, rgb);
+                        font.centreString(drawX + 1, drawY + 1, part, 0);
+                        font.centreString(drawX, drawY, part, rgb);
 
                         drawY += font.height2d;
                         label = label.substring(newline + 1);
@@ -1212,9 +1212,9 @@ export class MapView extends GameShell {
                     this.b12?.drawStringRight(drawRight - 5, drawBottom - 5, mx + '_' + mz, color, false);
 
                     if (mx == 33 && mz >= 71 && mz <= 73) {
-                        this.b12?.drawStringCenter((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xff0000);
+                        this.b12?.centreString((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xff0000);
                     } else if (mx >= 32 && mx <= 34 && mz >= 70 && mz <= 74) {
-                        this.b12?.drawStringCenter((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xffff00);
+                        this.b12?.centreString((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xffff00);
                     }
                 }
             }

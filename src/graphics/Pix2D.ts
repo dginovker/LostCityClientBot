@@ -64,6 +64,73 @@ export default class Pix2D extends DoublyLinkable {
         }
     }
 
+    static fillRectTrans(x: number, y: number, width: number, height: number, rgb: number, alpha: number): void {
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
+        }
+
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
+        }
+
+        if (x + width > this.right) {
+            width = this.right - x;
+        }
+
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
+        }
+
+        const invAlpha: number = 256 - alpha;
+        const r0: number = ((rgb >> 16) & 0xff) * alpha;
+        const g0: number = ((rgb >> 8) & 0xff) * alpha;
+        const b0: number = (rgb & 0xff) * alpha;
+        const step: number = this.width2d - width;
+        let offset: number = x + y * this.width2d;
+        for (let i: number = 0; i < height; i++) {
+            for (let j: number = -width; j < 0; j++) {
+                const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
+                const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
+                const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
+                const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
+                this.pixels[offset++] = color;
+            }
+            offset += step;
+        }
+    }
+
+    static fillRect(x: number, y: number, width: number, height: number, color: number): void {
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
+        }
+
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
+        }
+
+        if (x + width > this.right) {
+            width = this.right - x;
+        }
+
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
+        }
+
+        const step: number = this.width2d - width;
+        let offset: number = x + y * this.width2d;
+        for (let i: number = -height; i < 0; i++) {
+            for (let j: number = -width; j < 0; j++) {
+                this.pixels[offset++] = color;
+            }
+
+            offset += step;
+        }
+    }
+
     static drawRect(x: number, y: number, w: number, h: number, color: number): void {
         this.hline(x, y, color, w);
         this.hline(x, y + h - 1, color, w);
@@ -72,8 +139,8 @@ export default class Pix2D extends DoublyLinkable {
     }
 
     static drawRectTrans(x: number, y: number, w: number, h: number, color: number, alpha: number): void {
-        this.lineTrans(x, y, color, w, alpha);
-        this.lineTrans(x, y + h - 1, color, w, alpha);
+        this.hlineTrans(x, y, color, w, alpha);
+        this.hlineTrans(x, y + h - 1, color, w, alpha);
         if (h >= 3) {
             this.vlineTrans(x, y, color, h, alpha);
             this.vlineTrans(x + w - 1, y, color, h, alpha);
@@ -100,7 +167,7 @@ export default class Pix2D extends DoublyLinkable {
         }
     }
 
-    static lineTrans = (x: number, y: number, color: number, width: number, alpha: number): void => {
+    static hlineTrans(x: number, y: number, color: number, width: number, alpha: number): void {
         if (y < this.top || y >= this.bottom) {
             return;
         }
@@ -149,7 +216,7 @@ export default class Pix2D extends DoublyLinkable {
         }
     }
 
-    static vlineTrans = (x: number, y: number, color: number, height: number, alpha: number): void => {
+    static vlineTrans(x: number, y: number, color: number, height: number, alpha: number): void {
         if (x < this.left || x >= this.right) {
             return;
         }
@@ -208,73 +275,6 @@ export default class Pix2D extends DoublyLinkable {
                 err = err + dx;
                 y1 = y1 + sy;
             }
-        }
-    }
-
-    static fillRect2d(x: number, y: number, width: number, height: number, color: number): void {
-        if (x < this.left) {
-            width -= this.left - x;
-            x = this.left;
-        }
-
-        if (y < this.top) {
-            height -= this.top - y;
-            y = this.top;
-        }
-
-        if (x + width > this.right) {
-            width = this.right - x;
-        }
-
-        if (y + height > this.bottom) {
-            height = this.bottom - y;
-        }
-
-        const step: number = this.width2d - width;
-        let offset: number = x + y * this.width2d;
-        for (let i: number = -height; i < 0; i++) {
-            for (let j: number = -width; j < 0; j++) {
-                this.pixels[offset++] = color;
-            }
-
-            offset += step;
-        }
-    }
-
-    static fillRectAlpha(x: number, y: number, width: number, height: number, rgb: number, alpha: number): void {
-        if (x < this.left) {
-            width -= this.left - x;
-            x = this.left;
-        }
-
-        if (y < this.top) {
-            height -= this.top - y;
-            y = this.top;
-        }
-
-        if (x + width > this.right) {
-            width = this.right - x;
-        }
-
-        if (y + height > this.bottom) {
-            height = this.bottom - y;
-        }
-
-        const invAlpha: number = 256 - alpha;
-        const r0: number = ((rgb >> 16) & 0xff) * alpha;
-        const g0: number = ((rgb >> 8) & 0xff) * alpha;
-        const b0: number = (rgb & 0xff) * alpha;
-        const step: number = this.width2d - width;
-        let offset: number = x + y * this.width2d;
-        for (let i: number = 0; i < height; i++) {
-            for (let j: number = -width; j < 0; j++) {
-                const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
-                const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
-                const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
-                const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
-                this.pixels[offset++] = color;
-            }
-            offset += step;
         }
     }
 

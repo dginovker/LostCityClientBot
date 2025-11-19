@@ -367,7 +367,7 @@ export default class ObjType extends ConfigType {
         if (ObjType.iconCache && outlineRgb === 0) {
             let icon: Pix32 | null = ObjType.iconCache.get(BigInt(id)) as Pix32 | null;
 
-            if (icon && icon.height !== count && icon.height !== -1) {
+            if (icon && icon.ohi !== count && icon.ohi !== -1) {
                 icon.unlink();
                 icon = null;
             }
@@ -425,7 +425,7 @@ export default class ObjType extends ConfigType {
 
         Pix3D.jagged = false;
         Pix2D.bind(icon.pixels, 32, 32);
-        Pix2D.fillRect2d(0, 0, 32, 32, Colors.BLACK);
+        Pix2D.fillRect(0, 0, 32, 32, Colors.BLACK);
         Pix3D.init2D();
 
         let zoom = obj.zoom2d;
@@ -489,13 +489,13 @@ export default class ObjType extends ConfigType {
         }
 
         if (linkedIcon && obj.certtemplate !== -1) {
-            const w: number = linkedIcon.width;
-            const h: number = linkedIcon.height;
-            linkedIcon.width = 32;
-            linkedIcon.height = 32;
+            const w: number = linkedIcon.owi;
+            const h: number = linkedIcon.ohi;
+            linkedIcon.owi = 32;
+            linkedIcon.ohi = 32;
             linkedIcon.draw(0, 0);
-            linkedIcon.width = w;
-            linkedIcon.height = h;
+            linkedIcon.owi = w;
+            linkedIcon.ohi = h;
         }
 
         if (ObjType.iconCache && outlineRgb === 0) {
@@ -510,12 +510,12 @@ export default class ObjType extends ConfigType {
         Pix3D.jagged = true;
 
         if (obj.stackable) {
-            icon.width = 33;
+            icon.owi = 33;
         } else {
-            icon.width = 32;
+            icon.owi = 32;
         }
 
-        icon.height = count;
+        icon.ohi = count;
         return icon;
     }
 

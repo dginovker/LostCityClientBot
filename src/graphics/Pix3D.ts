@@ -98,10 +98,10 @@ export default class Pix3D extends Pix2D {
         for (let i: number = 0; i < 50; i++) {
             try {
                 this.textures[i] = Pix8.fromArchive(textures, i.toString());
-                if (this.lowMem && this.textures[i]?.cropW === 128) {
-                    this.textures[i]?.shrink();
+                if (this.lowMem && this.textures[i]?.owi === 128) {
+                    this.textures[i]?.halveSize();
                 } else {
-                    this.textures[i]?.crop();
+                    this.textures[i]?.trim();
                 }
                 this.textureCount++;
             } catch (err) {
@@ -189,7 +189,7 @@ export default class Pix3D extends Pix2D {
                 texels[i + 12288] = (rgb - (rgb >>> 2) - (rgb >>> 3)) & 0xf8f8ff;
             }
         } else {
-            if (texture.width2d === 64) {
+            if (texture.wi === 64) {
                 for (let y: number = 0; y < 128; y++) {
                     for (let x: number = 0; x < 128; x++) {
                         texels[x + ((y << 7) | 0)] = palette[texture.pixels[(x >> 1) + (((y >> 1) << 6) | 0)]];
@@ -284,7 +284,7 @@ export default class Pix3D extends Pix2D {
             if (!texture) {
                 continue;
             }
-            const palette: Int32Array = texture.rgbPal;
+            const palette: Int32Array = texture.bpal;
             this.texPal[id] = new Int32Array(palette.length);
             for (let i: number = 0; i < palette.length; i++) {
                 const texturePalette: Int32Array | null = this.texPal[id];
