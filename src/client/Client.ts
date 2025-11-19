@@ -1881,18 +1881,18 @@ export class Client extends GameShell {
                             if (this.bankArrangeMode == 1 && com.clientCode == 206) {
                                 mode = 1;
                             }
-                            if (com.invSlotObjId && com.invSlotObjId[this.hoveredSlot] <= 0) {
+                            if (com.linkObjType && com.linkObjType[this.hoveredSlot] <= 0) {
                                 mode = 0;
                             }
 
-                            if (com.swappable && com.invSlotObjId && com.invSlotObjCount) {
+                            if (com.swappable && com.linkObjType && com.linkObjNumber) {
                                 const src = this.objDragSlot;
                                 const dst = this.hoveredSlot;
 
-                                com.invSlotObjId[dst] = com.invSlotObjId[src];
-                                com.invSlotObjCount[dst] = com.invSlotObjCount[src];
-                                com.invSlotObjId[src] = -1;
-                                com.invSlotObjCount[src] = 0;
+                                com.linkObjType[dst] = com.linkObjType[src];
+                                com.linkObjNumber[dst] = com.linkObjNumber[src];
+                                com.linkObjType[src] = -1;
+                                com.linkObjNumber[src] = 0;
                             } else if (mode == 1) {
                                 let src = this.objDragSlot;
                                 let dst = this.hoveredSlot;
@@ -2923,11 +2923,11 @@ export class Client extends GameShell {
                         this.objGrabX = this.mouseClickX;
                         this.objGrabY = this.mouseClickY;
 
-                        if (Component.types[comId].layer === this.viewportInterfaceId) {
+                        if (Component.types[comId].layerId === this.viewportInterfaceId) {
                             this.objDragArea = 1;
                         }
 
-                        if (Component.types[comId].layer === this.chatInterfaceId) {
+                        if (Component.types[comId].layerId === this.chatInterfaceId) {
                             this.objDragArea = 3;
                         }
 
@@ -3164,7 +3164,7 @@ export class Client extends GameShell {
 
             for (let i: number = 0; i < Component.types.length; i++) {
                 if (Component.types[i] && Component.types[i].clientCode === 600) {
-                    this.reportAbuseInterfaceId = this.viewportInterfaceId = Component.types[i].layer;
+                    this.reportAbuseInterfaceId = this.viewportInterfaceId = Component.types[i].layerId;
                     break;
                 }
             }
@@ -4402,13 +4402,13 @@ export class Client extends GameShell {
         }
 
         if (this.chatInterfaceId === -1) {
-            this.chatInterface.scrollPosition = this.chatScrollHeight - this.chatScrollOffset - 77;
+            this.chatInterface.scrollPos = this.chatScrollHeight - this.chatScrollOffset - 77;
 
             if (this.mouseX > 448 && this.mouseX < 560 && this.mouseY > 332) {
                 this.handleScrollInput(this.mouseX - 17, this.mouseY - 357, this.chatScrollHeight, 77, false, 463, 0, this.chatInterface);
             }
 
-            let offset: number = this.chatScrollHeight - this.chatInterface.scrollPosition - 77;
+            let offset: number = this.chatScrollHeight - this.chatInterface.scrollPos - 77;
             if (offset < 0) {
                 offset = 0;
             }
@@ -6219,7 +6219,7 @@ export class Client extends GameShell {
                 const comId: number = this.in.g2();
                 const hide = this.in.g1() === 1;
 
-                Component.types[comId].hide = hide;
+                Component.types[comId].hidden = hide;
 
                 this.ptype = -1;
                 return true;
@@ -6232,10 +6232,10 @@ export class Client extends GameShell {
 
                 const obj: ObjType = ObjType.get(objId);
                 Component.types[com].modelType = 4;
-                Component.types[com].model = objId;
-                Component.types[com].xan = obj.xan2d;
-                Component.types[com].yan = obj.yan2d;
-                Component.types[com].zoom = ((obj.zoom2d * 100) / zoom) | 0;
+                Component.types[com].modelId = objId;
+                Component.types[com].modelXAn = obj.xan2d;
+                Component.types[com].modelYAn = obj.yan2d;
+                Component.types[com].modelZoom = ((obj.zoom2d * 100) / zoom) | 0;
 
                 this.ptype = -1;
                 return true;
@@ -6246,7 +6246,7 @@ export class Client extends GameShell {
                 const model: number = this.in.g2();
 
                 Component.types[com].modelType = 1;
-                Component.types[com].model = model;
+                Component.types[com].modelId = model;
 
                 this.ptype = -1;
                 return true;
@@ -6254,7 +6254,7 @@ export class Client extends GameShell {
 
             if (this.ptype === ServerProt.IF_SETANIM) {
                 const com: number = this.in.g2();
-                Component.types[com].anim = this.in.g2();
+                Component.types[com].modelAnim = this.in.g2();
 
                 this.ptype = -1;
                 return true;
@@ -6265,7 +6265,7 @@ export class Client extends GameShell {
 
                 if (this.localPlayer) {
                     Component.types[comId].modelType = 3;
-                    Component.types[comId].model = (this.localPlayer.appearance[8] << 6) + (this.localPlayer.appearance[0] << 12) + (this.localPlayer.colour[0] << 24) + (this.localPlayer.colour[4] << 18) + this.localPlayer.appearance[11];
+                    Component.types[comId].modelId = (this.localPlayer.appearance[8] << 6) + (this.localPlayer.appearance[0] << 12) + (this.localPlayer.colour[0] << 24) + (this.localPlayer.colour[4] << 18) + this.localPlayer.appearance[11];
                 }
 
                 this.ptype = -1;
@@ -6278,7 +6278,7 @@ export class Client extends GameShell {
 
                 Component.types[comId].text = text;
 
-                if (Component.types[comId].layer === this.tabInterfaceId[this.selectedTab]) {
+                if (Component.types[comId].layerId === this.tabInterfaceId[this.selectedTab]) {
                     this.redrawSidebar = true;
                 }
 
@@ -6291,7 +6291,7 @@ export class Client extends GameShell {
                 const npcId: number = this.in.g2();
 
                 Component.types[com].modelType = 2;
-                Component.types[com].model = npcId;
+                Component.types[com].modelId = npcId;
 
                 this.ptype = -1;
                 return true;
@@ -6320,11 +6320,11 @@ export class Client extends GameShell {
                         pos = 0;
                     }
 
-                    if (pos > inter.scroll - inter.height) {
-                        pos = inter.scroll - inter.height;
+                    if (pos > inter.scrollSize - inter.height) {
+                        pos = inter.scrollSize - inter.height;
                     }
 
-                    inter.scrollPosition = pos;
+                    inter.scrollPos = pos;
                 }
 
                 this.ptype = -1;
@@ -6360,10 +6360,10 @@ export class Client extends GameShell {
                 const comId = this.in.g2();
                 const inv: Component = Component.types[comId];
 
-                if (inv.invSlotObjId) {
-                    for (let i: number = 0; i < inv.invSlotObjId.length; i++) {
-                        inv.invSlotObjId[i] = -1;
-                        inv.invSlotObjId[i] = 0;
+                if (inv.linkObjType) {
+                    for (let i: number = 0; i < inv.linkObjType.length; i++) {
+                        inv.linkObjType[i] = -1;
+                        inv.linkObjType[i] = 0;
                     }
                 }
 
@@ -6378,21 +6378,21 @@ export class Client extends GameShell {
                 const inv: Component = Component.types[com];
                 const size: number = this.in.g1();
 
-                if (inv.invSlotObjId && inv.invSlotObjCount) {
+                if (inv.linkObjType && inv.linkObjNumber) {
                     for (let i: number = 0; i < size; i++) {
-                        inv.invSlotObjId[i] = this.in.g2();
+                        inv.linkObjType[i] = this.in.g2();
 
                         let count: number = this.in.g1();
                         if (count === 255) {
                             count = this.in.g4();
                         }
 
-                        inv.invSlotObjCount[i] = count;
+                        inv.linkObjNumber[i] = count;
                     }
 
-                    for (let i: number = size; i < inv.invSlotObjId.length; i++) {
-                        inv.invSlotObjId[i] = 0;
-                        inv.invSlotObjCount[i] = 0;
+                    for (let i: number = size; i < inv.linkObjType.length; i++) {
+                        inv.linkObjType[i] = 0;
+                        inv.linkObjNumber[i] = 0;
                     }
                 } else {
                     for (let i: number = 0; i < size; i++) {
@@ -6423,9 +6423,9 @@ export class Client extends GameShell {
                         count = this.in.g4();
                     }
 
-                    if (inv.invSlotObjId && inv.invSlotObjCount && slot >= 0 && slot < inv.invSlotObjId.length) {
-                        inv.invSlotObjId[slot] = id;
-                        inv.invSlotObjCount[slot] = count;
+                    if (inv.linkObjType && inv.linkObjNumber && slot >= 0 && slot < inv.linkObjType.length) {
+                        inv.linkObjType[slot] = id;
+                        inv.linkObjNumber[slot] = count;
                     }
                 }
 
@@ -6861,7 +6861,7 @@ export class Client extends GameShell {
 
                     for (let i: number = 0; i < Component.types.length; i++) {
                         if (Component.types[i] && Component.types[i].clientCode === contentType) {
-                            this.viewportInterfaceId = Component.types[i].layer;
+                            this.viewportInterfaceId = Component.types[i].layerId;
                             break;
                         }
                     }
@@ -8798,11 +8798,11 @@ export class Client extends GameShell {
             this.selectedItem = b;
             this.selectedArea = 2;
 
-            if (Component.types[c].layer === this.viewportInterfaceId) {
+            if (Component.types[c].layerId === this.viewportInterfaceId) {
                 this.selectedArea = 1;
             }
 
-            if (Component.types[c].layer === this.chatInterfaceId) {
+            if (Component.types[c].layerId === this.chatInterfaceId) {
                 this.selectedArea = 3;
             }
         }
@@ -8876,11 +8876,11 @@ export class Client extends GameShell {
             this.selectedItem = b;
             this.selectedArea = 2;
 
-            if (Component.types[c].layer === this.viewportInterfaceId) {
+            if (Component.types[c].layerId === this.viewportInterfaceId) {
                 this.selectedArea = 1;
             }
 
-            if (Component.types[c].layer === this.chatInterfaceId) {
+            if (Component.types[c].layerId === this.chatInterfaceId) {
                 this.selectedArea = 3;
             }
         }
@@ -8899,11 +8899,11 @@ export class Client extends GameShell {
             this.selectedItem = b;
             this.selectedArea = 2;
 
-            if (Component.types[c].layer === this.viewportInterfaceId) {
+            if (Component.types[c].layerId === this.viewportInterfaceId) {
                 this.selectedArea = 1;
             }
 
-            if (Component.types[c].layer === this.chatInterfaceId) {
+            if (Component.types[c].layerId === this.chatInterfaceId) {
                 this.selectedArea = 3;
             }
         }
@@ -8938,11 +8938,11 @@ export class Client extends GameShell {
             this.selectedItem = b;
             this.selectedArea = 2;
 
-            if (Component.types[c].layer === this.viewportInterfaceId) {
+            if (Component.types[c].layerId === this.viewportInterfaceId) {
                 this.selectedArea = 1;
             }
 
-            if (Component.types[c].layer === this.chatInterfaceId) {
+            if (Component.types[c].layerId === this.chatInterfaceId) {
                 this.selectedArea = 3;
             }
         }
@@ -9014,7 +9014,7 @@ export class Client extends GameShell {
 
                 for (let i: number = 0; i < Component.types.length; i++) {
                     if (Component.types[i] && Component.types[i].clientCode === ClientCode.CC_REPORT_INPUT) {
-                        this.reportAbuseInterfaceId = this.viewportInterfaceId = Component.types[i].layer;
+                        this.reportAbuseInterfaceId = this.viewportInterfaceId = Component.types[i].layerId;
                         break;
                     }
                 }
@@ -9264,7 +9264,7 @@ export class Client extends GameShell {
     }
 
     private drawInterface(com: Component, x: number, y: number, scrollY: number): void {
-        if (com.type !== 0 || !com.children || (com.hide && this.viewportHoveredInterfaceIndex !== com.id && this.sidebarHoveredInterfaceIndex !== com.id && this.chatHoveredInterfaceIndex !== com.id)) {
+        if (com.type !== 0 || !com.children || (com.hidden && this.viewportHoveredInterfaceIndex !== com.id && this.sidebarHoveredInterfaceIndex !== com.id && this.chatHoveredInterfaceIndex !== com.id)) {
             return;
         }
 
@@ -9293,25 +9293,25 @@ export class Client extends GameShell {
             }
 
             if (child.type === ComponentType.TYPE_LAYER) {
-                if (child.scrollPosition > child.scroll - child.height) {
-                    child.scrollPosition = child.scroll - child.height;
+                if (child.scrollPos > child.scrollSize - child.height) {
+                    child.scrollPos = child.scrollSize - child.height;
                 }
 
-                if (child.scrollPosition < 0) {
-                    child.scrollPosition = 0;
+                if (child.scrollPos < 0) {
+                    child.scrollPos = 0;
                 }
 
-                this.drawInterface(child, childX, childY, child.scrollPosition);
+                this.drawInterface(child, childX, childY, child.scrollPos);
 
-                if (child.scroll > child.height) {
-                    this.drawScrollbar(childX + child.width, childY, child.scrollPosition, child.scroll, child.height);
+                if (child.scrollSize > child.height) {
+                    this.drawScrollbar(childX + child.width, childY, child.scrollPos, child.scrollSize, child.height);
                 }
             } else if (child.type === ComponentType.TYPE_INV) {
                 let slot: number = 0;
 
                 for (let row: number = 0; row < child.height; row++) {
                     for (let col: number = 0; col < child.width; col++) {
-                        if (!child.invSlotOffsetX || !child.invSlotOffsetY || !child.invSlotObjId || !child.invSlotObjCount) {
+                        if (!child.invSlotOffsetX || !child.invSlotOffsetY || !child.linkObjType || !child.linkObjNumber) {
                             continue;
                         }
 
@@ -9323,10 +9323,10 @@ export class Client extends GameShell {
                             slotY += child.invSlotOffsetY[slot];
                         }
 
-                        if (child.invSlotObjId[slot] > 0) {
+                        if (child.linkObjType[slot] > 0) {
                             let dx: number = 0;
                             let dy: number = 0;
-                            const id: number = child.invSlotObjId[slot] - 1;
+                            const id: number = child.linkObjType[slot] - 1;
 
                             if ((slotX > Pix2D.left - 32 && slotX < Pix2D.right && slotY > Pix2D.top - 32 && slotY < Pix2D.bottom) || (this.objDragArea !== 0 && this.objDragSlot === slot)) {
                                 let outline = 0;
@@ -9334,7 +9334,7 @@ export class Client extends GameShell {
                                     outline = 16777215;
                                 }
 
-                                const icon: Pix32 | null = ObjType.getIcon(id, child.invSlotObjCount[slot], outline);
+                                const icon: Pix32 | null = ObjType.getIcon(id, child.linkObjNumber[slot], outline);
                                 if (icon) {
                                     if (this.objDragArea !== 0 && this.objDragSlot === slot && this.objDragInterfaceId === child.id) {
                                         dx = this.mouseX - this.objGrabX;
@@ -9355,31 +9355,31 @@ export class Client extends GameShell {
 
                                         icon.drawAlpha(128, slotX + dx, slotY + dy);
 
-                                        if (slotY + dy < Pix2D.top && com.scrollPosition > 0) {
+                                        if (slotY + dy < Pix2D.top && com.scrollPos > 0) {
                                             let autoscroll = (Pix2D.top - slotY - dy) * this.sceneDelta / 3;
                                             if (autoscroll > this.sceneDelta * 10) {
                                                 autoscroll = this.sceneDelta * 10;
                                             }
 
-                                            if (autoscroll > com.scrollPosition) {
-                                                autoscroll = com.scrollPosition;
+                                            if (autoscroll > com.scrollPos) {
+                                                autoscroll = com.scrollPos;
                                             }
 
-                                            com.scrollPosition -= autoscroll;
+                                            com.scrollPos -= autoscroll;
                                             this.objGrabY += autoscroll;
                                         }
 
-                                        if (slotY + dy + 32 > Pix2D.bottom && com.scrollPosition < com.scroll - com.height) {
+                                        if (slotY + dy + 32 > Pix2D.bottom && com.scrollPos < com.scrollSize - com.height) {
                                             let autoscroll = (slotY + dy + 32 - Pix2D.bottom) * this.sceneDelta / 3;
                                             if (autoscroll > this.sceneDelta * 10) {
                                                 autoscroll = this.sceneDelta * 10;
                                             }
 
-                                            if (autoscroll > com.scroll - com.height - com.scrollPosition) {
-                                                autoscroll = com.scroll - com.height - com.scrollPosition;
+                                            if (autoscroll > com.scrollSize - com.height - com.scrollPos) {
+                                                autoscroll = com.scrollSize - com.height - com.scrollPos;
                                             }
 
-                                            com.scrollPosition += autoscroll;
+                                            com.scrollPos += autoscroll;
                                             this.objGrabY -= autoscroll;
                                         }
                                     } else if (this.selectedArea !== 0 && this.selectedItem === slot && this.selectedInterface === child.id) {
@@ -9388,8 +9388,8 @@ export class Client extends GameShell {
                                         icon.draw(slotX, slotY);
                                     }
 
-                                    if (icon.width === 33 || child.invSlotObjCount[slot] !== 1) {
-                                        const count: number = child.invSlotObjCount[slot];
+                                    if (icon.width === 33 || child.linkObjNumber[slot] !== 1) {
+                                        const count: number = child.linkObjNumber[slot];
                                         this.fontPlain11?.drawString(slotX + dx + 1, slotY + 10 + dy, this.formatObjCount(count), Colors.BLACK);
                                         this.fontPlain11?.drawString(slotX + dx, slotY + 9 + dy, this.formatObjCount(count), Colors.YELLOW);
                                     }
@@ -9410,31 +9410,31 @@ export class Client extends GameShell {
                 }
 
                 let colour: number = 0;
-                if (this.executeInterfaceScript(child)) {
-                    colour = child.activeColour;
+                if (this.getIfActive(child)) {
+                    colour = child.colour2;
 
-                    if (hovered && child.activeOverColour !== 0) {
-                        colour = child.activeOverColour;
+                    if (hovered && child.colour2Over !== 0) {
+                        colour = child.colour2Over;
                     }
                 } else {
                     colour = child.colour;
 
-                    if (hovered && child.overColour !== 0) {
-                        colour = child.overColour;
+                    if (hovered && child.colourOver !== 0) {
+                        colour = child.colourOver;
                     }
                 }
 
-                if (child.alpha === 0) {
+                if (child.transparency === 0) {
                     if (child.fill) {
                         Pix2D.fillRect2d(childX, childY, child.width, child.height, colour);
                     } else {
                         Pix2D.drawRect(childX, childY, child.width, child.height, colour);
                     }
                 } else if (child.fill) {
-                    Pix2D.fillRectAlpha(childX, childY, child.width, child.height, colour, 256 - (child.alpha & 0xFF));
+                    Pix2D.fillRectAlpha(childX, childY, child.width, child.height, colour, 256 - (child.transparency & 0xFF));
                 } else {
                     Pix2D.drawRect(childX, childY, child.width, child.height, colour);
-                    Pix2D.drawRectAlpha(childX, childY, child.width, child.height, colour, 256 - (child.alpha & 0xFF));
+                    Pix2D.drawRectAlpha(childX, childY, child.width, child.height, colour, 256 - (child.transparency & 0xFF));
                 }
             } else if (child.type === ComponentType.TYPE_TEXT) {
                 const font: PixFont | null = child.font;
@@ -9446,21 +9446,21 @@ export class Client extends GameShell {
                 }
 
                 let colour: number = 0;
-                if (this.executeInterfaceScript(child)) {
-                    colour = child.activeColour;
+                if (this.getIfActive(child)) {
+                    colour = child.colour2;
 
-                    if (hovered && child.activeOverColour !== 0) {
-                        colour = child.activeOverColour;
+                    if (hovered && child.colour2Over !== 0) {
+                        colour = child.colour2Over;
                     }
 
-                    if (child.activeText && child.activeText.length > 0) {
-                        text = child.activeText;
+                    if (child.text2 && child.text2.length > 0) {
+                        text = child.text2;
                     }
                 } else {
                     colour = child.colour;
 
-                    if (hovered && child.overColour !== 0) {
-                        colour = child.overColour;
+                    if (hovered && child.colourOver !== 0) {
+                        colour = child.colourOver;
                     }
                 }
 
@@ -9491,7 +9491,7 @@ export class Client extends GameShell {
                                 break;
                             }
 
-                            text = text.substring(0, index) + this.getIntString(this.executeClientScript(child, 0)) + text.substring(index + 2);
+                            text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 0)) + text.substring(index + 2);
                             // eslint-disable-next-line no-constant-condition
                         } while (true);
 
@@ -9501,7 +9501,7 @@ export class Client extends GameShell {
                                 break;
                             }
 
-                            text = text.substring(0, index) + this.getIntString(this.executeClientScript(child, 1)) + text.substring(index + 2);
+                            text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 1)) + text.substring(index + 2);
                             // eslint-disable-next-line no-constant-condition
                         } while (true);
 
@@ -9511,7 +9511,7 @@ export class Client extends GameShell {
                                 break;
                             }
 
-                            text = text.substring(0, index) + this.getIntString(this.executeClientScript(child, 2)) + text.substring(index + 2);
+                            text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 2)) + text.substring(index + 2);
                             // eslint-disable-next-line no-constant-condition
                         } while (true);
 
@@ -9521,7 +9521,7 @@ export class Client extends GameShell {
                                 break;
                             }
 
-                            text = text.substring(0, index) + this.getIntString(this.executeClientScript(child, 3)) + text.substring(index + 2);
+                            text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 3)) + text.substring(index + 2);
                             // eslint-disable-next-line no-constant-condition
                         } while (true);
 
@@ -9531,7 +9531,7 @@ export class Client extends GameShell {
                                 break;
                             }
 
-                            text = text.substring(0, index) + this.getIntString(this.executeClientScript(child, 4)) + text.substring(index + 2);
+                            text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 4)) + text.substring(index + 2);
                             // eslint-disable-next-line no-constant-condition
                         } while (true);
                     }
@@ -9554,8 +9554,8 @@ export class Client extends GameShell {
                 }
             } else if (child.type === ComponentType.TYPE_GRAPHIC) {
                 let image: Pix32 | null;
-                if (this.executeInterfaceScript(child)) {
-                    image = child.activeGraphic;
+                if (this.getIfActive(child)) {
+                    image = child.graphic2;
                 } else {
                     image = child.graphic;
                 }
@@ -9568,16 +9568,16 @@ export class Client extends GameShell {
                 Pix3D.centerX = childX + ((child.width / 2) | 0);
                 Pix3D.centerY = childY + ((child.height / 2) | 0);
 
-                const eyeY: number = (Pix3D.sinTable[child.xan] * child.zoom) >> 16;
-                const eyeZ: number = (Pix3D.cosTable[child.xan] * child.zoom) >> 16;
+                const eyeY: number = (Pix3D.sinTable[child.modelXAn] * child.modelZoom) >> 16;
+                const eyeZ: number = (Pix3D.cosTable[child.modelXAn] * child.modelZoom) >> 16;
 
-                const active: boolean = this.executeInterfaceScript(child);
+                const active: boolean = this.getIfActive(child);
 
                 let seqId: number;
                 if (active) {
-                    seqId = child.activeAnim;
+                    seqId = child.modelAnim2;
                 } else {
-                    seqId = child.anim;
+                    seqId = child.modelAnim;
                 }
 
                 let model: Model | null = null;
@@ -9591,25 +9591,25 @@ export class Client extends GameShell {
                 }
 
                 if (model) {
-                    model.drawSimple(0, child.yan, 0, child.xan, 0, eyeY, eyeZ);
+                    model.drawSimple(0, child.modelYAn, 0, child.modelXAn, 0, eyeY, eyeZ);
                 }
 
                 Pix3D.centerX = tmpX;
                 Pix3D.centerY = tmpY;
             } else if (child.type === ComponentType.TYPE_INV_TEXT) {
                 const font: PixFont | null = child.font;
-                if (!font || !child.invSlotObjId || !child.invSlotObjCount) {
+                if (!font || !child.linkObjType || !child.linkObjNumber) {
                     continue;
                 }
 
                 let slot: number = 0;
                 for (let row: number = 0; row < child.height; row++) {
                     for (let col: number = 0; col < child.width; col++) {
-                        if (child.invSlotObjId[slot] > 0) {
-                            const obj: ObjType = ObjType.get(child.invSlotObjId[slot] - 1);
+                        if (child.linkObjType[slot] > 0) {
+                            const obj: ObjType = ObjType.get(child.linkObjType[slot] - 1);
                             let text: string | null = obj.name;
-                            if (obj.stackable || child.invSlotObjCount[slot] !== 1) {
-                                text = text + ' x' + this.formatObjCountTagged(child.invSlotObjCount[slot]);
+                            if (obj.stackable || child.linkObjNumber[slot] !== 1) {
+                                text = text + ' x' + this.formatObjCountTagged(child.linkObjNumber[slot]);
                             }
 
                             if (!text) {
@@ -9694,13 +9694,13 @@ export class Client extends GameShell {
         this.scrollGrabbed = false;
 
         if (mouseX >= left && mouseX < left + 16 && mouseY >= top && mouseY < top + 16) {
-            component.scrollPosition -= this.dragCycles * 4;
+            component.scrollPos -= this.dragCycles * 4;
 
             if (redraw) {
                 this.redrawSidebar = true;
             }
         } else if (mouseX >= left && mouseX < left + 16 && mouseY >= top + height - 16 && mouseY < top + height) {
-            component.scrollPosition += this.dragCycles * 4;
+            component.scrollPos += this.dragCycles * 4;
 
             if (redraw) {
                 this.redrawSidebar = true;
@@ -9714,7 +9714,7 @@ export class Client extends GameShell {
             const gripY: number = mouseY - top - ((gripSize / 2) | 0) - 16;
             const maxY: number = height - gripSize - 32;
 
-            component.scrollPosition = (((scrollableHeight - height) * gripY) / maxY) | 0;
+            component.scrollPos = (((scrollableHeight - height) * gripY) / maxY) | 0;
 
             if (redraw) {
                 this.redrawSidebar = true;
@@ -9728,7 +9728,7 @@ export class Client extends GameShell {
         return value < 999999999 ? String(value) : '*';
     }
 
-    private executeInterfaceScript(com: Component): boolean {
+    private getIfActive(com: Component): boolean {
         if (!com.scriptComparator) {
             return false;
         }
@@ -9738,7 +9738,7 @@ export class Client extends GameShell {
                 return false;
             }
 
-            const value: number = this.executeClientScript(com, i);
+            const value: number = this.getIfVar(com, i);
             const operand: number = com.scriptOperand[i];
 
             if (com.scriptComparator[i] === 2) {
@@ -9761,7 +9761,7 @@ export class Client extends GameShell {
         return true;
     }
 
-    private executeClientScript(component: Component, scriptId: number): number {
+    private getIfVar(component: Component, scriptId: number): number {
         if (!component.scripts || scriptId >= component.scripts.length) {
             return -2;
         }
@@ -9796,10 +9796,10 @@ export class Client extends GameShell {
                     const com: Component = Component.types[script[pc++]];
                     const obj: number = script[pc++] + 1;
 
-                    if (com.invSlotObjId && com.invSlotObjCount) {
-                        for (let i: number = 0; i < com.invSlotObjId.length; i++) {
-                            if (com.invSlotObjId[i] === obj) {
-                                register += com.invSlotObjCount[i];
+                    if (com.linkObjType && com.linkObjNumber) {
+                        for (let i: number = 0; i < com.linkObjType.length; i++) {
+                            if (com.linkObjType[i] === obj) {
+                                register += com.linkObjNumber[i];
                             }
                         }
                     } else {
@@ -9831,9 +9831,9 @@ export class Client extends GameShell {
                     const com: Component = Component.types[script[pc++]];
                     const obj: number = script[pc++] + 1;
 
-                    if (com.invSlotObjId) {
-                        for (let i: number = 0; i < com.invSlotObjId.length; i++) {
-                            if (com.invSlotObjId[i] === obj) {
+                    if (com.linkObjType) {
+                        for (let i: number = 0; i < com.linkObjType.length; i++) {
+                            if (com.linkObjType[i] === obj) {
                                 register += 999999999;
                                 break;
                             }
@@ -9859,7 +9859,7 @@ export class Client extends GameShell {
     }
 
     private handleInterfaceInput(com: Component, mouseX: number, mouseY: number, x: number, y: number, scrollPosition: number): void {
-        if (com.type !== 0 || !com.children || com.hide || mouseX < x || mouseY < y || mouseX > x + com.width || mouseY > y + com.height || !com.childX || !com.childY) {
+        if (com.type !== 0 || !com.children || com.hidden || mouseX < x || mouseY < y || mouseX > x + com.width || mouseY > y + com.height || !com.childX || !com.childY) {
             return;
         }
 
@@ -9872,7 +9872,7 @@ export class Client extends GameShell {
             childX += child.x;
             childY += child.y;
 
-            if ((child.overlayer >= 0 || child.overColour !== 0) && mouseX >= childX && mouseY >= childY && mouseX < childX + child.width && mouseY < childY + child.height) {
+            if ((child.overlayer >= 0 || child.colourOver !== 0) && mouseX >= childX && mouseY >= childY && mouseX < childX + child.width && mouseY < childY + child.height) {
                 if (child.overlayer >= 0) {
                     this.lastHoveredInterfaceId = child.overlayer;
                 } else {
@@ -9881,10 +9881,10 @@ export class Client extends GameShell {
             }
 
             if (child.type === 0) {
-                this.handleInterfaceInput(child, mouseX, mouseY, childX, childY, child.scrollPosition);
+                this.handleInterfaceInput(child, mouseX, mouseY, childX, childY, child.scrollPos);
 
-                if (child.scroll > child.height) {
-                    this.handleScrollInput(mouseX, mouseY, child.scroll, child.height, true, childX + child.width, childY, child);
+                if (child.scrollSize > child.height) {
+                    this.handleScrollInput(mouseX, mouseY, child.scrollSize, child.height, true, childX + child.width, childY, child);
                 }
             } else if (child.type === 2) {
                 let slot: number = 0;
@@ -9907,12 +9907,12 @@ export class Client extends GameShell {
                         this.hoveredSlot = slot;
                         this.hoveredSlotParentId = child.id;
 
-                        if (!child.invSlotObjId || child.invSlotObjId[slot] <= 0) {
+                        if (!child.linkObjType || child.linkObjType[slot] <= 0) {
                             slot++;
                             continue;
                         }
 
-                        const obj: ObjType = ObjType.get(child.invSlotObjId[slot] - 1);
+                        const obj: ObjType = ObjType.get(child.linkObjType[slot] - 1);
 
                         if (this.objSelected === 1 && child.interactable) {
                             if (child.id !== this.objSelectedInterface || slot !== this.objSelectedSlot) {
@@ -10017,8 +10017,8 @@ export class Client extends GameShell {
                             this.menuOption[this.menuSize] = 'Examine @lre@' + obj.name;
                             this.menuAction[this.menuSize] = 1773;
                             this.menuParamA[this.menuSize] = obj.id;
-                            if (child.invSlotObjCount) {
-                                this.menuParamC[this.menuSize] = child.invSlotObjCount[slot];
+                            if (child.linkObjNumber) {
+                                this.menuParamC[this.menuSize] = child.linkObjNumber[slot];
                             }
                             this.menuSize++;
                         }
@@ -10138,14 +10138,14 @@ export class Client extends GameShell {
                 updated ||= this.updateInterfaceAnimation(child.id, delta);
             }
 
-            if (child.type === 6 && (child.anim !== -1 || child.activeAnim !== -1)) {
-                const active: boolean = this.executeInterfaceScript(child);
+            if (child.type === 6 && (child.modelAnim !== -1 || child.modelAnim2 !== -1)) {
+                const active: boolean = this.getIfActive(child);
 
                 let seqId: number;
                 if (active) {
-                    seqId = child.activeAnim;
+                    seqId = child.modelAnim2;
                 } else {
-                    seqId = child.anim;
+                    seqId = child.modelAnim;
                 }
 
                 if (seqId !== -1) {
@@ -10298,10 +10298,10 @@ export class Client extends GameShell {
                 com.buttonType = 1;
             }
         } else if (clientCode === ClientCode.CC_FRIENDS_SIZE) {
-            com.scroll = this.friendCount * 15 + 20;
+            com.scrollSize = this.friendCount * 15 + 20;
 
-            if (com.scroll <= com.height) {
-                com.scroll = com.height + 1;
+            if (com.scrollSize <= com.height) {
+                com.scrollSize = com.height + 1;
             }
         } else if (clientCode >= ClientCode.CC_IGNORES_START && clientCode <= ClientCode.CC_IGNORES_END) {
             clientCode -= ClientCode.CC_IGNORES_START;
@@ -10314,14 +10314,14 @@ export class Client extends GameShell {
                 com.buttonType = 1;
             }
         } else if (clientCode === ClientCode.CC_IGNORES_SIZE) {
-            com.scroll = this.ignoreCount * 15 + 20;
+            com.scrollSize = this.ignoreCount * 15 + 20;
 
-            if (com.scroll <= com.height) {
-                com.scroll = com.height + 1;
+            if (com.scrollSize <= com.height) {
+                com.scrollSize = com.height + 1;
             }
         } else if (clientCode === ClientCode.CC_DESIGN_PREVIEW) {
-            com.xan = 150;
-            com.yan = ((Math.sin(this.loopCycle / 40.0) * 256.0) | 0) & 0x7ff;
+            com.modelXAn = 150;
+            com.modelYAn = ((Math.sin(this.loopCycle / 40.0) * 256.0) | 0) & 0x7ff;
 
             if (this.updateDesignModel) {
                 for (let i = 0; i < 7; i++) {
@@ -10364,13 +10364,13 @@ export class Client extends GameShell {
                 }
 
                 com.modelType = 5;
-                com.model = 0;
+                com.modelId = 0;
                 Component.cacheModel(model, 5, 0);
             }
         } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE) {
             if (!this.genderButtonImage0) {
                 this.genderButtonImage0 = com.graphic;
-                this.genderButtonImage1 = com.activeGraphic;
+                this.genderButtonImage1 = com.graphic2;
             }
 
             if (this.designGender) {
@@ -10381,7 +10381,7 @@ export class Client extends GameShell {
         } else if (clientCode === ClientCode.CC_SWITCH_TO_FEMALE) {
             if (!this.genderButtonImage0) {
                 this.genderButtonImage0 = com.graphic;
-                this.genderButtonImage1 = com.activeGraphic;
+                this.genderButtonImage1 = com.graphic2;
             }
 
             if (this.designGender) {

@@ -36,35 +36,35 @@ export const enum ButtonType {
 
 export default class Component {
     static types: Component[] = [];
-    invSlotObjId: Int32Array | null = null;
-    invSlotObjCount: Int32Array | null = null;
+    linkObjType: Int32Array | null = null;
+    linkObjNumber: Int32Array | null = null;
     seqFrame: number = 0;
     seqCycle: number = 0;
     id: number = -1;
-    layer: number = -1;
+    layerId: number = -1;
     type: number = -1;
     buttonType: number = -1;
     clientCode: number = 0;
     width: number = 0;
     height: number = 0;
-    alpha: number = 0;
+    transparency: number = 0;
     x: number = 0;
     y: number = 0;
     scripts: (Uint16Array | null)[] | null = null;
     scriptComparator: Uint8Array | null = null;
     scriptOperand: Uint16Array | null = null;
     overlayer: number = -1;
-    scroll: number = 0;
-    scrollPosition: number = 0;
-    hide: boolean = false;
+    scrollSize: number = 0;
+    scrollPos: number = 0;
+    hidden: boolean = false;
     children: number[] | null = null;
-    activeModelType: number = 0;
-    activeModel: number = 0;
-    anim: number = -1;
-    activeAnim: number = -1;
-    zoom: number = 0;
-    xan: number = 0;
-    yan: number = 0;
+    model2Type: number = 0;
+    model2Id: number = 0;
+    modelAnim: number = -1;
+    modelAnim2: number = -1;
+    modelZoom: number = 0;
+    modelXAn: number = 0;
+    modelYAn: number = 0;
     targetVerb: string | null = null;
     targetText: string | null = null;
     targetMask: number = -1;
@@ -74,16 +74,16 @@ export default class Component {
     marginX: number = 0;
     marginY: number = 0;
     colour: number = 0;
-    activeColour: number = 0;
-    overColour: number = 0;
-    activeOverColour: number = 0;
+    colour2: number = 0;
+    colourOver: number = 0;
+    colour2Over: number = 0;
     modelType: number = 0;
-    model: number = 0;
+    modelId: number = 0;
     graphic: Pix32 | null = null;
-    activeGraphic: Pix32 | null = null;
+    graphic2: Pix32 | null = null;
     font: PixFont | null = null;
     text: string | null = null;
-    activeText: string | null = null;
+    text2: string | null = null;
     draggable: boolean = false;
     interactable: boolean = false;
     usable: boolean = false;
@@ -116,13 +116,13 @@ export default class Component {
 
             const com: Component = (this.types[id] = new Component());
             com.id = id;
-            com.layer = layer;
+            com.layerId = layer;
             com.type = data.g1();
             com.buttonType = data.g1();
             com.clientCode = data.g2();
             com.width = data.g2();
             com.height = data.g2();
-            com.alpha = data.g1();
+            com.transparency = data.g1();
 
             com.overlayer = data.g1();
             if (com.overlayer === 0) {
@@ -158,8 +158,8 @@ export default class Component {
             }
 
             if (com.type === ComponentType.TYPE_LAYER) {
-                com.scroll = data.g2();
-                com.hide = data.g1() === 1;
+                com.scrollSize = data.g2();
+                com.hidden = data.g1() === 1;
 
                 const childCount: number = data.g2();
                 com.children = new Array(childCount);
@@ -178,8 +178,8 @@ export default class Component {
             }
 
             if (com.type === ComponentType.TYPE_INV) {
-                com.invSlotObjId = new Int32Array(com.width * com.height);
-                com.invSlotObjCount = new Int32Array(com.width * com.height);
+                com.linkObjType = new Int32Array(com.width * com.height);
+                com.linkObjNumber = new Int32Array(com.width * com.height);
 
                 com.draggable = data.g1() === 1;
                 com.interactable = data.g1() === 1;
@@ -229,7 +229,7 @@ export default class Component {
 
             if (com.type === ComponentType.TYPE_TEXT) {
                 com.text = data.gjstr();
-                com.activeText = data.gjstr();
+                com.text2 = data.gjstr();
             }
 
             if (com.type === ComponentType.TYPE_UNUSED || com.type === ComponentType.TYPE_RECT || com.type === ComponentType.TYPE_TEXT) {
@@ -237,9 +237,9 @@ export default class Component {
             }
 
             if (com.type === ComponentType.TYPE_RECT || com.type === ComponentType.TYPE_TEXT) {
-                com.activeColour = data.g4();
-                com.overColour = data.g4();
-                com.activeOverColour = data.g4();
+                com.colour2 = data.g4();
+                com.colourOver = data.g4();
+                com.colour2Over = data.g4();
             }
 
             if (com.type === ComponentType.TYPE_GRAPHIC) {
@@ -252,7 +252,7 @@ export default class Component {
                 const activeGraphic: string = data.gjstr();
                 if (media && activeGraphic.length > 0) {
                     const index: number = activeGraphic.lastIndexOf(',');
-                    com.activeGraphic = this.getImage(media, activeGraphic.substring(0, index), parseInt(activeGraphic.substring(index + 1), 10));
+                    com.graphic2 = this.getImage(media, activeGraphic.substring(0, index), parseInt(activeGraphic.substring(index + 1), 10));
                 }
             }
 
@@ -260,37 +260,37 @@ export default class Component {
                 const model: number = data.g1();
                 if (model !== 0) {
                     com.modelType = 1;
-                    com.model = ((model - 1) << 8) + data.g1();
+                    com.modelId = ((model - 1) << 8) + data.g1();
                 }
 
                 const activeModel: number = data.g1();
                 if (activeModel !== 0) {
-                    com.activeModelType = 1;
-                    com.activeModel = ((activeModel - 1) << 8) + data.g1();
+                    com.model2Type = 1;
+                    com.model2Id = ((activeModel - 1) << 8) + data.g1();
                 }
 
-                com.anim = data.g1();
-                if (com.anim === 0) {
-                    com.anim = -1;
+                com.modelAnim = data.g1();
+                if (com.modelAnim === 0) {
+                    com.modelAnim = -1;
                 } else {
-                    com.anim = ((com.anim - 1) << 8) + data.g1();
+                    com.modelAnim = ((com.modelAnim - 1) << 8) + data.g1();
                 }
 
-                com.activeAnim = data.g1();
-                if (com.activeAnim === 0) {
-                    com.activeAnim = -1;
+                com.modelAnim2 = data.g1();
+                if (com.modelAnim2 === 0) {
+                    com.modelAnim2 = -1;
                 } else {
-                    com.activeAnim = ((com.activeAnim - 1) << 8) + data.g1();
+                    com.modelAnim2 = ((com.modelAnim2 - 1) << 8) + data.g1();
                 }
 
-                com.zoom = data.g2();
-                com.xan = data.g2();
-                com.yan = data.g2();
+                com.modelZoom = data.g2();
+                com.modelXAn = data.g2();
+                com.modelYAn = data.g2();
             }
 
             if (com.type === ComponentType.TYPE_INV_TEXT) {
-                com.invSlotObjId = new Int32Array(com.width * com.height);
-                com.invSlotObjCount = new Int32Array(com.width * com.height);
+                com.linkObjType = new Int32Array(com.width * com.height);
+                com.linkObjNumber = new Int32Array(com.width * com.height);
 
                 com.center = data.g1() === 1;
                 const font: number = data.g1();
@@ -339,25 +339,25 @@ export default class Component {
     }
 
     swapObj(src: number, dst: number) {
-        if (!this.invSlotObjId || !this.invSlotObjCount) {
+        if (!this.linkObjType || !this.linkObjNumber) {
             return;
         }
 
-        let tmp = this.invSlotObjId[src];
-		this.invSlotObjId[src] = this.invSlotObjId[dst];
-		this.invSlotObjId[dst] = tmp;
+        let tmp = this.linkObjType[src];
+		this.linkObjType[src] = this.linkObjType[dst];
+		this.linkObjType[dst] = tmp;
 
-		tmp = this.invSlotObjCount[src];
-		this.invSlotObjCount[src] = this.invSlotObjCount[dst];
-		this.invSlotObjCount[dst] = tmp;
+		tmp = this.linkObjNumber[src];
+		this.linkObjNumber[src] = this.linkObjNumber[dst];
+		this.linkObjNumber[dst] = tmp;
     }
 
     getModel(primaryFrame: number, secondaryFrame: number, active: boolean, localPlayer: ClientPlayer | null): Model | null {
         let model: Model | null = null;
         if (active) {
-            model = this.loadModel(this.activeModelType, this.activeModel, localPlayer);
+            model = this.loadModel(this.model2Type, this.model2Id, localPlayer);
         } else {
-            model = this.loadModel(this.modelType, this.model, localPlayer);
+            model = this.loadModel(this.modelType, this.modelId, localPlayer);
         }
 
         if (!model) {
@@ -421,11 +421,11 @@ export default class Component {
     }
 
     getAbsoluteX(): number {
-        if (this.layer === this.id) {
+        if (this.layerId === this.id) {
             return this.x;
         }
 
-        let parent: Component = Component.types[this.layer];
+        let parent: Component = Component.types[this.layerId];
         if (!parent.children || !parent.childX || !parent.childY) {
             return this.x;
         }
@@ -436,8 +436,8 @@ export default class Component {
         }
 
         let x: number = parent.childX[childIndex];
-        while (parent.layer !== parent.id) {
-            const grandParent: Component = Component.types[parent.layer];
+        while (parent.layerId !== parent.id) {
+            const grandParent: Component = Component.types[parent.layerId];
             if (grandParent.children && grandParent.childX && grandParent.childY) {
                 childIndex = grandParent.children.indexOf(parent.id);
                 if (childIndex !== -1) {
