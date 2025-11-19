@@ -5,7 +5,8 @@ import Packet from '#/io/Packet.js';
 
 export default class VarBitType extends ConfigType {
     static count: number = 0;
-    static types: VarBitType[] = [];
+    static list: VarBitType[] = [];
+
     debugname: string = '';
     basevar: number = -1;
     startbit: number = 0;
@@ -15,11 +16,11 @@ export default class VarBitType extends ConfigType {
         const dat: Packet = new Packet(config.read('varbit.dat'));
         this.count = dat.g2();
         for (let i: number = 0; i < this.count; i++) {
-            this.types[i] = new VarBitType(i).unpackType(dat);
+            this.list[i] = new VarBitType(i).decodeType(dat);
         }
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.basevar = dat.g2();
             this.startbit = dat.g1();

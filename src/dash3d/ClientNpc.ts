@@ -34,22 +34,22 @@ export default class ClientNpc extends ClientEntity {
         this.height = model.minY;
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
-            let spot = SpotAnimType.types[this.spotanimId];
+            let spot = SpotAnimType.list[this.spotanimId];
             let spotModel = spot.getModel();
 
             if (spotModel != null) {
                 const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
                 temp.translate(-this.spotanimHeight, 0, 0);
-                temp.createLabelReferences();
+                temp.prepareAnim();
                 if (spot.seq && spot.seq.frames) {
-                    temp.applyTransform(spot.seq.frames[this.spotanimFrame]);
+                    temp.animate(spot.seq.frames[this.spotanimFrame]);
                 }
 
                 temp.labelFaces = null;
                 temp.labelVertices = null;
 
                 if (spot.resizeh != 128 || spot.resizev != 128) {
-                    temp.scale(spot.resizev, spot.resizeh, spot.resizeh);
+                    temp.resize(spot.resizev, spot.resizeh, spot.resizeh);
                 }
 
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
@@ -72,7 +72,7 @@ export default class ClientNpc extends ClientEntity {
         }
 
         if (this.primarySeqId < 0 || this.primarySeqDelay != 0) {
-            const secondarySeq = SeqType.types[this.secondarySeqId];
+            const secondarySeq = SeqType.list[this.secondarySeqId];
             let secondaryTransform = -1;
             if (this.secondarySeqId >= 0 && secondarySeq.frames) {
                 secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];
@@ -80,13 +80,13 @@ export default class ClientNpc extends ClientEntity {
 
             return this.type.getModel(secondaryTransform, -1, null);
         } else {
-            const primarySeq = SeqType.types[this.primarySeqId];
+            const primarySeq = SeqType.list[this.primarySeqId];
             let primaryTransform = -1;
             if (primarySeq.frames) {
                 primaryTransform = primarySeq.frames[this.primarySeqFrame];
             }
 
-            const secondarySeq = SeqType.types[this.secondarySeqId];
+            const secondarySeq = SeqType.list[this.secondarySeqId];
             let secondaryTransform = -1;
             if (this.secondarySeqId >= 0 && this.secondarySeqId != this.readyanim && secondarySeq.frames) {
                 secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];

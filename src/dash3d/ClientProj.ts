@@ -34,7 +34,7 @@ export default class ClientProj extends ModelSource {
 
     constructor(spotanim: number, level: number, srcX: number, srcY: number, srcZ: number, startCycle: number, lastCycle: number, peakPitch: number, arc: number, target: number, offsetY: number) {
         super();
-        this.spotanim = SpotAnimType.types[spotanim];
+        this.spotanim = SpotAnimType.list[spotanim];
         this.projLevel = level;
         this.srcX = srcX;
         this.srcZ = srcZ;
@@ -106,17 +106,17 @@ export default class ClientProj extends ModelSource {
         const model: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(frame), false);
 
         if (frame !== -1) {
-            model.createLabelReferences();
-            model.applyTransform(frame);
+            model.prepareAnim();
+            model.animate(frame);
             model.labelFaces = null;
             model.labelVertices = null;
         }
 
         if (this.spotanim.resizeh !== 128 || this.spotanim.resizev !== 128) {
-            model.scale(this.spotanim.resizeh, this.spotanim.resizev, this.spotanim.resizeh);
+            model.resize(this.spotanim.resizeh, this.spotanim.resizev, this.spotanim.resizeh);
         }
 
-        model.rotateX(this.pitch);
+        model.rotateXAxis(this.pitch);
         model.calculateNormals(64 + this.spotanim.ambient, 850 + this.spotanim.contrast, -30, -50, -30, true);
         return model;
     }

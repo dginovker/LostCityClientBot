@@ -24,7 +24,7 @@ export const enum RestartMode {
 
 export default class SeqType extends ConfigType {
     static count: number = 0;
-    static types: SeqType[] = [];
+    static list: SeqType[] = [];
 
     frameCount: number = 0;
     frames: Int16Array | null = null;
@@ -45,14 +45,14 @@ export default class SeqType extends ConfigType {
         const dat: Packet = new Packet(config.read('seq.dat'));
 
         this.count = dat.g2();
-        this.types = new Array(this.count);
+        this.list = new Array(this.count);
 
         for (let id: number = 0; id < this.count; id++) {
-            if (!this.types[id]) {
-                this.types[id] = new SeqType(id);
+            if (!this.list[id]) {
+                this.list[id] = new SeqType(id);
             }
 
-            const seq = this.types[id].unpackType(dat);
+            const seq = this.list[id].decodeType(dat);
 
             if (seq.preanim_move === -1) {
                 if (seq.walkmerge === null) {
@@ -106,7 +106,7 @@ export default class SeqType extends ConfigType {
         return duration;
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.frameCount = dat.g1();
             this.frames = new Int16Array(this.frameCount);

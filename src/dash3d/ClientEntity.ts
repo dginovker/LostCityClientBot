@@ -63,7 +63,7 @@ export default abstract class ClientEntity extends ModelSource {
     abstract isVisible(): boolean;
 
     move(teleport: boolean, x: number, z: number): void {
-        if (this.primarySeqId !== -1 && SeqType.types[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
+        if (this.primarySeqId !== -1 && SeqType.list[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
             this.primarySeqId = -1;
         }
 
@@ -124,7 +124,7 @@ export default abstract class ClientEntity extends ModelSource {
             nextZ--;
         }
 
-        if (this.primarySeqId !== -1 && SeqType.types[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
+        if (this.primarySeqId !== -1 && SeqType.list[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
             this.primarySeqId = -1;
         }
 

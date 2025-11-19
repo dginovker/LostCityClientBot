@@ -27,7 +27,7 @@ export default class ClientLocAnim extends ModelSource {
         this.heightmapNE = heightmapNE;
         this.heightmapNW = heightmapNW;
 
-        this.seq = SeqType.types[seq];
+        this.seq = SeqType.list[seq];
         this.seqFrame = 0;
         this.seqCycle = loopCycle;
 

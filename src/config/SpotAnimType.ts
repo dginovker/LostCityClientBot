@@ -10,7 +10,8 @@ import Packet from '#/io/Packet.js';
 
 export default class SpotAnimType extends ConfigType {
     static count: number = 0;
-    static types: SpotAnimType[] = [];
+    static list: SpotAnimType[] = [];
+
     model: number = 0;
     anim: number = -1;
     seq: SeqType | null = null;
@@ -27,18 +28,18 @@ export default class SpotAnimType extends ConfigType {
         const dat: Packet = new Packet(config.read('spotanim.dat'));
         this.count = dat.g2();
         for (let i: number = 0; i < this.count; i++) {
-            this.types[i] = new SpotAnimType(i).unpackType(dat);
+            this.list[i] = new SpotAnimType(i).decodeType(dat);
         }
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.model = dat.g2();
         } else if (code === 2) {
             this.anim = dat.g2();
 
-            if (SeqType.types) {
-                this.seq = SeqType.types[this.anim];
+            if (SeqType.list) {
+                this.seq = SeqType.list[this.anim];
             }
         } else if (code === 4) {
             this.resizeh = dat.g2();

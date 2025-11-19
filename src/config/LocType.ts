@@ -99,7 +99,7 @@ export default class LocType extends ConfigType {
         this.data.pos = this.idx[id];
         loc.id = id;
         loc.reset();
-        loc.unpackType(this.data);
+        loc.decodeType(this.data);
 
         if (loc._active === -1) {
             loc.active = false;
@@ -125,7 +125,7 @@ export default class LocType extends ConfigType {
         return loc;
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             const count: number = dat.g1();
             this.models = new Int32Array(count);
@@ -305,7 +305,7 @@ export default class LocType extends ConfigType {
                 modified.vertexY![i] += y - groundY;
             }
 
-            modified.calculateBoundsY();
+            modified.calcHeight();
         }
 
         return modified;
@@ -348,7 +348,7 @@ export default class LocType extends ConfigType {
                     }
 
                     if (flip) {
-                        model.rotateY180();
+                        model.rotate180();
                     }
 
                     LocType.modelCacheStatic?.put(BigInt(modelId), model);
@@ -403,7 +403,7 @@ export default class LocType extends ConfigType {
                 }
 
                 if (flip) {
-                    model.rotateY180();
+                    model.rotate180();
                 }
 
                 LocType.modelCacheStatic?.put(BigInt(modelId), model);
@@ -419,14 +419,14 @@ export default class LocType extends ConfigType {
 
         let modified: Model = Model.modelShareColored(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
         if (transformId !== -1) {
-            modified.createLabelReferences();
-            modified.applyTransform(transformId);
+            modified.prepareAnim();
+            modified.animate(transformId);
             modified.labelFaces = null;
             modified.labelVertices = null;
         }
 
         while (angle-- > 0) {
-            modified.rotateY90();
+            modified.rotate90();
         }
 
         if (this.recol_s && this.recol_d) {
@@ -436,7 +436,7 @@ export default class LocType extends ConfigType {
         }
 
         if (scaled) {
-            modified.scale(this.resizex, this.resizey, this.resizez);
+            modified.resize(this.resizex, this.resizey, this.resizez);
         }
 
         if (translated) {

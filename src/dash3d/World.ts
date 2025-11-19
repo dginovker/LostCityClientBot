@@ -30,7 +30,7 @@ export default class World {
     static randomHueOffset: number = ((Math.random() * 17.0) | 0) - 8;
     static randomLightnessOffset: number = ((Math.random() * 33.0) | 0) - 16;
 
-    static lowMemory: boolean = true;
+    static lowMem: boolean = true;
     static levelBuilt: number = 0;
     static fullbright: boolean = false;
 
@@ -427,7 +427,7 @@ export default class World {
                         const underlayId: number = this.underlayType[level][x1][z0] & 0xff;
 
                         if (underlayId > 0) {
-                            const flu: FloType = FloType.types[underlayId - 1];
+                            const flu: FloType = FloType.list[underlayId - 1];
                             this.blendChroma[z0] += flu.chroma;
                             this.blendSaturation[z0] += flu.saturation;
                             this.blendLightness[z0] += flu.lightness;
@@ -441,7 +441,7 @@ export default class World {
                         const underlayId: number = this.underlayType[level][x2][z0] & 0xff;
 
                         if (underlayId > 0) {
-                            const flu: FloType = FloType.types[underlayId - 1];
+                            const flu: FloType = FloType.list[underlayId - 1];
                             this.blendChroma[z0] -= flu.chroma;
                             this.blendSaturation[z0] -= flu.saturation;
                             this.blendLightness[z0] -= flu.lightness;
@@ -477,7 +477,7 @@ export default class World {
                             magnitudeAccumulator -= this.blendMagnitude[dz2];
                         }
 
-                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMemory || ((this.flags[level][x0][z0] & 0x10) === 0 && this.getDrawLevel(level, x0, z0) === World.levelBuilt))) {
+                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMem || ((this.flags[level][x0][z0] & 0x10) === 0 && this.getDrawLevel(level, x0, z0) === World.levelBuilt))) {
                             const underlayId: number = this.underlayType[level][x0][z0] & 0xff;
                             const overlayId: number = this.overlayType[level][x0][z0] & 0xff;
 
@@ -516,7 +516,7 @@ export default class World {
                                 if (level > 0) {
                                     let occludes: boolean = underlayId !== 0 || this.overlayShape[level][x0][z0] === OverlayShape.PLAIN;
 
-                                    if (overlayId > 0 && !FloType.types[overlayId - 1].occlude) {
+                                    if (overlayId > 0 && !FloType.list[overlayId - 1].occlude) {
                                         occludes = false;
                                     }
 
@@ -557,7 +557,7 @@ export default class World {
                                 } else {
                                     const shape: number = this.overlayShape[level][x0][z0] + 1;
                                     const rotation: number = this.overlayAngle[level][x0][z0];
-                                    const flo: FloType = FloType.types[overlayId - 1];
+                                    const flo: FloType = FloType.list[overlayId - 1];
                                     let textureId: number = flo.texture;
                                     let hsl: number;
                                     let rgb: number;
@@ -920,7 +920,7 @@ export default class World {
 
                     if (stx > 0 && stz > 0 && stx < 103 && stz < 103) {
                         const loc = LocType.get(locId);
-                        if (shape != 22 || !World.lowMemory || loc.active || loc.forcedecor) {
+                        if (shape != 22 || !World.lowMem || loc.active || loc.forcedecor) {
                             if (!loc.modelsAreReady()) {
                                 ready = false;
                             }
@@ -1009,7 +1009,7 @@ export default class World {
     }
 
     private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, collision: CollisionMap | null, locId: number, shape: number, angle: number): void {
-        if (World.lowMemory) {
+        if (World.lowMem) {
             if ((this.flags[level][x][z] & 0x10) !== 0) {
                 return;
             }
@@ -1036,7 +1036,7 @@ export default class World {
         const typecode2: number = ((((angle << 6) + shape) | 0) << 24) >> 24;
 
         if (shape === LocShape.GROUND_DECOR.id) {
-            if (!World.lowMemory || loc.active || loc.forcedecor) {
+            if (!World.lowMem || loc.active || loc.forcedecor) {
                 let model: ModelSource | null;
                 if (loc.anim === -1) {
                     model = loc.getModel(22, angle, heightSW, heightSE, heightNE, heightNW, -1);

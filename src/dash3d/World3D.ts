@@ -113,7 +113,7 @@ export default class World3D {
     static mouseY: number = 0;
     static clickTileX: number = -1;
     static clickTileZ: number = -1;
-    static lowMemory: boolean = true;
+    static lowMem: boolean = true;
 
     static init(viewportWidth: number, viewportHeight: number, frustumStart: number, frustumEnd: number, pitchDistance: Int32Array): void {
         this.viewportLeft = 0;
@@ -751,23 +751,23 @@ export default class World3D {
                         if (wall.model2 && wall.model2.vertexNormal) {
                             this.mergeLocNormals(level, tileX, tileZ, 1, 1, (wall.model2 as Model));
                             this.mergeNormals((wall.model1 as Model), (wall.model2 as Model), 0, 0, 0, false);
-                            (wall.model2 as Model).applyLighting(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                            (wall.model2 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
-                        (wall.model1 as Model).applyLighting(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                        (wall.model1 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
 
                     for (let i: number = 0; i < tile.primaryCount; i++) {
                         const loc: Sprite | null = tile.locs[i];
                         if (loc && loc.model && loc.model.vertexNormal) {
                             this.mergeLocNormals(level, tileX, tileZ, loc.maxSceneTileX + 1 - loc.minSceneTileX, loc.maxSceneTileZ - loc.minSceneTileZ + 1, (loc.model as Model));
-                            (loc.model as Model).applyLighting(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                            (loc.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
                     }
 
                     const decor: GroundDecor | null = tile.groundDecor;
                     if (decor && decor.model && decor.model.vertexNormal) {
                         this.mergeGroundDecorationNormals(level, tileX, tileZ, (decor.model as Model));
-                        (decor.model as Model).applyLighting(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                        (decor.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
                 }
             }
@@ -2047,10 +2047,10 @@ export default class World3D {
         const px3: number = Pix3D.centerX + (((x3 << 9) / z3) | 0);
         const py3: number = Pix3D.centerY + (((y3 << 9) / z3) | 0);
 
-        Pix3D.alpha = 0;
+        Pix3D.trans = 0;
 
         if ((py1 - px3) * (px1 - py3) - (pz1 - py3) * (pz0 - px3) > 0) {
-            Pix3D.clipX = py1 < 0 || px3 < 0 || pz0 < 0 || py1 > Pix2D.boundX || px3 > Pix2D.boundX || pz0 > Pix2D.boundX;
+            Pix3D.hclip = py1 < 0 || px3 < 0 || pz0 < 0 || py1 > Pix2D.boundX || px3 > Pix2D.boundX || pz0 > Pix2D.boundX;
 
             if (World3D.takingInput && this.pointInsideTriangle(World3D.mouseX, World3D.mouseY, pz1, py3, px1, py1, px3, pz0)) {
                 World3D.clickTileX = tileX;
@@ -2061,7 +2061,7 @@ export default class World3D {
                 if (quick.northeastColor !== 12345678) {
                     Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, quick.northeastColor, quick.northwestColor, quick.southeastColor);
                 }
-            } else if (World3D.lowMemory) {
+            } else if (World3D.lowMem) {
                 const averageColor: number = World3D.TEXTURE_HSL[quick.textureId];
                 Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, this.mulLightness(averageColor, quick.northeastColor), this.mulLightness(averageColor, quick.northwestColor), this.mulLightness(averageColor, quick.southeastColor));
             } else if (quick.flat) {
@@ -2075,14 +2075,14 @@ export default class World3D {
             return;
         }
 
-        Pix3D.clipX = px0 < 0 || pz0 < 0 || px3 < 0 || px0 > Pix2D.boundX || pz0 > Pix2D.boundX || px3 > Pix2D.boundX;
+        Pix3D.hclip = px0 < 0 || pz0 < 0 || px3 < 0 || px0 > Pix2D.boundX || pz0 > Pix2D.boundX || px3 > Pix2D.boundX;
         if (World3D.takingInput && this.pointInsideTriangle(World3D.mouseX, World3D.mouseY, py0, px1, py3, px0, pz0, px3)) {
             World3D.clickTileX = tileX;
             World3D.clickTileZ = tileZ;
         }
 
         if (quick.textureId !== -1) {
-            if (!World3D.lowMemory) {
+            if (!World3D.lowMem) {
                 Pix3D.textureTriangle(px0, pz0, px3, py0, px1, py3, quick.southwestColor, quick.southeastColor, quick.northwestColor, x0, y0, z0, x1, x3, y1, y3, z1, z3, quick.textureId);
             } else {
                 const averageColor: number = World3D.TEXTURE_HSL[quick.textureId];
@@ -2122,7 +2122,7 @@ export default class World3D {
             Ground.tmpScreenY[i] = Pix3D.centerY + (((y << 9) / z) | 0);
         }
 
-        Pix3D.alpha = 0;
+        Pix3D.trans = 0;
 
         vertexCount = ground.triangleVertexA.length;
         for (let v: number = 0; v < vertexCount; v++) {
@@ -2138,7 +2138,7 @@ export default class World3D {
             const y2: number = Ground.tmpScreenY[c];
 
             if ((x0 - x1) * (y2 - y1) - (y0 - y1) * (x2 - x1) > 0) {
-                Pix3D.clipX = x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX;
+                Pix3D.hclip = x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX;
 
                 if (World3D.takingInput && this.pointInsideTriangle(World3D.mouseX, World3D.mouseY, y0, y1, y2, x0, x1, x2)) {
                     World3D.clickTileX = tileX;
@@ -2149,7 +2149,7 @@ export default class World3D {
                     if (ground.triangleColorA[v] !== 12345678) {
                         Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, ground.triangleColorA[v], ground.triangleColorB[v], ground.triangleColorC[v]);
                     }
-                } else if (World3D.lowMemory) {
+                } else if (World3D.lowMem) {
                     const textureColor: number = World3D.TEXTURE_HSL[ground.triangleTextureIds[v]];
                     Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, this.mulLightness(textureColor, ground.triangleColorA[v]), this.mulLightness(textureColor, ground.triangleColorB[v]), this.mulLightness(textureColor, ground.triangleColorC[v]));
                 } else if (ground.flat) {

@@ -855,7 +855,7 @@ export default class Model extends ModelSource {
             texturedVertexB: texturedVertexB,
             texturedVertexC: texturedVertexC
         });
-        model.calculateBoundsCylinder();
+        model.calcBoundingCylinder();
         return model;
     }
 
@@ -1136,7 +1136,7 @@ export default class Model extends ModelSource {
         return { vertex: identical, vertexCount };
     };
 
-    calculateBoundsCylinder(): void {
+    calcBoundingCylinder(): void {
         this.minY = 0;
         this.radius = 0;
         this.maxY = 0;
@@ -1165,7 +1165,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + ((Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) + 0.99) | 0);
     }
 
-    calculateBoundsY(): void {
+    calcHeight(): void {
         this.minY = 0;
         this.maxY = 0;
 
@@ -1185,7 +1185,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + ((Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) + 0.99) | 0);
     }
 
-    private calculateBoundsAABB(): void {
+    private calcAABB(): void {
         this.minY = 0;
         this.radius = 0;
         this.maxY = 0;
@@ -1234,7 +1234,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + (Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) | 0);
     }
 
-    createLabelReferences(): void {
+    prepareAnim(): void {
         if (this.vertexLabel) {
             const labelVertexCount: Int32Array = new Int32Array(256);
             let count: number = 0;
@@ -1299,7 +1299,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    applyTransform(id: number): void {
+    animate(id: number): void {
         if (!this.labelVertices || id === -1) {
             return;
         }
@@ -1320,17 +1320,17 @@ export default class Model extends ModelSource {
             }
 
             const base: number = transform.groups[i];
-            this.applyTransform2(transform.x[i], transform.y[i], transform.z[i], skeleton.labels[base], skeleton.types[base]);
+            this.animate2(transform.x[i], transform.y[i], transform.z[i], skeleton.labels[base], skeleton.types[base]);
         }
     }
 
-    applyTransforms(primaryId: number, secondaryId: number, mask: Int32Array | null): void {
+    maskAnimate(primaryId: number, secondaryId: number, mask: Int32Array | null): void {
         if (primaryId === -1) {
             return;
         }
 
         if (!mask || secondaryId === -1) {
-            this.applyTransform(primaryId);
+            this.animate(primaryId);
             return;
         }
 
@@ -1341,7 +1341,7 @@ export default class Model extends ModelSource {
 
         const secondary: AnimFrame = AnimFrame.get(secondaryId);
         if (!secondary) {
-            this.applyTransform(primaryId);
+            this.animate(primaryId);
             return;
         }
 
@@ -1365,7 +1365,7 @@ export default class Model extends ModelSource {
             }
 
             if (skeleton && skeleton.types && primary.x && primary.y && primary.z && skeleton.labels && (base !== maskBase || skeleton.types[base] === 0)) {
-                this.applyTransform2(primary.x[i], primary.y[i], primary.z[i], skeleton.labels[base], skeleton.types[base]);
+                this.animate2(primary.x[i], primary.y[i], primary.z[i], skeleton.labels[base], skeleton.types[base]);
             }
         }
 
@@ -1387,12 +1387,12 @@ export default class Model extends ModelSource {
             }
 
             if (skeleton && skeleton.types && secondary.x && secondary.y && secondary.z && skeleton.labels && (base === maskBase || skeleton.types[base] === 0)) {
-                this.applyTransform2(secondary.x[i], secondary.y[i], secondary.z[i], skeleton.labels[base], skeleton.types[base]);
+                this.animate2(secondary.x[i], secondary.y[i], secondary.z[i], skeleton.labels[base], skeleton.types[base]);
             }
         }
     }
 
-    private applyTransform2(x: number, y: number, z: number, labels: Uint8Array | null, type: number): void {
+    private animate2(x: number, y: number, z: number, labels: Uint8Array | null, type: number): void {
         if (!labels) {
             return;
         }
@@ -1554,7 +1554,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    rotateY90(): void {
+    rotate90(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             const tmp: number = this.vertexX![v];
             this.vertexX![v] = this.vertexZ![v];
@@ -1562,7 +1562,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    rotateX(angle: number): void {
+    rotateXAxis(angle: number): void {
         const sin: number = Pix3D.sinTable[angle];
         const cos: number = Pix3D.cosTable[angle];
 
@@ -1593,7 +1593,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    rotateY180(): void {
+    rotate180(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexZ![v] = -this.vertexZ![v];
         }
@@ -1605,7 +1605,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    scale(x: number, y: number, z: number): void {
+    resize(x: number, y: number, z: number): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexX![v] = ((this.vertexX![v] * x) / 128) | 0;
             this.vertexY![v] = ((this.vertexY![v] * y) / 128) | 0;
@@ -1613,7 +1613,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    calculateNormals(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number, applyLighting: boolean): void {
+    calculateNormals(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number, doNotShareLight: boolean): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
         const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
 
@@ -1695,8 +1695,8 @@ export default class Model extends ModelSource {
             }
         }
 
-        if (applyLighting) {
-            this.applyLighting(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+        if (doNotShareLight) {
+            this.light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
         } else {
             this.vertexNormalOriginal = new TypedArray1d(this.vertexCount, null);
 
@@ -1715,14 +1715,14 @@ export default class Model extends ModelSource {
             }
         }
 
-        if (applyLighting) {
-            this.calculateBoundsCylinder();
+        if (doNotShareLight) {
+            this.calcBoundingCylinder();
         } else {
-            this.calculateBoundsAABB();
+            this.calcAABB();
         }
     }
 
-    applyLighting(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
+    light(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
         for (let f: number = 0; f < this.faceCount; f++) {
             const a: number = this.faceVertexA![f];
             const b: number = this.faceVertexB![f];
@@ -2279,13 +2279,13 @@ export default class Model extends ModelSource {
         const c: number = this.faceVertexC![face];
 
         if (Model.faceClippedX) {
-            Pix3D.clipX = Model.faceClippedX[face];
+            Pix3D.hclip = Model.faceClippedX[face];
         }
 
         if (!this.faceAlpha) {
-            Pix3D.alpha = 0;
+            Pix3D.trans = 0;
         } else {
-            Pix3D.alpha = this.faceAlpha[face];
+            Pix3D.trans = this.faceAlpha[face];
         }
 
         let type: number;
@@ -2467,11 +2467,11 @@ export default class Model extends ModelSource {
             return;
         }
 
-        Pix3D.clipX = false;
+        Pix3D.hclip = false;
 
         if (elements === 3) {
             if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX) {
-                Pix3D.clipX = true;
+                Pix3D.hclip = true;
             }
 
             let type: number;
@@ -2544,7 +2544,7 @@ export default class Model extends ModelSource {
             }
         } else if (elements === 4) {
             if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX || Model.clippedX[3] < 0 || Model.clippedX[3] > Pix2D.boundX) {
-                Pix3D.clipX = true;
+                Pix3D.hclip = true;
             }
 
             let type: number;

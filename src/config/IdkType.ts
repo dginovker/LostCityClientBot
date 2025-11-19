@@ -9,7 +9,8 @@ import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class IdkType extends ConfigType {
     static count: number = 0;
-    static types: IdkType[] = [];
+    static list: IdkType[] = [];
+
     type: number = -1;
     models: Int32Array | null = null;
     recol_s: Int32Array = new Int32Array(6);
@@ -21,18 +22,18 @@ export default class IdkType extends ConfigType {
         const dat: Packet = new Packet(config.read('idk.dat'));
 
         this.count = dat.g2();
-        this.types = new Array(this.count);
+        this.list = new Array(this.count);
 
         for (let id: number = 0; id < this.count; id++) {
-            if (!this.types[id]) {
-                this.types[id] = new IdkType(id);
+            if (!this.list[id]) {
+                this.list[id] = new IdkType(id);
             }
 
-            this.types[id].unpackType(dat);
+            this.list[id].decodeType(dat);
         }
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.type = dat.g1();
         } else if (code === 2) {
@@ -55,7 +56,7 @@ export default class IdkType extends ConfigType {
         }
     }
 
-    modelIsReady(): boolean {
+    bodyModelIsReady(): boolean {
         if (!this.models) {
             return true;
         }
@@ -71,7 +72,7 @@ export default class IdkType extends ConfigType {
         return ready;
     }
 
-    getModel(): Model | null {
+    getBodyModel(): Model | null {
         if (!this.models) {
             return null;
         }
@@ -96,15 +97,15 @@ export default class IdkType extends ConfigType {
     }
 
     headModelIsReady(): boolean {
-        let downloaded = true;
+        let ready = true;
 
         for (let i = 0; i < this.heads.length; i++) {
             if (this.heads[i] != -1 && !Model.isReady(this.heads[i])) {
-                downloaded = false;
+                ready = false;
             }
         }
 
-        return downloaded;
+        return ready;
     }
 
     getHeadModel(): Model {

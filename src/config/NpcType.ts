@@ -78,11 +78,11 @@ export default class NpcType extends ConfigType {
 
         const loc: NpcType = (this.cache[this.cachePos] = new NpcType(id));
         this.data.pos = this.idx[id];
-        loc.unpackType(this.data);
+        loc.decodeType(this.data);
         return loc;
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             const count: number = dat.g1();
             this.models = new Uint16Array(count);
@@ -192,7 +192,7 @@ export default class NpcType extends ConfigType {
                         }
                     }
 
-                    model.createLabelReferences();
+                    model.prepareAnim();
                     model.calculateNormals(64, 850, -30, -50, -30, true);
                     NpcType.modelCache.put(BigInt(this.id), model);
                 }
@@ -207,16 +207,16 @@ export default class NpcType extends ConfigType {
         tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) || AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
-            tmp.applyTransforms(primaryTransformId, secondaryTransformId, seqMask);
+            tmp.maskAnimate(primaryTransformId, secondaryTransformId, seqMask);
         } else if (primaryTransformId !== -1) {
-            tmp.applyTransform(primaryTransformId);
+            tmp.animate(primaryTransformId);
         }
 
         if (this.resizeh !== 128 || this.resizev !== 128) {
-            tmp.scale(this.resizeh, this.resizev, this.resizeh);
+            tmp.resize(this.resizeh, this.resizev, this.resizeh);
         }
 
-        tmp.calculateBoundsCylinder();
+        tmp.calcBoundingCylinder();
         tmp.labelFaces = null;
         tmp.labelVertices = null;
 

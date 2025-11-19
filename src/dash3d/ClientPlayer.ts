@@ -326,20 +326,20 @@ export default class ClientPlayer extends ClientEntity {
         }
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
-            const spot = SpotAnimType.types[this.spotanimId];
+            const spot = SpotAnimType.list[this.spotanimId];
             const spotModel = spot.getModel();
 
             if (spotModel != null) {
                 const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
                 temp.translate(-this.spotanimHeight, 0, 0);
-                temp.createLabelReferences();
+                temp.prepareAnim();
                 if (spot.seq && spot.seq.frames) {
-                    temp.applyTransform(spot.seq.frames[this.spotanimFrame]);
+                    temp.animate(spot.seq.frames[this.spotanimFrame]);
                 }
                 temp.labelFaces = null;
                 temp.labelVertices = null;
                 if (spot.resizeh != 128 || spot.resizev != 128) {
-                    temp.scale(spot.resizev, spot.resizeh, spot.resizeh);
+                    temp.resize(spot.resizev, spot.resizeh, spot.resizeh);
                 }
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
 
@@ -359,28 +359,28 @@ export default class ClientPlayer extends ClientEntity {
                     loc.translate(this.locOffsetY - this.y, this.locOffsetX - this.x, this.locOffsetZ - this.z);
 
                     if (this.dstYaw == 512) {
-                        loc.rotateY90();
-                        loc.rotateY90();
-                        loc.rotateY90();
+                        loc.rotate90();
+                        loc.rotate90();
+                        loc.rotate90();
                     } else if (this.dstYaw == 1024) {
-                        loc.rotateY90();
-                        loc.rotateY90();
+                        loc.rotate90();
+                        loc.rotate90();
                     } else if (this.dstYaw == 1536) {
-                        loc.rotateY90();
+                        loc.rotate90();
                     }
 
                     const models: Model[] = [model, loc];
                     model = Model.modelFromModelsBounds(models, 2);
 
                     if (this.dstYaw == 512) {
-                        loc.rotateY90();
+                        loc.rotate90();
                     } else if (this.dstYaw == 1024) {
-                        loc.rotateY90();
-                        loc.rotateY90();
+                        loc.rotate90();
+                        loc.rotate90();
                     } else if (this.dstYaw == 1536) {
-                        loc.rotateY90();
-                        loc.rotateY90();
-                        loc.rotateY90();
+                        loc.rotate90();
+                        loc.rotate90();
+                        loc.rotate90();
                     }
 
                     loc.translate(this.y - this.locOffsetY, this.x - this.locOffsetX, this.z - this.locOffsetZ);
@@ -396,12 +396,12 @@ export default class ClientPlayer extends ClientEntity {
         if (this.transmog != null) {
             let transformId = -1;
             if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
-                const frames = SeqType.types[this.primarySeqId].frames;
+                const frames = SeqType.list[this.primarySeqId].frames;
                 if (frames) {
                     transformId = frames[this.primarySeqFrame];
                 }
             } else if (this.secondarySeqId >= 0) {
-                const frames = SeqType.types[this.secondarySeqId].frames;
+                const frames = SeqType.list[this.secondarySeqId].frames;
                 if (frames) {
                     transformId = frames[this.secondarySeqFrame];
                 }
@@ -416,14 +416,14 @@ export default class ClientPlayer extends ClientEntity {
         let rightHandValue: number = -1;
 
         if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
-            const seq: SeqType = SeqType.types[this.primarySeqId];
+            const seq: SeqType = SeqType.list[this.primarySeqId];
 
             if (seq.frames) {
                 primaryTransformId = seq.frames[this.primarySeqFrame];
             }
 
             if (this.secondarySeqId >= 0 && this.secondarySeqId !== this.readyanim) {
-                const secondFrames: Int16Array | null = SeqType.types[this.secondarySeqId].frames;
+                const secondFrames: Int16Array | null = SeqType.list[this.secondarySeqId].frames;
                 if (secondFrames) {
                     secondaryTransformId = secondFrames[this.secondarySeqFrame];
                 }
@@ -439,7 +439,7 @@ export default class ClientPlayer extends ClientEntity {
                 hash += BigInt(rightHandValue - this.appearance[3]) << 48n;
             }
         } else if (this.secondarySeqId >= 0) {
-            const secondFrames: Int16Array | null = SeqType.types[this.secondarySeqId].frames;
+            const secondFrames: Int16Array | null = SeqType.list[this.secondarySeqId].frames;
             if (secondFrames) {
                 primaryTransformId = secondFrames[this.secondarySeqFrame];
             }
@@ -460,7 +460,7 @@ export default class ClientPlayer extends ClientEntity {
                     value = leftHandValue;
                 }
 
-                if (value >= 0x100 && value < 0x200 && !IdkType.types[value - 0x100].modelIsReady()) {
+                if (value >= 0x100 && value < 0x200 && !IdkType.list[value - 0x100].bodyModelIsReady()) {
                     needsModel = true;
                 }
 
@@ -496,7 +496,7 @@ export default class ClientPlayer extends ClientEntity {
                 }
 
                 if (value >= 256 && value < 512) {
-                    const idkModel: Model | null = IdkType.types[value - 256].getModel();
+                    const idkModel: Model | null = IdkType.list[value - 256].getBodyModel();
                     if (idkModel) {
                         models[modelCount++] = idkModel;
                     }
@@ -524,7 +524,7 @@ export default class ClientPlayer extends ClientEntity {
                 }
             }
 
-            model.createLabelReferences();
+            model.prepareAnim();
             model.calculateNormals(64, 850, -30, -50, -30, true);
             ClientPlayer.modelCache?.put(hash, model);
             this.modelCacheKey = hash;
@@ -538,12 +538,12 @@ export default class ClientPlayer extends ClientEntity {
         tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) || AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
-            tmp.applyTransforms(primaryTransformId, secondaryTransformId, SeqType.types[this.primarySeqId].walkmerge);
+            tmp.maskAnimate(primaryTransformId, secondaryTransformId, SeqType.list[this.primarySeqId].walkmerge);
         } else if (primaryTransformId !== -1) {
-            tmp.applyTransform(primaryTransformId);
+            tmp.animate(primaryTransformId);
         }
 
-        tmp.calculateBoundsCylinder();
+        tmp.calcBoundingCylinder();
         tmp.labelFaces = null;
         tmp.labelVertices = null;
         return tmp;
@@ -559,7 +559,7 @@ export default class ClientPlayer extends ClientEntity {
 		for (let i = 0; i < 12; i++) {
 			const part = this.appearance[i];
 
-			if (part >= 0x100 && part < 0x200 && !IdkType.types[part - 0x100].headModelIsReady()) {
+			if (part >= 0x100 && part < 0x200 && !IdkType.list[part - 0x100].headModelIsReady()) {
 				needsModel = true;
 			}
 
@@ -578,7 +578,7 @@ export default class ClientPlayer extends ClientEntity {
             const value: number = this.appearance[part];
 
             if (value >= 256 && value < 512) {
-                const idkModel = IdkType.types[value - 256].getHeadModel();
+                const idkModel = IdkType.list[value - 256].getHeadModel();
                 if (idkModel) {
                     models[modelCount++] = idkModel;
                 }

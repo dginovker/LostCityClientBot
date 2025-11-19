@@ -19,10 +19,10 @@ export default class Pix2D extends DoublyLinkable {
         this.pixels = pixels;
         this.width2d = width;
         this.height2d = height;
-        this.setBounds(0, 0, width, height);
+        this.setClipping(0, 0, width, height);
     }
 
-    static resetBounds(): void {
+    static resetClipping(): void {
         this.left = 0;
         this.top = 0;
         this.right = this.width2d;
@@ -31,7 +31,7 @@ export default class Pix2D extends DoublyLinkable {
         this.centerX2d = (this.right / 2) | 0;
     }
 
-    static setBounds(left: number, top: number, right: number, bottom: number): void {
+    static setClipping(left: number, top: number, right: number, bottom: number): void {
         if (left < 0) {
             left = 0;
         }
@@ -57,7 +57,7 @@ export default class Pix2D extends DoublyLinkable {
         this.centerY2d = (this.bottom / 2) | 0;
     }
 
-    static clear(): void {
+    static cls(): void {
         const len: number = this.width2d * this.height2d;
         for (let i: number = 0; i < len; i++) {
             this.pixels[i] = 0;
@@ -65,22 +65,22 @@ export default class Pix2D extends DoublyLinkable {
     }
 
     static drawRect(x: number, y: number, w: number, h: number, color: number): void {
-        this.drawHorizontalLine(x, y, color, w);
-        this.drawHorizontalLine(x, y + h - 1, color, w);
-        this.drawVerticalLine(x, y, color, h);
-        this.drawVerticalLine(x + w - 1, y, color, h);
+        this.hline(x, y, color, w);
+        this.hline(x, y + h - 1, color, w);
+        this.vline(x, y, color, h);
+        this.vline(x + w - 1, y, color, h);
     }
 
-    static drawRectAlpha(x: number, y: number, w: number, h: number, color: number, alpha: number): void {
-        this.drawHorizontalLineAlpha(x, y, color, w, alpha);
-        this.drawHorizontalLineAlpha(x, y + h - 1, color, w, alpha);
+    static drawRectTrans(x: number, y: number, w: number, h: number, color: number, alpha: number): void {
+        this.lineTrans(x, y, color, w, alpha);
+        this.lineTrans(x, y + h - 1, color, w, alpha);
         if (h >= 3) {
-            this.drawVerticalLineAlpha(x, y, color, h, alpha);
-            this.drawVerticalLineAlpha(x + w - 1, y, color, h, alpha);
+            this.vlineTrans(x, y, color, h, alpha);
+            this.vlineTrans(x + w - 1, y, color, h, alpha);
         }
     }
 
-    static drawHorizontalLine(x: number, y: number, color: number, width: number): void {
+    static hline(x: number, y: number, color: number, width: number): void {
         if (y < this.top || y >= this.bottom) {
             return;
         }
@@ -100,7 +100,7 @@ export default class Pix2D extends DoublyLinkable {
         }
     }
 
-    static drawHorizontalLineAlpha = (x: number, y: number, color: number, width: number, alpha: number): void => {
+    static lineTrans = (x: number, y: number, color: number, width: number, alpha: number): void => {
         if (y < this.top || y >= this.bottom) {
             return;
         }
@@ -129,7 +129,7 @@ export default class Pix2D extends DoublyLinkable {
         }
     };
 
-    static drawVerticalLine(x: number, y: number, color: number, height: number): void {
+    static vline(x: number, y: number, color: number, height: number): void {
         if (x < this.left || x >= this.right) {
             return;
         }
@@ -149,7 +149,7 @@ export default class Pix2D extends DoublyLinkable {
         }
     }
 
-    static drawVerticalLineAlpha = (x: number, y: number, color: number, height: number, alpha: number): void => {
+    static vlineTrans = (x: number, y: number, color: number, height: number, alpha: number): void => {
         if (x < this.left || x >= this.right) {
             return;
         }

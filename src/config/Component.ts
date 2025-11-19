@@ -35,9 +35,9 @@ export const enum ButtonType {
 };
 
 export default class Component {
-    static types: Component[] = [];
+    static list: Component[] = [];
     linkObjType: Int32Array | null = null;
-    linkObjNumber: Int32Array | null = null;
+    linkObjCount: Int32Array | null = null;
     seqFrame: number = 0;
     seqCycle: number = 0;
     id: number = -1;
@@ -105,7 +105,7 @@ export default class Component {
         let layer: number = -1;
 
         const count = data.g2();
-        this.types = new Array(count);
+        this.list = new Array(count);
 
         while (data.pos < data.length) {
             let id: number = data.g2();
@@ -114,7 +114,7 @@ export default class Component {
                 id = data.g2();
             }
 
-            const com: Component = (this.types[id] = new Component());
+            const com: Component = (this.list[id] = new Component());
             com.id = id;
             com.layerId = layer;
             com.type = data.g1();
@@ -179,7 +179,7 @@ export default class Component {
 
             if (com.type === ComponentType.TYPE_INV) {
                 com.linkObjType = new Int32Array(com.width * com.height);
-                com.linkObjNumber = new Int32Array(com.width * com.height);
+                com.linkObjCount = new Int32Array(com.width * com.height);
 
                 com.draggable = data.g1() === 1;
                 com.interactable = data.g1() === 1;
@@ -290,7 +290,7 @@ export default class Component {
 
             if (com.type === ComponentType.TYPE_INV_TEXT) {
                 com.linkObjType = new Int32Array(com.width * com.height);
-                com.linkObjNumber = new Int32Array(com.width * com.height);
+                com.linkObjCount = new Int32Array(com.width * com.height);
 
                 com.center = data.g1() === 1;
                 const font: number = data.g1();
@@ -339,7 +339,7 @@ export default class Component {
     }
 
     swapObj(src: number, dst: number) {
-        if (!this.linkObjType || !this.linkObjNumber) {
+        if (!this.linkObjType || !this.linkObjCount) {
             return;
         }
 
@@ -347,9 +347,9 @@ export default class Component {
 		this.linkObjType[src] = this.linkObjType[dst];
 		this.linkObjType[dst] = tmp;
 
-		tmp = this.linkObjNumber[src];
-		this.linkObjNumber[src] = this.linkObjNumber[dst];
-		this.linkObjNumber[dst] = tmp;
+		tmp = this.linkObjCount[src];
+		this.linkObjCount[src] = this.linkObjCount[dst];
+		this.linkObjCount[dst] = tmp;
     }
 
     getModel(primaryFrame: number, secondaryFrame: number, active: boolean, localPlayer: ClientPlayer | null): Model | null {
@@ -370,15 +370,15 @@ export default class Component {
 
         const tmp: Model = Model.modelShareColored(model, true, true, false);
         if (primaryFrame !== -1 || secondaryFrame !== -1) {
-            tmp.createLabelReferences();
+            tmp.prepareAnim();
         }
 
         if (primaryFrame !== -1) {
-            tmp.applyTransform(primaryFrame);
+            tmp.animate(primaryFrame);
         }
 
         if (secondaryFrame !== -1) {
-            tmp.applyTransform(secondaryFrame);
+            tmp.animate(secondaryFrame);
         }
 
         tmp.calculateNormals(64, 768, -50, -10, -50, true);
@@ -425,7 +425,7 @@ export default class Component {
             return this.x;
         }
 
-        let parent: Component = Component.types[this.layerId];
+        let parent: Component = Component.list[this.layerId];
         if (!parent.children || !parent.childX || !parent.childY) {
             return this.x;
         }
@@ -437,7 +437,7 @@ export default class Component {
 
         let x: number = parent.childX[childIndex];
         while (parent.layerId !== parent.id) {
-            const grandParent: Component = Component.types[parent.layerId];
+            const grandParent: Component = Component.list[parent.layerId];
             if (grandParent.children && grandParent.childX && grandParent.childY) {
                 childIndex = grandParent.children.indexOf(parent.id);
                 if (childIndex !== -1) {

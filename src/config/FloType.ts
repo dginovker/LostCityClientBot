@@ -5,7 +5,8 @@ import Packet from '#/io/Packet.js';
 
 export default class FloType extends ConfigType {
     static count: number = 0;
-    static types: FloType[] = [];
+    static list: FloType[] = [];
+
     rgb: number = 0;
     texture: number = -1;
     overlay: boolean = false;
@@ -21,21 +22,21 @@ export default class FloType extends ConfigType {
         const dat: Packet = new Packet(config.read('flo.dat'));
 
         this.count = dat.g2();
-        this.types = new Array(this.count);
+        this.list = new Array(this.count);
 
         for (let id: number = 0; id < this.count; id++) {
-            if (!this.types[id]) {
-                this.types[id] = new FloType(id);
+            if (!this.list[id]) {
+                this.list[id] = new FloType(id);
             }
 
-            this.types[id].unpackType(dat);
+            this.list[id].decodeType(dat);
         }
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.rgb = dat.g3();
-            this.setColour(this.rgb);
+            this.getHsl(this.rgb);
         } else if (code === 2) {
             this.texture = dat.g1();
         } else if (code === 3) {
@@ -49,7 +50,7 @@ export default class FloType extends ConfigType {
         }
     }
 
-    private setColour(rgb: number): void {
+    private getHsl(rgb: number): void {
         const red: number = ((rgb >> 16) & 0xff) / 256.0;
         const green: number = ((rgb >> 8) & 0xff) / 256.0;
         const blue: number = (rgb & 0xff) / 256.0;

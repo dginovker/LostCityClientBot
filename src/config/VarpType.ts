@@ -5,7 +5,8 @@ import Packet from '#/io/Packet.js';
 
 export default class VarpType extends ConfigType {
     static count: number = 0;
-    static types: VarpType[] = [];
+    static list: VarpType[] = [];
+
     static code3s: number[] = [];
     static code3Count: number = 0;
     code1: number = 0;
@@ -22,11 +23,11 @@ export default class VarpType extends ConfigType {
         const dat: Packet = new Packet(config.read('varp.dat'));
         this.count = dat.g2();
         for (let i: number = 0; i < this.count; i++) {
-            this.types[i] = new VarpType(i).unpackType(dat);
+            this.list[i] = new VarpType(i).decodeType(dat);
         }
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.code1 = dat.g1();
         } else if (code === 2) {

@@ -100,7 +100,7 @@ export default class ObjType extends ConfigType {
         this.data.pos = this.idx[id];
         obj.id = id;
         obj.reset();
-        obj.unpackType(this.data);
+        obj.decodeType(this.data);
 
         if (obj.certtemplate !== -1) {
             obj.toCertificate();
@@ -157,7 +157,7 @@ export default class ObjType extends ConfigType {
         this.contrast = 0;
     }
 
-    unpack(code: number, dat: Packet): void {
+    decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.model = dat.g2();
         } else if (code === 2) {
@@ -316,7 +316,7 @@ export default class ObjType extends ConfigType {
         }
 
         if (this.resizex !== 128 || this.resizey !== 128 || this.resizez !== 128) {
-            model.scale(this.resizex, this.resizey, this.resizez);
+            model.resize(this.resizex, this.resizey, this.resizez);
         }
 
         if (this.recol_s && this.recol_d) {
@@ -503,7 +503,7 @@ export default class ObjType extends ConfigType {
         }
 
         Pix2D.bind(_data, _w, _h);
-        Pix2D.setBounds(_l, _t, _r, _b);
+        Pix2D.setClipping(_l, _t, _r, _b);
         Pix3D.centerX = _cx;
         Pix3D.centerY = _cy;
         Pix3D.lineOffset = _loff;

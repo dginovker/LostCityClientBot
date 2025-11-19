@@ -20,7 +20,7 @@ export default class MapSpotAnim extends ModelSource {
     constructor(id: number, level: number, x: number, z: number, y: number, cycle: number, delay: number) {
         super();
 
-        this.spotType = SpotAnimType.types[id];
+        this.spotType = SpotAnimType.list[id];
         this.spotLevel = level;
         this.x = x;
         this.z = z;
@@ -58,26 +58,26 @@ export default class MapSpotAnim extends ModelSource {
         const model: Model = Model.modelShareColored(tmp, true, AnimFrame.shareAlpha(frame), false);
 
         if (!this.seqComplete) {
-            model.createLabelReferences();
-            model.applyTransform(frame);
+            model.prepareAnim();
+            model.animate(frame);
             model.labelFaces = null;
             model.labelVertices = null;
         }
 
         if (this.spotType.resizeh !== 128 || this.spotType.resizev !== 128) {
-            model.scale(this.spotType.resizeh, this.spotType.resizev, this.spotType.resizeh);
+            model.resize(this.spotType.resizeh, this.spotType.resizev, this.spotType.resizeh);
         }
 
         if (this.spotType.angle !== 0) {
             if (this.spotType.angle === 90) {
-                model.rotateY90();
+                model.rotate90();
             } else if (this.spotType.angle === 180) {
-                model.rotateY90();
-                model.rotateY90();
+                model.rotate90();
+                model.rotate90();
             } else if (this.spotType.angle === 270) {
-                model.rotateY90();
-                model.rotateY90();
-                model.rotateY90();
+                model.rotate90();
+                model.rotate90();
+                model.rotate90();
             }
         }
 
