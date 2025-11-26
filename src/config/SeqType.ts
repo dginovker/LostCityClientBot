@@ -85,7 +85,8 @@ export default class SeqType extends ConfigType {
         }
     }
 
-    getFrameDuration(frame: number) {
+    // (real name)
+    getDuration(frame: number) {
         if (!this.delay || !this.frames) {
             return 0;
         }

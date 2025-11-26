@@ -39,7 +39,7 @@ export default class NpcType extends ConfigType {
     alwaysontop: boolean = false;
     headicon: number = -1;
     turnspeed: number = 32;
-    static modelCache: LruCache | null = new LruCache(30);
+    static modelCache: LruCache | null = new LruCache(30); // (real name)
     ambient: number = 0;
     contrast: number = 0;
 
@@ -157,6 +157,7 @@ export default class NpcType extends ConfigType {
         }
     }
 
+    // (real name)
     getModel(primaryTransformId: number, secondaryTransformId: number, seqMask: Int32Array | null): Model | null {
         let model: Model | null = null;
 
@@ -166,7 +167,7 @@ export default class NpcType extends ConfigType {
             if (!model && this.models) {
                 let ready = false;
                 for (let i = 0; i < this.models.length; i++) {
-                    if (!Model.isReady(this.models[i])) {
+                    if (!Model.requestDownload(this.models[i])) {
                         ready = true;
                     }
                 }
@@ -176,13 +177,13 @@ export default class NpcType extends ConfigType {
 
                 const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
                 for (let i: number = 0; i < this.models.length; i++) {
-                    models[i] = Model.tryGet(this.models[i]);
+                    models[i] = Model.load(this.models[i]);
                 }
 
                 if (models.length === 1) {
                     model = models[0];
                 } else {
-                    model = Model.modelFromModels(models, models.length);
+                    model = Model.combine(models, models.length);
                 }
 
                 if (model) {
@@ -221,20 +222,21 @@ export default class NpcType extends ConfigType {
         tmp.labelVertices = null;
 
         if (this.size === 1) {
-            tmp.picking = true;
+            tmp.useAABBMouseCheck = true;
         }
 
         return tmp;
     }
 
-    getHeadModel(): Model | null {
+    // (real name)
+    getHead(): Model | null {
         if (!this.heads) {
             return null;
         }
 
         let exists = false;
         for (let i = 0; i < this.heads.length; i++) {
-            if (!Model.isReady(this.heads[i])) {
+            if (!Model.requestDownload(this.heads[i])) {
                 exists = true;
             }
         }
@@ -244,14 +246,14 @@ export default class NpcType extends ConfigType {
 
         const models: (Model | null)[] = new TypedArray1d(this.heads.length, null);
         for (let i: number = 0; i < this.heads.length; i++) {
-            models[i] = Model.tryGet(this.heads[i]);
+            models[i] = Model.load(this.heads[i]);
         }
 
         let model: Model | null;
         if (models.length === 1) {
             model = models[0];
         } else {
-            model = Model.modelFromModels(models, models.length);
+            model = Model.combine(models, models.length);
         }
 
         if (model && this.recol_s && this.recol_d) {

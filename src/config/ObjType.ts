@@ -36,7 +36,7 @@ export default class ObjType extends ConfigType {
     cost: number = 1;
     members: boolean = false;
     static modelCache: LruCache | null = new LruCache(50);
-    static iconCache: LruCache | null = new LruCache(200);
+    static spriteCache: LruCache | null = new LruCache(200); // (based on a real name)
     manwearOffsetY: number = 0;
     womanwearOffsetY: number = 0;
     manwear: number = -1;
@@ -103,7 +103,7 @@ export default class ObjType extends ConfigType {
         obj.decodeType(this.data);
 
         if (obj.certtemplate !== -1) {
-            obj.toCertificate();
+            obj.genCert();
         }
 
         if (!this.membersWorld && obj.members) {
@@ -260,7 +260,8 @@ export default class ObjType extends ConfigType {
         }
     }
 
-    private toCertificate(): void {
+    // (real name)
+    private genCert(): void {
         const template: ObjType = ObjType.get(this.certtemplate);
         this.model = template.model;
         this.zoom2d = template.zoom2d;
@@ -287,6 +288,7 @@ export default class ObjType extends ConfigType {
         this.stackable = true;
     }
 
+    // (based on a real name)
     getModel(count: number): Model | null {
         if (this.countobj && this.countco && count > 1) {
             let id: number = -1;
@@ -310,7 +312,7 @@ export default class ObjType extends ConfigType {
             }
         }
 
-        model = Model.tryGet(this.model);
+        model = Model.load(this.model);
         if (!model) {
             return null;
         }
@@ -326,7 +328,7 @@ export default class ObjType extends ConfigType {
         }
 
         model.calculateNormals(this.ambient + 64, this.contrast + 768, -50, -10, -50, true);
-        model.picking = true;
+        model.useAABBMouseCheck = true;
 
         if (ObjType.modelCache) {
             ObjType.modelCache.put(BigInt(this.id), model);
@@ -349,7 +351,7 @@ export default class ObjType extends ConfigType {
             }
         }
 
-        const model = Model.tryGet(this.model);
+        const model = Model.load(this.model);
         if (!model) {
             return null;
         }
@@ -363,9 +365,10 @@ export default class ObjType extends ConfigType {
         return model;
     }
 
-    static getIcon(id: number, count: number, outlineRgb: number): Pix32 | null {
-        if (ObjType.iconCache && outlineRgb === 0) {
-            let icon: Pix32 | null = ObjType.iconCache.get(BigInt(id)) as Pix32 | null;
+    // (real name)
+    static getSprite(id: number, count: number, outlineRgb: number): Pix32 | null {
+        if (ObjType.spriteCache && outlineRgb === 0) {
+            let icon: Pix32 | null = ObjType.spriteCache.get(BigInt(id)) as Pix32 | null;
 
             if (icon && icon.ohi !== count && icon.ohi !== -1) {
                 icon.unlink();
@@ -403,7 +406,7 @@ export default class ObjType extends ConfigType {
 
         let linkedIcon: Pix32 | null = null;
         if (obj.certtemplate !== -1) {
-            linkedIcon = this.getIcon(obj.certlink, 10, -1);
+            linkedIcon = this.getSprite(obj.certlink, 10, -1);
 
             if (!linkedIcon) {
                 return null;
@@ -423,7 +426,7 @@ export default class ObjType extends ConfigType {
         const _t: number = Pix2D.top;
         const _b: number = Pix2D.bottom;
 
-        Pix3D.jagged = false;
+        Pix3D.lowDetail = false;
         Pix2D.bind(icon.pixels, 32, 32);
         Pix2D.fillRect(0, 0, 32, 32, Colors.BLACK);
         Pix3D.init2D();
@@ -438,9 +441,9 @@ export default class ObjType extends ConfigType {
         const sinPitch: number = (Pix3D.sinTable[obj.xan2d] * zoom) >> 16;
         const cosPitch: number = (Pix3D.cosTable[obj.xan2d] * zoom) >> 16;
 
-        model.drawSimple(0, obj.yan2d, obj.zan2d, obj.xan2d, obj.xof2d, sinPitch + ((model.minY / 2) | 0) + obj.yof2d, cosPitch + obj.yof2d);
+        model.objRender(0, obj.yan2d, obj.zan2d, obj.xan2d, obj.xof2d, sinPitch + ((model.minY / 2) | 0) + obj.yof2d, cosPitch + obj.yof2d);
 
-        // draw outline
+        // add outline
         for (let x: number = 31; x >= 0; x--) {
             for (let y: number = 31; y >= 0; y--) {
                 if (icon.pixels[x + y * 32] !== 0) {
@@ -460,6 +463,7 @@ export default class ObjType extends ConfigType {
         }
 
         if (outlineRgb > 0) {
+            // add outline
             for (let x: number = 31; x >= 0; x--) {
                 for (let y: number = 31; y >= 0; y--) {
                     if (icon.pixels[x + y * 32] !== 0) {
@@ -478,7 +482,7 @@ export default class ObjType extends ConfigType {
                 }
             }
         } else {
-            // draw shadow
+            // add shadow
             for (let x: number = 31; x >= 0; x--) {
                 for (let y: number = 31; y >= 0; y--) {
                     if (icon.pixels[x + y * 32] === 0 && x > 0 && y > 0 && icon.pixels[x + (y - 1) * 32 - 1] > 0) {
@@ -498,8 +502,8 @@ export default class ObjType extends ConfigType {
             linkedIcon.ohi = h;
         }
 
-        if (ObjType.iconCache && outlineRgb === 0) {
-            ObjType.iconCache.put(BigInt(id), icon);
+        if (ObjType.spriteCache && outlineRgb === 0) {
+            ObjType.spriteCache.put(BigInt(id), icon);
         }
 
         Pix2D.bind(_data, _w, _h);
@@ -507,7 +511,7 @@ export default class ObjType extends ConfigType {
         Pix3D.centerX = _cx;
         Pix3D.centerY = _cy;
         Pix3D.lineOffset = _loff;
-        Pix3D.jagged = true;
+        Pix3D.lowDetail = true;
 
         if (obj.stackable) {
             icon.owi = 33;
@@ -519,7 +523,8 @@ export default class ObjType extends ConfigType {
         return icon;
     }
 
-    wornModelIsReady(gender: number): boolean {
+    // (real name)
+    checkWearModel(gender: number): boolean {
 		let wear = this.manwear;
 		let wear2 = this.manwear2;
 		let wear3 = this.manwear3;
@@ -534,19 +539,20 @@ export default class ObjType extends ConfigType {
 		}
 
 		let ready = true;
-		if (!Model.isReady(wear)) {
+		if (!Model.requestDownload(wear)) {
 			ready = false;
 		}
-		if (wear2 != -1 && !Model.isReady(wear2)) {
+		if (wear2 != -1 && !Model.requestDownload(wear2)) {
 			ready = false;
 		}
-		if (wear3 != -1 && !Model.isReady(wear3)) {
+		if (wear3 != -1 && !Model.requestDownload(wear3)) {
 			ready = false;
 		}
 		return ready;
     }
 
-    getWornModel(gender: number): Model | null {
+    // (real name)
+    getWearModelNoCheck(gender: number): Model | null {
         let id1: number = this.manwear;
         if (gender === 1) {
             id1 = this.womanwear;
@@ -563,28 +569,28 @@ export default class ObjType extends ConfigType {
             id3 = this.womanwear3;
         }
 
-        let model: Model | null = Model.tryGet(id1);
+        let model: Model | null = Model.load(id1);
         if (!model) {
             return null;
         }
 
         if (id2 !== -1) {
-            const model2: Model | null = Model.tryGet(id2);
+            const model2: Model | null = Model.load(id2);
             if (!model2) {
                 return null;
             }
 
             if (id3 === -1) {
                 const models: Model[] = [model, model2];
-                model = Model.modelFromModels(models, 2);
+                model = Model.combine(models, 2);
             } else {
-                const model3: Model | null = Model.tryGet(id3);
+                const model3: Model | null = Model.load(id3);
                 if (!model3) {
                     return null;
                 }
 
                 const models: Model[] = [model, model2, model3];
-                model = Model.modelFromModels(models, 3);
+                model = Model.combine(models, 3);
             }
         }
 
@@ -603,7 +609,8 @@ export default class ObjType extends ConfigType {
         return model;
     }
 
-    headModelIsReady(gender: number): boolean {
+    // (real name)
+    checkHeadModel(gender: number): boolean {
 		let head = this.manhead;
 		let head2 = this.manhead2;
 		if (gender == 1) {
@@ -616,16 +623,17 @@ export default class ObjType extends ConfigType {
 		}
 
 		let ready = true;
-		if (!Model.isReady(head)) {
+		if (!Model.requestDownload(head)) {
 			ready = false;
 		}
-		if (head2 != -1 && !Model.isReady(head2)) {
+		if (head2 != -1 && !Model.requestDownload(head2)) {
 			ready = false;
 		}
 		return ready;
     }
 
-    getHeadModel(gender: number): Model | null {
+    // (real name)
+    getHeadModelNoCheck(gender: number): Model | null {
         let head1: number = this.manhead;
         if (gender === 1) {
             head1 = this.womanhead;
@@ -640,19 +648,19 @@ export default class ObjType extends ConfigType {
             head2 = this.womanhead2;
         }
 
-        let model: Model | null = Model.tryGet(head1);
+        let model: Model | null = Model.load(head1);
         if (!model) {
             return null;
         }
 
         if (head2 !== -1) {
-            const model2: Model | null = Model.tryGet(head2);
+            const model2: Model | null = Model.load(head2);
             if (!model2) {
                 return null;
             }
 
             const models: Model[] = [model, model2];
-            model = Model.modelFromModels(models, 2);
+            model = Model.combine(models, 2);
         }
 
         if (this.recol_s && this.recol_d) {

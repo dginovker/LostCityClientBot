@@ -86,7 +86,7 @@ export const enum ClientProt {
     INV_BUTTOND = 176, // index: 245 - NXT has "IF_BUTTOND" but for our interface system, this makes more sense
     IGNORELIST_DEL = 193, // index: 246 - NXT naming
     IGNORELIST_ADD = 189, // index: 247 - NXT naming
-    IF_PLAYERDESIGN = 13, // index: 248
+    IDK_SAVEDESIGN = 13, // index: 248 - based on function name
     CHAT_SETMODE = 129, // index: 249 - NXT naming
     MESSAGE_PRIVATE = 214, // index: 250 - NXT naming
     FRIENDLIST_DEL = 84, // index: 251 - NXT naming

@@ -132,8 +132,6 @@ export class Client extends GameShell {
 
     // login screen properties
     private redrawFrame: boolean = true;
-    private titleScreenState: number = 0;
-    private titleLoginField: number = 0;
     private imageTitle2: PixMap | null = null;
     private imageTitle3: PixMap | null = null;
     private imageTitle4: PixMap | null = null;
@@ -145,10 +143,12 @@ export class Client extends GameShell {
     private imageTitle8: PixMap | null = null;
     private imageTitlebox: Pix8 | null = null;
     private imageTitlebutton: Pix8 | null = null;
-    private loginMessage0: string = '';
-    private loginMessage1: string = '';
-    private username: string = '';
-    private password: string = '';
+    private loginscreen: number = 0; // (real name)
+    private loginSelect: number = 0; // (real name)
+    private loginMes1: string = ''; // (real name)
+    private loginMes2: string = ''; // (real name)
+    private loginUser: string = ''; // (real name)
+    private loginPass: string = ''; // (real name)
 
     // fonts
     private fontPlain11: PixFont | null = null;
@@ -1009,9 +1009,9 @@ export class Client extends GameShell {
         this.loopCycle++;
 
         if (this.ingame) {
-            await this.updateGame();
+            await this.gameLoop();
         } else {
-            await this.updateTitle();
+            await this.titleScreenLoop();
         }
 
         await this.updateOnDemand();
@@ -1026,9 +1026,9 @@ export class Client extends GameShell {
         this.drawCycle++;
 
         if (this.ingame) {
-            this.drawGame();
+            this.gameDraw();
         } else {
-            await this.drawTitle();
+            await this.titleScreenDraw();
         }
 
         this.dragCycles = 0;
@@ -1295,36 +1295,37 @@ export class Client extends GameShell {
         }
     }
 
-    private async updateTitle(): Promise<void> {
-        if (this.titleScreenState === 0) {
+    // (based on a real name)
+    private async titleScreenLoop(): Promise<void> {
+        if (this.loginscreen === 0) {
             let x: number = ((this.width / 2) | 0) - 80;
             let y: number = ((this.height / 2) | 0) + 20;
 
             y += 20;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
-                this.titleScreenState = 3;
-                this.titleLoginField = 0;
+                this.loginscreen = 3;
+                this.loginSelect = 0;
             }
 
             x = ((this.width / 2) | 0) + 80;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
-                this.loginMessage0 = '';
-                this.loginMessage1 = 'Enter your username & password.';
-                this.titleScreenState = 2;
-                this.titleLoginField = 0;
+                this.loginMes1 = '';
+                this.loginMes2 = 'Enter your username & password.';
+                this.loginscreen = 2;
+                this.loginSelect = 0;
             }
-        } else if (this.titleScreenState === 2) {
+        } else if (this.loginscreen === 2) {
             let y: number = ((this.height / 2) | 0) - 40;
             y += 30;
 
             y += 25;
             if (this.mouseClickButton === 1 && this.mouseClickY >= y - 15 && this.mouseClickY < y) {
-                this.titleLoginField = 0;
+                this.loginSelect = 0;
             }
 
             y += 15;
             if (this.mouseClickButton === 1 && this.mouseClickY >= y - 15 && this.mouseClickY < y) {
-                this.titleLoginField = 1;
+                this.loginSelect = 1;
             }
             // y += 15; dead code
 
@@ -1333,7 +1334,7 @@ export class Client extends GameShell {
             y += 20;
 
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
-                await this.login(this.username, this.password, false);
+                await this.login(this.loginUser, this.loginPass, false);
 
                 if (this.ingame) {
                     return;
@@ -1342,9 +1343,9 @@ export class Client extends GameShell {
 
             x = ((this.width / 2) | 0) + 80;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
-                this.titleScreenState = 0;
-                this.username = '';
-                this.password = '';
+                this.loginscreen = 0;
+                this.loginUser = '';
+                this.loginPass = '';
             }
 
             // eslint-disable-next-line no-constant-condition
@@ -1362,47 +1363,47 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (this.titleLoginField === 0) {
-                    if (key === 8 && this.username.length > 0) {
-                        this.username = this.username.substring(0, this.username.length - 1);
+                if (this.loginSelect === 0) {
+                    if (key === 8 && this.loginUser.length > 0) {
+                        this.loginUser = this.loginUser.substring(0, this.loginUser.length - 1);
                     }
 
                     if (key === 9 || key === 10 || key === 13) {
-                        this.titleLoginField = 1;
+                        this.loginSelect = 1;
                     }
 
                     if (valid) {
-                        this.username = this.username + String.fromCharCode(key);
+                        this.loginUser = this.loginUser + String.fromCharCode(key);
                     }
 
-                    if (this.username.length > 12) {
-                        this.username = this.username.substring(0, 12);
+                    if (this.loginUser.length > 12) {
+                        this.loginUser = this.loginUser.substring(0, 12);
                     }
-                } else if (this.titleLoginField === 1) {
-                    if (key === 8 && this.password.length > 0) {
-                        this.password = this.password.substring(0, this.password.length - 1);
+                } else if (this.loginSelect === 1) {
+                    if (key === 8 && this.loginPass.length > 0) {
+                        this.loginPass = this.loginPass.substring(0, this.loginPass.length - 1);
                     }
 
                     if (key === 9 || key === 10 || key === 13) {
-                        this.titleLoginField = 0;
+                        this.loginSelect = 0;
                     }
 
                     if (valid) {
-                        this.password = this.password + String.fromCharCode(key);
+                        this.loginPass = this.loginPass + String.fromCharCode(key);
                     }
 
-                    if (this.password.length > 20) {
-                        this.password = this.password.substring(0, 20);
+                    if (this.loginPass.length > 20) {
+                        this.loginPass = this.loginPass.substring(0, 20);
                     }
                 }
             }
-        } else if (this.titleScreenState === 3) {
+        } else if (this.loginscreen === 3) {
             const x: number = (this.width / 2) | 0;
             let y: number = ((this.height / 2) | 0) + 50;
 
             y += 20;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
-                this.titleScreenState = 0;
+                this.loginscreen = 0;
             }
         }
     }
@@ -1410,9 +1411,9 @@ export class Client extends GameShell {
     private async login(username: string, password: string, reconnect: boolean): Promise<void> {
         try {
             if (!reconnect) {
-                this.loginMessage0 = '';
-                this.loginMessage1 = 'Connecting to server...';
-                await this.drawTitle();
+                this.loginMes1 = '';
+                this.loginMes2 = 'Connecting to server...';
+                await this.titleScreenDraw();
             }
 
             this.stream = new ClientStream(await ClientStream.openSocket(window.location.host, window.location.protocol === 'https:'));
@@ -1589,41 +1590,41 @@ export class Client extends GameShell {
 
                 this.prepareGame();
             } else if (reply === 3) {
-                this.loginMessage0 = '';
-                this.loginMessage1 = 'Invalid username or password.';
+                this.loginMes1 = '';
+                this.loginMes2 = 'Invalid username or password.';
             } else if (reply === 4) {
-                this.loginMessage0 = 'Your account has been disabled.';
-                this.loginMessage1 = 'Please check your message-centre for details.';
+                this.loginMes1 = 'Your account has been disabled.';
+                this.loginMes2 = 'Please check your message-centre for details.';
             } else if (reply === 5) {
-                this.loginMessage0 = 'Your account is already logged in.';
-                this.loginMessage1 = 'Try again in 60 secs...';
+                this.loginMes1 = 'Your account is already logged in.';
+                this.loginMes2 = 'Try again in 60 secs...';
             } else if (reply === 6) {
-                this.loginMessage0 = 'RuneScape has been updated!';
-                this.loginMessage1 = 'Please reload this page.';
+                this.loginMes1 = 'RuneScape has been updated!';
+                this.loginMes2 = 'Please reload this page.';
             } else if (reply === 7) {
-                this.loginMessage0 = 'This world is full.';
-                this.loginMessage1 = 'Please use a different world.';
+                this.loginMes1 = 'This world is full.';
+                this.loginMes2 = 'Please use a different world.';
             } else if (reply === 8) {
-                this.loginMessage0 = 'Unable to connect.';
-                this.loginMessage1 = 'Login server offline.';
+                this.loginMes1 = 'Unable to connect.';
+                this.loginMes2 = 'Login server offline.';
             } else if (reply === 9) {
-                this.loginMessage0 = 'Login limit exceeded.';
-                this.loginMessage1 = 'Too many connections from your address.';
+                this.loginMes1 = 'Login limit exceeded.';
+                this.loginMes2 = 'Too many connections from your address.';
             } else if (reply === 10) {
-                this.loginMessage0 = 'Unable to connect.';
-                this.loginMessage1 = 'Bad session id.';
+                this.loginMes1 = 'Unable to connect.';
+                this.loginMes2 = 'Bad session id.';
             } else if (reply === 11) {
-                this.loginMessage1 = 'Login server rejected session.'; // intentionally loginMessage1
-                this.loginMessage1 = 'Please try again.';
+                this.loginMes2 = 'Login server rejected session.'; // intentionally loginMessage1
+                this.loginMes2 = 'Please try again.';
             } else if (reply === 12) {
-                this.loginMessage0 = 'You need a members account to login to this world.';
-                this.loginMessage1 = 'Please subscribe, or use a different world.';
+                this.loginMes1 = 'You need a members account to login to this world.';
+                this.loginMes2 = 'Please subscribe, or use a different world.';
             } else if (reply === 13) {
-                this.loginMessage0 = 'Could not complete login.';
-                this.loginMessage1 = 'Please try using a different world.';
+                this.loginMes1 = 'Could not complete login.';
+                this.loginMes2 = 'Please try using a different world.';
             } else if (reply === 14) {
-                this.loginMessage0 = 'The server is being updated.';
-                this.loginMessage1 = 'Please wait 1 minute and try again.';
+                this.loginMes1 = 'The server is being updated.';
+                this.loginMes2 = 'Please wait 1 minute and try again.';
             } else if (reply === 15) {
                 this.ingame = true;
                 this.out.pos = 0;
@@ -1639,26 +1640,27 @@ export class Client extends GameShell {
                 this.menuVisible = false;
                 this.sceneLoadStartTime = performance.now();
             } else if (reply === 16) {
-                this.loginMessage0 = 'Login attempts exceeded.';
-                this.loginMessage1 = 'Please wait 1 minute and try again.';
+                this.loginMes1 = 'Login attempts exceeded.';
+                this.loginMes2 = 'Please wait 1 minute and try again.';
             } else if (reply === 17) {
-                this.loginMessage0 = 'You are standing in a members-only area.';
-                this.loginMessage1 = 'To play on this world move to a free area first';
+                this.loginMes1 = 'You are standing in a members-only area.';
+                this.loginMes2 = 'To play on this world move to a free area first';
             } else if (reply === 20) {
-                this.loginMessage0 = 'Invalid loginserver requested';
-                this.loginMessage1 = 'Please try using a different world.';
+                this.loginMes1 = 'Invalid loginserver requested';
+                this.loginMes2 = 'Please try using a different world.';
             } else {
-                this.loginMessage0 = 'Unexpected server response';
-                this.loginMessage1 = 'Please try using a different world.';
+                this.loginMes1 = 'Unexpected server response';
+                this.loginMes2 = 'Please try using a different world.';
             }
         } catch (err) {
             console.error(err);
 
-            this.loginMessage0 = '';
-            this.loginMessage1 = 'Error connecting to server.';
+            this.loginMes1 = '';
+            this.loginMes2 = 'Error connecting to server.';
         }
     }
 
+    // (real name)
     private async logout(): Promise<void> {
         if (this.stream) {
             this.stream.close();
@@ -1666,9 +1668,9 @@ export class Client extends GameShell {
 
         this.stream = null;
         this.ingame = false;
-        this.titleScreenState = 0;
-        this.username = '';
-        this.password = '';
+        this.loginscreen = 0;
+        this.loginUser = '';
+        this.loginPass = '';
 
         InputTracking.setDisabled();
         this.clearCache();
@@ -1685,11 +1687,11 @@ export class Client extends GameShell {
     }
 
     private clearCache(): void {
-        LocType.modelCacheStatic?.clear();
-        LocType.modelCacheDynamic?.clear();
+        LocType.mc1?.clear();
+        LocType.mc2?.clear();
         NpcType.modelCache?.clear();
         ObjType.modelCache?.clear();
-        ObjType.iconCache?.clear();
+        ObjType.spriteCache?.clear();
         ClientPlayer.modelCache?.clear();
         SpotAnimType.modelCache?.clear();
     }
@@ -1730,7 +1732,8 @@ export class Client extends GameShell {
         this.redrawFrame = true;
     }
 
-    private async updateGame(): Promise<void> {
+    // (real name)
+    private async gameLoop(): Promise<void> {
         if (this.players === null) {
             // client is unloading asynchronously
             return;
@@ -1786,7 +1789,7 @@ export class Client extends GameShell {
                 this.sendCameraDelay--;
             }
 
-            if (this.actionKey[1] === 1 || this.actionKey[2] === 1 || this.actionKey[3] === 1 || this.actionKey[4] === 1) {
+            if (this.keyHeld[1] === 1 || this.keyHeld[2] === 1 || this.keyHeld[3] === 1 || this.keyHeld[4] === 1) {
                 this.sendCamera = true;
             }
 
@@ -1927,12 +1930,12 @@ export class Client extends GameShell {
                 }
             }
 
-            if (World.clickTileX !== -1) {
+            if (World.groundX !== -1) {
                 if (this.localPlayer) {
-                    const x: number = World.clickTileX;
-                    const z: number = World.clickTileZ;
+                    const x: number = World.groundX;
+                    const z: number = World.groundZ;
                     const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], x, z, 0, 0, 0, 0, 0, 0, true);
-                    World.clickTileX = -1;
+                    World.groundX = -1;
 
                     if (success) {
                         this.crossX = this.mouseClickX;
@@ -1963,11 +1966,11 @@ export class Client extends GameShell {
             }
 
             if (this.sceneState === 2) {
-                this.updateOrbitCamera();
+                this.followCamera();
             }
 
             if (this.sceneState === 2 && this.cutscene) {
-                this.applyCutscene();
+                this.cinemaCamera();
             }
 
             for (let i: number = 0; i < 5; i++) {
@@ -2086,7 +2089,7 @@ export class Client extends GameShell {
         this.stream?.close();
 
         this.ingame = false;
-        await this.login(this.username, this.password, true);
+        await this.login(this.loginUser, this.loginPass, true);
         if (!this.ingame) {
             await this.logout();
         }
@@ -2105,14 +2108,14 @@ export class Client extends GameShell {
         if (this.sceneState === 1) {
             const status = this.checkScene();
             if (status != 0 && performance.now() - this.sceneLoadStartTime > 360000) {
-                console.log(`${this.username} glcfb ${this.serverSeed},${status},${Client.lowMem},${this.db !== null},${this.onDemand?.remaining()},${this.minusedlevel},${this.sceneCenterZoneX},${this.sceneCenterZoneZ}`);
+                console.log(`${this.loginUser} glcfb ${this.serverSeed},${status},${Client.lowMem},${this.db !== null},${this.onDemand?.remaining()},${this.minusedlevel},${this.sceneCenterZoneX},${this.sceneCenterZoneZ}`);
                 this.sceneLoadStartTime = performance.now();
             }
         }
 
         if (this.sceneState === 2 && this.minusedlevel !== this.minimapLevel) {
             this.minimapLevel = this.minusedlevel;
-            this.createMinimap(this.minusedlevel);
+            this.buildBuffer(this.minusedlevel);
         }
     }
 
@@ -2137,7 +2140,7 @@ export class Client extends GameShell {
             if (data != null) {
                 const x = (this.mapBuildIndex[i] >> 8) * 64 - this.sceneBaseTileX;
                 const z = (this.mapBuildIndex[i] & 0xFF) * 64 - this.sceneBaseTileZ;
-                if (!ClientBuild.locsAreReady(data, x, z)) {
+                if (!ClientBuild.checkLocations(data, x, z)) {
                     ready = false;
                 }
             }
@@ -2151,12 +2154,13 @@ export class Client extends GameShell {
 
         this.sceneState = 2;
         ClientBuild.levelBuilt = this.minusedlevel;
-        this.buildScene();
+        this.mapBuild();
         this.out.p1isaac(ClientProt.MAP_BUILD_COMPLETE);
         return 0;
     }
 
-    private buildScene(): void {
+    // (based on a real name)
+    private mapBuild(): void {
         try {
             this.minimapLevel = -1;
             this.spotanims.clear();
@@ -2244,12 +2248,12 @@ export class Client extends GameShell {
                 }
             }
 
-            this.clearLocChanges();
+            this.locChangePostBuildCorrect();
         } catch (err) {
             console.error(err);
         }
 
-        LocType.modelCacheStatic?.clear();
+        LocType.mc1?.clear();
 
         if (Client.lowMem && this.db) {
             const modelCount = this.onDemand?.getFileCount(0) ?? 0;
@@ -2295,18 +2299,20 @@ export class Client extends GameShell {
         }
     }
 
-    private clearLocChanges(): void {
+    // (real name)
+    private locChangePostBuildCorrect(): void {
         for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
             if (loc.endTime === -1) {
                 loc.startTime = 0;
-                this.storeLoc(loc);
+                this.locChangeSetOld(loc);
             } else {
                 loc.unlink();
             }
         }
     }
 
-    private createMinimap(level: number): void {
+    // (real name)
+    private buildBuffer(level: number): void {
         if (!this.imageMinimap) {
             return;
         }
@@ -2322,30 +2328,30 @@ export class Client extends GameShell {
 
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
                 if (this.levelTileFlags && (this.levelTileFlags[level][x][z] & 0x18) === 0) {
-                    this.scene?.drawMinimapTile(level, x, z, pixels, offset, 512);
+                    this.scene?.render2DGround(level, x, z, pixels, offset, 512);
                 }
 
                 if (level < 3 && this.levelTileFlags && (this.levelTileFlags[level + 1][x][z] & 0x8) !== 0) {
-                    this.scene?.drawMinimapTile(level + 1, x, z, pixels, offset, 512);
+                    this.scene?.render2DGround(level + 1, x, z, pixels, offset, 512);
                 }
 
                 offset += 4;
             }
         }
 
-        const wallRgb: number = ((((Math.random() * 20.0) | 0) + 238 - 10) << 16) + ((((Math.random() * 20.0) | 0) + 238 - 10) << 8) + ((Math.random() * 20.0) | 0) + 238 - 10;
-        const doorRgb: number = (((Math.random() * 20.0) | 0) + 238 - 10) << 16;
+        const inactiveRgb: number = ((((Math.random() * 20.0) | 0) + 238 - 10) << 16) + ((((Math.random() * 20.0) | 0) + 238 - 10) << 8) + ((Math.random() * 20.0) | 0) + 238 - 10;
+        const activeRgb: number = (((Math.random() * 20.0) | 0) + 238 - 10) << 16;
 
         this.imageMinimap.bind();
 
         for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
                 if (this.levelTileFlags && (this.levelTileFlags[level][x][z] & 0x18) === 0) {
-                    this.drawMinimapLoc(x, z, level, wallRgb, doorRgb);
+                    this.drawDetail(x, z, level, inactiveRgb, activeRgb);
                 }
 
                 if (level < 3 && this.levelTileFlags && (this.levelTileFlags[level + 1][x][z] & 0x8) !== 0) {
-                    this.drawMinimapLoc(x, z, level + 1, wallRgb, doorRgb);
+                    this.drawDetail(x, z, level + 1, inactiveRgb, activeRgb);
                 }
             }
         }
@@ -2544,9 +2550,9 @@ export class Client extends GameShell {
             this.overChatLayerId = this.lastOverLayerId;
         }
 
-        let done: boolean = false;
-        while (!done) {
-            done = true;
+        let sorted: boolean = false;
+        while (!sorted) {
+            sorted = true;
 
             for (let i: number = 0; i < this.menuSize - 1; i++) {
                 if (this.menuAction[i] < 1000 && this.menuAction[i + 1] > 1000) {
@@ -2570,7 +2576,7 @@ export class Client extends GameShell {
                     this.menuParamA[i] = this.menuParamA[i + 1];
                     this.menuParamA[i + 1] = tmp4;
 
-                    done = false;
+                    sorted = false;
                 }
             }
         }
@@ -3178,6 +3184,7 @@ export class Client extends GameShell {
         }
     }
 
+    // (real name)
     private closeModal(): void {
         this.out.p1isaac(ClientProt.CLOSE_MODAL);
 
@@ -3231,7 +3238,8 @@ export class Client extends GameShell {
         }
     }
 
-    private updateOrbitCamera(): void {
+    // (real name)
+    private followCamera(): void {
         if (!this.localPlayer) {
             return; // custom
         }
@@ -3252,17 +3260,17 @@ export class Client extends GameShell {
             this.orbitCameraZ += ((orbitZ - this.orbitCameraZ) / 16) | 0;
         }
 
-        if (this.actionKey[1] === 1) {
+        if (this.keyHeld[1] === 1) {
             this.orbitCameraYawVelocity += ((-this.orbitCameraYawVelocity - 24) / 2) | 0;
-        } else if (this.actionKey[2] === 1) {
+        } else if (this.keyHeld[2] === 1) {
             this.orbitCameraYawVelocity += ((24 - this.orbitCameraYawVelocity) / 2) | 0;
         } else {
             this.orbitCameraYawVelocity = (this.orbitCameraYawVelocity / 2) | 0;
         }
 
-        if (this.actionKey[3] === 1) {
+        if (this.keyHeld[3] === 1) {
             this.orbitCameraPitchVelocity += ((12 - this.orbitCameraPitchVelocity) / 2) | 0;
-        } else if (this.actionKey[4] === 1) {
+        } else if (this.keyHeld[4] === 1) {
             this.orbitCameraPitchVelocity += ((-this.orbitCameraPitchVelocity - 12) / 2) | 0;
         } else {
             this.orbitCameraPitchVelocity = (this.orbitCameraPitchVelocity / 2) | 0;
@@ -3314,7 +3322,8 @@ export class Client extends GameShell {
         }
     }
 
-    private applyCutscene(): void {
+    // (real name)
+    private cinemaCamera(): void {
         let x: number = this.cutsceneSrcLocalTileX * 128 + 64;
         let z: number = this.cutsceneSrcLocalTileZ * 128 + 64;
         let y: number = this.getAvH(this.minusedlevel, this.cutsceneSrcLocalTileX, this.cutsceneSrcLocalTileZ) - this.cutsceneSrcHeight;
@@ -3773,7 +3782,7 @@ export class Client extends GameShell {
 
     // (real name)
     private exactMove2(e: ClientEntity): void {
-        if (e.forceMoveStartCycle === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getFrameDuration(e.primarySeqFrame)) {
+        if (e.forceMoveStartCycle === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getDuration(e.primarySeqFrame)) {
             const duration: number = e.forceMoveStartCycle - e.forceMoveEndCycle;
             const delta: number = this.loopCycle - e.forceMoveEndCycle;
             const dx0: number = e.forceMoveStartSceneTileX * 128 + e.size * 64;
@@ -4005,7 +4014,7 @@ export class Client extends GameShell {
             seq = SeqType.list[e.secondarySeqId];
             e.secondarySeqCycle++;
 
-            if (e.secondarySeqFrame < seq.frameCount && e.secondarySeqCycle > seq.getFrameDuration(e.secondarySeqFrame)) {
+            if (e.secondarySeqFrame < seq.frameCount && e.secondarySeqCycle > seq.getDuration(e.secondarySeqFrame)) {
                 e.secondarySeqCycle = 0;
                 e.secondarySeqFrame++;
             }
@@ -4024,8 +4033,8 @@ export class Client extends GameShell {
             seq = SpotAnimType.list[e.spotanimId].seq;
             e.spotanimCycle++;
 
-            while (seq && e.spotanimFrame < seq.frameCount && e.spotanimCycle > seq.getFrameDuration(e.spotanimFrame)) {
-                e.spotanimCycle -= seq.getFrameDuration(e.spotanimFrame);
+            while (seq && e.spotanimFrame < seq.frameCount && e.spotanimCycle > seq.getDuration(e.spotanimFrame)) {
+                e.spotanimCycle -= seq.getDuration(e.spotanimFrame);
                 e.spotanimFrame++;
             }
 
@@ -4048,8 +4057,8 @@ export class Client extends GameShell {
             seq = SeqType.list[e.primarySeqId];
             e.primarySeqCycle++;
 
-            while (e.primarySeqFrame < seq.frameCount && e.primarySeqCycle > seq.getFrameDuration(e.primarySeqFrame)) {
-                e.primarySeqCycle -= seq.getFrameDuration(e.primarySeqFrame);
+            while (e.primarySeqFrame < seq.frameCount && e.primarySeqCycle > seq.getDuration(e.primarySeqFrame)) {
+                e.primarySeqCycle -= seq.getDuration(e.primarySeqFrame);
                 e.primarySeqFrame++;
             }
 
@@ -4265,7 +4274,8 @@ export class Client extends GameShell {
         });
     }
 
-    private async drawTitle(): Promise<void> {
+    // (based on a real name)
+    private async titleScreenDraw(): Promise<void> {
         await this.loadTitle();
         this.imageTitle4?.bind();
         this.imageTitlebox?.plotSprite(0, 0);
@@ -4273,7 +4283,7 @@ export class Client extends GameShell {
         const w: number = 360;
         const h: number = 200;
 
-        if (this.titleScreenState === 0) {
+        if (this.loginscreen === 0) {
             const extraY: number = ((h / 2) | 0) + 80;
             let y: number = ((h / 2) | 0) - 20;
 
@@ -4292,22 +4302,22 @@ export class Client extends GameShell {
             x = ((w / 2) | 0) + 80;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
             this.fontBold12?.centreStringTag(x, y + 5, 'Existing User', Colors.WHITE, true);
-        } else if (this.titleScreenState === 2) {
+        } else if (this.loginscreen === 2) {
             let x: number = ((w / 2) | 0) - 80;
             let y: number = ((h / 2) | 0) - 40;
-            if (this.loginMessage0.length > 0) {
-                this.fontBold12?.centreStringTag(w / 2, y - 15, this.loginMessage0, Colors.YELLOW, true);
-                this.fontBold12?.centreStringTag(w / 2, y, this.loginMessage1, Colors.YELLOW, true);
+            if (this.loginMes1.length > 0) {
+                this.fontBold12?.centreStringTag(w / 2, y - 15, this.loginMes1, Colors.YELLOW, true);
+                this.fontBold12?.centreStringTag(w / 2, y, this.loginMes2, Colors.YELLOW, true);
                 y += 30;
             } else {
-                this.fontBold12?.centreStringTag(w / 2, y - 7, this.loginMessage1, Colors.YELLOW, true);
+                this.fontBold12?.centreStringTag(w / 2, y - 7, this.loginMes2, Colors.YELLOW, true);
                 y += 30;
             }
 
-            this.fontBold12?.drawStringTag(w / 2 - 90, y, `Username: ${this.username}${this.titleLoginField === 0 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
+            this.fontBold12?.drawStringTag(w / 2 - 90, y, `Username: ${this.loginUser}${this.loginSelect === 0 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
             y += 15;
 
-            this.fontBold12?.drawStringTag(w / 2 - 88, y, `Password: ${JString.toAsterisks(this.password)}${this.titleLoginField === 1 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
+            this.fontBold12?.drawStringTag(w / 2 - 88, y, `Password: ${JString.toAsterisks(this.loginPass)}${this.loginSelect === 1 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
             y += 15;
 
             x = ((w / 2) | 0) - 80;
@@ -4318,7 +4328,7 @@ export class Client extends GameShell {
             x = ((w / 2) | 0) + 80;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
             this.fontBold12?.centreStringTag(x, y + 5, 'Cancel', Colors.WHITE, true);
-        } else if (this.titleScreenState === 3) {
+        } else if (this.loginscreen === 3) {
             let x: number = (w / 2) | 0;
             let y: number = ((h / 2) | 0) - 60;
             this.fontBold12?.centreStringTag(x, y, 'Create a free account', Colors.YELLOW, true);
@@ -4355,7 +4365,8 @@ export class Client extends GameShell {
         }
     }
 
-    private drawGame(): void {
+    // (based on a real name)
+    private gameDraw(): void {
         if (this.players === null) {
             // client is unloading asynchronously
             return;
@@ -4817,7 +4828,7 @@ export class Client extends GameShell {
                 if (proj.projTarget > 0) {
                     const npc: ClientNpc | null = this.npcs[proj.projTarget - 1];
                     if (npc) {
-                        proj.updateVelocity(npc.x, this.getAvH(proj.projLevel, npc.x, npc.z) - proj.projOffsetY, npc.z, this.loopCycle);
+                        proj.setTarget(npc.x, this.getAvH(proj.projLevel, npc.x, npc.z) - proj.projOffsetY, npc.z, this.loopCycle);
                     }
                 }
 
@@ -4831,11 +4842,11 @@ export class Client extends GameShell {
                     }
 
                     if (player) {
-                        proj.updateVelocity(player.x, this.getAvH(proj.projLevel, player.x, player.z) - proj.projOffsetY, player.z, this.loopCycle);
+                        proj.setTarget(player.x, this.getAvH(proj.projLevel, player.x, player.z) - proj.projOffsetY, player.z, this.loopCycle);
                     }
                 }
 
-                proj.update(this.sceneDelta);
+                proj.move(this.sceneDelta);
                 this.scene?.addDynamic(this.minusedlevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
             }
         }
@@ -5559,7 +5570,8 @@ export class Client extends GameShell {
         }
     }
 
-    private drawMinimapLoc(tileX: number, tileZ: number, level: number, wallRgb: number, doorRgb: number): void {
+    // (real name)
+    private drawDetail(tileX: number, tileZ: number, level: number, wallRgb: number, doorRgb: number): void {
         if (!this.scene || !this.imageMinimap) {
             return;
         }
@@ -5992,7 +6004,7 @@ export class Client extends GameShell {
                 this.out.p1(bufferSize + bufferSize + 3);
             }
 
-            if (this.actionKey[5] === 1) {
+            if (this.keyHeld[5] === 1) {
                 this.out.p1(1);
             } else {
                 this.out.p1(0);
@@ -7295,7 +7307,7 @@ export class Client extends GameShell {
             const id: number = buf.g2();
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
-                this.appendLoc(-1, id, angle, layer, z, shape, this.minusedlevel, x, 0);
+                this.locChangeCreate(-1, id, angle, layer, z, shape, this.minusedlevel, x, 0);
             }
         } else if (opcode === ServerProt.LOC_DEL) {
             const info: number = buf.g1();
@@ -7305,7 +7317,7 @@ export class Client extends GameShell {
             const layer: number = LocShape.of(shape).layer;
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
-                this.appendLoc(-1, -1, angle, layer, z, shape, this.minusedlevel, x, 0);
+                this.locChangeCreate(-1, -1, angle, layer, z, shape, this.minusedlevel, x, 0);
             }
         } else if (opcode === ServerProt.LOC_ANIM) {
             const info: number = buf.g1();
@@ -7405,7 +7417,7 @@ export class Client extends GameShell {
                 dz = dz * 128 + 64;
 
                 const proj: ClientProj = new ClientProj(spotanim, this.minusedlevel, x, this.getAvH(this.minusedlevel, x, z) - srcHeight, z, startDelay + this.loopCycle, endDelay + this.loopCycle, peak, arc, target, dstHeight);
-                proj.updateVelocity(dx, this.getAvH(this.minusedlevel, dx, dz) - dstHeight, dz, startDelay + this.loopCycle);
+                proj.setTarget(dx, this.getAvH(this.minusedlevel, dx, dz) - dstHeight, dz, startDelay + this.loopCycle);
                 this.projectiles.push(proj);
             }
         } else if (opcode === ServerProt.MAP_ANIM) {
@@ -7466,7 +7478,7 @@ export class Client extends GameShell {
 
                 let model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
                 if (model) {
-                    this.appendLoc(end + 1, -1, 0, layer, z, 0, this.minusedlevel, x, start + 1);
+                    this.locChangeCreate(end + 1, -1, 0, layer, z, 0, this.minusedlevel, x, start + 1);
 
                     player.locStartCycle = start + this.loopCycle;
                     player.locStopCycle = end + this.loopCycle;
@@ -7523,7 +7535,8 @@ export class Client extends GameShell {
         }
     }
 
-    private appendLoc(endTime: number, type: number, angle: number, layer: number, z: number, shape: number, level: number, x: number, startTime: number): void {
+    // (real name)
+    private locChangeCreate(endTime: number, type: number, angle: number, layer: number, z: number, shape: number, level: number, x: number, startTime: number): void {
         let loc: LocChange | null = null;
         for (let next: LocChange | null = this.locChanges.head() as LocChange | null; next; next = this.locChanges.next() as LocChange | null) {
             if (next.level === this.minusedlevel && next.x === x && next.z === z && next.layer === layer) {
@@ -7538,7 +7551,7 @@ export class Client extends GameShell {
             loc.layer = layer;
             loc.x = x;
             loc.z = z;
-            this.storeLoc(loc);
+            this.locChangeSetOld(loc);
             this.locChanges.push(loc);
         }
 
@@ -7549,7 +7562,8 @@ export class Client extends GameShell {
         loc.endTime = endTime;
     }
 
-    private storeLoc(loc: LocChange): void {
+    // (real name)
+    private locChangeSetOld(loc: LocChange): void {
         if (!this.scene) {
             return;
         }
@@ -7729,7 +7743,7 @@ export class Client extends GameShell {
 
         for (let index: number = 0; index < this.playerCount; index++) {
             if (!this.players[this.playerIds[index]]) {
-                console.error(`eek! ${this.username} null entry in pl list - pos:${index} size:${this.playerCount}`);
+                console.error(`eek! ${this.loginUser} null entry in pl list - pos:${index} size:${this.playerCount}`);
                 throw new Error('eek');
             }
         }
@@ -7789,7 +7803,7 @@ export class Client extends GameShell {
         }
 
         if (count > this.playerCount) {
-            console.error(`eek! ${this.username} Too many players`);
+            console.error(`eek! ${this.loginUser} Too many players`);
             throw new Error();
         }
 
@@ -7861,7 +7875,7 @@ export class Client extends GameShell {
 
                 const appearance: Packet | null = this.playerAppearanceBuffer[index];
                 if (appearance) {
-                    this.players[index]?.read(appearance);
+                    this.players[index]?.setAppearance(appearance);
                 }
             }
 
@@ -7922,7 +7936,7 @@ export class Client extends GameShell {
             buf.gdata(length, 0, data);
 
             this.playerAppearanceBuffer[index] = appearance;
-            player.read(appearance);
+            player.setAppearance(appearance);
         }
 
         if ((mask & PlayerUpdate.ANIM) !== 0) {
@@ -8097,13 +8111,13 @@ export class Client extends GameShell {
         }
 
         if (buf.pos !== size) {
-            console.error(`eek! ${this.username} size mismatch in getnpcpos - pos:${buf.pos} psize:${size}`);
+            console.error(`eek! ${this.loginUser} size mismatch in getnpcpos - pos:${buf.pos} psize:${size}`);
             throw new Error('eek');
         }
 
         for (let i: number = 0; i < this.npcCount; i++) {
             if (!this.npcs[this.npcIds[i]]) {
-                console.error(`eek! ${this.username} null entry in npc list - pos:${i} size:${this.npcCount}`);
+                console.error(`eek! ${this.loginUser} null entry in npc list - pos:${i} size:${this.npcCount}`);
                 throw new Error('eek');
             }
         }
@@ -8120,7 +8134,7 @@ export class Client extends GameShell {
         }
 
         if (count > this.npcCount) {
-            console.error(`eek! ${this.username} Too many npcs`);
+            console.error(`eek! ${this.loginUser} Too many npcs`);
             throw new Error('eek');
         }
 
@@ -9050,9 +9064,9 @@ export class Client extends GameShell {
 
         if (action === 660) {
             if (this.menuVisible) {
-                this.scene?.click(b - 8, c - 11);
+                this.scene?.updateMousePicking(b - 8, c - 11);
             } else {
-                this.scene?.click(this.mouseClickX - 8, this.mouseClickY - 11);
+                this.scene?.updateMousePicking(this.mouseClickX - 8, this.mouseClickY - 11);
             }
         }
 
@@ -9361,7 +9375,7 @@ export class Client extends GameShell {
                                     outline = 16777215;
                                 }
 
-                                const icon: Pix32 | null = ObjType.getIcon(id, child.linkObjCount[slot], outline);
+                                const icon: Pix32 | null = ObjType.getSprite(id, child.linkObjCount[slot], outline);
                                 if (icon) {
                                     if (this.objDragArea !== 0 && this.objDragSlot === slot && this.objDragLayerId === child.id) {
                                         dx = this.mouseX - this.objGrabX;
@@ -9618,7 +9632,7 @@ export class Client extends GameShell {
                 }
 
                 if (model) {
-                    model.drawSimple(0, child.modelYAn, 0, child.modelXAn, 0, eyeY, eyeZ);
+                    model.objRender(0, child.modelYAn, 0, child.modelXAn, 0, eyeY, eyeZ);
                 }
 
                 Pix3D.centerX = tmpX;
@@ -9755,6 +9769,7 @@ export class Client extends GameShell {
         return value < 999999999 ? String(value) : '*';
     }
 
+    // (real name)
     private getIfActive(com: Component): boolean {
         if (!com.scriptComparator) {
             return false;
@@ -9788,6 +9803,7 @@ export class Client extends GameShell {
         return true;
     }
 
+    // (real name)
     private getIfVar(component: Component, scriptId: number): number {
         if (!component.scripts || scriptId >= component.scripts.length) {
             return -2;
@@ -10179,8 +10195,8 @@ export class Client extends GameShell {
                     const type: SeqType = SeqType.list[seqId];
                     child.seqCycle += delta;
 
-                    while (child.seqCycle > type.getFrameDuration(child.seqFrame)) {
-                        child.seqCycle -= type.getFrameDuration(child.seqFrame) + 1;
+                    while (child.seqCycle > type.getDuration(child.seqFrame)) {
+                        child.seqCycle -= type.getDuration(child.seqFrame) + 1;
                         child.seqFrame++;
 
                         if (child.seqFrame >= type.frameCount) {
@@ -10218,7 +10234,7 @@ export class Client extends GameShell {
                 Pix3D.initColourTable(0.6);
             }
 
-            ObjType.iconCache?.clear();
+            ObjType.spriteCache?.clear();
             this.redrawFrame = true;
         } else if (clientcode === 3) {
             const lastMidiActive: boolean = this.midiActive;
@@ -10353,7 +10369,7 @@ export class Client extends GameShell {
             if (this.updateDesignModel) {
                 for (let i = 0; i < 7; i++) {
                     const kit = this.designKits[i];
-                    if (kit >= 0 && !IdkType.list[kit].bodyModelIsReady()) {
+                    if (kit >= 0 && !IdkType.list[kit].checkModel()) {
                         return;
                     }
                 }
@@ -10365,17 +10381,17 @@ export class Client extends GameShell {
                 for (let part: number = 0; part < 7; part++) {
                     const kit: number = this.designKits[part];
                     if (kit >= 0) {
-                        models[modelCount++] = IdkType.list[kit].getBodyModel();
+                        models[modelCount++] = IdkType.list[kit].getModelNoCheck();
                     }
                 }
 
-                const model: Model = Model.modelFromModels(models, modelCount);
+                const model: Model = Model.combine(models, modelCount);
                 for (let part: number = 0; part < 5; part++) {
                     if (this.designColours[part] !== 0) {
-                        model.recolour(ClientPlayer.DESIGN_IDK_COLORS[part][0], ClientPlayer.DESIGN_IDK_COLORS[part][this.designColours[part]]);
+                        model.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.designColours[part]]);
 
                         if (part === 1) {
-                            model.recolour(ClientPlayer.TORSO_RECOLORS[0], ClientPlayer.TORSO_RECOLORS[this.designColours[part]]);
+                            model.recolour(ClientPlayer.recol2d[0], ClientPlayer.recol2d[this.designColours[part]]);
                         }
                     }
                 }
@@ -10581,13 +10597,13 @@ export class Client extends GameShell {
             if (direction === 0) {
                 color--;
                 if (color < 0) {
-                    color = ClientPlayer.DESIGN_IDK_COLORS[part].length - 1;
+                    color = ClientPlayer.recol1d[part].length - 1;
                 }
             }
 
             if (direction === 1) {
                 color++;
-                if (color >= ClientPlayer.DESIGN_IDK_COLORS[part].length) {
+                if (color >= ClientPlayer.recol1d[part].length) {
                     color = 0;
                 }
             }
@@ -10601,7 +10617,7 @@ export class Client extends GameShell {
             this.designGender = false;
             this.validateCharacterDesign();
         } else if (clientCode === ClientCode.CC_ACCEPT_DESIGN) {
-            this.out.p1isaac(ClientProt.IF_PLAYERDESIGN);
+            this.out.p1isaac(ClientProt.IDK_SAVEDESIGN);
             this.out.p1(this.designGender ? 0 : 1);
 
             for (let i: number = 0; i < 7; i++) {
@@ -10801,7 +10817,7 @@ export class Client extends GameShell {
 
             let username;
             if (this.localPlayer == null || this.localPlayer.name == null) {
-                username = JString.formatName(this.username);
+                username = JString.formatName(this.loginUser);
             } else {
                 username = this.localPlayer.name;
             }
@@ -11414,7 +11430,7 @@ export class Client extends GameShell {
     // ----
 
     getTitleScreenState(): number {
-        return this.titleScreenState;
+        return this.loginscreen;
     }
 
     isChatBackInputOpen(): boolean {

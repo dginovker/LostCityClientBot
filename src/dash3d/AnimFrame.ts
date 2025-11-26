@@ -3,18 +3,18 @@ import AnimBase from '#/dash3d/AnimBase.js';
 import Packet from '#/io/Packet.js';
 
 export default class AnimFrame {
-    static instances: AnimFrame[] = [];
+    static list: AnimFrame[] = [];
     delay: number = -1;
     base: AnimBase | null = null;
-    length: number = 0;
-    groups: Int32Array | null = null;
-    x: Int32Array | null = null;
-    y: Int32Array | null = null;
-    z: Int32Array | null = null;
+    size: number = 0; // (real name)
+    ti: Int32Array | null = null; // (real name)
+    tx: Int32Array | null = null; // (real name)
+    ty: Int32Array | null = null; // (real name)
+    tz: Int32Array | null = null; // (real name)
     static opaque: boolean[] = [];
 
     static init(total: number) {
-        this.instances = new Array(total + 1);
+        this.list = new Array(total + 1);
         this.opaque = new Array(total + 1);
         for (let i = 0; i < total + 1; i++) {
             this.opaque[i] = true;
@@ -60,7 +60,7 @@ export default class AnimFrame {
         for (let i: number = 0; i < total; i++) {
             const id: number = head.g2();
 
-            const frame: AnimFrame = (this.instances[id] = new AnimFrame());
+            const frame: AnimFrame = (this.list[id] = new AnimFrame());
             frame.delay = del.g1();
             frame.base = base;
 
@@ -122,23 +122,23 @@ export default class AnimFrame {
                 }
             }
 
-            frame.length = current;
-            frame.groups = new Int32Array(current);
-            frame.x = new Int32Array(current);
-            frame.y = new Int32Array(current);
-            frame.z = new Int32Array(current);
+            frame.size = current;
+            frame.ti = new Int32Array(current);
+            frame.tx = new Int32Array(current);
+            frame.ty = new Int32Array(current);
+            frame.tz = new Int32Array(current);
 
             for (let j: number = 0; j < current; j++) {
-                frame.groups[j] = labels[j];
-                frame.x[j] = x[j];
-                frame.y[j] = y[j];
-                frame.z[j] = z[j];
+                frame.ti[j] = labels[j];
+                frame.tx[j] = x[j];
+                frame.ty[j] = y[j];
+                frame.tz[j] = z[j];
             }
         }
     }
 
     static get(id: number) {
-        return AnimFrame.instances[id];
+        return AnimFrame.list[id];
     }
 
     static shareAlpha(frame: number) {

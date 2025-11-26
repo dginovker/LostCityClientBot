@@ -60,7 +60,8 @@ export default class SpotAnimType extends ConfigType {
         }
     }
 
-    getModel(): Model | null {
+    // (real name)
+    getTempModel(): Model | null {
         let model: Model | null = null;
 
         if (SpotAnimType.modelCache) {
@@ -71,7 +72,7 @@ export default class SpotAnimType extends ConfigType {
             }
         }
 
-        model = Model.tryGet(this.model);
+        model = Model.load(this.model);
         if (!model) {
             return null;
         }

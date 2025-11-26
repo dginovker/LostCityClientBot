@@ -12,7 +12,7 @@ export default class ClientObj extends ModelSource {
         this.count = count;
     }
 
-    getModel(): Model | null {
+    getTempModel(): Model | null {
         const obj = ObjType.get(this.index);
         return obj.getModel(this.count);
     }

@@ -33,19 +33,19 @@ export default class ClientLocAnim extends ModelSource {
 
         if (randomFrame && this.seq.loops !== -1) {
             this.seqFrame = (Math.random() * this.seq.frameCount) | 0;
-            this.seqCycle -= (Math.random() * this.seq.getFrameDuration(this.seqFrame)) | 0;
+            this.seqCycle -= (Math.random() * this.seq.getDuration(this.seqFrame)) | 0;
         }
     }
 
-    getModel(loopCycle: number): Model | null {
+    getTempModel(loopCycle: number): Model | null {
         if (this.seq) {
             let delta = loopCycle - this.seqCycle;
             if (delta > 100 && this.seq.loops > 0) {
                 delta = 100;
             }
 
-            while (delta > this.seq.getFrameDuration(this.seqFrame)) {
-                delta -= this.seq.getFrameDuration((this.seqFrame));
+            while (delta > this.seq.getDuration(this.seqFrame)) {
+                delta -= this.seq.getDuration((this.seqFrame));
                 this.seqFrame++;
 
                 if (this.seqFrame < this.seq.frameCount) {

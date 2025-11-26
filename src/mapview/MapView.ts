@@ -396,19 +396,19 @@ export class MapView extends GameShell {
     }
 
     async update(): Promise<void> {
-        if (this.actionKey[1] == 1) {
+        if (this.keyHeld[1] == 1) {
             this.offsetX = (this.offsetX - 16.0 / this.zoom) | 0;
             this.redraw = true;
         }
-        if (this.actionKey[2] == 1) {
+        if (this.keyHeld[2] == 1) {
             this.offsetX = (this.offsetX + 16.0 / this.zoom) | 0;
             this.redraw = true;
         }
-        if (this.actionKey[3] == 1) {
+        if (this.keyHeld[3] == 1) {
             this.offsetZ = (this.offsetZ - 16.0 / this.zoom) | 0;
             this.redraw = true;
         }
-        if (this.actionKey[4] == 1) {
+        if (this.keyHeld[4] == 1) {
             this.offsetZ = (this.offsetZ + 16.0 / this.zoom) | 0;
             this.redraw = true;
         }

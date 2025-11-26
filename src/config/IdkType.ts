@@ -56,7 +56,8 @@ export default class IdkType extends ConfigType {
         }
     }
 
-    bodyModelIsReady(): boolean {
+    // (real name)
+    checkModel(): boolean {
         if (!this.models) {
             return true;
         }
@@ -64,7 +65,7 @@ export default class IdkType extends ConfigType {
         let ready = true;
 
         for (let i = 0; i < this.models.length; i++) {
-            if (!Model.isReady(this.models[i])) {
+            if (!Model.requestDownload(this.models[i])) {
                 ready = false;
             }
         }
@@ -72,21 +73,22 @@ export default class IdkType extends ConfigType {
         return ready;
     }
 
-    getBodyModel(): Model | null {
+    // (real name)
+    getModelNoCheck(): Model | null {
         if (!this.models) {
             return null;
         }
 
         const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
         for (let i: number = 0; i < this.models.length; i++) {
-            models[i] = Model.tryGet(this.models[i]);
+            models[i] = Model.load(this.models[i]);
         }
 
         let model: Model | null;
         if (models.length === 1) {
             model = models[0];
         } else {
-            model = Model.modelFromModels(models, models.length);
+            model = Model.combine(models, models.length);
         }
 
         for (let i: number = 0; i < 6 && this.recol_s[i] !== 0; i++) {
@@ -96,11 +98,12 @@ export default class IdkType extends ConfigType {
         return model;
     }
 
-    headModelIsReady(): boolean {
+    // (real name)
+    checkHead(): boolean {
         let ready = true;
 
         for (let i = 0; i < this.heads.length; i++) {
-            if (this.heads[i] != -1 && !Model.isReady(this.heads[i])) {
+            if (this.heads[i] != -1 && !Model.requestDownload(this.heads[i])) {
                 ready = false;
             }
         }
@@ -108,17 +111,18 @@ export default class IdkType extends ConfigType {
         return ready;
     }
 
-    getHeadModel(): Model {
+    // (real name)
+    getHeadNoCheck(): Model {
         let count: number = 0;
 
         const models: (Model | null)[] = new TypedArray1d(5, null);
         for (let i: number = 0; i < 5; i++) {
             if (this.heads[i] !== -1) {
-                models[count++] = Model.tryGet(this.heads[i]);
+                models[count++] = Model.load(this.heads[i]);
             }
         }
 
-        const model: Model = Model.modelFromModels(models, count);
+        const model: Model = Model.combine(models, count);
         for (let i: number = 0; i < 6 && this.recol_s[i] !== 0; i++) {
             model.recolour(this.recol_s[i], this.recol_d[i]);
         }

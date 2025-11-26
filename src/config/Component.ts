@@ -368,7 +368,7 @@ export default class Component {
             return model;
         }
 
-        const tmp: Model = Model.modelShareColored(model, true, true, false);
+        const tmp: Model = Model.copyForAnim(model, true, true, false);
         if (primaryFrame !== -1 || secondaryFrame !== -1) {
             tmp.prepareAnim();
         }
@@ -392,9 +392,9 @@ export default class Component {
         }
 
         if (type === 1) {
-            model = Model.tryGet(id);
+            model = Model.load(id);
         } else if (type === 2) {
-            model = NpcType.get(id).getHeadModel();
+            model = NpcType.get(id).getHead();
         } else if (type === 3) {
             if (localPlayer) {
                 model = localPlayer.getHeadModel();

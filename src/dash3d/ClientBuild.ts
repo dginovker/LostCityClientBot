@@ -895,7 +895,8 @@ export default class ClientBuild {
         }
     }
 
-    static locsAreReady(src: Uint8Array, xOffset: number, zOffset: number): boolean {
+    // (real name)
+    static checkLocations(src: Uint8Array, xOffset: number, zOffset: number): boolean {
         let ready = true;
 		const buf = new Packet(src);
 		let locId = -1;
@@ -963,7 +964,7 @@ export default class ClientBuild {
 			locId += deltaId;
 
 			let loc = LocType.get(locId);
-			loc.prefetch(od);
+			loc.prefetchModelAll(od);
 
 			while (true) {
 				const deltaPos = buf.gsmarts();

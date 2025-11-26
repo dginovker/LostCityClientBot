@@ -32,7 +32,7 @@ export default abstract class GameShell {
     protected nextMouseClickTime: number = 0;
     public mouseClickTime: number = 0;
 
-    public actionKey: number[] = [];
+    public keyHeld: number[] = []; // (real name)
     protected keyQueue: number[] = [];
     protected keyQueueReadPos: number = 0;
     protected keyQueueWritePos: number = 0;
@@ -453,10 +453,10 @@ export default abstract class GameShell {
                 this.panning = false;
 
                 // release all arrow keys
-                this.actionKey[1] = 0;
-                this.actionKey[2] = 0;
-                this.actionKey[3] = 0;
-                this.actionKey[4] = 0;
+                this.keyHeld[1] = 0;
+                this.keyHeld[2] = 0;
+                this.keyHeld[3] = 0;
+                this.keyHeld[4] = 0;
                 return;
             } else {
                 if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
@@ -552,10 +552,10 @@ export default abstract class GameShell {
             this.idleCycles = performance.now();
 
             // release all arrow keys
-            this.actionKey[1] = 0;
-            this.actionKey[2] = 0;
-            this.actionKey[3] = 0;
-            this.actionKey[4] = 0;
+            this.keyHeld[1] = 0;
+            this.keyHeld[2] = 0;
+            this.keyHeld[3] = 0;
+            this.keyHeld[4] = 0;
         }
     }
 
@@ -594,22 +594,22 @@ export default abstract class GameShell {
                 // emulate arrow keys:
                 if (this.mx - this.nx > 0) {
                     // right
-                    this.actionKey[1] = 0;
-                    this.actionKey[2] = 1;
+                    this.keyHeld[1] = 0;
+                    this.keyHeld[2] = 1;
                 } else if (this.mx - this.nx < 0) {
                     // left
-                    this.actionKey[1] = 1;
-                    this.actionKey[2] = 0;
+                    this.keyHeld[1] = 1;
+                    this.keyHeld[2] = 0;
                 }
 
                 if (this.my - this.ny > 0) {
                     // down
-                    this.actionKey[3] = 0;
-                    this.actionKey[4] = 1;
+                    this.keyHeld[3] = 0;
+                    this.keyHeld[4] = 1;
                 } else if (this.my - this.ny < 0) {
                     // up
-                    this.actionKey[3] = 1;
-                    this.actionKey[4] = 0;
+                    this.keyHeld[3] = 1;
+                    this.keyHeld[4] = 0;
                 }
             } else if (this.startedInTabArea || this.startedInChatScroll || this.getViewportInterfaceId() !== -1) {
                 if (!this.dragging && this.exceedsGrabThreshold(5)) {
@@ -655,7 +655,7 @@ export default abstract class GameShell {
         }
 
         if (ch > 0 && ch < 128) {
-            this.actionKey[ch] = 1;
+            this.keyHeld[ch] = 1;
         }
 
         if (ch > 4) {
@@ -697,7 +697,7 @@ export default abstract class GameShell {
         }
 
         if (ch > 0 && ch < 128) {
-            this.actionKey[ch] = 0;
+            this.keyHeld[ch] = 0;
         }
 
         if (InputTracking.enabled) {
@@ -733,7 +733,7 @@ export default abstract class GameShell {
 
         // custom: taken from later version to release all keys
         for (let i = 0; i < 128; i++) {
-            this.actionKey[i] = 0;
+            this.keyHeld[i] = 0;
         }
 
         if (InputTracking.enabled) {

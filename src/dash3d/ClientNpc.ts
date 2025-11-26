@@ -21,7 +21,7 @@ export const enum NpcUpdate {
 export default class ClientNpc extends ClientEntity {
     type: NpcType | null = null;
 
-    getModel(): Model | null {
+    getTempModel(): Model | null {
         if (this.type == null) {
             return null;
         }
@@ -35,10 +35,10 @@ export default class ClientNpc extends ClientEntity {
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
             let spot = SpotAnimType.list[this.spotanimId];
-            let spotModel = spot.getModel();
+            let spotModel = spot.getTempModel();
 
             if (spotModel != null) {
-                const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
+                const temp: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
                 temp.translate(-this.spotanimHeight, 0, 0);
                 temp.prepareAnim();
                 if (spot.seq && spot.seq.frames) {
@@ -55,12 +55,12 @@ export default class ClientNpc extends ClientEntity {
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
 
                 const models: Model[] = [model, temp];
-                model = Model.modelFromModelsBounds(models, 2);
+                model = Model.append(models, 2);
             }
         }
 
         if (this.type.size == 1) {
-            model.picking = true;
+            model.useAABBMouseCheck = true;
         }
 
         return model;

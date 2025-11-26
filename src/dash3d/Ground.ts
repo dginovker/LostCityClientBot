@@ -1,12 +1,12 @@
 export default class Ground {
-    static readonly tmpScreenX: Int32Array = new Int32Array(6);
-    static readonly tmpScreenY: Int32Array = new Int32Array(6);
-    static readonly tmpViewspaceX: Int32Array = new Int32Array(6);
-    static readonly tmpViewspaceY: Int32Array = new Int32Array(6);
-    static readonly tmpViewspaceZ: Int32Array = new Int32Array(6);
+    static readonly drawVertexX: Int32Array = new Int32Array(6);
+    static readonly drawVertexY: Int32Array = new Int32Array(6);
+    static readonly drawTextureVertexX: Int32Array = new Int32Array(6);
+    static readonly drawTextureVertexY: Int32Array = new Int32Array(6);
+    static readonly drawTextureVertexZ: Int32Array = new Int32Array(6);
 
     // prettier-ignore
-    private static readonly SHAPE_POINTS: Int8Array[] = [
+    private static readonly defShapeP: Int8Array[] = [
         Int8Array.of(1, 3, 5, 7),
         Int8Array.of(1, 3, 5, 7),
         Int8Array.of(1, 3, 5, 7),
@@ -20,10 +20,10 @@ export default class Ground {
         Int8Array.of(1, 3, 5, 7, 11, 12),
         Int8Array.of(1, 3, 5, 7, 11, 12),
         Int8Array.of(1, 3, 5, 7, 13, 14)
-    ];
+    ]; // (real name)
 
     // prettier-ignore
-    private static readonly SHAPE_PATHS: Int8Array[] = [
+    private static readonly defShapeF: Int8Array[] = [
         Int8Array.of(0, 1, 2, 3, 0, 0, 1, 3),
         Int8Array.of(1, 1, 2, 3, 1, 0, 1, 3),
         Int8Array.of(0, 1, 2, 3, 1, 0, 1, 3),
@@ -37,7 +37,7 @@ export default class Ground {
         Int8Array.of(0, 0, 1, 5, 0, 1, 4, 5, 0, 1, 2, 4, 1, 0, 5, 3, 1, 5, 4, 3, 1, 4, 2, 3),
         Int8Array.of(1, 0, 1, 5, 1, 1, 4, 5, 1, 1, 2, 4, 0, 0, 5, 3, 0, 5, 4, 3, 0, 4, 2, 3),
         Int8Array.of(1, 0, 5, 4, 1, 0, 1, 5, 0, 0, 4, 3, 0, 4, 5, 3, 0, 5, 2, 3, 0, 1, 2, 5)
-    ];
+    ]; // (real name)
 
     private static readonly FULL_SQUARE: number = 128;
     private static readonly HALF_SQUARE: number = (this.FULL_SQUARE / 2) | 0;
@@ -90,7 +90,7 @@ export default class Ground {
         this.backgroundRgb = backgroundRgb;
         this.foregroundRgb = foregroundRgb;
 
-        const points: Int8Array = Ground.SHAPE_POINTS[shape];
+        const points: Int8Array = Ground.defShapeP[shape];
         const vertexCount: number = points.length;
         this.vertexX = new Int32Array(vertexCount);
         this.vertexY = new Int32Array(vertexCount);
@@ -227,7 +227,7 @@ export default class Ground {
             secondaryColors[v] = color2;
         }
 
-        const paths: Int8Array = Ground.SHAPE_PATHS[shape];
+        const paths: Int8Array = Ground.defShapeF[shape];
         const triangleCount: number = (paths.length / 4) | 0;
         this.triangleVertexA = new Int32Array(triangleCount);
         this.triangleVertexB = new Int32Array(triangleCount);

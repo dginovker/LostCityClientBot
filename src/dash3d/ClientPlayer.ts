@@ -104,7 +104,7 @@ const enum SkinColor {
 
 export default class ClientPlayer extends ClientEntity {
     // prettier-ignore
-    static readonly TORSO_RECOLORS: number[] = [
+    static readonly recol2d: number[] = [
         BodyColorDest.BODY_RECOLOR_KHAKI,
         BodyColorDest.BODY_RECOLOR_CHARCOAL,
         BodyColorDest.BODY_RECOLOR_CRIMSON,
@@ -121,10 +121,10 @@ export default class ClientPlayer extends ClientEntity {
         BodyColorDest.BODY_RECOLOR_LIME,
         BodyColorDest.BODY_RECOLOR_CYAN,
         BodyColorDest.BODY_RECOLOR_EMERALD
-    ];
+    ]; // (real name)
 
     // prettier-ignore
-    static readonly DESIGN_IDK_COLORS: number[][] = [
+    static readonly recol1d: number[][] = [
         [ // hair
             HairColor.HAIR_DARK_BROWN,
             HairColor.HAIR_WHITE,
@@ -193,7 +193,7 @@ export default class ClientPlayer extends ClientEntity {
             SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
             SkinColor.SKIN
         ]
-    ];
+    ]; // (real name)
 
     name: string | null = null;
     visible: boolean = false;
@@ -202,10 +202,10 @@ export default class ClientPlayer extends ClientEntity {
     appearance: Uint16Array = new Uint16Array(12);
     colour: Uint16Array = new Uint16Array(5);
     combatLevel: number = 0;
-    hash: bigint = 0n;
+    baseId: bigint = 0n; // (based on a real name)
     lowMemory: boolean = false;
     modelCacheKey: bigint = -1n;
-    static modelCache: LruCache | null = new LruCache(200);
+    static modelCache: LruCache | null = new LruCache(200); // (real name)
     y: number = 0;
     locStartCycle: number = 0;
     locStopCycle: number = 0;
@@ -219,8 +219,8 @@ export default class ClientPlayer extends ClientEntity {
     maxTileZ: number = 0;
     transmog: NpcType | null = null;
 
-    /*@__MANGLE_PROP__*/
-    read(buf: Packet): void {
+    // (real name)
+    setAppearance(buf: Packet): void {
         buf.pos = 0;
 
         this.gender = buf.g1();
@@ -242,7 +242,7 @@ export default class ClientPlayer extends ClientEntity {
 
         for (let part: number = 0; part < 5; part++) {
             let color: number = buf.g1();
-            if (color < 0 || color >= ClientPlayer.DESIGN_IDK_COLORS[part].length) {
+            if (color < 0 || color >= ClientPlayer.recol1d[part].length) {
                 color = 0;
             }
             this.colour[part] = color;
@@ -287,39 +287,40 @@ export default class ClientPlayer extends ClientEntity {
         this.combatLevel = buf.g1();
         this.visible = true;
 
-        this.hash = 0n;
+        this.baseId = 0n;
         for (let part: number = 0; part < 12; part++) {
-            this.hash <<= 0x4n;
+            this.baseId <<= 0x4n;
             if (this.appearance[part] >= 256) {
-                this.hash += BigInt(this.appearance[part]) - 256n;
+                this.baseId += BigInt(this.appearance[part]) - 256n;
             }
         }
         if (this.appearance[0] >= 256) {
-            this.hash += (BigInt(this.appearance[0]) - 256n) >> 4n;
+            this.baseId += (BigInt(this.appearance[0]) - 256n) >> 4n;
         }
         if (this.appearance[1] >= 256) {
-            this.hash += (BigInt(this.appearance[1]) - 256n) >> 8n;
+            this.baseId += (BigInt(this.appearance[1]) - 256n) >> 8n;
         }
         for (let part: number = 0; part < 5; part++) {
-            this.hash <<= 0x3n;
-            this.hash += BigInt(this.colour[part]);
+            this.baseId <<= 0x3n;
+            this.baseId += BigInt(this.colour[part]);
         }
-        this.hash <<= 0x1n;
-        this.hash += BigInt(this.gender);
+        this.baseId <<= 0x1n;
+        this.baseId += BigInt(this.gender);
     }
 
-    getModel(loopCycle: number): Model | null {
+    // (real name)
+    getTempModel(loopCycle: number): Model | null {
         if (!this.visible) {
             return null;
         }
 
-        let model = this.getAnimatedModel();
+        let model = this.getTempModel2();
         if (model == null) {
             return null;
         }
 
         this.height = model.minY;
-        model.picking = true;
+        model.useAABBMouseCheck = true;
 
         if (this.lowMemory) {
             return model;
@@ -327,24 +328,29 @@ export default class ClientPlayer extends ClientEntity {
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
             const spot = SpotAnimType.list[this.spotanimId];
-            const spotModel = spot.getModel();
+            const spotModel = spot.getTempModel();
 
             if (spotModel != null) {
-                const temp: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
+                const temp: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
+
                 temp.translate(-this.spotanimHeight, 0, 0);
                 temp.prepareAnim();
+
                 if (spot.seq && spot.seq.frames) {
                     temp.animate(spot.seq.frames[this.spotanimFrame]);
                 }
+
                 temp.labelFaces = null;
                 temp.labelVertices = null;
+
                 if (spot.resizeh != 128 || spot.resizev != 128) {
                     temp.resize(spot.resizev, spot.resizeh, spot.resizeh);
                 }
+
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
 
                 const models: Model[] = [model, temp];
-                model = Model.modelFromModelsBounds(models, 2);
+                model = Model.append(models, 2);
             }
         }
 
@@ -370,7 +376,7 @@ export default class ClientPlayer extends ClientEntity {
                     }
 
                     const models: Model[] = [model, loc];
-                    model = Model.modelFromModelsBounds(models, 2);
+                    model = Model.append(models, 2);
 
                     if (this.dstYaw == 512) {
                         loc.rotate90();
@@ -388,11 +394,12 @@ export default class ClientPlayer extends ClientEntity {
             }
         }
 
-        model.picking = true;
+        model.useAABBMouseCheck = true;
         return model;
     }
 
-    getAnimatedModel(): Model | null {
+    // (based on real name)
+    getTempModel2(): Model | null {
         if (this.transmog != null) {
             let transformId = -1;
             if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
@@ -409,7 +416,7 @@ export default class ClientPlayer extends ClientEntity {
             return this.transmog.getModel(transformId, -1, null);
         }
 
-        let hash: bigint = this.hash;
+        let hash: bigint = this.baseId;
         let primaryTransformId: number = -1;
         let secondaryTransformId: number = -1;
         let leftHandValue: number = -1;
@@ -460,18 +467,18 @@ export default class ClientPlayer extends ClientEntity {
                     value = leftHandValue;
                 }
 
-                if (value >= 0x100 && value < 0x200 && !IdkType.list[value - 0x100].bodyModelIsReady()) {
+                if (value >= 0x100 && value < 0x200 && !IdkType.list[value - 0x100].checkModel()) {
                     needsModel = true;
                 }
 
-                if (value >= 0x200 && !ObjType.get(value - 0x200).wornModelIsReady(this.gender)) {
+                if (value >= 0x200 && !ObjType.get(value - 0x200).checkWearModel(this.gender)) {
                     needsModel = true;
                 }
             }
 
             if (needsModel) {
                 if (this.modelCacheKey !== -1n && ClientPlayer.modelCache) {
-                    model = ClientPlayer.modelCache.get(this.hash) as Model | null;
+                    model = ClientPlayer.modelCache.get(this.baseId) as Model | null;
                 }
 
                 if (model == null) {
@@ -496,7 +503,7 @@ export default class ClientPlayer extends ClientEntity {
                 }
 
                 if (value >= 256 && value < 512) {
-                    const idkModel: Model | null = IdkType.list[value - 256].getBodyModel();
+                    const idkModel: Model | null = IdkType.list[value - 256].getModelNoCheck();
                     if (idkModel) {
                         models[modelCount++] = idkModel;
                     }
@@ -504,23 +511,23 @@ export default class ClientPlayer extends ClientEntity {
 
                 if (value >= 512) {
                     const obj: ObjType = ObjType.get(value - 512);
-                    const wornModel: Model | null = obj.getWornModel(this.gender);
+                    const wornModel: Model | null = obj.getWearModelNoCheck(this.gender);
                     if (wornModel) {
                         models[modelCount++] = wornModel;
                     }
                 }
             }
 
-            model = Model.modelFromModels(models, modelCount);
+            model = Model.combine(models, modelCount);
             for (let part: number = 0; part < 5; part++) {
                 if (this.colour[part] === 0) {
                     continue;
                 }
 
-                model.recolour(ClientPlayer.DESIGN_IDK_COLORS[part][0], ClientPlayer.DESIGN_IDK_COLORS[part][this.colour[part]]);
+                model.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.colour[part]]);
 
                 if (part === 1) {
-                    model.recolour(ClientPlayer.TORSO_RECOLORS[0], ClientPlayer.TORSO_RECOLORS[this.colour[part]]);
+                    model.recolour(ClientPlayer.recol2d[0], ClientPlayer.recol2d[this.colour[part]]);
                 }
             }
 
@@ -549,6 +556,7 @@ export default class ClientPlayer extends ClientEntity {
         return tmp;
     }
 
+    // (real name)
     getHeadModel(): Model | null {
         if (!this.visible) {
             return null;
@@ -559,11 +567,11 @@ export default class ClientPlayer extends ClientEntity {
 		for (let i = 0; i < 12; i++) {
 			const part = this.appearance[i];
 
-			if (part >= 0x100 && part < 0x200 && !IdkType.list[part - 0x100].headModelIsReady()) {
+			if (part >= 0x100 && part < 0x200 && !IdkType.list[part - 0x100].checkHead()) {
 				needsModel = true;
 			}
 
-			if (part >= 0x200 && !ObjType.get(part - 0x200).headModelIsReady(this.gender)) {
+			if (part >= 0x200 && !ObjType.get(part - 0x200).checkHeadModel(this.gender)) {
 				needsModel = true;
 			}
 		}
@@ -578,30 +586,30 @@ export default class ClientPlayer extends ClientEntity {
             const value: number = this.appearance[part];
 
             if (value >= 256 && value < 512) {
-                const idkModel = IdkType.list[value - 256].getHeadModel();
+                const idkModel = IdkType.list[value - 256].getHeadNoCheck();
                 if (idkModel) {
                     models[modelCount++] = idkModel;
                 }
             }
 
             if (value >= 512) {
-                const headModel: Model | null = ObjType.get(value - 512).getHeadModel(this.gender);
+                const headModel: Model | null = ObjType.get(value - 512).getHeadModelNoCheck(this.gender);
                 if (headModel) {
                     models[modelCount++] = headModel;
                 }
             }
         }
 
-        const tmp: Model = Model.modelFromModels(models, modelCount);
+        const tmp: Model = Model.combine(models, modelCount);
         for (let part: number = 0; part < 5; part++) {
             if (this.colour[part] === 0) {
                 continue;
             }
 
-            tmp.recolour(ClientPlayer.DESIGN_IDK_COLORS[part][0], ClientPlayer.DESIGN_IDK_COLORS[part][this.colour[part]]);
+            tmp.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.colour[part]]);
 
             if (part === 1) {
-                tmp.recolour(ClientPlayer.TORSO_RECOLORS[0], ClientPlayer.TORSO_RECOLORS[this.colour[part]]);
+                tmp.recolour(ClientPlayer.recol2d[0], ClientPlayer.recol2d[this.colour[part]]);
             }
         }
 

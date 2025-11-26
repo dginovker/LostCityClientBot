@@ -82,7 +82,7 @@ export default class Model extends ModelSource {
     faceLabel: Int32Array | null = null;
     labelVertices: (Int32Array | null)[] | null = null;
     labelFaces: (Int32Array | null)[] | null = null;
-    picking: boolean = false;
+    useAABBMouseCheck: boolean = false; // (real name)
     vertexNormalOriginal: (VertexNormal | null)[] | null = null;
     static meta: (Metadata | null)[] | null = null;
     static provider: OnDemandProvider;
@@ -131,9 +131,9 @@ export default class Model extends ModelSource {
     static clippedY: Int32Array = new Int32Array(10);
     static clippedColour: Int32Array = new Int32Array(10);
     static pickedBitsets: Int32Array = new Int32Array(1000);
-    static baseX: number = 0;
-    static baseY: number = 0;
-    static baseZ: number = 0;
+    static oX: number = 0;
+    static oY: number = 0;
+    static oZ: number = 0;
     static mouseX: number = 0;
     static mouseY: number = 0;
     static pickedCount: number = 0;
@@ -244,7 +244,8 @@ export default class Model extends ModelSource {
         }
     }
 
-    static tryGet(id: number): Model | null {
+    // (based on a real name)
+    static load(id: number): Model | null {
         if (!Model.meta) {
             return null;
         }
@@ -253,70 +254,6 @@ export default class Model extends ModelSource {
         if (!meta) {
             Model.provider.requestModel(id);
             return null;
-        }
-
-        return Model.fromId(id);
-    }
-
-    static isReady(id: number): boolean {
-        if (!Model.meta) {
-            return false;
-        }
-
-        const meta = Model.meta[id];
-        if (!meta) {
-            Model.provider.requestModel(id);
-            return false;
-        }
-
-        return true;
-    }
-
-    constructor(type?: ModelType) {
-        super();
-
-        if (type) {
-            this.vertexCount = type.vertexCount;
-            this.vertexX = type.vertexX;
-            this.vertexY = type.vertexY;
-            this.vertexZ = type.vertexZ;
-            this.faceCount = type.faceCount;
-            this.faceVertexA = type.faceVertexA;
-            this.faceVertexB = type.faceVertexB;
-            this.faceVertexC = type.faceVertexC;
-            this.faceColourA = type.faceColorA;
-            this.faceColourB = type.faceColorB;
-            this.faceColourC = type.faceColorC;
-            this.faceInfo = type.faceInfo;
-            this.facePriority = type.facePriority;
-            this.faceAlpha = type.faceAlpha;
-            this.faceColour = type.faceColor;
-            this.priority = type.priorityVal;
-            this.texturedFaceCount = type.texturedFaceCount;
-            this.texturedVertexA = type.texturedVertexA;
-            this.texturedVertexB = type.texturedVertexB;
-            this.texturedVertexC = type.texturedVertexC;
-            this.minX = type.minX ?? 0;
-            this.maxX = type.maxX ?? 0;
-            this.minZ = type.minZ ?? 0;
-            this.maxZ = type.maxZ ?? 0;
-            this.radius = type.radius ?? 0;
-            this.maxY = type.minY ?? 0;
-            this.minY = type.maxY ?? 0;
-            this.maxDepth = type.maxDepth ?? 0;
-            this.minDepth = type.minDepth ?? 0;
-            this.vertexLabel = type.vertexLabel ?? null;
-            this.faceLabel = type.faceLabel ?? null;
-            this.labelVertices = type.labelVertices ?? null;
-            this.labelFaces = type.labelFaces ?? null;
-            this.vertexNormal = type.vertexNormal ?? null;
-            this.vertexNormalOriginal = type.vertexNormalOriginal ?? null;
-        }
-    }
-
-    static fromId(id: number): Model {
-        if (!Model.meta || !Model.meta[id]) {
-            return new Model();
         }
 
         Model.loaded++;
@@ -496,7 +433,65 @@ export default class Model extends ModelSource {
         return model;
     }
 
-    static modelCopyFaces(src: Model, copyVertexY: boolean, copyFaces: boolean): Model {
+    // (based on a real name)
+    static requestDownload(id: number): boolean {
+        if (!Model.meta) {
+            return false;
+        }
+
+        const meta = Model.meta[id];
+        if (!meta) {
+            Model.provider.requestModel(id);
+            return false;
+        }
+
+        return true;
+    }
+
+    constructor(type?: ModelType) {
+        super();
+
+        if (type) {
+            this.vertexCount = type.vertexCount;
+            this.vertexX = type.vertexX;
+            this.vertexY = type.vertexY;
+            this.vertexZ = type.vertexZ;
+            this.faceCount = type.faceCount;
+            this.faceVertexA = type.faceVertexA;
+            this.faceVertexB = type.faceVertexB;
+            this.faceVertexC = type.faceVertexC;
+            this.faceColourA = type.faceColorA;
+            this.faceColourB = type.faceColorB;
+            this.faceColourC = type.faceColorC;
+            this.faceInfo = type.faceInfo;
+            this.facePriority = type.facePriority;
+            this.faceAlpha = type.faceAlpha;
+            this.faceColour = type.faceColor;
+            this.priority = type.priorityVal;
+            this.texturedFaceCount = type.texturedFaceCount;
+            this.texturedVertexA = type.texturedVertexA;
+            this.texturedVertexB = type.texturedVertexB;
+            this.texturedVertexC = type.texturedVertexC;
+            this.minX = type.minX ?? 0;
+            this.maxX = type.maxX ?? 0;
+            this.minZ = type.minZ ?? 0;
+            this.maxZ = type.maxZ ?? 0;
+            this.radius = type.radius ?? 0;
+            this.maxY = type.minY ?? 0;
+            this.minY = type.maxY ?? 0;
+            this.maxDepth = type.maxDepth ?? 0;
+            this.minDepth = type.minDepth ?? 0;
+            this.vertexLabel = type.vertexLabel ?? null;
+            this.faceLabel = type.faceLabel ?? null;
+            this.labelVertices = type.labelVertices ?? null;
+            this.labelFaces = type.labelFaces ?? null;
+            this.vertexNormal = type.vertexNormal ?? null;
+            this.vertexNormalOriginal = type.vertexNormalOriginal ?? null;
+        }
+    }
+
+    // (based on a real name)
+    static hillSkewCopy(src: Model, copyVertexY: boolean, copyFaces: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
         const texturedFaceCount: number = src.texturedFaceCount;
@@ -600,7 +595,8 @@ export default class Model extends ModelSource {
         });
     }
 
-    static modelShareColored(src: Model, shareColors: boolean, shareAlpha: boolean, shareVertices: boolean): Model {
+    // (based on a real name)
+    static copyForAnim(src: Model, shareColors: boolean, shareAlpha: boolean, shareVertices: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
         const texturedFaceCount: number = src.texturedFaceCount;
@@ -678,7 +674,8 @@ export default class Model extends ModelSource {
         });
     }
 
-    static modelFromModelsBounds(models: Model[], count: number): Model {
+    // (based on a real name)
+    static append(models: Model[], count: number): Model {
         let copyInfo: boolean = false;
         let copyPriority: boolean = false;
         let copyAlpha: boolean = false;
@@ -859,7 +856,8 @@ export default class Model extends ModelSource {
         return model;
     }
 
-    static modelFromModels(models: (Model | null)[], count: number): Model {
+    // (real name)
+    static combine(models: (Model | null)[], count: number): Model {
         let copyInfo: boolean = false;
         let copyPriorities: boolean = false;
         let copyAlpha: boolean = false;
@@ -1136,6 +1134,7 @@ export default class Model extends ModelSource {
         return { vertex: identical, vertexCount };
     };
 
+    // (real name)
     calcBoundingCylinder(): void {
         this.minY = 0;
         this.radius = 0;
@@ -1185,6 +1184,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + ((Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) + 0.99) | 0);
     }
 
+    // (real name)
     private calcAABB(): void {
         this.minY = 0;
         this.radius = 0;
@@ -1234,6 +1234,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + (Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) | 0);
     }
 
+    // (real name)
     prepareAnim(): void {
         if (this.vertexLabel) {
             const labelVertexCount: Int32Array = new Int32Array(256);
@@ -1299,31 +1300,33 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     animate(id: number): void {
         if (!this.labelVertices || id === -1) {
             return;
         }
 
-        const transform: AnimFrame = AnimFrame.instances[id];
+        const transform: AnimFrame = AnimFrame.list[id];
         if (!transform) {
             return;
         }
 
         const skeleton: AnimBase | null = transform.base;
-        Model.baseX = 0;
-        Model.baseY = 0;
-        Model.baseZ = 0;
+        Model.oX = 0;
+        Model.oY = 0;
+        Model.oZ = 0;
 
-        for (let i: number = 0; i < transform.length; i++) {
-            if (!transform.groups || !transform.x || !transform.y || !transform.z || !skeleton || !skeleton.labels || !skeleton.types) {
+        for (let i: number = 0; i < transform.size; i++) {
+            if (!transform.ti || !transform.tx || !transform.ty || !transform.tz || !skeleton || !skeleton.labels || !skeleton.types) {
                 continue;
             }
 
-            const base: number = transform.groups[i];
-            this.animate2(transform.x[i], transform.y[i], transform.z[i], skeleton.labels[base], skeleton.types[base]);
+            const base: number = transform.ti[i];
+            this.animate2(transform.tx[i], transform.ty[i], transform.tz[i], skeleton.labels[base], skeleton.types[base]);
         }
     }
 
+    // (real name)
     maskAnimate(primaryId: number, secondaryId: number, mask: Int32Array | null): void {
         if (primaryId === -1) {
             return;
@@ -1347,51 +1350,52 @@ export default class Model extends ModelSource {
 
         const skeleton: AnimBase | null = primary.base;
 
-        Model.baseX = 0;
-        Model.baseY = 0;
-        Model.baseZ = 0;
+        Model.oX = 0;
+        Model.oY = 0;
+        Model.oZ = 0;
 
         let counter: number = 0;
         let maskBase: number = mask[counter++];
 
-        for (let i: number = 0; i < primary.length; i++) {
-            if (!primary.groups) {
+        for (let i: number = 0; i < primary.size; i++) {
+            if (!primary.ti) {
                 continue;
             }
 
-            const base: number = primary.groups[i];
+            const base: number = primary.ti[i];
             while (base > maskBase) {
                 maskBase = mask[counter++];
             }
 
-            if (skeleton && skeleton.types && primary.x && primary.y && primary.z && skeleton.labels && (base !== maskBase || skeleton.types[base] === 0)) {
-                this.animate2(primary.x[i], primary.y[i], primary.z[i], skeleton.labels[base], skeleton.types[base]);
+            if (skeleton && skeleton.types && primary.tx && primary.ty && primary.tz && skeleton.labels && (base !== maskBase || skeleton.types[base] === 0)) {
+                this.animate2(primary.tx[i], primary.ty[i], primary.tz[i], skeleton.labels[base], skeleton.types[base]);
             }
         }
 
-        Model.baseX = 0;
-        Model.baseY = 0;
-        Model.baseZ = 0;
+        Model.oX = 0;
+        Model.oY = 0;
+        Model.oZ = 0;
 
         counter = 0;
         maskBase = mask[counter++];
 
-        for (let i: number = 0; i < secondary.length; i++) {
-            if (!secondary.groups) {
+        for (let i: number = 0; i < secondary.size; i++) {
+            if (!secondary.ti) {
                 continue;
             }
 
-            const base: number = secondary.groups[i];
+            const base: number = secondary.ti[i];
             while (base > maskBase) {
                 maskBase = mask[counter++];
             }
 
-            if (skeleton && skeleton.types && secondary.x && secondary.y && secondary.z && skeleton.labels && (base === maskBase || skeleton.types[base] === 0)) {
-                this.animate2(secondary.x[i], secondary.y[i], secondary.z[i], skeleton.labels[base], skeleton.types[base]);
+            if (skeleton && skeleton.types && secondary.tx && secondary.ty && secondary.tz && skeleton.labels && (base === maskBase || skeleton.types[base] === 0)) {
+                this.animate2(secondary.tx[i], secondary.ty[i], secondary.tz[i], skeleton.labels[base], skeleton.types[base]);
             }
         }
     }
 
+    // (real name)
     private animate2(x: number, y: number, z: number, labels: Uint8Array | null, type: number): void {
         if (!labels) {
             return;
@@ -1401,9 +1405,9 @@ export default class Model extends ModelSource {
 
         if (type === 0) {
             let count: number = 0;
-            Model.baseX = 0;
-            Model.baseY = 0;
-            Model.baseZ = 0;
+            Model.oX = 0;
+            Model.oY = 0;
+            Model.oZ = 0;
 
             for (let g: number = 0; g < labelCount; g++) {
                 if (!this.labelVertices) {
@@ -1415,9 +1419,9 @@ export default class Model extends ModelSource {
                     if (vertices) {
                         for (let i: number = 0; i < vertices.length; i++) {
                             const v: number = vertices[i];
-                            Model.baseX += this.vertexX![v];
-                            Model.baseY += this.vertexY![v];
-                            Model.baseZ += this.vertexZ![v];
+                            Model.oX += this.vertexX![v];
+                            Model.oY += this.vertexY![v];
+                            Model.oZ += this.vertexZ![v];
                             count++;
                         }
                     }
@@ -1425,13 +1429,13 @@ export default class Model extends ModelSource {
             }
 
             if (count > 0) {
-                Model.baseX = ((Model.baseX / count) | 0) + x;
-                Model.baseY = ((Model.baseY / count) | 0) + y;
-                Model.baseZ = ((Model.baseZ / count) | 0) + z;
+                Model.oX = ((Model.oX / count) | 0) + x;
+                Model.oY = ((Model.oY / count) | 0) + y;
+                Model.oZ = ((Model.oZ / count) | 0) + z;
             } else {
-                Model.baseX = x;
-                Model.baseY = y;
-                Model.baseZ = z;
+                Model.oX = x;
+                Model.oY = y;
+                Model.oZ = z;
             }
         } else if (type === 1) {
             for (let g: number = 0; g < labelCount; g++) {
@@ -1461,9 +1465,9 @@ export default class Model extends ModelSource {
                 if (vertices) {
                     for (let i: number = 0; i < vertices.length; i++) {
                         const v: number = vertices[i];
-                        this.vertexX![v] -= Model.baseX;
-                        this.vertexY![v] -= Model.baseY;
-                        this.vertexZ![v] -= Model.baseZ;
+                        this.vertexX![v] -= Model.oX;
+                        this.vertexY![v] -= Model.oY;
+                        this.vertexZ![v] -= Model.oZ;
 
                         const pitch: number = (x & 0xff) * 8;
                         const yaw: number = (y & 0xff) * 8;
@@ -1496,9 +1500,9 @@ export default class Model extends ModelSource {
                             this.vertexX![v] = x_;
                         }
 
-                        this.vertexX![v] += Model.baseX;
-                        this.vertexY![v] += Model.baseY;
-                        this.vertexZ![v] += Model.baseZ;
+                        this.vertexX![v] += Model.oX;
+                        this.vertexY![v] += Model.oY;
+                        this.vertexZ![v] += Model.oZ;
                     }
                 }
             }
@@ -1514,17 +1518,17 @@ export default class Model extends ModelSource {
                     for (let i: number = 0; i < vertices.length; i++) {
                         const v: number = vertices[i];
 
-                        this.vertexX![v] -= Model.baseX;
-                        this.vertexY![v] -= Model.baseY;
-                        this.vertexZ![v] -= Model.baseZ;
+                        this.vertexX![v] -= Model.oX;
+                        this.vertexY![v] -= Model.oY;
+                        this.vertexZ![v] -= Model.oZ;
 
                         this.vertexX![v] = ((this.vertexX![v] * x) / 128) | 0;
                         this.vertexY![v] = ((this.vertexY![v] * y) / 128) | 0;
                         this.vertexZ![v] = ((this.vertexZ![v] * z) / 128) | 0;
 
-                        this.vertexX![v] += Model.baseX;
-                        this.vertexY![v] += Model.baseY;
-                        this.vertexZ![v] += Model.baseZ;
+                        this.vertexX![v] += Model.oX;
+                        this.vertexY![v] += Model.oY;
+                        this.vertexZ![v] += Model.oZ;
                     }
                 }
             }
@@ -1554,6 +1558,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     rotate90(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             const tmp: number = this.vertexX![v];
@@ -1562,6 +1567,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     rotateXAxis(angle: number): void {
         const sin: number = Pix3D.sinTable[angle];
         const cos: number = Pix3D.cosTable[angle];
@@ -1573,6 +1579,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     translate(y: number, x: number, z: number): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexX![v] += x;
@@ -1581,6 +1588,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     recolour(src: number, dst: number): void {
         if (!this.faceColour) {
             return;
@@ -1593,6 +1601,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     rotate180(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexZ![v] = -this.vertexZ![v];
@@ -1605,6 +1614,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     resize(x: number, y: number, z: number): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexX![v] = ((this.vertexX![v] * x) / 128) | 0;
@@ -1613,6 +1623,7 @@ export default class Model extends ModelSource {
         }
     }
 
+    // (real name)
     calculateNormals(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number, doNotShareLight: boolean): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
         const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
@@ -1804,8 +1815,8 @@ export default class Model extends ModelSource {
         return (hsl & 0xff80) + scalar;
     }
 
-    // this function is NOT near-clipped (helps with performance) so be careful how you use it!
-    drawSimple(pitch: number, yaw: number, roll: number, eyePitch: number, eyeX: number, eyeY: number, eyeZ: number): void {
+    // (real name)
+    objRender(pitch: number, yaw: number, roll: number, eyePitch: number, eyeX: number, eyeY: number, eyeZ: number): void {
         const sinPitch: number = Pix3D.sinTable[pitch];
         const cosPitch: number = Pix3D.cosTable[pitch];
 
@@ -1867,14 +1878,14 @@ export default class Model extends ModelSource {
 
         try {
             // try catch for example a model being drawn from 3d can crash like at baxtorian falls
-            this.draw2(false, false, 0);
+            this.render2(false, false, 0);
         } catch (err) {
             /* empty */
         }
     }
 
-    // todo: better name, Java relies on overloads
-    draw(_loopCycle: number, yaw: number, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number, relativeX: number, relativeY: number, relativeZ: number, typecode: number): void {
+    // (real name)
+    worldRender(_loopCycle: number, yaw: number, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number, relativeX: number, relativeY: number, relativeZ: number, typecode: number): void {
         const zPrime: number = (relativeZ * cosEyeYaw - relativeX * sinEyeYaw) >> 16;
         const midZ: number = (relativeY * sinEyePitch + zPrime * cosEyePitch) >> 16;
         const radiusCosEyePitch: number = (this.radius * cosEyePitch) >> 16;
@@ -1939,7 +1950,7 @@ export default class Model extends ModelSource {
             const mouseX: number = Model.mouseX - Pix3D.centerX;
             const mouseY: number = Model.mouseY - Pix3D.centerY;
             if (mouseX > leftX && mouseX < rightX && mouseY > topY && mouseY < bottomY) {
-                if (this.picking) {
+                if (this.useAABBMouseCheck) {
                     Model.pickedBitsets[Model.pickedCount++] = typecode;
                 } else {
                     picking = true;
@@ -2002,14 +2013,14 @@ export default class Model extends ModelSource {
 
         try {
             // try catch for example a model being drawn from 3d can crash like at baxtorian falls
-            this.draw2(clipped, picking, typecode);
+            this.render2(clipped, picking, typecode);
         } catch (err) {
             /* empty */
         }
     }
 
-    // todo: better name, Java relies on overloads
-    private draw2(clipped: boolean, picking: boolean, typecode: number, wireframe: boolean = false): void {
+    // (real name)
+    private render2(clipped: boolean, picking: boolean, typecode: number): void {
         for (let depth: number = 0; depth < this.maxDepth; depth++) {
             if (Model.tmpDepthFaceCount) {
                 Model.tmpDepthFaceCount[depth] = 0;
@@ -2048,7 +2059,7 @@ export default class Model extends ModelSource {
                         Model.tmpDepthFaces[depthAverage][Model.tmpDepthFaceCount[depthAverage]++] = f;
                     }
                 } else {
-                    if (picking && this.pointWithinTriangle(Model.mouseX, Model.mouseY, yA, yB, yC, xA, xB, xC)) {
+                    if (picking && this.isMouseRoughlyInsideTriangle(Model.mouseX, Model.mouseY, yA, yB, yC, xA, xB, xC)) {
                         Model.pickedBitsets[Model.pickedCount++] = typecode;
                         picking = false;
                     }
@@ -2088,7 +2099,7 @@ export default class Model extends ModelSource {
                     const faces: Int32Array = Model.tmpDepthFaces[depth];
                     for (let f: number = 0; f < count; f++) {
                         try {
-                            this.drawFace(faces[f], wireframe);
+                            this.render3(faces[f]);
                         } catch (e) {
                             // chrome's V8 optimizer hates us
                         }
@@ -2172,7 +2183,7 @@ export default class Model extends ModelSource {
             for (let priority: number = 0; priority < 10; priority++) {
                 while (priority === 0 && priorityDepth > averagePriorityDepthSum1_2) {
                     try {
-                        this.drawFace(priorityFaces[priorityFace++], wireframe);
+                        this.render3(priorityFaces[priorityFace++]);
 
                         if (priorityFace === priorityFaceCount && priorityFaces !== Model.tmpPriorityFaces[11]) {
                             priorityFace = 0;
@@ -2193,7 +2204,7 @@ export default class Model extends ModelSource {
 
                 while (priority === 3 && priorityDepth > averagePriorityDepthSum3_4) {
                     try {
-                        this.drawFace(priorityFaces[priorityFace++], wireframe);
+                        this.render3(priorityFaces[priorityFace++]);
 
                         if (priorityFace === priorityFaceCount && priorityFaces !== Model.tmpPriorityFaces[11]) {
                             priorityFace = 0;
@@ -2214,7 +2225,7 @@ export default class Model extends ModelSource {
 
                 while (priority === 5 && priorityDepth > averagePriorityDepthSum6_8) {
                     try {
-                        this.drawFace(priorityFaces[priorityFace++], wireframe);
+                        this.render3(priorityFaces[priorityFace++]);
 
                         if (priorityFace === priorityFaceCount && priorityFaces !== Model.tmpPriorityFaces[11]) {
                             priorityFace = 0;
@@ -2238,7 +2249,7 @@ export default class Model extends ModelSource {
 
                 for (let i: number = 0; i < count; i++) {
                     try {
-                        this.drawFace(faces[i], wireframe);
+                        this.render3(faces[i]);
                     } catch (e) {
                         // chrome's V8 optimizer hates us
                     }
@@ -2247,7 +2258,7 @@ export default class Model extends ModelSource {
 
             while (priorityDepth !== -1000) {
                 try {
-                    this.drawFace(priorityFaces[priorityFace++], wireframe);
+                    this.render3(priorityFaces[priorityFace++]);
 
                     if (priorityFace === priorityFaceCount && priorityFaces !== Model.tmpPriorityFaces[11]) {
                         priorityFace = 0;
@@ -2268,9 +2279,10 @@ export default class Model extends ModelSource {
         }
     }
 
-    private drawFace(face: number, wireframe: boolean = false): void {
+    // (real name)
+    private render3(face: number): void {
         if (Model.faceNearClipped && Model.faceNearClipped[face]) {
-            this.drawNearClippedFace(face, wireframe);
+            this.render3ZClip(face);
             return;
         }
 
@@ -2295,11 +2307,7 @@ export default class Model extends ModelSource {
             type = this.faceInfo[face] & 0x3;
         }
 
-        if (wireframe && Model.vertexScreenX && Model.vertexScreenY && this.faceColourA && this.faceColourB && this.faceColourC) {
-            Pix3D.drawLine(Model.vertexScreenX[a], Model.vertexScreenY[a], Model.vertexScreenX[b], Model.vertexScreenY[b], Pix3D.colourTable[this.faceColourA[face]]);
-            Pix3D.drawLine(Model.vertexScreenX[b], Model.vertexScreenY[b], Model.vertexScreenX[c], Model.vertexScreenY[c], Pix3D.colourTable[this.faceColourB[face]]);
-            Pix3D.drawLine(Model.vertexScreenX[c], Model.vertexScreenY[c], Model.vertexScreenX[a], Model.vertexScreenY[a], Pix3D.colourTable[this.faceColourC[face]]);
-        } else if (type === 0 && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY) {
+        if (type === 0 && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY) {
             Pix3D.gouraudTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
@@ -2368,7 +2376,8 @@ export default class Model extends ModelSource {
         }
     }
 
-    private drawNearClippedFace(face: number, wireframe: boolean = false): void {
+    // (real name)
+    private render3ZClip(face: number): void {
         let elements: number = 0;
 
         if (Model.vertexViewSpaceZ) {
@@ -2481,11 +2490,7 @@ export default class Model extends ModelSource {
                 type = this.faceInfo[face] & 0x3;
             }
 
-            if (wireframe) {
-                Pix3D.drawLine(x0, x1, y0, y1, Model.clippedColour[0]);
-                Pix3D.drawLine(x1, x2, y1, y2, Model.clippedColour[1]);
-                Pix3D.drawLine(x2, x0, y2, y0, Model.clippedColour[2]);
-            } else if (type === 0) {
+            if (type === 0) {
                 Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
             } else if (type === 1 && this.faceColourA) {
                 Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, Pix3D.colourTable[this.faceColourA[face]]);
@@ -2554,12 +2559,7 @@ export default class Model extends ModelSource {
                 type = this.faceInfo[face] & 0x3;
             }
 
-            if (wireframe) {
-                Pix3D.drawLine(x0, x1, y0, y1, Model.clippedColour[0]);
-                Pix3D.drawLine(x1, x2, y1, y2, Model.clippedColour[1]);
-                Pix3D.drawLine(x2, Model.clippedX[3], y2, Model.clippedY[3], Model.clippedColour[2]);
-                Pix3D.drawLine(Model.clippedX[3], x0, Model.clippedY[3], y0, Model.clippedColour[3]);
-            } else if (type === 0) {
+            if (type === 0) {
                 Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
                 Pix3D.gouraudTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], Model.clippedColour[0], Model.clippedColour[2], Model.clippedColour[3]);
             } else if (type === 1) {
@@ -2666,7 +2666,8 @@ export default class Model extends ModelSource {
         }
     }
 
-    private pointWithinTriangle(x: number, y: number, yA: number, yB: number, yC: number, xA: number, xB: number, xC: number): boolean {
+    // (real name)
+    private isMouseRoughlyInsideTriangle(x: number, y: number, yA: number, yB: number, yC: number, xA: number, xB: number, xC: number): boolean {
         if (y < yA && y < yB && y < yC) {
             return false;
         } else if (y > yA && y > yB && y > yC) {

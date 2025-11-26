@@ -35,8 +35,8 @@ export default class LocType extends ConfigType {
     hillskew: boolean = false;
     sharelight: boolean = false;
     occlude: boolean = false;
-    static modelCacheStatic: LruCache | null = new LruCache(500);
-    static modelCacheDynamic: LruCache | null = new LruCache(30);
+    static mc1: LruCache | null = new LruCache(500); // (real name)
+    static mc2: LruCache | null = new LruCache(30); // (based on a real name)
     ambient: number = 0;
     contrast: number = 0;
     anim: number = -1;
@@ -236,7 +236,7 @@ export default class LocType extends ConfigType {
         if (this.shapes !== null) {
             for (let i = 0; i < this.shapes.length; i++) {
                 if (this.shapes[i] === shape) {
-                    return Model.isReady(this.models[i] & 0xFFFF);
+                    return Model.requestDownload(this.models[i] & 0xFFFF);
                 }
             }
             return true;
@@ -244,7 +244,7 @@ export default class LocType extends ConfigType {
             let ready = true;
             for (let i = 0; i < this.models.length; i++) {
                 const model = this.models[i];
-                if (!Model.isReady(model & 0xFFFF)) {
+                if (!Model.requestDownload(model & 0xFFFF)) {
                     ready = false;
                 }
             }
@@ -263,14 +263,15 @@ export default class LocType extends ConfigType {
         let ready = true;
         for (let i = 0; i < this.models.length; i++) {
             const model = this.models[i];
-            if (!Model.isReady(model & 0xFFFF)) {
+            if (!Model.requestDownload(model & 0xFFFF)) {
                 ready = false;
             }
         }
         return ready;
     }
 
-    prefetch(od: OnDemand) {
+    // (based on a real name)
+    prefetchModelAll(od: OnDemand) {
         if (this.models == null) {
             return;
         }
@@ -283,14 +284,15 @@ export default class LocType extends ConfigType {
         }
     }
 
+    // (real name)
     getModel(shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, transformId: number): Model | null {
-        let modified = this.getModelBase(shape, angle, transformId);
+        let modified = this.buildModel(shape, angle, transformId);
         if (!modified) {
             return null;
         }
 
         if (this.hillskew || this.sharelight) {
-            modified = Model.modelCopyFaces(modified, this.hillskew, this.sharelight);
+            modified = Model.hillSkewCopy(modified, this.hillskew, this.sharelight);
         }
 
         if (this.hillskew) {
@@ -313,7 +315,8 @@ export default class LocType extends ConfigType {
         return modified;
     }
 
-    getModelBase(shape: number, angle: number, transformId: number): Model | null {
+    // (real name)
+    buildModel(shape: number, angle: number, transformId: number): Model | null {
         let model: Model | null = null;
         let typecode: bigint = 0n;
 
@@ -324,7 +327,7 @@ export default class LocType extends ConfigType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + BigInt(angle);
 
-            let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
+            let cached: Model | null = LocType.mc2?.get(typecode) as Model | null;
             if (cached) {
                 return cached;
             }
@@ -342,9 +345,9 @@ export default class LocType extends ConfigType {
                     modelId += 65536;
                 }
 
-                model = LocType.modelCacheStatic?.get(BigInt(modelId)) as Model | null;
+                model = LocType.mc1?.get(BigInt(modelId)) as Model | null;
                 if (!model) {
-                    model = Model.tryGet(modelId & 0xffff);
+                    model = Model.load(modelId & 0xffff);
                     if (!model) {
                         return null;
                     }
@@ -353,7 +356,7 @@ export default class LocType extends ConfigType {
                         model.rotate180();
                     }
 
-                    LocType.modelCacheStatic?.put(BigInt(modelId), model);
+                    LocType.mc1?.put(BigInt(modelId), model);
                 }
 
                 if (modelCount > 1) {
@@ -362,7 +365,7 @@ export default class LocType extends ConfigType {
             }
 
             if (modelCount > 1) {
-                model = Model.modelFromModels(LocType.temp, modelCount);
+                model = Model.combine(LocType.temp, modelCount);
             }
         } else {
             let index: number = -1;
@@ -378,7 +381,7 @@ export default class LocType extends ConfigType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
 
-            let cached: Model | null = LocType.modelCacheDynamic?.get(typecode) as Model | null;
+            let cached: Model | null = LocType.mc2?.get(typecode) as Model | null;
             if (cached) {
                 return cached;
             }
@@ -397,9 +400,9 @@ export default class LocType extends ConfigType {
                 modelId += 65536;
             }
 
-            model = LocType.modelCacheStatic?.get(BigInt(modelId)) as Model | null;
+            model = LocType.mc1?.get(BigInt(modelId)) as Model | null;
             if (!model) {
-                model = Model.tryGet(modelId & 0xffff);
+                model = Model.load(modelId & 0xffff);
                 if (!model) {
                     return null;
                 }
@@ -408,7 +411,7 @@ export default class LocType extends ConfigType {
                     model.rotate180();
                 }
 
-                LocType.modelCacheStatic?.put(BigInt(modelId), model);
+                LocType.mc1?.put(BigInt(modelId), model);
             }
         }
 
@@ -419,7 +422,7 @@ export default class LocType extends ConfigType {
         const scaled: boolean = this.resizex !== 128 || this.resizey !== 128 || this.resizez !== 128;
         const translated: boolean = this.offsetx !== 0 || this.offsety !== 0 || this.offsetz !== 0;
 
-        let modified: Model = Model.modelShareColored(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
+        let modified: Model = Model.copyForAnim(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
         if (transformId !== -1) {
             modified.prepareAnim();
             modified.animate(transformId);
@@ -451,7 +454,7 @@ export default class LocType extends ConfigType {
             modified.objRaise = modified.minY;
         }
 
-        LocType.modelCacheDynamic?.put(typecode, modified);
+        LocType.mc2?.put(typecode, modified);
         return modified;
     }
 

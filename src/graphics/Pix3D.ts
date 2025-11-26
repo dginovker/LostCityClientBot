@@ -21,7 +21,7 @@ export default class Pix3D extends Pix2D {
     static centerX: number = 0;
     static centerY: number = 0;
 
-    static jagged: boolean = true;
+    static lowDetail: boolean = true; // (real name)
     static hclip: boolean = false;
     static trans: number = 0;
 
@@ -816,7 +816,7 @@ export default class Pix3D extends Pix2D {
     private static gouraudRaster(x0: number, x1: number, color0: number, color1: number, dst: Int32Array, offset: number, length: number): void {
         let rgb: number;
 
-        if (Pix3D.jagged) {
+        if (Pix3D.lowDetail) {
             let colorStep: number;
 
             if (Pix3D.hclip) {

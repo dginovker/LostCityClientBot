@@ -47,7 +47,8 @@ export default class ClientProj extends ModelSource {
         this.projOffsetY = offsetY;
     }
 
-    updateVelocity(dstX: number, dstY: number, dstZ: number, cycle: number): void {
+    // (real name)
+    setTarget(dstX: number, dstY: number, dstZ: number, cycle: number): void {
         if (!this.mobile) {
             const dx: number = dstX - this.srcX;
             const dz: number = dstZ - this.srcZ;
@@ -68,7 +69,8 @@ export default class ClientProj extends ModelSource {
         this.accelerationY = ((dstY - this.y - this.projVelocityY * dt) * 2.0) / (dt * dt);
     }
 
-    update(delta: number): void {
+    // (real name)
+    move(delta: number): void {
         this.mobile = true;
         this.x += this.projVelocityX * delta;
         this.z += this.projVelocityZ * delta;
@@ -77,23 +79,22 @@ export default class ClientProj extends ModelSource {
         this.yaw = ((Math.atan2(this.projVelocityX, this.projVelocityZ) * 325.949 + 1024) | 0) & 0x7ff;
         this.pitch = ((Math.atan2(this.projVelocityY, this.projVelocity) * 325.949) | 0) & 0x7ff;
 
-        if (!this.spotanim.seq) {
-            return;
-        }
+        if (this.spotanim.seq) {
+            this.seqCycle += delta;
 
-        this.seqCycle += delta;
-
-        while (this.seqCycle > this.spotanim.seq.getFrameDuration(this.seqFrame)) {
-            this.seqCycle -= this.spotanim.seq.getFrameDuration(this.seqFrame) + 1;
-            this.seqFrame++;
-            if (this.seqFrame >= this.spotanim.seq.frameCount) {
-                this.seqFrame = 0;
+            while (this.seqCycle > this.spotanim.seq.getDuration(this.seqFrame)) {
+                this.seqCycle -= this.spotanim.seq.getDuration(this.seqFrame) + 1;
+                this.seqFrame++;
+                if (this.seqFrame >= this.spotanim.seq.frameCount) {
+                    this.seqFrame = 0;
+                }
             }
         }
     }
 
-    getModel(): Model | null {
-        const spotModel: Model | null = this.spotanim.getModel();
+    // (real name)
+    getTempModel(): Model | null {
+        const spotModel: Model | null = this.spotanim.getTempModel();
         if (!spotModel) {
             return null;
         }
@@ -103,7 +104,7 @@ export default class ClientProj extends ModelSource {
             frame = this.spotanim.seq.frames[this.seqFrame];
         }
 
-        const model: Model = Model.modelShareColored(spotModel, true, AnimFrame.shareAlpha(frame), false);
+        const model: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(frame), false);
 
         if (frame !== -1) {
             model.prepareAnim();
