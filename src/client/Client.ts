@@ -22,8 +22,8 @@ import { DirectionFlag } from '#/dash3d/DirectionFlag.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 import { LocLayer } from '#/dash3d/LocLayer.js';
 import LocShape from '#/dash3d/LocShape.js';
+import ClientBuild from '#/dash3d/ClientBuild.js';
 import World from '#/dash3d/World.js';
-import World3D from '#/dash3d/World3D.js';
 
 import ClientNpc, { NpcUpdate } from '#/dash3d/ClientNpc.js';
 import ClientPlayer, { PlayerUpdate } from '#/dash3d/ClientPlayer.js';
@@ -347,7 +347,7 @@ export class Client extends GameShell {
     private activeMapFunctionZ: Int32Array = new Int32Array(1000);
 
     // scene
-    private scene: World3D | null = null;
+    private scene: World | null = null;
     private sceneState: number = 0;
     private sceneDelta: number = 0;
     private sceneCycle: number = 0;
@@ -549,17 +549,17 @@ export class Client extends GameShell {
     }
 
     static setLowMem(): void {
-        World3D.lowMem = true;
+        World.lowMem = true;
         Pix3D.lowMem = true;
         Client.lowMem = true;
-        World.lowMem = true;
+        ClientBuild.lowMem = true;
     }
 
     static setHighMem(): void {
-        World3D.lowMem = false;
+        World.lowMem = false;
         Pix3D.lowMem = false;
         Client.lowMem = false;
-        World.lowMem = false;
+        ClientBuild.lowMem = false;
     }
 
     saveMidi(fading: boolean, data: Uint8Array) {
@@ -614,7 +614,7 @@ export class Client extends GameShell {
 
             this.levelTileFlags = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
             this.levelHeightmap = new Int32Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE + 1, CollisionConstants.SIZE + 1);
-            this.scene = new World3D(this.levelHeightmap, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
+            this.scene = new World(this.levelHeightmap, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
             for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
                 this.levelCollisionMap[level] = new CollisionMap();
             }
@@ -986,7 +986,7 @@ export class Client extends GameShell {
                 distance[x] = (offset * sin) >> 16;
             }
 
-            World3D.init(512, 334, 500, 800, distance);
+            World.init(512, 334, 500, 800, distance);
             WordFilter.unpack(jagWordenc);
 
             this.initializeLevelExperience();
@@ -1289,7 +1289,7 @@ export class Client extends GameShell {
                 }
             } else if (req.archive === 93) {
                 if (this.onDemand.hasMapLocFile(req.file)) {
-                    World.prefetchLocations(new Packet(req.data), this.onDemand);
+                    ClientBuild.prefetchLocations(new Packet(req.data), this.onDemand);
                 }
             }
         }
@@ -1927,12 +1927,12 @@ export class Client extends GameShell {
                 }
             }
 
-            if (World3D.clickTileX !== -1) {
+            if (World.clickTileX !== -1) {
                 if (this.localPlayer) {
-                    const x: number = World3D.clickTileX;
-                    const z: number = World3D.clickTileZ;
+                    const x: number = World.clickTileX;
+                    const z: number = World.clickTileZ;
                     const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], x, z, 0, 0, 0, 0, 0, 0, true);
-                    World3D.clickTileX = -1;
+                    World.clickTileX = -1;
 
                     if (success) {
                         this.crossX = this.mouseClickX;
@@ -2093,7 +2093,7 @@ export class Client extends GameShell {
     }
 
     private updateSceneState(): void {
-        if (Client.lowMem && this.sceneState === 2 && World.levelBuilt !== this.currentLevel) {
+        if (Client.lowMem && this.sceneState === 2 && ClientBuild.levelBuilt !== this.currentLevel) {
             this.areaViewport?.bind();
             this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colors.BLACK);
             this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colors.WHITE);
@@ -2136,7 +2136,7 @@ export class Client extends GameShell {
             if (data != null) {
                 const x = (this.sceneMapIndex[i] >> 8) * 64 - this.sceneBaseTileX;
                 const z = (this.sceneMapIndex[i] & 0xFF) * 64 - this.sceneBaseTileZ;
-                if (!World.locsAreReady(data, x, z)) {
+                if (!ClientBuild.locsAreReady(data, x, z)) {
                     ready = false;
                 }
             }
@@ -2149,7 +2149,7 @@ export class Client extends GameShell {
         }
 
         this.sceneState = 2;
-        World.levelBuilt = this.currentLevel;
+        ClientBuild.levelBuilt = this.currentLevel;
         this.buildScene();
         this.out.p1isaac(ClientProt.MAP_BUILD_COMPLETE);
         return 0;
@@ -2168,8 +2168,8 @@ export class Client extends GameShell {
                 this.levelCollisionMap[level]?.reset();
             }
 
-            const world: World = new World(CollisionConstants.SIZE, CollisionConstants.SIZE, this.levelHeightmap!, this.levelTileFlags!);
-            World.lowMem = World3D.lowMem;
+            const world: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.levelHeightmap!, this.levelTileFlags!);
+            ClientBuild.lowMem = World.lowMem;
 
             const maps: number = this.sceneMapLandData?.length ?? 0;
 
@@ -2180,7 +2180,7 @@ export class Client extends GameShell {
 
                     // underground pass check
                     if (x === 33 && z >= 71 && z <= 73) {
-                        World.lowMem = false;
+                        ClientBuild.lowMem = false;
                         break;
                     }
                 }
@@ -2421,7 +2421,7 @@ export class Client extends GameShell {
                     loc.startTime--;
                 }
 
-                if (loc.startTime === 0 && loc.x >= 1 && loc.z >= 1 && loc.x <= 102 && loc.z <= 102 && (loc.newType < 0 || World.isLocReady(loc.newType, loc.newShape))) {
+                if (loc.startTime === 0 && loc.x >= 1 && loc.z >= 1 && loc.x <= 102 && loc.z <= 102 && (loc.newType < 0 || ClientBuild.isLocReady(loc.newType, loc.newShape))) {
                     this.addLoc(loc.level, loc.x, loc.z, loc.newType, loc.newAngle, loc.newShape, loc.layer);
                     loc.startTime = -1;
 
@@ -2431,7 +2431,7 @@ export class Client extends GameShell {
                         loc.unlink();
                     }
                 }
-            } else if (loc.oldType < 0 || World.isLocReady(loc.oldType, loc.oldShape)) {
+            } else if (loc.oldType < 0 || ClientBuild.isLocReady(loc.oldType, loc.oldShape)) {
                 this.addLoc(loc.level, loc.x, loc.z, loc.oldType, loc.oldAngle, loc.oldShape, loc.layer);
                 loc.unlink();
             }
@@ -7623,7 +7623,7 @@ export class Client extends GameShell {
             }
 
             if (this.levelHeightmap) {
-                World.changeLocUnchecked(this.loopCycle, level, x, z, this.scene, this.levelHeightmap, this.levelCollisionMap[level], id, shape, angle, tileLevel);
+                ClientBuild.changeLocUnchecked(this.loopCycle, level, x, z, this.scene, this.levelHeightmap, this.levelCollisionMap[level], id, shape, angle, tileLevel);
             }
         }
     }
