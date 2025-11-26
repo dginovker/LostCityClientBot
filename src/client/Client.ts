@@ -1289,7 +1289,7 @@ export class Client extends GameShell {
                 }
             } else if (req.archive === 93) {
                 if (this.onDemand.hasMapLocFile(req.file)) {
-                    World.prefetchLocs(new Packet(req.data), this.onDemand);
+                    World.prefetchLocations(new Packet(req.data), this.onDemand);
                 }
             }
         }
@@ -2232,7 +2232,7 @@ export class Client extends GameShell {
 
             this.out.p1isaac(ClientProt.NO_TIMEOUT);
 
-            world.build(this.scene, this.levelCollisionMap);
+            world.finishBuild(this.scene, this.levelCollisionMap);
             this.areaViewport?.bind();
 
             this.out.p1isaac(ClientProt.NO_TIMEOUT);
@@ -5775,18 +5775,18 @@ export class Client extends GameShell {
             }
 
             if (locShape !== LocShape.WALL_STRAIGHT.id) {
-                if ((locShape < LocShape.WALLDECOR_STRAIGHT_OFFSET.id || locShape === LocShape.CENTREPIECE_STRAIGHT.id) && collisionMap.reachedWall(x, z, dx, dz, locShape - 1, locAngle)) {
+                if ((locShape < LocShape.WALLDECOR_STRAIGHT_OFFSET.id || locShape === LocShape.CENTREPIECE_STRAIGHT.id) && collisionMap.testWall(x, z, dx, dz, locShape - 1, locAngle)) {
                     arrived = true;
                     break;
                 }
 
-                if (locShape < LocShape.CENTREPIECE_STRAIGHT.id && collisionMap.reachedWallDecoration(x, z, dx, dz, locShape - 1, locAngle)) {
+                if (locShape < LocShape.CENTREPIECE_STRAIGHT.id && collisionMap.testWDecor(x, z, dx, dz, locShape - 1, locAngle)) {
                     arrived = true;
                     break;
                 }
             }
 
-            if (locWidth !== 0 && locLength !== 0 && collisionMap.reachedLoc(x, z, dx, dz, locWidth, locLength, forceapproach)) {
+            if (locWidth !== 0 && locLength !== 0 && collisionMap.testLoc(x, z, dx, dz, locWidth, locLength, forceapproach)) {
                 arrived = true;
                 break;
             }
@@ -7591,7 +7591,7 @@ export class Client extends GameShell {
 
                 const type: LocType = LocType.get(otherId);
                 if (type.blockwalk) {
-                    this.levelCollisionMap[level]?.removeWall(x, z, otherShape, otherAngle, type.blockrange);
+                    this.levelCollisionMap[level]?.delWall(x, z, otherShape, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.WALL_DECOR) {
                 this.scene?.removeWallDecoration(level, x, z);
@@ -7604,14 +7604,14 @@ export class Client extends GameShell {
                 }
 
                 if (type.blockwalk) {
-                    this.levelCollisionMap[level]?.removeLoc(x, z, type.width, type.length, otherAngle, type.blockrange);
+                    this.levelCollisionMap[level]?.delLoc(x, z, type.width, type.length, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.GROUND_DECOR) {
                 this.scene?.removeGroundDecoration(level, x, z);
 
                 const type: LocType = LocType.get(otherId);
                 if (type.blockwalk && type.active) {
-                    this.levelCollisionMap[level]?.removeFloor(x, z);
+                    this.levelCollisionMap[level]?.unblockGround(x, z);
                 }
             }
         }
@@ -7623,7 +7623,7 @@ export class Client extends GameShell {
             }
 
             if (this.levelHeightmap) {
-                World.addLoc(this.loopCycle, level, x, z, this.scene, this.levelHeightmap, this.levelCollisionMap[level], id, shape, angle, tileLevel);
+                World.changeLocUnchecked(this.loopCycle, level, x, z, this.scene, this.levelHeightmap, this.levelCollisionMap[level], id, shape, angle, tileLevel);
             }
         }
     }

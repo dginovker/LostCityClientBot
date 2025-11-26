@@ -20,22 +20,33 @@ import { Int32Array2d, Int32Array3d, Uint8Array3d } from '#/util/Arrays.js';
 import type ModelSource from '#/dash3d/ModelSource.js';
 import type OnDemand from '#/io/OnDemand.js';
 
+const enum MapFlag {
+    Block = 0x1,
+    LinkBelow = 0x2,
+    RemoveRoof = 0x4,
+    VisBelow = 0x8,
+    ForceHighDetail = 0x10,
+}
+
+// this class might be called "ClientBuild"
+
 // noinspection JSSuspiciousNameCombination,DuplicatedCode
 export default class World {
-    static readonly ROTATION_WALL_TYPE: Int8Array = Int8Array.of(1, 2, 4, 8);
-    static readonly ROTATION_WALL_CORNER_TYPE: Uint8Array = Uint8Array.of(16, 32, 64, 128);
-    static readonly WALL_DECORATION_ROTATION_FORWARD_X: Int8Array = Int8Array.of(1, 0, -1, 0);
-    static readonly WALL_DECORATION_ROTATION_FORWARD_Z: Int8Array = Int8Array.of(0, -1, 0, 1);
+    static readonly WSHAPE0: Int8Array = Int8Array.of(1, 2, 4, 8); // (real name)
+    static readonly WSHAPE1: Uint8Array = Uint8Array.of(16, 32, 64, 128); // (real name)
+    static readonly DECORXOF: Int8Array = Int8Array.of(1, 0, -1, 0); // (real name)
+    static readonly DECORZOF: Int8Array = Int8Array.of(0, -1, 0, 1); // (real name)
 
-    static randomHueOffset: number = ((Math.random() * 17.0) | 0) - 8;
-    static randomLightnessOffset: number = ((Math.random() * 33.0) | 0) - 16;
+    static hueOff: number = ((Math.random() * 17.0) | 0) - 8; // (real name) hue offset
+    static ligOff: number = ((Math.random() * 33.0) | 0) - 16; // (real name) lightness offset
 
     static lowMem: boolean = true;
     static levelBuilt: number = 0;
     static fullbright: boolean = false;
 
-    static perlin(x: number, z: number): number {
-        let value: number = this.perlinScale(x + 45365, z + 91923, 4) + ((this.perlinScale(x + 10294, z + 37821, 2) - 128) >> 1) + ((this.perlinScale(x, z, 1) - 128) >> 2) - 128;
+    // (real name)
+    static perlinNoise(x: number, z: number): number {
+        let value: number = this.interpolatedNoise(x + 45365, z + 91923, 4) + ((this.interpolatedNoise(x + 10294, z + 37821, 2) - 128) >> 1) + ((this.interpolatedNoise(x, z, 1) - 128) >> 2) - 128;
         value = ((value * 0.3) | 0) + 35;
         if (value < 10) {
             value = 10;
@@ -45,7 +56,8 @@ export default class World {
         return value;
     }
 
-    static perlinScale(x: number, z: number, scale: number): number {
+    // (real name)
+    static interpolatedNoise(x: number, z: number, scale: number): number {
         const intX: number = (x / scale) | 0;
         const fracX: number = x & (scale - 1);
         const intZ: number = (z / scale) | 0;
@@ -59,11 +71,13 @@ export default class World {
         return this.interpolate(i1, i2, fracZ, scale);
     }
 
+    // (real name)
     static interpolate(a: number, b: number, x: number, scale: number): number {
         const f: number = (65536 - Pix3D.cosTable[((x * 1024) / scale) | 0]) >> 1;
         return ((a * (65536 - f)) >> 16) + ((b * f) >> 16);
     }
 
+    // (real name)
     static smoothNoise(x: number, y: number): number {
         const corners: number = this.noise(x - 1, y - 1) + this.noise(x + 1, y - 1) + this.noise(x - 1, y + 1) + this.noise(x + 1, y + 1);
         const sides: number = this.noise(x - 1, y) + this.noise(x + 1, y) + this.noise(x, y - 1) + this.noise(x, y + 1);
@@ -71,6 +85,7 @@ export default class World {
         return ((corners / 16) | 0) + ((sides / 8) | 0) + ((center / 4) | 0);
     }
 
+    // (real name)
     static noise(x: number, y: number): number {
         const n: number = x + y * 57;
         const n1: bigint = BigInt((n << 13) ^ n);
@@ -88,7 +103,8 @@ export default class World {
 		return loc.shapeModelsAreReady(shape);
 	}
 
-    static addLoc(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, levelHeightmap: Int32Array[][], collision: CollisionMap | null, locId: number, shape: number, angle: number, trueLevel: number): void {
+    // (real name)
+    static changeLocUnchecked(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, levelHeightmap: Int32Array[][], collision: CollisionMap | null, locId: number, shape: number, angle: number, trueLevel: number): void {
         const heightSW: number = levelHeightmap[trueLevel][x][z];
         const heightSE: number = levelHeightmap[trueLevel][x + 1][z];
         const heightNW: number = levelHeightmap[trueLevel][x + 1][z + 1];
@@ -97,11 +113,11 @@ export default class World {
 
         const loc: LocType = LocType.get(locId);
 
-        let typecode1: number = (x + (z << 7) + (locId << 14) + 0x40000000) | 0;
+        let typecode: number = (x + (z << 7) + (locId << 14) + 0x40000000) | 0;
         if (!loc.active) {
-            typecode1 += -0x80000000; // int.min
+            typecode += -0x80000000; // int.min
         }
-        typecode1 |= 0;
+        typecode |= 0;
 
         const typecode2: number = ((((angle << 6) + shape) | 0) << 24) >> 24;
 
@@ -113,10 +129,10 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 22, shape, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addGroundDecoration(model, level, x, z, y, typecode1, typecode2);
+            scene?.setGroundDecor(model, level, x, z, y, typecode, typecode2);
 
             if (loc.blockwalk && loc.active && collision) {
-                collision.addFloor(x, z);
+                collision.blockGround(x, z);
             }
         } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id) {
             let model: ModelSource | null;
@@ -142,7 +158,7 @@ export default class World {
                     height = loc.length;
                 }
 
-                scene?.addLoc(level, x, z, y, model, typecode1, typecode2, width, height, yaw);
+                scene?.addScenery(level, x, z, y, model, typecode, typecode2, width, height, yaw);
             }
 
             if (loc.blockwalk && collision) {
@@ -156,7 +172,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addLoc(level, x, z, y, model, typecode1, typecode2, 1, 1, 0);
+            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
             if (loc.blockwalk && collision) {
                 collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
@@ -169,7 +185,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 0, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE0[angle], 0, model, null, typecode, typecode2);
 
             if (loc.blockwalk && collision) {
                 collision.addWall(x, z, shape, angle, loc.blockrange);
@@ -182,7 +198,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 1, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_CORNER_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.blockwalk && collision) {
                 collision.addWall(x, z, shape, angle, loc.blockrange);
@@ -200,16 +216,16 @@ export default class World {
                 model2 = new ClientLocAnim(loopCycle, locId, 2, offset, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(
+            scene?.setWall(
                 level,
                 x,
                 z,
                 y,
-                World.ROTATION_WALL_TYPE[angle],
-                World.ROTATION_WALL_TYPE[offset],
+                World.WSHAPE0[angle],
+                World.WSHAPE0[offset],
                 model1,
                 model2,
-                typecode1,
+                typecode,
                 typecode2
             );
 
@@ -224,7 +240,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 3, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_CORNER_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.blockwalk && collision) {
                 collision.addWall(x, z, shape, angle, loc.blockrange);
@@ -237,7 +253,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addLoc(level, x, z, y, model, typecode1, typecode2, 1, 1, 0);
+            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
             if (loc.blockwalk && collision) {
                 collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
@@ -250,7 +266,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle * 512, World.ROTATION_WALL_TYPE[angle]);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, World.WSHAPE0[angle]);
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
             let wallwidth: number = 16;
             if (scene) {
@@ -267,18 +283,18 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(
+            scene?.setDecor(
                 level,
                 x,
                 z,
                 y,
-                World.WALL_DECORATION_ROTATION_FORWARD_X[angle] * wallwidth,
-                World.WALL_DECORATION_ROTATION_FORWARD_Z[angle] * wallwidth,
-                typecode1,
+                World.DECORXOF[angle] * wallwidth,
+                World.DECORZOF[angle] * wallwidth,
+                typecode,
                 model,
                 typecode2,
                 angle * 512,
-                World.ROTATION_WALL_TYPE[angle]
+                World.WSHAPE0[angle]
             );
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET.id) {
             let model: ModelSource | null;
@@ -288,7 +304,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 256);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -297,7 +313,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 512);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -306,82 +322,81 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 768);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 768);
         }
     }
 
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
-    private readonly heightmap: Int32Array[][];
+    private readonly groundh: Int32Array[][]; // (real name) ground heightmap
     private readonly flags: Uint8Array[][];
-    private readonly underlayType: Uint8Array[][];
-    private readonly overlayType: Uint8Array[][];
-    private readonly overlayShape: Uint8Array[][];
-    private readonly overlayAngle: Uint8Array[][];
-    private readonly shadow: Uint8Array[][];
-    private readonly lightness: Int32Array[];
-    private readonly blendChroma: Int32Array;
-    private readonly blendSaturation: Int32Array;
-    private readonly blendLightness: Int32Array;
-    private readonly blendLuminance: Int32Array;
-    private readonly blendMagnitude: Int32Array;
-    private readonly occlusion: Int32Array[][];
+    private readonly floort1: Uint8Array[][]; // (real name) floor type 1 (underlay)
+    private readonly floort2: Uint8Array[][]; // (real name) floor type 2 (overlay)
+    private readonly floors: Uint8Array[][]; // (real name) floor shape
+    private readonly floorr: Uint8Array[][]; // (real name) floor rotation
+    private readonly shadow: Uint8Array[][]; // (real name)
+    private readonly mapl: Int32Array[]; // (real name) light map
+    private readonly huetot: Int32Array; // (real name) hue total, used for blending tiles
+    private readonly sattot: Int32Array; // (real name) saturation total, used for blending tiles
+    private readonly ligtot: Int32Array; // (real name) lightness total, used for blending tiles
+    private readonly comtot: Int32Array; // (real name) used for blending tiles
+    private readonly tot: Int32Array; // (real name) used for blending tiles
+    private readonly mapo: Int32Array[][]; // (real name) occlusion map
 
     public constructor(maxTileX: number, maxTileZ: number, levelHeightmap: Int32Array[][], levelTileFlags: Uint8Array[][]) {
         this.maxTileX = maxTileX;
         this.maxTileZ = maxTileZ;
-        this.heightmap = levelHeightmap;
+        this.groundh = levelHeightmap;
         this.flags = levelTileFlags;
 
-        this.underlayType = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.overlayType = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.overlayShape = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.overlayAngle = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.floort1 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.floort2 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.floors = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.floorr = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
 
-        this.occlusion = new Int32Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
+        this.mapo = new Int32Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
         this.shadow = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
-        this.lightness = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
+        this.mapl = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
 
-        this.blendChroma = new Int32Array(maxTileZ);
-        this.blendSaturation = new Int32Array(maxTileZ);
-        this.blendLightness = new Int32Array(maxTileZ);
-        this.blendLuminance = new Int32Array(maxTileZ);
-        this.blendMagnitude = new Int32Array(maxTileZ);
+        this.huetot = new Int32Array(maxTileZ);
+        this.sattot = new Int32Array(maxTileZ);
+        this.ligtot = new Int32Array(maxTileZ);
+        this.comtot = new Int32Array(maxTileZ);
+        this.tot = new Int32Array(maxTileZ);
     }
 
-    build(scene: World3D | null, collision: (CollisionMap | null)[]): void {
+    // (real name)
+    finishBuild(scene: World3D | null, collision: (CollisionMap | null)[]): void {
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
             for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
                 for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                    // block_map_square
-                    if ((this.flags[level][x][z] & 0x1) === 1) {
+                    if ((this.flags[level][x][z] & MapFlag.Block) !== 0) {
                         let trueLevel: number = level;
 
-                        // linkbelow
-                        if ((this.flags[1][x][z] & 0x2) === 2) {
+                        if ((this.flags[1][x][z] & MapFlag.LinkBelow) !== 0) {
                             trueLevel--;
                         }
 
                         if (trueLevel >= 0) {
-                            collision[trueLevel]?.addFloor(x, z);
+                            collision[trueLevel]?.blockGround(x, z);
                         }
                     }
                 }
             }
         }
 
-        World.randomHueOffset += ((Math.random() * 5.0) | 0) - 2;
-        if (World.randomHueOffset < -8) {
-            World.randomHueOffset = -8;
-        } else if (World.randomHueOffset > 8) {
-            World.randomHueOffset = 8;
+        World.hueOff += ((Math.random() * 5.0) | 0) - 2;
+        if (World.hueOff < -8) {
+            World.hueOff = -8;
+        } else if (World.hueOff > 8) {
+            World.hueOff = 8;
         }
 
-        World.randomLightnessOffset += ((Math.random() * 5.0) | 0) - 2;
-        if (World.randomLightnessOffset < -16) {
-            World.randomLightnessOffset = -16;
-        } else if (World.randomLightnessOffset > 16) {
-            World.randomLightnessOffset = 16;
+        World.ligOff += ((Math.random() * 5.0) | 0) - 2;
+        if (World.ligOff < -16) {
+            World.ligOff = -16;
+        } else if (World.ligOff > 16) {
+            World.ligOff = 16;
         }
 
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
@@ -396,8 +411,8 @@ export default class World {
 
             for (let z: number = 1; z < this.maxTileZ - 1; z++) {
                 for (let x: number = 1; x < this.maxTileX - 1; x++) {
-                    const dx: number = this.heightmap[level][x + 1][z] - this.heightmap[level][x - 1][z];
-                    const dz: number = this.heightmap[level][x][z + 1] - this.heightmap[level][x][z - 1];
+                    const dx: number = this.groundh[level][x + 1][z] - this.groundh[level][x - 1][z];
+                    const dz: number = this.groundh[level][x][z + 1] - this.groundh[level][x][z - 1];
 
                     const len: number = Math.sqrt(dx * dx + 65536 + dz * dz) | 0;
                     const normalX: number = ((dx << 8) / len) | 0;
@@ -407,16 +422,16 @@ export default class World {
                     const light: number = lightAmbient + (((lightX * normalX + lightY * normalY + lightZ * normalZ) / lightMagnitude) | 0);
                     const shade: number = (shademap[x - 1][z] >> 2) + (shademap[x + 1][z] >> 3) + (shademap[x][z - 1] >> 2) + (shademap[x][z + 1] >> 3) + (shademap[x][z] >> 1);
 
-                    this.lightness[x][z] = light - shade;   
+                    this.mapl[x][z] = light - shade;   
                 }
             }
 
             for (let z: number = 0; z < this.maxTileZ; z++) {
-                this.blendChroma[z] = 0;
-                this.blendSaturation[z] = 0;
-                this.blendLightness[z] = 0;
-                this.blendLuminance[z] = 0;
-                this.blendMagnitude[z] = 0;
+                this.huetot[z] = 0;
+                this.sattot[z] = 0;
+                this.ligtot[z] = 0;
+                this.comtot[z] = 0;
+                this.tot[z] = 0;
             }
 
             for (let x0: number = -5; x0 < this.maxTileX + 5; x0++) {
@@ -424,29 +439,29 @@ export default class World {
                     const x1: number = x0 + 5;
 
                     if (x1 >= 0 && x1 < this.maxTileX) {
-                        const underlayId: number = this.underlayType[level][x1][z0] & 0xff;
+                        const underlayId: number = this.floort1[level][x1][z0] & 0xff;
 
                         if (underlayId > 0) {
                             const flu: FloType = FloType.list[underlayId - 1];
-                            this.blendChroma[z0] += flu.chroma;
-                            this.blendSaturation[z0] += flu.saturation;
-                            this.blendLightness[z0] += flu.lightness;
-                            this.blendLuminance[z0] += flu.luminance;
-                            this.blendMagnitude[z0]++;
+                            this.huetot[z0] += flu.chroma;
+                            this.sattot[z0] += flu.saturation;
+                            this.ligtot[z0] += flu.lightness;
+                            this.comtot[z0] += flu.luminance;
+                            this.tot[z0]++;
                         }
                     }
 
                     const x2: number = x0 - 5;
                     if (x2 >= 0 && x2 < this.maxTileX) {
-                        const underlayId: number = this.underlayType[level][x2][z0] & 0xff;
+                        const underlayId: number = this.floort1[level][x2][z0] & 0xff;
 
                         if (underlayId > 0) {
                             const flu: FloType = FloType.list[underlayId - 1];
-                            this.blendChroma[z0] -= flu.chroma;
-                            this.blendSaturation[z0] -= flu.saturation;
-                            this.blendLightness[z0] -= flu.lightness;
-                            this.blendLuminance[z0] -= flu.luminance;
-                            this.blendMagnitude[z0]--;
+                            this.huetot[z0] -= flu.chroma;
+                            this.sattot[z0] -= flu.saturation;
+                            this.ligtot[z0] -= flu.lightness;
+                            this.comtot[z0] -= flu.luminance;
+                            this.tot[z0]--;
                         }
                     }
                 }
@@ -461,36 +476,36 @@ export default class World {
                     for (let z0: number = -5; z0 < this.maxTileZ + 5; z0++) {
                         const dz1: number = z0 + 5;
                         if (dz1 >= 0 && dz1 < this.maxTileZ) {
-                            hueAccumulator += this.blendChroma[dz1];
-                            saturationAccumulator += this.blendSaturation[dz1];
-                            lightnessAccumulator += this.blendLightness[dz1];
-                            luminanceAccumulator += this.blendLuminance[dz1];
-                            magnitudeAccumulator += this.blendMagnitude[dz1];
+                            hueAccumulator += this.huetot[dz1];
+                            saturationAccumulator += this.sattot[dz1];
+                            lightnessAccumulator += this.ligtot[dz1];
+                            luminanceAccumulator += this.comtot[dz1];
+                            magnitudeAccumulator += this.tot[dz1];
                         }
 
                         const dz2: number = z0 - 5;
                         if (dz2 >= 0 && dz2 < this.maxTileZ) {
-                            hueAccumulator -= this.blendChroma[dz2];
-                            saturationAccumulator -= this.blendSaturation[dz2];
-                            lightnessAccumulator -= this.blendLightness[dz2];
-                            luminanceAccumulator -= this.blendLuminance[dz2];
-                            magnitudeAccumulator -= this.blendMagnitude[dz2];
+                            hueAccumulator -= this.huetot[dz2];
+                            saturationAccumulator -= this.sattot[dz2];
+                            lightnessAccumulator -= this.ligtot[dz2];
+                            luminanceAccumulator -= this.comtot[dz2];
+                            magnitudeAccumulator -= this.tot[dz2];
                         }
 
-                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMem || ((this.flags[level][x0][z0] & 0x10) === 0 && this.getDrawLevel(level, x0, z0) === World.levelBuilt))) {
-                            const underlayId: number = this.underlayType[level][x0][z0] & 0xff;
-                            const overlayId: number = this.overlayType[level][x0][z0] & 0xff;
+                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!World.lowMem || ((this.flags[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisLevel(level, x0, z0) === World.levelBuilt))) {
+                            const underlayId: number = this.floort1[level][x0][z0] & 0xff;
+                            const overlayId: number = this.floort2[level][x0][z0] & 0xff;
 
                             if (underlayId > 0 || overlayId > 0) {
-                                const heightSW: number = this.heightmap[level][x0][z0];
-                                const heightSE: number = this.heightmap[level][x0 + 1][z0];
-                                const heightNE: number = this.heightmap[level][x0 + 1][z0 + 1];
-                                const heightNW: number = this.heightmap[level][x0][z0 + 1];
+                                const heightSW: number = this.groundh[level][x0][z0];
+                                const heightSE: number = this.groundh[level][x0 + 1][z0];
+                                const heightNE: number = this.groundh[level][x0 + 1][z0 + 1];
+                                const heightNW: number = this.groundh[level][x0][z0 + 1];
 
-                                const lightSW: number = this.lightness[x0][z0];
-                                const lightSE: number = this.lightness[x0 + 1][z0];
-                                const lightNE: number = this.lightness[x0 + 1][z0 + 1];
-                                const lightNW: number = this.lightness[x0][z0 + 1];
+                                const lightSW: number = this.mapl[x0][z0];
+                                const lightSE: number = this.mapl[x0 + 1][z0];
+                                const lightNE: number = this.mapl[x0 + 1][z0 + 1];
+                                const lightNW: number = this.mapl[x0][z0 + 1];
 
                                 let baseColor: number = -1;
                                 let tintColor: number = -1;
@@ -499,22 +514,22 @@ export default class World {
                                     const hue: number = ((hueAccumulator * 256) / luminanceAccumulator) | 0;
                                     const saturation: number = (saturationAccumulator / magnitudeAccumulator) | 0;
                                     let lightness: number = (lightnessAccumulator / magnitudeAccumulator) | 0;
-                                    baseColor = this.hsl24to16(hue, saturation, lightness);
+                                    baseColor = World.getTable(hue, saturation, lightness);
 
-                                    const randomHue: number = (hue + World.randomHueOffset) & 0xff;
+                                    const randomHue: number = (hue + World.hueOff) & 0xff;
 
-                                    lightness += World.randomLightnessOffset;
+                                    lightness += World.ligOff;
                                     if (lightness < 0) {
                                         lightness = 0;
                                     } else if (lightness > 255) {
                                         lightness = 255;
                                     }
 
-                                    tintColor = this.hsl24to16(randomHue, saturation, lightness);
+                                    tintColor = World.getTable(randomHue, saturation, lightness);
                                 }
 
                                 if (level > 0) {
-                                    let occludes: boolean = underlayId !== 0 || this.overlayShape[level][x0][z0] === OverlayShape.PLAIN;
+                                    let occludes: boolean = underlayId !== 0 || this.floors[level][x0][z0] === OverlayShape.PLAIN;
 
                                     if (overlayId > 0 && !FloType.list[overlayId - 1].occlude) {
                                         occludes = false;
@@ -522,17 +537,17 @@ export default class World {
 
                                     // occludes && flat
                                     if (occludes && heightSW === heightSE && heightSW === heightNE && heightSW === heightNW) {
-                                        this.occlusion[level][x0][z0] |= 0x924;
+                                        this.mapo[level][x0][z0] |= 0x924;
                                     }
                                 }
 
                                 let shadeColor: number = 0;
                                 if (baseColor !== -1) {
-                                    shadeColor = Pix3D.colourTable[World.mulHSL(tintColor, 96)];
+                                    shadeColor = Pix3D.colourTable[World.getUCol(tintColor, 96)];
                                 }
 
                                 if (overlayId === 0) {
-                                    scene?.setTile(
+                                    scene?.setGround(
                                         level,
                                         x0,
                                         z0,
@@ -543,10 +558,10 @@ export default class World {
                                         heightSE,
                                         heightNE,
                                         heightNW,
-                                        World.mulHSL(baseColor, lightSW),
-                                        World.mulHSL(baseColor, lightSE),
-                                        World.mulHSL(baseColor, lightNE),
-                                        World.mulHSL(baseColor, lightNW),
+                                        World.getUCol(baseColor, lightSW),
+                                        World.getUCol(baseColor, lightSE),
+                                        World.getUCol(baseColor, lightNE),
+                                        World.getUCol(baseColor, lightNW),
                                         Colors.BLACK,
                                         Colors.BLACK,
                                         Colors.BLACK,
@@ -555,8 +570,8 @@ export default class World {
                                         Colors.BLACK
                                     );
                                 } else {
-                                    const shape: number = this.overlayShape[level][x0][z0] + 1;
-                                    const rotation: number = this.overlayAngle[level][x0][z0];
+                                    const shape: number = this.floors[level][x0][z0] + 1;
+                                    const rotation: number = this.floorr[level][x0][z0];
                                     const flo: FloType = FloType.list[overlayId - 1];
                                     let textureId: number = flo.texture;
                                     let hsl: number;
@@ -570,11 +585,11 @@ export default class World {
                                         hsl = -2;
                                         textureId = -1;
                                     } else {
-                                        hsl = this.hsl24to16(flo.hue, flo.saturation, flo.lightness);
-                                        rgb = Pix3D.colourTable[this.adjustLightness(flo.hsl, 96)];
+                                        hsl = World.getTable(flo.hue, flo.saturation, flo.lightness);
+                                        rgb = Pix3D.colourTable[World.getOCol(flo.hsl, 96)];
                                     }
 
-                                    scene?.setTile(
+                                    scene?.setGround(
                                         level,
                                         x0,
                                         z0,
@@ -585,14 +600,14 @@ export default class World {
                                         heightSE,
                                         heightNE,
                                         heightNW,
-                                        World.mulHSL(baseColor, lightSW),
-                                        World.mulHSL(baseColor, lightSE),
-                                        World.mulHSL(baseColor, lightNE),
-                                        World.mulHSL(baseColor, lightNW),
-                                        this.adjustLightness(hsl, lightSW),
-                                        this.adjustLightness(hsl, lightSE),
-                                        this.adjustLightness(hsl, lightNE),
-                                        this.adjustLightness(hsl, lightNW),
+                                        World.getUCol(baseColor, lightSW),
+                                        World.getUCol(baseColor, lightSE),
+                                        World.getUCol(baseColor, lightNE),
+                                        World.getUCol(baseColor, lightNW),
+                                        World.getOCol(hsl, lightSW),
+                                        World.getOCol(hsl, lightSE),
+                                        World.getOCol(hsl, lightNE),
+                                        World.getOCol(hsl, lightNW),
                                         shadeColor,
                                         rgb
                                     );
@@ -605,19 +620,19 @@ export default class World {
 
             for (let stz: number = 1; stz < this.maxTileZ - 1; stz++) {
                 for (let stx: number = 1; stx < this.maxTileX - 1; stx++) {
-                    scene?.setDrawLevel(level, stx, stz, this.getDrawLevel(level, stx, stz));
+                    scene?.setLayer(level, stx, stz, this.getVisLevel(level, stx, stz));
                 }
             }
         }
 
         if (!World.fullbright) {
-            scene?.buildModels(64, 768, -50, -10, -50);
+            scene?.shareLight(64, 768, -50, -10, -50);
         }
 
         for (let x: number = 0; x < this.maxTileX; x++) {
             for (let z: number = 0; z < this.maxTileZ; z++) {
-                if ((this.flags[1][x][z] & 0x2) === 2) {
-                    scene?.setLinkBelow(x, z);
+                if ((this.flags[1][x][z] & MapFlag.LinkBelow) !== 0) {
+                    scene?.pushDown(x, z);
                 }
             }
         }
@@ -637,23 +652,23 @@ export default class World {
                 for (let level: number = 0; level <= topLevel; level++) {
                     for (let tileZ: number = 0; tileZ <= this.maxTileZ; tileZ++) {
                         for (let tileX: number = 0; tileX <= this.maxTileX; tileX++) {
-                            if ((this.occlusion[level][tileX][tileZ] & wall0) !== 0) {
+                            if ((this.mapo[level][tileX][tileZ] & wall0) !== 0) {
                                 let minTileZ: number = tileZ;
                                 let maxTileZ: number = tileZ;
                                 let minLevel: number = level;
                                 let maxLevel: number = level;
 
-                                while (minTileZ > 0 && (this.occlusion[level][tileX][minTileZ - 1] & wall0) !== 0) {
+                                while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & wall0) !== 0) {
                                     minTileZ--;
                                 }
 
-                                while (maxTileZ < this.maxTileZ && (this.occlusion[level][tileX][maxTileZ + 1] & wall0) !== 0) {
+                                while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & wall0) !== 0) {
                                     maxTileZ++;
                                 }
 
                                 find_min_level: while (minLevel > 0) {
                                     for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.occlusion[minLevel - 1][tileX][z] & wall0) === 0) {
+                                        if ((this.mapo[minLevel - 1][tileX][z] & wall0) === 0) {
                                             break find_min_level;
                                         }
                                     }
@@ -662,7 +677,7 @@ export default class World {
 
                                 find_max_level: while (maxLevel < topLevel) {
                                     for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.occlusion[maxLevel + 1][tileX][z] & wall0) === 0) {
+                                        if ((this.mapo[maxLevel + 1][tileX][z] & wall0) === 0) {
                                             break find_max_level;
                                         }
                                     }
@@ -671,36 +686,36 @@ export default class World {
 
                                 const area: number = (maxLevel + 1 - minLevel) * (maxTileZ + 1 - minTileZ);
                                 if (area >= 8) {
-                                    const minY: number = this.heightmap[maxLevel][tileX][minTileZ] - 240;
-                                    const maxX: number = this.heightmap[minLevel][tileX][minTileZ];
+                                    const minY: number = this.groundh[maxLevel][tileX][minTileZ] - 240;
+                                    const maxX: number = this.groundh[minLevel][tileX][minTileZ];
 
-                                    World3D.addOccluder(topLevel, 1, tileX * 128, minY, minTileZ * 128, tileX * 128, maxX, maxTileZ * 128 + 128);
+                                    World3D.setOcclude(topLevel, 1, tileX * 128, minY, minTileZ * 128, tileX * 128, maxX, maxTileZ * 128 + 128);
 
                                     for (let l: number = minLevel; l <= maxLevel; l++) {
                                         for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                            this.occlusion[l][tileX][z] &= ~wall0;
+                                            this.mapo[l][tileX][z] &= ~wall0;
                                         }
                                     }
                                 }
                             }
 
-                            if ((this.occlusion[level][tileX][tileZ] & wall1) !== 0) {
+                            if ((this.mapo[level][tileX][tileZ] & wall1) !== 0) {
                                 let minTileX: number = tileX;
                                 let maxTileX: number = tileX;
                                 let minLevel: number = level;
                                 let maxLevel: number = level;
 
-                                while (minTileX > 0 && (this.occlusion[level][minTileX - 1][tileZ] & wall1) !== 0) {
+                                while (minTileX > 0 && (this.mapo[level][minTileX - 1][tileZ] & wall1) !== 0) {
                                     minTileX--;
                                 }
 
-                                while (maxTileX < this.maxTileX && (this.occlusion[level][maxTileX + 1][tileZ] & wall1) !== 0) {
+                                while (maxTileX < this.maxTileX && (this.mapo[level][maxTileX + 1][tileZ] & wall1) !== 0) {
                                     maxTileX++;
                                 }
 
                                 find_min_level2: while (minLevel > 0) {
                                     for (let x: number = minTileX; x <= maxTileX; x++) {
-                                        if ((this.occlusion[minLevel - 1][x][tileZ] & wall1) === 0) {
+                                        if ((this.mapo[minLevel - 1][x][tileZ] & wall1) === 0) {
                                             break find_min_level2;
                                         }
                                     }
@@ -709,7 +724,7 @@ export default class World {
 
                                 find_max_level2: while (maxLevel < topLevel) {
                                     for (let x: number = minTileX; x <= maxTileX; x++) {
-                                        if ((this.occlusion[maxLevel + 1][x][tileZ] & wall1) === 0) {
+                                        if ((this.mapo[maxLevel + 1][x][tileZ] & wall1) === 0) {
                                             break find_max_level2;
                                         }
                                     }
@@ -719,35 +734,35 @@ export default class World {
                                 const area: number = (maxLevel + 1 - minLevel) * (maxTileX + 1 - minTileX);
 
                                 if (area >= 8) {
-                                    const minY: number = this.heightmap[maxLevel][minTileX][tileZ] - 240;
-                                    const maxY: number = this.heightmap[minLevel][minTileX][tileZ];
+                                    const minY: number = this.groundh[maxLevel][minTileX][tileZ] - 240;
+                                    const maxY: number = this.groundh[minLevel][minTileX][tileZ];
 
-                                    World3D.addOccluder(topLevel, 2, minTileX * 128, minY, tileZ * 128, maxTileX * 128 + 128, maxY, tileZ * 128);
+                                    World3D.setOcclude(topLevel, 2, minTileX * 128, minY, tileZ * 128, maxTileX * 128 + 128, maxY, tileZ * 128);
 
                                     for (let l: number = minLevel; l <= maxLevel; l++) {
                                         for (let x: number = minTileX; x <= maxTileX; x++) {
-                                            this.occlusion[l][x][tileZ] &= ~wall1;
+                                            this.mapo[l][x][tileZ] &= ~wall1;
                                         }
                                     }
                                 }
                             }
-                            if ((this.occlusion[level][tileX][tileZ] & floor) !== 0) {
+                            if ((this.mapo[level][tileX][tileZ] & floor) !== 0) {
                                 let minTileX: number = tileX;
                                 let maxTileX: number = tileX;
                                 let minTileZ: number = tileZ;
                                 let maxTileZ: number = tileZ;
 
-                                while (minTileZ > 0 && (this.occlusion[level][tileX][minTileZ - 1] & floor) !== 0) {
+                                while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & floor) !== 0) {
                                     minTileZ--;
                                 }
 
-                                while (maxTileZ < this.maxTileZ && (this.occlusion[level][tileX][maxTileZ + 1] & floor) !== 0) {
+                                while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & floor) !== 0) {
                                     maxTileZ++;
                                 }
 
                                 find_min_tile_xz: while (minTileX > 0) {
                                     for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.occlusion[level][minTileX - 1][z] & floor) === 0) {
+                                        if ((this.mapo[level][minTileX - 1][z] & floor) === 0) {
                                             break find_min_tile_xz;
                                         }
                                     }
@@ -756,7 +771,7 @@ export default class World {
 
                                 find_max_tile_xz: while (maxTileX < this.maxTileX) {
                                     for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.occlusion[level][maxTileX + 1][z] & floor) === 0) {
+                                        if ((this.mapo[level][maxTileX + 1][z] & floor) === 0) {
                                             break find_max_tile_xz;
                                         }
                                     }
@@ -764,13 +779,13 @@ export default class World {
                                 }
 
                                 if ((maxTileX + 1 - minTileX) * (maxTileZ + 1 - minTileZ) >= 4) {
-                                    const y: number = this.heightmap[level][minTileX][minTileZ];
+                                    const y: number = this.groundh[level][minTileX][minTileZ];
 
-                                    World3D.addOccluder(topLevel, 4, minTileX * 128, y, minTileZ * 128, maxTileX * 128 + 128, y, maxTileZ * 128 + 128);
+                                    World3D.setOcclude(topLevel, 4, minTileX * 128, y, minTileZ * 128, maxTileX * 128 + 128, y, maxTileZ * 128 + 128);
 
                                     for (let x: number = minTileX; x <= maxTileX; x++) {
                                         for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                            this.occlusion[level][x][z] &= ~floor;
+                                            this.mapo[level][x][z] &= ~floor;
                                         }
                                     }
                                 }
@@ -789,25 +804,26 @@ export default class World {
                     this.shadow[0][x][z] = 127;
 
                     if (startX == x && x > 0) {
-                        this.heightmap[0][x][z] = this.heightmap[0][x - 1][z];
+                        this.groundh[0][x][z] = this.groundh[0][x - 1][z];
                     }
 
                     if (startX + endX == x && x < this.maxTileX - 1) {
-                        this.heightmap[0][x][z] = this.heightmap[0][x + 1][z];
+                        this.groundh[0][x][z] = this.groundh[0][x + 1][z];
                     }
 
                     if (startZ == z && z > 0) {
-                        this.heightmap[0][x][z] = this.heightmap[0][x][z - 1];
+                        this.groundh[0][x][z] = this.groundh[0][x][z - 1];
                     }
 
                     if (startZ + endZ == z && z < this.maxTileZ - 1) {
-                        this.heightmap[0][x][z] = this.heightmap[0][x][z + 1];
+                        this.groundh[0][x][z] = this.groundh[0][x][z + 1];
                     }
                 }
             }
         }
     }
 
+    // (real name)
     loadGround(originX: number, originZ: number, xOffset: number, zOffset: number, src: Uint8Array): void {
         const buf: Packet = new Packet(src);
 
@@ -826,9 +842,9 @@ export default class World {
                             opcode = buf.g1();
                             if (opcode === 0) {
                                 if (level === 0) {
-                                    this.heightmap[0][stx][stz] = -World.perlin(stx + originX + 932731, stz + 556238 + originZ) * 8;
+                                    this.groundh[0][stx][stz] = -World.perlinNoise(stx + originX + 932731, stz + 556238 + originZ) * 8;
                                 } else {
-                                    this.heightmap[level][stx][stz] = this.heightmap[level - 1][stx][stz] - 240;
+                                    this.groundh[level][stx][stz] = this.groundh[level - 1][stx][stz] - 240;
                                 }
                                 break;
                             }
@@ -839,21 +855,21 @@ export default class World {
                                     height = 0;
                                 }
                                 if (level === 0) {
-                                    this.heightmap[0][stx][stz] = -height * 8;
+                                    this.groundh[0][stx][stz] = -height * 8;
                                 } else {
-                                    this.heightmap[level][stx][stz] = this.heightmap[level - 1][stx][stz] - height * 8;
+                                    this.groundh[level][stx][stz] = this.groundh[level - 1][stx][stz] - height * 8;
                                 }
                                 break;
                             }
 
                             if (opcode <= 49) {
-                                this.overlayType[level][stx][stz] = buf.g1b();
-                                this.overlayShape[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
-                                this.overlayAngle[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
+                                this.floort2[level][stx][stz] = buf.g1b();
+                                this.floors[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
+                                this.floorr[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
                             } else if (opcode <= 81) {
                                 this.flags[level][stx][stz] = ((opcode - 49) << 24) >> 24;
                             } else {
-                                this.underlayType[level][stx][stz] = ((opcode - 81) << 24) >> 24;
+                                this.floort1[level][stx][stz] = ((opcode - 81) << 24) >> 24;
                             }
                         }
                     } else {
@@ -935,7 +951,8 @@ export default class World {
         return ready;
     }
 
-    static prefetchLocs(buf: Packet, od: OnDemand) {
+    // (real name)
+    static prefetchLocations(buf: Packet, od: OnDemand) {
 		let locId = -1;
 		while (true) {
 			const deltaId = buf.gsmarts();
@@ -959,7 +976,8 @@ export default class World {
 		}
     }
 
-    loadLocations(loopCycle: number, scene: World3D | null, collision: (CollisionMap | null)[], src: Uint8Array, xOffset: number, zOffset: number): void {
+    // (real name)
+    loadLocations(loopCycle: number, scene: World3D | null, cmaps: (CollisionMap | null)[], src: Uint8Array, xOffset: number, zOffset: number): void {
         const buf: Packet = new Packet(src);
         let locId: number = -1;
 
@@ -993,45 +1011,46 @@ export default class World {
 
                 if (stx > 0 && stz > 0 && stx < CollisionConstants.SIZE - 1 && stz < CollisionConstants.SIZE - 1) {
                     let currentLevel: number = level;
-                    if ((this.flags[1][stx][stz] & 0x2) === 2) {
+                    if ((this.flags[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
                         currentLevel = level - 1;
                     }
 
-                    let collisionMap: CollisionMap | null = null;
+                    let cmap: CollisionMap | null = null;
                     if (currentLevel >= 0) {
-                        collisionMap = collision[currentLevel];
+                        cmap = cmaps[currentLevel];
                     }
 
-                    this.addLoc(loopCycle, level, stx, stz, scene, collisionMap, locId, shape, rotation);
+                    this.addLoc(loopCycle, level, stx, stz, scene, cmap, locId, shape, rotation);
                 }
             }
         }
     }
 
-    private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, collision: CollisionMap | null, locId: number, shape: number, angle: number): void {
+    // (real name)
+    private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World3D | null, cmap: CollisionMap | null, locId: number, shape: number, angle: number): void {
         if (World.lowMem) {
-            if ((this.flags[level][x][z] & 0x10) !== 0) {
+            if ((this.flags[level][x][z] & MapFlag.ForceHighDetail) !== 0) {
                 return;
             }
 
-            if (this.getDrawLevel(level, x, z) !== World.levelBuilt) {
+            if (this.getVisLevel(level, x, z) !== World.levelBuilt) {
                 return;
             }
         }
 
-        const heightSW: number = this.heightmap[level][x][z];
-        const heightSE: number = this.heightmap[level][x + 1][z];
-        const heightNE: number = this.heightmap[level][x + 1][z + 1];
-        const heightNW: number = this.heightmap[level][x][z + 1];
+        const heightSW: number = this.groundh[level][x][z];
+        const heightSE: number = this.groundh[level][x + 1][z];
+        const heightNE: number = this.groundh[level][x + 1][z + 1];
+        const heightNW: number = this.groundh[level][x][z + 1];
         const y: number = (heightSW + heightSE + heightNE + heightNW) >> 2;
 
         const loc: LocType = LocType.get(locId);
 
-        let typecode1: number = (x + (z << 7) + (locId << 14) + 0x40000000) | 0;
+        let typecode: number = (x + (z << 7) + (locId << 14) + 0x40000000) | 0;
         if (!loc.active) {
-            typecode1 += -0x80000000; // int.min
+            typecode += -0x80000000; // int.min
         }
-        typecode1 |= 0;
+        typecode |= 0;
 
         const typecode2: number = ((((angle << 6) + shape) | 0) << 24) >> 24;
 
@@ -1044,10 +1063,10 @@ export default class World {
                     model = new ClientLocAnim(loopCycle, locId, 22, shape, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
                 }
 
-                scene?.addGroundDecoration(model, level, x, z, y, typecode1, typecode2);
+                scene?.setGroundDecor(model, level, x, z, y, typecode, typecode2);
 
-                if (loc.blockwalk && loc.active && collision) {
-                    collision.addFloor(x, z);
+                if (loc.blockwalk && loc.active && cmap) {
+                    cmap.blockGround(x, z);
                 }
             }
         } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id) {
@@ -1074,7 +1093,7 @@ export default class World {
                     height = loc.length;
                 }
 
-                if (scene?.addLoc(level, x, z, y, model, typecode1, typecode2, width, height, yaw) && loc.shadow) {
+                if (scene?.addScenery(level, x, z, y, model, typecode, typecode2, width, height, yaw) && loc.shadow) {
                     let model2: Model | null;
                     if (model instanceof Model) {
                         model2 = model;
@@ -1099,8 +1118,8 @@ export default class World {
                 }
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
         } else if (shape >= LocShape.ROOF_STRAIGHT.id) {
             let model: ModelSource | null;
@@ -1110,14 +1129,14 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addLoc(level, x, z, y, model, typecode1, typecode2, 1, 1, 0);
+            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
             if (shape >= LocShape.ROOF_STRAIGHT.id && shape <= LocShape.ROOF_FLAT.id && shape !== LocShape.ROOF_DIAGONAL_WITH_ROOFEDGE.id && level > 0) {
-                this.occlusion[level][x][z] |= 0x924;
+                this.mapo[level][x][z] |= 0x924;
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
         } else if (shape === LocShape.WALL_STRAIGHT.id) {
             let model: ModelSource | null;
@@ -1127,7 +1146,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 0, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE0[angle], 0, model, null, typecode, typecode2);
 
             if (angle === LocAngle.WEST) {
                 if (loc.shadow) {
@@ -1136,7 +1155,7 @@ export default class World {
                 }
 
                 if (loc.occlude) {
-                    this.occlusion[level][x][z] |= 0x249;
+                    this.mapo[level][x][z] |= 0x249;
                 }
             } else if (angle === LocAngle.NORTH) {
                 if (loc.shadow) {
@@ -1145,7 +1164,7 @@ export default class World {
                 }
 
                 if (loc.occlude) {
-                    this.occlusion[level][x][z + 1] |= 0x492;
+                    this.mapo[level][x][z + 1] |= 0x492;
                 }
             } else if (angle === LocAngle.EAST) {
                 if (loc.shadow) {
@@ -1154,7 +1173,7 @@ export default class World {
                 }
 
                 if (loc.occlude) {
-                    this.occlusion[level][x + 1][z] |= 0x249;
+                    this.mapo[level][x + 1][z] |= 0x249;
                 }
             } else if (angle === LocAngle.SOUTH) {
                 if (loc.shadow) {
@@ -1163,12 +1182,12 @@ export default class World {
                 }
 
                 if (loc.occlude) {
-                    this.occlusion[level][x][z] |= 0x492;
+                    this.mapo[level][x][z] |= 0x492;
                 }
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addWall(x, z, shape, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
 
             if (loc.wallwidth !== 16) {
@@ -1182,7 +1201,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 1, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_CORNER_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.shadow) {
                 if (angle === LocAngle.WEST) {
@@ -1196,8 +1215,8 @@ export default class World {
                 }
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addWall(x, z, shape, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
         } else if (shape === LocShape.WALL_L.id) {
             const offset: number = (angle + 1) & 0x3;
@@ -1212,37 +1231,37 @@ export default class World {
                 model2 = new ClientLocAnim(loopCycle, locId, 2, offset, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(
+            scene?.setWall(
                 level,
                 x,
                 z,
                 y,
-                World.ROTATION_WALL_TYPE[angle],
-                World.ROTATION_WALL_TYPE[offset],
+                World.WSHAPE0[angle],
+                World.WSHAPE0[offset],
                 model1,
                 model2,
-                typecode1,
+                typecode,
                 typecode2
             );
 
             if (loc.occlude) {
                 if (angle === LocAngle.WEST) {
-                    this.occlusion[level][x][z] |= 0x109;
-                    this.occlusion[level][x][z + 1] |= 0x492;
+                    this.mapo[level][x][z] |= 0x109;
+                    this.mapo[level][x][z + 1] |= 0x492;
                 } else if (angle === LocAngle.NORTH) {
-                    this.occlusion[level][x][z + 1] |= 0x492;
-                    this.occlusion[level][x + 1][z] |= 0x249;
+                    this.mapo[level][x][z + 1] |= 0x492;
+                    this.mapo[level][x + 1][z] |= 0x249;
                 } else if (angle === LocAngle.EAST) {
-                    this.occlusion[level][x + 1][z] |= 0x249;
-                    this.occlusion[level][x][z] |= 0x492;
+                    this.mapo[level][x + 1][z] |= 0x249;
+                    this.mapo[level][x][z] |= 0x492;
                 } else if (angle === LocAngle.SOUTH) {
-                    this.occlusion[level][x][z] |= 0x492;
-                    this.occlusion[level][x][z] |= 0x249;
+                    this.mapo[level][x][z] |= 0x492;
+                    this.mapo[level][x][z] |= 0x249;
                 }
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addWall(x, z, shape, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
 
             if (loc.wallwidth !== 16) {
@@ -1256,7 +1275,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 3, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addWall(level, x, z, y, World.ROTATION_WALL_CORNER_TYPE[angle], 0, model, null, typecode1, typecode2);
+            scene?.setWall(level, x, z, y, World.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.shadow) {
                 if (angle === LocAngle.WEST) {
@@ -1270,8 +1289,8 @@ export default class World {
                 }
             }
 
-            if (loc.blockwalk && collision) {
-                collision.addWall(x, z, shape, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
         } else if (shape === LocShape.WALL_DIAGONAL.id) {
             let model: ModelSource | null;
@@ -1281,10 +1300,10 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addLoc(level, x, z, y, model, typecode1, typecode2, 1, 1, 0);
+            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
-            if (loc.blockwalk && collision) {
-                collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
+            if (loc.blockwalk && cmap) {
+                cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_NOOFFSET.id) {
             let model: ModelSource | null;
@@ -1294,7 +1313,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle * 512, World.ROTATION_WALL_TYPE[angle]);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, World.WSHAPE0[angle]);
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
             let wallwidth: number = 16;
             if (scene) {
@@ -1311,18 +1330,18 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(
+            scene?.setDecor(
                 level,
                 x,
                 z,
                 y,
-                World.WALL_DECORATION_ROTATION_FORWARD_X[angle] * wallwidth,
-                World.WALL_DECORATION_ROTATION_FORWARD_Z[angle] * wallwidth,
-                typecode1,
+                World.DECORXOF[angle] * wallwidth,
+                World.DECORZOF[angle] * wallwidth,
+                typecode,
                 model,
                 typecode2,
                 angle * 512,
-                World.ROTATION_WALL_TYPE[angle]
+                World.WSHAPE0[angle]
             );
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET.id) {
             let model: ModelSource | null;
@@ -1332,7 +1351,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 256);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -1341,7 +1360,7 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 512);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -1350,19 +1369,21 @@ export default class World {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWallDecoration(level, x, z, y, 0, 0, typecode1, model, typecode2, angle, 768);
+            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 768);
         }
     }
 
-    private getDrawLevel(level: number, stx: number, stz: number): number {
-        if ((this.flags[level][stx][stz] & 0x8) === 0) {
-            return level <= 0 || (this.flags[1][stx][stz] & 0x2) === 0 ? level : level - 1;
+    // (real name)
+    private getVisLevel(level: number, stx: number, stz: number): number {
+        if ((this.flags[level][stx][stz] & MapFlag.VisBelow) === 0) {
+            return level <= 0 || (this.flags[1][stx][stz] & MapFlag.LinkBelow) === 0 ? level : level - 1;
         }
 
         return 0;
     }
 
-    hsl24to16(hue: number, saturation: number, lightness: number): number {
+    // (real name)
+    static getTable(hue: number, saturation: number, lightness: number): number {
         if (lightness > 179) {
             saturation = (saturation / 2) | 0;
         }
@@ -1378,20 +1399,24 @@ export default class World {
         return (((hue / 4) | 0) << 10) + (((saturation / 32) | 0) << 7) + ((lightness / 2) | 0);
     }
 
-    static mulHSL(hsl: number, lightness: number): number {
+    // (real name)
+    static getUCol(hsl: number, lightness: number): number {
         if (hsl === -1) {
             return 12345678;
         }
+
         lightness = ((lightness * (hsl & 0x7f)) / 128) | 0;
         if (lightness < 2) {
             lightness = 2;
         } else if (lightness > 126) {
             lightness = 126;
         }
+
         return (hsl & 0xff80) + lightness;
     }
 
-    adjustLightness(hsl: number, scalar: number): number {
+    // (real name)
+    static getOCol(hsl: number, scalar: number): number {
         if (hsl === -2) {
             return 12345678;
         }

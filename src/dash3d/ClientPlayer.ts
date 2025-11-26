@@ -1,5 +1,5 @@
 import IdkType from '#/config/IdkType.js';
-import NpcType from '#/config/NpcType.ts';
+import NpcType from '#/config/NpcType.js';
 import ObjType from '#/config/ObjType.js';
 import SpotAnimType from '#/config/SpotAnimType.js';
 import SeqType from '#/config/SeqType.js';

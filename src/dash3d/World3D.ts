@@ -22,6 +22,8 @@ import { Int32Array3d, TypedArray1d, TypedArray2d, TypedArray3d, TypedArray4d } 
 import type ModelSource from '#/dash3d/ModelSource.js';
 import type VertexNormal from '#/dash3d/VertexNormal.js';
 
+// this class might be called "World"
+
 export default class World3D {
     private static visibilityMatrix: boolean[][][][] = new TypedArray4d(8, 32, 51, 51, false);
     private static locBuffer: (Sprite | null)[] = new TypedArray1d(100, null);
@@ -187,7 +189,8 @@ export default class World3D {
         }
     }
 
-    static addOccluder(level: number, type: number, minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): void {
+    // (real name)
+    static setOcclude(level: number, type: number, minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): void {
         World3D.levelOccluders[level][World3D.levelOccluderCount[level]++] = new Occlude((minX / 128) | 0, (maxX / 128) | 0, (minZ / 128) | 0, (maxZ / 128) | 0, type, minX, maxX, minZ, maxZ, minY, maxY);
     }
 
@@ -271,7 +274,8 @@ export default class World3D {
         }
     }
 
-    setLinkBelow(stx: number, stz: number): void {
+    // (real name)
+    pushDown(stx: number, stz: number): void {
         const below: Square | null = this.levelTiles[0][stx][stz];
 
         for (let level: number = 0; level < 3; level++) {
@@ -295,7 +299,8 @@ export default class World3D {
         this.levelTiles[3][stx][stz] = null;
     }
 
-    setDrawLevel(level: number, stx: number, stz: number, drawLevel: number): void {
+    // (real name)
+    setLayer(level: number, stx: number, stz: number, drawLevel: number): void {
         const tile: Square | null = this.levelTiles[level][stx][stz];
         if (!tile) {
             return;
@@ -304,7 +309,8 @@ export default class World3D {
         tile.drawLevel = drawLevel;
     }
 
-    setTile(
+    // (real name)
+    setGround(
         level: number,
         x: number,
         z: number,
@@ -382,7 +388,8 @@ export default class World3D {
         }
     }
 
-    addGroundDecoration(model: ModelSource | null, tileLevel: number, tileX: number, tileZ: number, y: number, typecode: number, typecode2: number): void {
+    // (real name)
+    setGroundDecor(model: ModelSource | null, tileLevel: number, tileX: number, tileZ: number, y: number, typecode: number, typecode2: number): void {
         if (!this.levelTiles[tileLevel][tileX][tileZ]) {
             this.levelTiles[tileLevel][tileX][tileZ] = new Square(tileLevel, tileX, tileZ);
         }
@@ -437,7 +444,8 @@ export default class World3D {
         tile.groundObject = null;
     }
 
-    addWall(level: number, tileX: number, tileZ: number, y: number, angle1: number, angle2: number, model1: ModelSource | null, model2: ModelSource | null, typecode1: number, typecode2: number): void {
+    // (real name)
+    setWall(level: number, tileX: number, tileZ: number, y: number, angle1: number, angle2: number, model1: ModelSource | null, model2: ModelSource | null, typecode1: number, typecode2: number): void {
         if (!model1 && !model2) {
             return;
         }
@@ -461,7 +469,8 @@ export default class World3D {
         }
     }
 
-    setWallDecoration(level: number, tileX: number, tileZ: number, y: number, offsetX: number, offsetZ: number, typecode: number, model: ModelSource | null, info: number, angle: number, type: number): void {
+    // (real name)
+    setDecor(level: number, tileX: number, tileZ: number, y: number, offsetX: number, offsetZ: number, typecode: number, model: ModelSource | null, info: number, angle: number, type: number): void {
         if (!model) {
             return;
         }
@@ -575,7 +584,8 @@ export default class World3D {
         wall.model2 = modelB;
     }
 
-    addLoc(level: number, tileX: number, tileZ: number, y: number, model: ModelSource | null, typecode: number, info: number, width: number, length: number, yaw: number): boolean {
+    // (real name)
+    addScenery(level: number, tileX: number, tileZ: number, y: number, model: ModelSource | null, typecode: number, info: number, width: number, length: number, yaw: number): boolean {
         if (!model) {
             return true;
         }
@@ -733,7 +743,8 @@ export default class World3D {
         }
     }
 
-    buildModels(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
+    // (real name)
+    shareLight(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
         const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
 
