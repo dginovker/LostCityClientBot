@@ -227,7 +227,8 @@ export default class LocType extends ConfigType {
         }
     }
 
-    shapeModelsAreReady(shape: number): boolean {
+    // (real name)
+    checkModel(shape: number): boolean {
         if (this.models === null) {
             return true;
         }
@@ -253,7 +254,8 @@ export default class LocType extends ConfigType {
         return true;
     }
 
-    modelsAreReady(): boolean {
+    // (real name)
+    checkModelAll(): boolean {
         if (this.models == null) {
             return true;
         }

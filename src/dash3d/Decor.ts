@@ -8,7 +8,7 @@ export default class Decor {
     readonly angle2: number;
     model: ModelSource;
     readonly typecode: number;
-    readonly info: number; // byte
+    readonly typecode2: number; // byte
 
     constructor(y: number, x: number, z: number, type: number, angle: number, model: ModelSource, typecode: number, info: number) {
         this.y = y;
@@ -18,6 +18,6 @@ export default class Decor {
         this.angle2 = angle;
         this.model = model;
         this.typecode = typecode;
-        this.info = info;
+        this.typecode2 = info;
     }
 }

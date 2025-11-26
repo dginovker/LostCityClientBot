@@ -90,7 +90,8 @@ export default class ClientBuild {
         return Number(((n1 * (n1 * n1 * 15731n + 789221n) + 1376312589n) & 0x7fffffffn) >> 19n) & 0xff;
     }
 
-    static isLocReady(id: number, shape: number): boolean {
+    // (real name)
+    static changeLocAvailable(id: number, shape: number): boolean {
 		const loc = LocType.get(id);
 		if (shape == 11) {
 			shape = 10;
@@ -98,7 +99,7 @@ export default class ClientBuild {
 		if (shape >= 5 && shape <= 8) {
 			shape = 4;
 		}
-		return loc.shapeModelsAreReady(shape);
+		return loc.checkModel(shape);
 	}
 
     // (real name)
@@ -268,7 +269,7 @@ export default class ClientBuild {
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
             let wallwidth: number = 16;
             if (scene) {
-                const typecode: number = scene.getWallTypecode(level, x, z);
+                const typecode: number = scene.wallType(level, x, z);
                 if (typecode > 0) {
                     wallwidth = LocType.get((typecode >> 14) & 0x7fff).wallwidth;
                 }
@@ -795,7 +796,8 @@ export default class ClientBuild {
         }
     }
 
-    spreadHeight(startZ: number, startX: number, endZ: number, endX: number) {
+    // (real name)
+    fadeAdjacent(startZ: number, startX: number, endZ: number, endX: number) {
         for (let z: number = startZ; z <= startZ + endZ; z++) {
             for (let x: number = startX; x <= startX + endX; x++) {
                 if (x >= 0 && x < this.maxTileX && z >= 0 && z < this.maxTileZ) {
@@ -935,7 +937,7 @@ export default class ClientBuild {
                     if (stx > 0 && stz > 0 && stx < 103 && stz < 103) {
                         const loc = LocType.get(locId);
                         if (shape != 22 || !ClientBuild.lowMem || loc.active || loc.forcedecor) {
-                            if (!loc.modelsAreReady()) {
+                            if (!loc.checkModelAll()) {
                                 ready = false;
                             }
 
@@ -1315,7 +1317,7 @@ export default class ClientBuild {
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
             let wallwidth: number = 16;
             if (scene) {
-                const typecode: number = scene.getWallTypecode(level, x, z);
+                const typecode: number = scene.wallType(level, x, z);
                 if (typecode > 0) {
                     wallwidth = LocType.get((typecode >> 14) & 0x7fff).wallwidth;
                 }

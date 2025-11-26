@@ -30,7 +30,7 @@ export default class World {
     private static activeOccluders: (Occlude | null)[] = new TypedArray1d(500, null);
     private static drawTileQueue: LinkList = new LinkList();
 
-    private static cycle: number = 0;
+    private static cycleNo: number = 0; // (real name)
 
     private static viewportLeft: number = 0;
     private static viewportTop: number = 0;
@@ -39,42 +39,42 @@ export default class World {
     private static viewportCenterX: number = 0;
     private static viewportCenterY: number = 0;
 
-    private static sinEyePitch: number = 0;
-    private static cosEyePitch: number = 0;
-    private static sinEyeYaw: number = 0;
-    private static cosEyeYaw: number = 0;
+    private static cameraSinX: number = 0; // (real name)
+    private static cameraCosX: number = 0; // (real name)
+    private static cameraSinY: number = 0; // (real name)
+    private static cameraCosY: number = 0; // (real name)
 
-    private static eyeX: number = 0;
-    private static eyeY: number = 0;
-    private static eyeZ: number = 0;
-    private static eyeTileX: number = 0;
-    private static eyeTileZ: number = 0;
+    private static cx: number = 0; // (real name)
+    private static cy: number = 0; // (real name)
+    private static cz: number = 0; // (real name)
+    private static gx: number = 0; // (real name)
+    private static gz: number = 0; // (real name)
 
-    private static minDrawTileX: number = 0;
-    private static maxDrawTileX: number = 0;
-    private static minDrawTileZ: number = 0;
-    private static maxDrawTileZ: number = 0;
+    private static minX: number = 0; // (real name)
+    private static maxX: number = 0; // (real name)
+    private static minZ: number = 0; // (real name)
+    private static maxZ: number = 0; // (real name)
 
-    static topLevel: number = 0;
-    private static tilesRemaining: number = 0;
+    static maxLevel: number = 0; // (real name)
+    private static fillLeft: number = 0; // (real name)
     private static takingInput: boolean = false;
 
     private static visibilityMap: boolean[][] | null = null;
 
-    static readonly FRONT_WALL_TYPES: Uint8Array = Uint8Array.of(19, 55, 38, 155, 255, 110, 137, 205, 76);
-    static readonly DIRECTION_ALLOW_WALL_CORNER_TYPE: Uint8Array = Uint8Array.of(160, 192, 80, 96, 0, 144, 80, 48, 160);
-    static readonly BACK_WALL_TYPES: Uint8Array = Uint8Array.of(76, 8, 137, 4, 0, 1, 38, 2, 19);
-    static readonly MIDDEP_16: Int8Array = Int8Array.of(0, 0, 2, 0, 0, 2, 1, 1, 0);
-    static readonly MIDDEP_32: Int8Array = Int8Array.of(2, 0, 0, 2, 0, 0, 0, 4, 4);
-    static readonly MIDDEP_64: Int8Array = Int8Array.of(0, 4, 4, 8, 0, 0, 8, 0, 0);
-    static readonly MIDDEP_128: Int8Array = Int8Array.of(1, 1, 0, 0, 0, 8, 0, 0, 8);
+    static readonly PRETAB: Uint8Array = Uint8Array.of(19, 55, 38, 155, 255, 110, 137, 205, 76); // (real name)
+    static readonly MIDTAB: Uint8Array = Uint8Array.of(160, 192, 80, 96, 0, 144, 80, 48, 160); // (real name)
+    static readonly POSTTAB: Uint8Array = Uint8Array.of(76, 8, 137, 4, 0, 1, 38, 2, 19); // (real name)
+    static readonly MIDDEP_16: Int8Array = Int8Array.of(0, 0, 2, 0, 0, 2, 1, 1, 0); // (real name)
+    static readonly MIDDEP_32: Int8Array = Int8Array.of(2, 0, 0, 2, 0, 0, 0, 4, 4); // (real name)
+    static readonly MIDDEP_64: Int8Array = Int8Array.of(0, 4, 4, 8, 0, 0, 8, 0, 0); // (real name)
+    static readonly MIDDEP_128: Int8Array = Int8Array.of(1, 1, 0, 0, 0, 8, 0, 0, 8); // (real name)
     static readonly WALL_DECORATION_INSET_X: Int8Array = Int8Array.of(53, -53, -53, 53);
     static readonly WALL_DECORATION_INSET_Z: Int8Array = Int8Array.of(-53, -53, 53, 53);
     static readonly WALL_DECORATION_OUTSET_X: Int8Array = Int8Array.of(-45, 45, 45, -45);
     static readonly WALL_DECORATION_OUTSET_Z: Int8Array = Int8Array.of(45, 45, -45, -45);
 
     // prettier-ignore
-    static readonly MINIMAP_TILE_MASK: Int8Array[] = [
+    static readonly MINIMAP_SHAPE: Int8Array[] = [
         new Int8Array(16),
         Int8Array.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1), // PLAIN_SHAPE
         Int8Array.of(1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1), // DIAGONAL_SHAPE
@@ -91,7 +91,7 @@ export default class World {
     ];
 
     // prettier-ignore
-    static readonly MINIMAP_TILE_ROTATION_MAP: Int8Array[] = [
+    static readonly MINIMAP_ROTATE: Int8Array[] = [
         Int8Array.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
         Int8Array.of(12, 8, 4, 0, 13, 9, 5, 1, 14, 10, 6, 2, 15, 11, 7, 3),
         Int8Array.of(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0),
@@ -108,6 +108,7 @@ export default class World {
         41, 41, 41, 41, 41, 41, 3131, 41,
         41, 41
     );
+
     static activeOccluderCount: number = 0;
     static mouseX: number = 0;
     static mouseY: number = 0;
@@ -126,10 +127,10 @@ export default class World {
         const matrix: boolean[][][][] = new TypedArray4d(9, 32, 53, 53, false);
         for (let pitch: number = 128; pitch <= 384; pitch += 32) {
             for (let yaw: number = 0; yaw < 2048; yaw += 64) {
-                this.sinEyePitch = Pix3D.sinTable[pitch];
-                this.cosEyePitch = Pix3D.cosTable[pitch];
-                this.sinEyeYaw = Pix3D.sinTable[yaw];
-                this.cosEyeYaw = Pix3D.cosTable[yaw];
+                this.cameraSinX = Pix3D.sinTable[pitch];
+                this.cameraCosX = Pix3D.cosTable[pitch];
+                this.cameraSinY = Pix3D.sinTable[yaw];
+                this.cameraCosY = Pix3D.cosTable[yaw];
 
                 const pitchLevel: number = ((pitch - 128) / 32) | 0;
                 const yawLevel: number = (yaw / 64) | 0;
@@ -193,10 +194,10 @@ export default class World {
     }
 
     private static testPoint(x: number, z: number, y: number): boolean {
-        const px: number = (z * this.sinEyeYaw + x * this.cosEyeYaw) >> 16;
-        const tmp: number = (z * this.cosEyeYaw - x * this.sinEyeYaw) >> 16;
-        const pz: number = (y * this.sinEyePitch + tmp * this.cosEyePitch) >> 16;
-        const py: number = (y * this.cosEyePitch - tmp * this.sinEyePitch) >> 16;
+        const px: number = (z * this.cameraSinY + x * this.cameraCosY) >> 16;
+        const tmp: number = (z * this.cameraCosY - x * this.cameraSinY) >> 16;
+        const pz: number = (y * this.cameraSinX + tmp * this.cameraCosX) >> 16;
+        const py: number = (y * this.cameraCosX - tmp * this.cameraSinX) >> 16;
         if (pz < 50 || pz > 3500) {
             return false;
         }
@@ -209,10 +210,10 @@ export default class World {
     private readonly maxLevel: number;
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
-    private readonly levelHeightmaps: Int32Array[][];
+    private readonly groundHeight: Int32Array[][];
     private readonly levelTiles: (Square | null)[][][];
     private readonly changedLocs: (Sprite | null)[];
-    private readonly levelTileOcclusionCycles: Int32Array[][];
+    private readonly occlusionCycle: Int32Array[][];
     private readonly mergeIndexA: Int32Array;
     private readonly mergeIndexB: Int32Array;
 
@@ -226,17 +227,18 @@ export default class World {
         this.maxTileX = maxTileX;
         this.maxTileZ = maxTileZ;
         this.levelTiles = new TypedArray3d(maxLevel, maxTileX, maxTileZ, null);
-        this.levelTileOcclusionCycles = new Int32Array3d(maxLevel, maxTileX + 1, maxTileZ + 1);
-        this.levelHeightmaps = levelHeightmaps;
+        this.occlusionCycle = new Int32Array3d(maxLevel, maxTileX + 1, maxTileZ + 1);
+        this.groundHeight = levelHeightmaps;
 
         this.changedLocs = new TypedArray1d(5000, null);
         this.mergeIndexA = new Int32Array(10000);
         this.mergeIndexB = new Int32Array(10000);
 
-        this.reset();
+        this.resetMap();
     }
 
-    reset(): void {
+    // (real name)
+    resetMap(): void {
         for (let level: number = 0; level < this.maxLevel; level++) {
             for (let x: number = 0; x < this.maxTileX; x++) {
                 for (let z: number = 0; z < this.maxTileZ; z++) {
@@ -262,7 +264,8 @@ export default class World {
         World.locBuffer.fill(null);
     }
 
-    setMinLevel(level: number): void {
+    // (real name)
+    fillBaseLevel(level: number): void {
         this.minLevel = level;
 
         for (let stx: number = 0; stx < this.maxTileX; stx++) {
@@ -398,7 +401,8 @@ export default class World {
         }
     }
 
-    removeGroundDecoration(level: number, x: number, z: number): void {
+    // (real name)
+    delGroundDecor(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return;
@@ -407,7 +411,8 @@ export default class World {
         tile.groundDecor = null;
     }
 
-    addGroundObject(stx: number, stz: number, y: number, level: number, typecode: number, topObj: ModelSource | null, middleObj: ModelSource | null, bottomObj: ModelSource | null): void {
+    // (real name)
+    setObj(stx: number, stz: number, y: number, level: number, typecode: number, topObj: ModelSource | null, middleObj: ModelSource | null, bottomObj: ModelSource | null): void {
         let stackOffset: number = 0;
 
         const tile: Square | null = this.levelTiles[level][stx][stz];
@@ -433,7 +438,8 @@ export default class World {
         }
     }
 
-    removeGroundObject(level: number, x: number, z: number): void {
+    // (real name)
+    delObj(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return;
@@ -460,7 +466,8 @@ export default class World {
         }
     }
 
-    removeWall(level: number, x: number, z: number, force: number): void {
+    // (real name)
+    delWall(level: number, x: number, z: number, force: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (force === 1 && tile) {
             tile.wall = null;
@@ -483,7 +490,8 @@ export default class World {
         }
     }
 
-    removeWallDecoration(level: number, x: number, z: number): void {
+    // (real name)
+    delDecor(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return;
@@ -590,10 +598,11 @@ export default class World {
 
         const sceneX: number = tileX * 128 + width * 64;
         const sceneZ: number = tileZ * 128 + length * 64;
-        return this.addModel(sceneX, sceneZ, y, level, tileX, tileZ, width, length, model, typecode, info, yaw, false);
+        return this.setSprite(sceneX, sceneZ, y, level, tileX, tileZ, width, length, model, typecode, info, yaw, false);
     }
 
-    changeLoc(level: number, x: number, y: number, z: number, model: ModelSource | null, typecode: number, yaw: number, padding: number, forwardPadding: boolean): boolean {
+    // (real name)
+    addDynamic(level: number, x: number, y: number, z: number, model: ModelSource | null, typecode: number, yaw: number, padding: number, forwardPadding: boolean): boolean {
         if (!model) {
             return true;
         }
@@ -623,14 +632,16 @@ export default class World {
         x1 = (x1 / 128) | 0;
         z1 = (z1 / 128) | 0;
 
-        return this.addModel(x, z, y, level, x0, z0, x1 + 1 - x0, z1 - z0 + 1, model, typecode, 0, yaw, true);
+        return this.setSprite(x, z, y, level, x0, z0, x1 + 1 - x0, z1 - z0 + 1, model, typecode, 0, yaw, true);
     }
 
-    changeLoc2(level: number, x: number, y: number, z: number, minTileX: number, minTileZ: number, maxTileX: number, maxTileZ: number, model: ModelSource | null, typecode: number, yaw: number): boolean {
-        return !model || this.addModel(x, z, y, level, minTileX, minTileZ, maxTileX + 1 - minTileX, maxTileZ - minTileZ + 1, model, typecode, 0, yaw, true);
+    // (real name is addDynamic, no overloads in TS)
+    addDynamic2(level: number, x: number, y: number, z: number, minTileX: number, minTileZ: number, maxTileX: number, maxTileZ: number, model: ModelSource | null, typecode: number, yaw: number): boolean {
+        return !model || this.setSprite(x, z, y, level, minTileX, minTileZ, maxTileX + 1 - minTileX, maxTileZ - minTileZ + 1, model, typecode, 0, yaw, true);
     }
 
-    removeLoc(level: number, x: number, z: number): void {
+    // (real name)
+    delLoc(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return;
@@ -639,17 +650,18 @@ export default class World {
         for (let l: number = 0; l < tile.primaryCount; l++) {
             const loc: Sprite | null = tile.locs[l];
             if (loc && ((loc.typecode >> 29) & 0x3) === 2 && loc.minSceneTileX === x && loc.minSceneTileZ === z) {
-                this.removeLoc2(loc);
+                this.delSprite(loc);
                 return;
             }
         }
     }
 
-    clearLocChanges(): void {
+    // (real name)
+    removeSprites(): void {
         for (let i: number = 0; i < this.changedLocCount; i++) {
             const loc: Sprite | null = this.changedLocs[i];
             if (loc) {
-                this.removeLoc2(loc);
+                this.delSprite(loc);
             }
 
             this.changedLocs[i] = null;
@@ -658,17 +670,20 @@ export default class World {
         this.changedLocCount = 0;
     }
 
-    getWallTypecode(level: number, x: number, z: number): number {
+    // (real name)
+    wallType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.wall ? 0 : tile.wall.typecode;
     }
 
-    getDecorTypecode(level: number, z: number, x: number): number {
+    // (real name)
+    decorType(level: number, z: number, x: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.decor ? 0 : tile.decor.typecode;
     }
 
-    getLocTypecode(level: number, x: number, z: number): number {
+    // (real name)
+    sceneType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return 0;
@@ -684,22 +699,26 @@ export default class World {
         return 0;
     }
 
-    getGroundDecorTypecode(level: number, x: number, z: number): number {
+    // (real name)
+    gdType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.groundDecor ? 0 : tile.groundDecor.typecode;
     }
 
+    // (real name)
     getWall(level: number, x: number, z: number): Wall | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.wall ? null : tile.wall;
     }
 
+    // (real name)
     getDecor(level: number, z: number, x: number): Decor | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.decor ? null : tile.decor;
     }
 
-    getLoc(level: number, x: number, z: number): Sprite | null {
+    // (real name)
+    getScene(level: number, x: number, z: number): Sprite | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return null;
@@ -715,26 +734,28 @@ export default class World {
         return null;
     }
 
-    getGroundDecor(level: number, x: number, z: number): GroundDecor | null {
+    // (real name)
+    getGd(level: number, x: number, z: number): GroundDecor | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.groundDecor ? null : tile.groundDecor;
     }
 
-    getInfo(level: number, x: number, z: number, typecode: number): number {
+    // (real name)
+    typecode2(level: number, x: number, z: number, typecode: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
             return -1;
         } else if (tile.wall && tile.wall.typecode === typecode) {
             return tile.wall.typecode2 & 0xff;
         } else if (tile.decor && tile.decor.typecode === typecode) {
-            return tile.decor.info & 0xff;
+            return tile.decor.typecode2 & 0xff;
         } else if (tile.groundDecor && tile.groundDecor.typecode === typecode) {
-            return tile.groundDecor.info & 0xff;
+            return tile.groundDecor.typecode2 & 0xff;
         } else {
             for (let i: number = 0; i < tile.primaryCount; i++) {
                 const loc: Sprite | null = tile.locs[i];
                 if (loc && loc.typecode === typecode) {
-                    return loc.info & 0xff;
+                    return loc.typecode2 & 0xff;
                 }
             }
             return -1;
@@ -756,10 +777,10 @@ export default class World {
 
                     const wall: Wall | null = tile.wall;
                     if (wall && wall.model1 && wall.model1.vertexNormal) {
-                        this.mergeLocNormals(level, tileX, tileZ, 1, 1, (wall.model1 as Model));
+                        this.shareLightLoc(level, tileX, tileZ, 1, 1, (wall.model1 as Model));
                         if (wall.model2 && wall.model2.vertexNormal) {
-                            this.mergeLocNormals(level, tileX, tileZ, 1, 1, (wall.model2 as Model));
-                            this.mergeNormals((wall.model1 as Model), (wall.model2 as Model), 0, 0, 0, false);
+                            this.shareLightLoc(level, tileX, tileZ, 1, 1, (wall.model2 as Model));
+                            this.modelShareLight((wall.model1 as Model), (wall.model2 as Model), 0, 0, 0, false);
                             (wall.model2 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
                         (wall.model1 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
@@ -768,14 +789,14 @@ export default class World {
                     for (let i: number = 0; i < tile.primaryCount; i++) {
                         const loc: Sprite | null = tile.locs[i];
                         if (loc && loc.model && loc.model.vertexNormal) {
-                            this.mergeLocNormals(level, tileX, tileZ, loc.maxSceneTileX + 1 - loc.minSceneTileX, loc.maxSceneTileZ - loc.minSceneTileZ + 1, (loc.model as Model));
+                            this.shareLightLoc(level, tileX, tileZ, loc.maxSceneTileX + 1 - loc.minSceneTileX, loc.maxSceneTileZ - loc.minSceneTileZ + 1, (loc.model as Model));
                             (loc.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
                     }
 
                     const decor: GroundDecor | null = tile.groundDecor;
                     if (decor && decor.model && decor.model.vertexNormal) {
-                        this.mergeGroundDecorationNormals(level, tileX, tileZ, (decor.model as Model));
+                        this.shareLightGd(level, tileX, tileZ, (decor.model as Model));
                         (decor.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
                 }
@@ -783,37 +804,39 @@ export default class World {
         }
     }
 
-    mergeGroundDecorationNormals(level: number, tileX: number, tileZ: number, model: Model): void {
+    // (real name)
+    shareLightGd(level: number, tileX: number, tileZ: number, model: Model): void {
         if (tileX < this.maxTileX) {
             const tile: Square | null = this.levelTiles[level][tileX + 1][tileZ];
             if (tile && tile.groundDecor && tile.groundDecor.model && tile.groundDecor.model.vertexNormal) {
-                this.mergeNormals(model, tile.groundDecor.model as Model, 128, 0, 0, true);
+                this.modelShareLight(model, tile.groundDecor.model as Model, 128, 0, 0, true);
             }
         }
 
         if (tileZ < this.maxTileX) {
             const tile: Square | null = this.levelTiles[level][tileX][tileZ + 1];
             if (tile && tile.groundDecor && tile.groundDecor.model && tile.groundDecor.model.vertexNormal) {
-                this.mergeNormals(model, tile.groundDecor.model as Model, 0, 0, 128, true);
+                this.modelShareLight(model, tile.groundDecor.model as Model, 0, 0, 128, true);
             }
         }
 
         if (tileX < this.maxTileX && tileZ < this.maxTileZ) {
             const tile: Square | null = this.levelTiles[level][tileX + 1][tileZ + 1];
             if (tile && tile.groundDecor && tile.groundDecor.model && tile.groundDecor.model.vertexNormal) {
-                this.mergeNormals(model, tile.groundDecor.model as Model, 128, 0, 128, true);
+                this.modelShareLight(model, tile.groundDecor.model as Model, 128, 0, 128, true);
             }
         }
 
         if (tileX < this.maxTileX && tileZ > 0) {
             const tile: Square | null = this.levelTiles[level][tileX + 1][tileZ - 1];
             if (tile && tile.groundDecor && tile.groundDecor.model && tile.groundDecor.model.vertexNormal) {
-                this.mergeNormals(model, tile.groundDecor.model as Model, 128, 0, -128, true);
+                this.modelShareLight(model, tile.groundDecor.model as Model, 128, 0, -128, true);
             }
         }
     }
 
-    mergeLocNormals(level: number, tileX: number, tileZ: number, tileSizeX: number, tileSizeZ: number, model: Model): void {
+    // (real name)
+    shareLightLoc(level: number, tileX: number, tileZ: number, tileSizeX: number, tileSizeZ: number, model: Model): void {
         let allowFaceRemoval: boolean = true;
 
         let minTileX: number = tileX;
@@ -844,16 +867,16 @@ export default class World {
                     const offsetX: number = (x - tileX) * 128 + (1 - tileSizeX) * 64;
                     const offsetZ: number = (z - tileZ) * 128 + (1 - tileSizeZ) * 64;
                     const offsetY: number =
-                        (((this.levelHeightmaps[l][x][z] + this.levelHeightmaps[l][x + 1][z] + this.levelHeightmaps[l][x][z + 1] + this.levelHeightmaps[l][x + 1][z + 1]) / 4) | 0) -
-                        (((this.levelHeightmaps[level][tileX][tileZ] + this.levelHeightmaps[level][tileX + 1][tileZ] + this.levelHeightmaps[level][tileX][tileZ + 1] + this.levelHeightmaps[level][tileX + 1][tileZ + 1]) / 4) | 0);
+                        (((this.groundHeight[l][x][z] + this.groundHeight[l][x + 1][z] + this.groundHeight[l][x][z + 1] + this.groundHeight[l][x + 1][z + 1]) / 4) | 0) -
+                        (((this.groundHeight[level][tileX][tileZ] + this.groundHeight[level][tileX + 1][tileZ] + this.groundHeight[level][tileX][tileZ + 1] + this.groundHeight[level][tileX + 1][tileZ + 1]) / 4) | 0);
 
                     const wall: Wall | null = tile.wall;
                     if (wall && wall.model1 && wall.model1.vertexNormal) {
-                        this.mergeNormals(model, wall.model1 as Model, offsetX, offsetY, offsetZ, allowFaceRemoval);
+                        this.modelShareLight(model, wall.model1 as Model, offsetX, offsetY, offsetZ, allowFaceRemoval);
                     }
 
                     if (wall && wall.model2 && wall.model2.vertexNormal) {
-                        this.mergeNormals(model, wall.model2 as Model, offsetX, offsetY, offsetZ, allowFaceRemoval);
+                        this.modelShareLight(model, wall.model2 as Model, offsetX, offsetY, offsetZ, allowFaceRemoval);
                     }
 
                     for (let i: number = 0; i < tile.primaryCount; i++) {
@@ -864,7 +887,7 @@ export default class World {
 
                         const locTileSizeX: number = loc.maxSceneTileX + 1 - loc.minSceneTileX;
                         const locTileSizeZ: number = loc.maxSceneTileZ + 1 - loc.minSceneTileZ;
-                        this.mergeNormals(model, loc.model as Model, (loc.minSceneTileX - tileX) * 128 + (locTileSizeX - tileSizeX) * 64, offsetY, (loc.minSceneTileZ - tileZ) * 128 + (locTileSizeZ - tileSizeZ) * 64, allowFaceRemoval);
+                        this.modelShareLight(model, loc.model as Model, (loc.minSceneTileX - tileX) * 128 + (locTileSizeX - tileSizeX) * 64, offsetY, (loc.minSceneTileZ - tileZ) * 128 + (locTileSizeZ - tileSizeZ) * 64, allowFaceRemoval);
                     }
                 }
             }
@@ -874,7 +897,7 @@ export default class World {
         }
     }
 
-    mergeNormals(modelA: Model, modelB: Model, offsetX: number, offsetY: number, offsetZ: number, allowFaceRemoval: boolean): void {
+    private modelShareLight(modelA: Model, modelB: Model, offsetX: number, offsetY: number, offsetZ: number, allowFaceRemoval: boolean): void {
         this.tmpMergeIndex++;
 
         let merged: number = 0;
@@ -981,8 +1004,8 @@ export default class World {
         const angle: number = overlay.shapeAngle;
         const background: number = overlay.backgroundRgb;
         const foreground: number = overlay.foregroundRgb;
-        const mask: Int8Array = World.MINIMAP_TILE_MASK[shape];
-        const rotation: Int8Array = World.MINIMAP_TILE_ROTATION_MAP[angle];
+        const mask: Int8Array = World.MINIMAP_SHAPE[shape];
+        const rotation: Int8Array = World.MINIMAP_ROTATE[angle];
         let off: number = 0;
         if (background !== 0) {
             for (let i: number = 0; i < 4; i++) {
@@ -1020,7 +1043,8 @@ export default class World {
         World.clickTileZ = -1;
     }
 
-    draw(eyeX: number, eyeY: number, eyeZ: number, topLevel: number, eyeYaw: number, eyePitch: number, loopCycle: number): void {
+    // (based on a real name)
+    renderAll(eyeX: number, eyeY: number, eyeZ: number, topLevel: number, eyeYaw: number, eyePitch: number, loopCycle: number): void {
         if (eyeX < 0) {
             eyeX = 0;
         } else if (eyeX >= this.maxTileX * 128) {
@@ -1033,57 +1057,57 @@ export default class World {
             eyeZ = this.maxTileZ * 128 - 1;
         }
 
-        World.cycle++;
-        World.sinEyePitch = Pix3D.sinTable[eyePitch];
-        World.cosEyePitch = Pix3D.cosTable[eyePitch];
-        World.sinEyeYaw = Pix3D.sinTable[eyeYaw];
-        World.cosEyeYaw = Pix3D.cosTable[eyeYaw];
+        World.cycleNo++;
+        World.cameraSinX = Pix3D.sinTable[eyePitch];
+        World.cameraCosX = Pix3D.cosTable[eyePitch];
+        World.cameraSinY = Pix3D.sinTable[eyeYaw];
+        World.cameraCosY = Pix3D.cosTable[eyeYaw];
 
         World.visibilityMap = World.visibilityMatrix[((eyePitch - 128) / 32) | 0][(eyeYaw / 64) | 0];
-        World.eyeX = eyeX;
-        World.eyeY = eyeY;
-        World.eyeZ = eyeZ;
-        World.eyeTileX = (eyeX / 128) | 0;
-        World.eyeTileZ = (eyeZ / 128) | 0;
-        World.topLevel = topLevel;
+        World.cx = eyeX;
+        World.cy = eyeY;
+        World.cz = eyeZ;
+        World.gx = (eyeX / 128) | 0;
+        World.gz = (eyeZ / 128) | 0;
+        World.maxLevel = topLevel;
 
-        World.minDrawTileX = World.eyeTileX - 25;
-        if (World.minDrawTileX < 0) {
-            World.minDrawTileX = 0;
+        World.minX = World.gx - 25;
+        if (World.minX < 0) {
+            World.minX = 0;
         }
 
-        World.minDrawTileZ = World.eyeTileZ - 25;
-        if (World.minDrawTileZ < 0) {
-            World.minDrawTileZ = 0;
+        World.minZ = World.gz - 25;
+        if (World.minZ < 0) {
+            World.minZ = 0;
         }
 
-        World.maxDrawTileX = World.eyeTileX + 25;
-        if (World.maxDrawTileX > this.maxTileX) {
-            World.maxDrawTileX = this.maxTileX;
+        World.maxX = World.gx + 25;
+        if (World.maxX > this.maxTileX) {
+            World.maxX = this.maxTileX;
         }
 
-        World.maxDrawTileZ = World.eyeTileZ + 25;
-        if (World.maxDrawTileZ > this.maxTileZ) {
-            World.maxDrawTileZ = this.maxTileZ;
+        World.maxZ = World.gz + 25;
+        if (World.maxZ > this.maxTileZ) {
+            World.maxZ = this.maxTileZ;
         }
 
         this.updateActiveOccluders();
-        World.tilesRemaining = 0;
+        World.fillLeft = 0;
 
         for (let level: number = this.minLevel; level < this.maxLevel; level++) {
             const tiles: (Square | null)[][] = this.levelTiles[level];
-            for (let x: number = World.minDrawTileX; x < World.maxDrawTileX; x++) {
-                for (let z: number = World.minDrawTileZ; z < World.maxDrawTileZ; z++) {
+            for (let x: number = World.minX; x < World.maxX; x++) {
+                for (let z: number = World.minZ; z < World.maxZ; z++) {
                     const tile: Square | null = tiles[x][z];
                     if (!tile) {
                         continue;
                     }
 
-                    if (tile.drawLevel <= topLevel && (World.visibilityMap[x + 25 - World.eyeTileX][z + 25 - World.eyeTileZ] || this.levelHeightmaps[level][x][z] - eyeY >= 2000)) {
+                    if (tile.drawLevel <= topLevel && (World.visibilityMap[x + 25 - World.gx][z + 25 - World.gz] || this.groundHeight[level][x][z] - eyeY >= 2000)) {
                         tile.drawFront = true;
                         tile.drawBack = true;
                         tile.drawPrimaries = tile.primaryCount > 0;
-                        World.tilesRemaining++;
+                        World.fillLeft++;
                     } else {
                         tile.drawFront = false;
                         tile.drawBack = false;
@@ -1096,50 +1120,50 @@ export default class World {
         for (let level: number = this.minLevel; level < this.maxLevel; level++) {
             const tiles: (Square | null)[][] = this.levelTiles[level];
             for (let dx: number = -25; dx <= 0; dx++) {
-                const rightTileX: number = World.eyeTileX + dx;
-                const leftTileX: number = World.eyeTileX - dx;
+                const rightTileX: number = World.gx + dx;
+                const leftTileX: number = World.gx - dx;
 
-                if (rightTileX < World.minDrawTileX && leftTileX >= World.maxDrawTileX) {
+                if (rightTileX < World.minX && leftTileX >= World.maxX) {
                     continue;
                 }
 
                 for (let dz: number = -25; dz <= 0; dz++) {
-                    const forwardTileZ: number = World.eyeTileZ + dz;
-                    const backwardTileZ: number = World.eyeTileZ - dz;
+                    const forwardTileZ: number = World.gz + dz;
+                    const backwardTileZ: number = World.gz - dz;
                     let tile: Square | null;
-                    if (rightTileX >= World.minDrawTileX) {
-                        if (forwardTileZ >= World.minDrawTileZ) {
+                    if (rightTileX >= World.minX) {
+                        if (forwardTileZ >= World.minZ) {
                             tile = tiles[rightTileX][forwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, true, loopCycle);
+                                this.fill(tile, true, loopCycle);
                             }
                         }
 
-                        if (backwardTileZ < World.maxDrawTileZ) {
+                        if (backwardTileZ < World.maxZ) {
                             tile = tiles[rightTileX][backwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, true, loopCycle);
+                                this.fill(tile, true, loopCycle);
                             }
                         }
                     }
 
-                    if (leftTileX < World.maxDrawTileX) {
-                        if (forwardTileZ >= World.minDrawTileZ) {
+                    if (leftTileX < World.maxX) {
+                        if (forwardTileZ >= World.minZ) {
                             tile = tiles[leftTileX][forwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, true, loopCycle);
+                                this.fill(tile, true, loopCycle);
                             }
                         }
 
-                        if (backwardTileZ < World.maxDrawTileZ) {
+                        if (backwardTileZ < World.maxZ) {
                             tile = tiles[leftTileX][backwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, true, loopCycle);
+                                this.fill(tile, true, loopCycle);
                             }
                         }
                     }
 
-                    if (World.tilesRemaining === 0) {
+                    if (World.fillLeft === 0) {
                         World.takingInput = false;
                         return;
                     }
@@ -1150,49 +1174,49 @@ export default class World {
         for (let level: number = this.minLevel; level < this.maxLevel; level++) {
             const tiles: (Square | null)[][] = this.levelTiles[level];
             for (let dx: number = -25; dx <= 0; dx++) {
-                const rightTileX: number = World.eyeTileX + dx;
-                const leftTileX: number = World.eyeTileX - dx;
-                if (rightTileX < World.minDrawTileX && leftTileX >= World.maxDrawTileX) {
+                const rightTileX: number = World.gx + dx;
+                const leftTileX: number = World.gx - dx;
+                if (rightTileX < World.minX && leftTileX >= World.maxX) {
                     continue;
                 }
 
                 for (let dz: number = -25; dz <= 0; dz++) {
-                    const forwardTileZ: number = World.eyeTileZ + dz;
-                    const backgroundTileZ: number = World.eyeTileZ - dz;
+                    const forwardTileZ: number = World.gz + dz;
+                    const backgroundTileZ: number = World.gz - dz;
                     let tile: Square | null;
-                    if (rightTileX >= World.minDrawTileX) {
-                        if (forwardTileZ >= World.minDrawTileZ) {
+                    if (rightTileX >= World.minX) {
+                        if (forwardTileZ >= World.minZ) {
                             tile = tiles[rightTileX][forwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, false, loopCycle);
+                                this.fill(tile, false, loopCycle);
                             }
                         }
 
-                        if (backgroundTileZ < World.maxDrawTileZ) {
+                        if (backgroundTileZ < World.maxZ) {
                             tile = tiles[rightTileX][backgroundTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, false, loopCycle);
+                                this.fill(tile, false, loopCycle);
                             }
                         }
                     }
 
-                    if (leftTileX < World.maxDrawTileX) {
-                        if (forwardTileZ >= World.minDrawTileZ) {
+                    if (leftTileX < World.maxX) {
+                        if (forwardTileZ >= World.minZ) {
                             tile = tiles[leftTileX][forwardTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, false, loopCycle);
+                                this.fill(tile, false, loopCycle);
                             }
                         }
 
-                        if (backgroundTileZ < World.maxDrawTileZ) {
+                        if (backgroundTileZ < World.maxZ) {
                             tile = tiles[leftTileX][backgroundTileZ];
                             if (tile && tile.drawFront) {
-                                this.drawTile(tile, false, loopCycle);
+                                this.fill(tile, false, loopCycle);
                             }
                         }
                     }
 
-                    if (World.tilesRemaining === 0) {
+                    if (World.fillLeft === 0) {
                         World.takingInput = false;
                         return;
                     }
@@ -1201,7 +1225,8 @@ export default class World {
         }
     }
 
-    private addModel(
+    // (real name)
+    private setSprite(
         x: number,
         z: number,
         y: number,
@@ -1273,7 +1298,8 @@ export default class World {
         return true;
     }
 
-    private removeLoc2(loc: Sprite): void {
+    // (real name)
+    private delSprite(loc: Sprite): void {
         for (let tx: number = loc.minSceneTileX; tx <= loc.maxSceneTileX; tx++) {
             for (let tz: number = loc.minSceneTileZ; tz <= loc.maxSceneTileZ; tz++) {
                 const tile: Square | null = this.levelTiles[loc.locLevel][tx][tz];
@@ -1303,8 +1329,8 @@ export default class World {
     }
 
     private updateActiveOccluders(): void {
-        const count: number = World.levelOccluderCount[World.topLevel];
-        const occluders: (Occlude | null)[] = World.levelOccluders[World.topLevel];
+        const count: number = World.levelOccluderCount[World.maxLevel];
+        const occluders: (Occlude | null)[] = World.levelOccluders[World.maxLevel];
         World.activeOccluderCount = 0;
         for (let i: number = 0; i < count; i++) {
             const occluder: Occlude | null = occluders[i];
@@ -1317,14 +1343,14 @@ export default class World {
             let deltaMaxTileZ: number;
             let deltaMaxTileX: number;
             if (occluder.type === 1) {
-                deltaMaxY = occluder.minTileX + 25 - World.eyeTileX;
+                deltaMaxY = occluder.minTileX + 25 - World.gx;
                 if (deltaMaxY >= 0 && deltaMaxY <= 50) {
-                    deltaMinTileZ = occluder.minTileZ + 25 - World.eyeTileZ;
+                    deltaMinTileZ = occluder.minTileZ + 25 - World.gz;
                     if (deltaMinTileZ < 0) {
                         deltaMinTileZ = 0;
                     }
 
-                    deltaMaxTileZ = occluder.maxTileZ + 25 - World.eyeTileZ;
+                    deltaMaxTileZ = occluder.maxTileZ + 25 - World.gz;
                     if (deltaMaxTileZ > 50) {
                         deltaMaxTileZ = 50;
                     }
@@ -1338,7 +1364,7 @@ export default class World {
                     }
 
                     if (ok) {
-                        deltaMaxTileX = World.eyeX - occluder.minX;
+                        deltaMaxTileX = World.cx - occluder.minX;
                         if (deltaMaxTileX > 32) {
                             occluder.mode = 1;
                         } else {
@@ -1350,23 +1376,23 @@ export default class World {
                             deltaMaxTileX = -deltaMaxTileX;
                         }
 
-                        occluder.minDeltaZ = (((occluder.minZ - World.eyeZ) << 8) / deltaMaxTileX) | 0;
-                        occluder.maxDeltaZ = (((occluder.maxZ - World.eyeZ) << 8) / deltaMaxTileX) | 0;
-                        occluder.minDeltaY = (((occluder.minY - World.eyeY) << 8) / deltaMaxTileX) | 0;
-                        occluder.maxDeltaY = (((occluder.maxY - World.eyeY) << 8) / deltaMaxTileX) | 0;
+                        occluder.minDeltaZ = (((occluder.minZ - World.cz) << 8) / deltaMaxTileX) | 0;
+                        occluder.maxDeltaZ = (((occluder.maxZ - World.cz) << 8) / deltaMaxTileX) | 0;
+                        occluder.minDeltaY = (((occluder.minY - World.cy) << 8) / deltaMaxTileX) | 0;
+                        occluder.maxDeltaY = (((occluder.maxY - World.cy) << 8) / deltaMaxTileX) | 0;
                         World.activeOccluders[World.activeOccluderCount++] = occluder;
                     }
                 }
             } else if (occluder.type === 2) {
-                deltaMaxY = occluder.minTileZ + 25 - World.eyeTileZ;
+                deltaMaxY = occluder.minTileZ + 25 - World.gz;
 
                 if (deltaMaxY >= 0 && deltaMaxY <= 50) {
-                    deltaMinTileZ = occluder.minTileX + 25 - World.eyeTileX;
+                    deltaMinTileZ = occluder.minTileX + 25 - World.gx;
                     if (deltaMinTileZ < 0) {
                         deltaMinTileZ = 0;
                     }
 
-                    deltaMaxTileZ = occluder.maxTileX + 25 - World.eyeTileX;
+                    deltaMaxTileZ = occluder.maxTileX + 25 - World.gx;
                     if (deltaMaxTileZ > 50) {
                         deltaMaxTileZ = 50;
                     }
@@ -1380,7 +1406,7 @@ export default class World {
                     }
 
                     if (ok) {
-                        deltaMaxTileX = World.eyeZ - occluder.minZ;
+                        deltaMaxTileX = World.cz - occluder.minZ;
                         if (deltaMaxTileX > 32) {
                             occluder.mode = 3;
                         } else {
@@ -1392,34 +1418,34 @@ export default class World {
                             deltaMaxTileX = -deltaMaxTileX;
                         }
 
-                        occluder.minDeltaX = (((occluder.minX - World.eyeX) << 8) / deltaMaxTileX) | 0;
-                        occluder.maxDeltaX = (((occluder.maxX - World.eyeX) << 8) / deltaMaxTileX) | 0;
-                        occluder.minDeltaY = (((occluder.minY - World.eyeY) << 8) / deltaMaxTileX) | 0;
-                        occluder.maxDeltaY = (((occluder.maxY - World.eyeY) << 8) / deltaMaxTileX) | 0;
+                        occluder.minDeltaX = (((occluder.minX - World.cx) << 8) / deltaMaxTileX) | 0;
+                        occluder.maxDeltaX = (((occluder.maxX - World.cx) << 8) / deltaMaxTileX) | 0;
+                        occluder.minDeltaY = (((occluder.minY - World.cy) << 8) / deltaMaxTileX) | 0;
+                        occluder.maxDeltaY = (((occluder.maxY - World.cy) << 8) / deltaMaxTileX) | 0;
                         World.activeOccluders[World.activeOccluderCount++] = occluder;
                     }
                 }
             } else if (occluder.type === 4) {
-                deltaMaxY = occluder.minY - World.eyeY;
+                deltaMaxY = occluder.minY - World.cy;
 
                 if (deltaMaxY > 128) {
-                    deltaMinTileZ = occluder.minTileZ + 25 - World.eyeTileZ;
+                    deltaMinTileZ = occluder.minTileZ + 25 - World.gz;
                     if (deltaMinTileZ < 0) {
                         deltaMinTileZ = 0;
                     }
 
-                    deltaMaxTileZ = occluder.maxTileZ + 25 - World.eyeTileZ;
+                    deltaMaxTileZ = occluder.maxTileZ + 25 - World.gz;
                     if (deltaMaxTileZ > 50) {
                         deltaMaxTileZ = 50;
                     }
 
                     if (deltaMinTileZ <= deltaMaxTileZ) {
-                        let deltaMinTileX: number = occluder.minTileX + 25 - World.eyeTileX;
+                        let deltaMinTileX: number = occluder.minTileX + 25 - World.gx;
                         if (deltaMinTileX < 0) {
                             deltaMinTileX = 0;
                         }
 
-                        deltaMaxTileX = occluder.maxTileX + 25 - World.eyeTileX;
+                        deltaMaxTileX = occluder.maxTileX + 25 - World.gx;
                         if (deltaMaxTileX > 50) {
                             deltaMaxTileX = 50;
                         }
@@ -1436,10 +1462,10 @@ export default class World {
 
                         if (ok) {
                             occluder.mode = 5;
-                            occluder.minDeltaX = (((occluder.minX - World.eyeX) << 8) / deltaMaxY) | 0;
-                            occluder.maxDeltaX = (((occluder.maxX - World.eyeX) << 8) / deltaMaxY) | 0;
-                            occluder.minDeltaZ = (((occluder.minZ - World.eyeZ) << 8) / deltaMaxY) | 0;
-                            occluder.maxDeltaZ = (((occluder.maxZ - World.eyeZ) << 8) / deltaMaxY) | 0;
+                            occluder.minDeltaX = (((occluder.minX - World.cx) << 8) / deltaMaxY) | 0;
+                            occluder.maxDeltaX = (((occluder.maxX - World.cx) << 8) / deltaMaxY) | 0;
+                            occluder.minDeltaZ = (((occluder.minZ - World.cz) << 8) / deltaMaxY) | 0;
+                            occluder.maxDeltaZ = (((occluder.maxZ - World.cz) << 8) / deltaMaxY) | 0;
                             World.activeOccluders[World.activeOccluderCount++] = occluder;
                         }
                     }
@@ -1448,7 +1474,8 @@ export default class World {
         }
     }
 
-    private drawTile(next: Square, checkAdjacent: boolean, loopCycle: number): void {
+    // (real name)
+    private fill(next: Square, checkAdjacent: boolean, loopCycle: number): void {
         World.drawTileQueue.push(next);
 
         // eslint-disable-next-line no-constant-condition
@@ -1479,7 +1506,7 @@ export default class World {
                         }
                     }
 
-                    if (tileX <= World.eyeTileX && tileX > World.minDrawTileX) {
+                    if (tileX <= World.gx && tileX > World.minX) {
                         const adjacent: Square | null = tiles[tileX - 1][tileZ];
 
                         if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x1) === 0)) {
@@ -1487,7 +1514,7 @@ export default class World {
                         }
                     }
 
-                    if (tileX >= World.eyeTileX && tileX < World.maxDrawTileX - 1) {
+                    if (tileX >= World.gx && tileX < World.maxX - 1) {
                         const adjacent: Square | null = tiles[tileX + 1][tileZ];
 
                         if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x4) === 0)) {
@@ -1495,7 +1522,7 @@ export default class World {
                         }
                     }
 
-                    if (tileZ <= World.eyeTileZ && tileZ > World.minDrawTileZ) {
+                    if (tileZ <= World.gz && tileZ > World.minZ) {
                         const adjacent: Square | null = tiles[tileX][tileZ - 1];
 
                         if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x8) === 0)) {
@@ -1503,7 +1530,7 @@ export default class World {
                         }
                     }
 
-                    if (tileZ >= World.eyeTileZ && tileZ < World.maxDrawTileZ - 1) {
+                    if (tileZ >= World.gz && tileZ < World.maxZ - 1) {
                         const adjacent: Square | null = tiles[tileX][tileZ + 1];
 
                         if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x2) === 0)) {
@@ -1520,36 +1547,36 @@ export default class World {
                     const linkedSquare: Square = tile.linkedSquare;
 
                     if (!linkedSquare.quickGround) {
-                        if (linkedSquare.ground && !this.tileVisible(0, tileX, tileZ)) {
-                            this.drawGround(tileX, tileZ, linkedSquare.ground, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw);
+                        if (linkedSquare.ground && !this.groundOccluded(0, tileX, tileZ)) {
+                            this.drawGround(tileX, tileZ, linkedSquare.ground, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY);
                         }
-                    } else if (!this.tileVisible(0, tileX, tileZ)) {
-                        this.drawQuickGround(linkedSquare.quickGround, 0, tileX, tileZ, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw);
+                    } else if (!this.groundOccluded(0, tileX, tileZ)) {
+                        this.drawQuickGround(linkedSquare.quickGround, 0, tileX, tileZ, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY);
                     }
 
                     const wall: Wall | null = linkedSquare.wall;
                     if (wall) {
-                        wall.model1?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                        wall.model1?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
 
                     for (let i: number = 0; i < linkedSquare.primaryCount; i++) {
                         const loc: Sprite | null = linkedSquare.locs[i];
 
                         if (loc) {
-                            loc.model?.draw(loopCycle, loc.yaw, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, loc.x - World.eyeX, loc.y - World.eyeY, loc.z - World.eyeZ, loc.typecode);
+                            loc.model?.draw(loopCycle, loc.yaw, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, loc.x - World.cx, loc.y - World.cy, loc.z - World.cz, loc.typecode);
                         }
                     }
                 }
 
                 let tileDrawn: boolean = false;
                 if (!tile.quickGround) {
-                    if (tile.ground && !this.tileVisible(originalLevel, tileX, tileZ)) {
+                    if (tile.ground && !this.groundOccluded(originalLevel, tileX, tileZ)) {
                         tileDrawn = true;
-                        this.drawGround(tileX, tileZ, tile.ground, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw);
+                        this.drawGround(tileX, tileZ, tile.ground, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY);
                     }
-                } else if (!this.tileVisible(originalLevel, tileX, tileZ)) {
+                } else if (!this.groundOccluded(originalLevel, tileX, tileZ)) {
                     tileDrawn = true;
-                    this.drawQuickGround(tile.quickGround, originalLevel, tileX, tileZ, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw);
+                    this.drawQuickGround(tile.quickGround, originalLevel, tileX, tileZ, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY);
                 }
 
                 let direction: number = 0;
@@ -1559,24 +1586,24 @@ export default class World {
                 const decor: Decor | null = tile.decor;
 
                 if (wall || decor) {
-                    if (World.eyeTileX === tileX) {
+                    if (World.gx === tileX) {
                         direction += 1;
-                    } else if (World.eyeTileX < tileX) {
+                    } else if (World.gx < tileX) {
                         direction += 2;
                     }
 
-                    if (World.eyeTileZ === tileZ) {
+                    if (World.gz === tileZ) {
                         direction += 3;
-                    } else if (World.eyeTileZ > tileZ) {
+                    } else if (World.gz > tileZ) {
                         direction += 6;
                     }
 
-                    frontWallTypes = World.FRONT_WALL_TYPES[direction];
-                    tile.backWallTypes = World.BACK_WALL_TYPES[direction];
+                    frontWallTypes = World.PRETAB[direction];
+                    tile.backWallTypes = World.POSTTAB[direction];
                 }
 
                 if (wall) {
-                    if ((wall.angle1 & World.DIRECTION_ALLOW_WALL_CORNER_TYPE[direction]) === 0) {
+                    if ((wall.angle1 & World.MIDTAB[direction]) === 0) {
                         tile.cornerSides = 0;
                     } else if (wall.angle1 === 16) {
                         tile.cornerSides = 3;
@@ -1596,22 +1623,22 @@ export default class World {
                         tile.sidesAfterCorner = 9 - tile.sidesBeforeCorner;
                     }
 
-                    if ((wall.angle1 & frontWallTypes) !== 0 && !this.isTileSideOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
-                        wall.model1?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                    if ((wall.angle1 & frontWallTypes) !== 0 && !this.wallOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
+                        wall.model1?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
 
-                    if ((wall.angle2 & frontWallTypes) !== 0 && !this.isTileSideOccluded(originalLevel, tileX, tileZ, wall.angle2)) {
-                        wall.model2?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                    if ((wall.angle2 & frontWallTypes) !== 0 && !this.wallOccluded(originalLevel, tileX, tileZ, wall.angle2)) {
+                        wall.model2?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
                 }
 
-                if (decor && !this.isTileColumnOccluded(originalLevel, tileX, tileZ, decor.model.minY)) {
+                if (decor && !this.spriteOccluded(originalLevel, tileX, tileZ, decor.model.minY)) {
                     if ((decor.angle1 & frontWallTypes) !== 0) {
-                        decor.model.draw(loopCycle, decor.angle2, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, decor.x - World.eyeX, decor.y - World.eyeY, decor.z - World.eyeZ, decor.typecode);
+                        decor.model.draw(loopCycle, decor.angle2, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, decor.x - World.cx, decor.y - World.cy, decor.z - World.cz, decor.typecode);
                     } else if ((decor.angle1 & 0x300) !== 0) {
-                        const x: number = decor.x - World.eyeX;
-                        const y: number = decor.y - World.eyeY;
-                        const z: number = decor.z - World.eyeZ;
+                        const x: number = decor.x - World.cx;
+                        const y: number = decor.y - World.cy;
+                        const z: number = decor.z - World.cz;
                         const angle: number = decor.angle2;
 
                         let nearestX: number;
@@ -1631,13 +1658,13 @@ export default class World {
                         if ((decor.angle1 & 0x100) !== 0 && nearestZ < nearestX) {
                             const drawX: number = x + World.WALL_DECORATION_INSET_X[angle];
                             const drawZ: number = z + World.WALL_DECORATION_INSET_Z[angle];
-                            decor.model.draw(loopCycle, angle * 512 + 256, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, drawX, y, drawZ, decor.typecode);
+                            decor.model.draw(loopCycle, angle * 512 + 256, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, drawX, y, drawZ, decor.typecode);
                         }
 
                         if ((decor.angle1 & 0x200) !== 0 && nearestZ > nearestX) {
                             const drawX: number = x + World.WALL_DECORATION_OUTSET_X[angle];
                             const drawZ: number = z + World.WALL_DECORATION_OUTSET_Z[angle];
-                            decor.model.draw(loopCycle, (angle * 512 + 1280) & 0x7ff, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, drawX, y, drawZ, decor.typecode);
+                            decor.model.draw(loopCycle, (angle * 512 + 1280) & 0x7ff, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, drawX, y, drawZ, decor.typecode);
                         }
                     }
                 }
@@ -1645,21 +1672,21 @@ export default class World {
                 if (tileDrawn) {
                     const groundDecor: GroundDecor | null = tile.groundDecor;
                     if (groundDecor) {
-                        groundDecor.model?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, groundDecor.x - World.eyeX, groundDecor.y - World.eyeY, groundDecor.z - World.eyeZ, groundDecor.typecode);
+                        groundDecor.model?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, groundDecor.x - World.cx, groundDecor.y - World.cy, groundDecor.z - World.cz, groundDecor.typecode);
                     }
 
                     const objs: GroundObject | null = tile.groundObject;
                     if (objs && objs.offset === 0) {
                         if (objs.bottomObj) {
-                            objs.bottomObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY, objs.z - World.eyeZ, objs.typecode);
+                            objs.bottomObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy, objs.z - World.cz, objs.typecode);
                         }
 
                         if (objs.middleObj) {
-                            objs.middleObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY, objs.z - World.eyeZ, objs.typecode);
+                            objs.middleObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy, objs.z - World.cz, objs.typecode);
                         }
 
                         if (objs.topObj) {
-                            objs.topObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY, objs.z - World.eyeZ, objs.typecode);
+                            objs.topObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy, objs.z - World.cz, objs.typecode);
                         }
                     }
                 }
@@ -1667,28 +1694,28 @@ export default class World {
                 const spans: number = tile.combinedPrimaryExtendDirections;
 
                 if (spans !== 0) {
-                    if (tileX < World.eyeTileX && (spans & 0x4) !== 0) {
+                    if (tileX < World.gx && (spans & 0x4) !== 0) {
                         const adjacent: Square | null = tiles[tileX + 1][tileZ];
                         if (adjacent && adjacent.drawBack) {
                             World.drawTileQueue.push(adjacent);
                         }
                     }
 
-                    if (tileZ < World.eyeTileZ && (spans & 0x2) !== 0) {
+                    if (tileZ < World.gz && (spans & 0x2) !== 0) {
                         const adjacent: Square | null = tiles[tileX][tileZ + 1];
                         if (adjacent && adjacent.drawBack) {
                             World.drawTileQueue.push(adjacent);
                         }
                     }
 
-                    if (tileX > World.eyeTileX && (spans & 0x1) !== 0) {
+                    if (tileX > World.gx && (spans & 0x1) !== 0) {
                         const adjacent: Square | null = tiles[tileX - 1][tileZ];
                         if (adjacent && adjacent.drawBack) {
                             World.drawTileQueue.push(adjacent);
                         }
                     }
 
-                    if (tileZ > World.eyeTileZ && (spans & 0x8) !== 0) {
+                    if (tileZ > World.gz && (spans & 0x8) !== 0) {
                         const adjacent: Square | null = tiles[tileX][tileZ - 1];
                         if (adjacent && adjacent.drawBack) {
                             World.drawTileQueue.push(adjacent);
@@ -1705,7 +1732,7 @@ export default class World {
                         continue;
                     }
 
-                    if (loc.cycle !== World.cycle && (tile.primaryExtendDirections[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
+                    if (loc.cycle !== World.cycleNo && (tile.primaryExtendDirections[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
                         draw = false;
                         break;
                     }
@@ -1714,8 +1741,8 @@ export default class World {
                 if (draw) {
                     const wall: Wall | null = tile.wall;
 
-                    if (wall && !this.isTileSideOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
-                        wall.model1?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                    if (wall && !this.wallOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
+                        wall.model1?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
 
                     tile.cornerSides = 0;
@@ -1730,7 +1757,7 @@ export default class World {
                 iterate_locs: for (let i: number = 0; i < locCount; i++) {
                     const loc: Sprite | null = tile.locs[i];
 
-                    if (!loc || loc.cycle === World.cycle) {
+                    if (!loc || loc.cycle === World.cycleNo) {
                         continue;
                     }
 
@@ -1777,15 +1804,15 @@ export default class World {
 
                     World.locBuffer[locBufferSize++] = loc;
 
-                    let minTileDistanceX: number = World.eyeTileX - loc.minSceneTileX;
-                    const maxTileDistanceX: number = loc.maxSceneTileX - World.eyeTileX;
+                    let minTileDistanceX: number = World.gx - loc.minSceneTileX;
+                    const maxTileDistanceX: number = loc.maxSceneTileX - World.gx;
 
                     if (maxTileDistanceX > minTileDistanceX) {
                         minTileDistanceX = maxTileDistanceX;
                     }
 
-                    const minTileDistanceZ: number = World.eyeTileZ - loc.minSceneTileZ;
-                    const maxTileDistanceZ: number = loc.maxSceneTileZ - World.eyeTileZ;
+                    const minTileDistanceZ: number = World.gz - loc.minSceneTileZ;
+                    const maxTileDistanceZ: number = loc.maxSceneTileZ - World.gz;
 
                     if (maxTileDistanceZ > minTileDistanceZ) {
                         loc.distance = minTileDistanceX + maxTileDistanceZ;
@@ -1805,7 +1832,7 @@ export default class World {
                             continue;
                         }
 
-                        if (loc.distance > farthestDistance && loc.cycle !== World.cycle) {
+                        if (loc.distance > farthestDistance && loc.cycle !== World.cycleNo) {
                             farthestDistance = loc.distance;
                             farthestIndex = index;
                         }
@@ -1817,10 +1844,10 @@ export default class World {
 
                     const farthest: Sprite | null = World.locBuffer[farthestIndex];
                     if (farthest) {
-                        farthest.cycle = World.cycle;
+                        farthest.cycle = World.cycleNo;
 
-                        if (!this.locVisible(originalLevel, farthest.minSceneTileX, farthest.maxSceneTileX, farthest.minSceneTileZ, farthest.maxSceneTileZ, farthest.model?.minY ?? 0)) {
-                            farthest.model?.draw(loopCycle, farthest.yaw, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, farthest.x - World.eyeX, farthest.y - World.eyeY, farthest.z - World.eyeZ, farthest.typecode);
+                        if (!this.spriteOccluded2(originalLevel, farthest.minSceneTileX, farthest.maxSceneTileX, farthest.minSceneTileZ, farthest.maxSceneTileZ, farthest.model?.minY ?? 0)) {
+                            farthest.model?.draw(loopCycle, farthest.yaw, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, farthest.x - World.cx, farthest.y - World.cy, farthest.z - World.cz, farthest.typecode);
                         }
 
                         for (let x: number = farthest.minSceneTileX; x <= farthest.maxSceneTileX; x++) {
@@ -1849,28 +1876,28 @@ export default class World {
                 continue;
             }
 
-            if (tileX <= World.eyeTileX && tileX > World.minDrawTileX) {
+            if (tileX <= World.gx && tileX > World.minX) {
                 const adjacent: Square | null = tiles[tileX - 1][tileZ];
                 if (adjacent && adjacent.drawBack) {
                     continue;
                 }
             }
 
-            if (tileX >= World.eyeTileX && tileX < World.maxDrawTileX - 1) {
+            if (tileX >= World.gx && tileX < World.maxX - 1) {
                 const adjacent: Square | null = tiles[tileX + 1][tileZ];
                 if (adjacent && adjacent.drawBack) {
                     continue;
                 }
             }
 
-            if (tileZ <= World.eyeTileZ && tileZ > World.minDrawTileZ) {
+            if (tileZ <= World.gz && tileZ > World.minZ) {
                 const adjacent: Square | null = tiles[tileX][tileZ - 1];
                 if (adjacent && adjacent.drawBack) {
                     continue;
                 }
             }
 
-            if (tileZ >= World.eyeTileZ && tileZ < World.maxDrawTileZ - 1) {
+            if (tileZ >= World.gz && tileZ < World.maxZ - 1) {
                 const adjacent: Square | null = tiles[tileX][tileZ + 1];
                 if (adjacent && adjacent.drawBack) {
                     continue;
@@ -1878,33 +1905,33 @@ export default class World {
             }
 
             tile.drawBack = false;
-            World.tilesRemaining--;
+            World.fillLeft--;
 
             const objs: GroundObject | null = tile.groundObject;
             if (objs && objs.offset !== 0) {
                 if (objs.bottomObj) {
-                    objs.bottomObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY - objs.offset, objs.z - World.eyeZ, objs.typecode);
+                    objs.bottomObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy - objs.offset, objs.z - World.cz, objs.typecode);
                 }
 
                 if (objs.middleObj) {
-                    objs.middleObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY - objs.offset, objs.z - World.eyeZ, objs.typecode);
+                    objs.middleObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy - objs.offset, objs.z - World.cz, objs.typecode);
                 }
 
                 if (objs.topObj) {
-                    objs.topObj.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, objs.x - World.eyeX, objs.y - World.eyeY - objs.offset, objs.z - World.eyeZ, objs.typecode);
+                    objs.topObj.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, objs.x - World.cx, objs.y - World.cy - objs.offset, objs.z - World.cz, objs.typecode);
                 }
             }
 
             if (tile.backWallTypes !== 0) {
                 const decor: Decor | null = tile.decor;
 
-                if (decor && !this.isTileColumnOccluded(originalLevel, tileX, tileZ, decor.model.minY)) {
+                if (decor && !this.spriteOccluded(originalLevel, tileX, tileZ, decor.model.minY)) {
                     if ((decor.angle1 & tile.backWallTypes) !== 0) {
-                        decor.model.draw(loopCycle, decor.angle2, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, decor.x - World.eyeX, decor.y - World.eyeY, decor.z - World.eyeZ, decor.typecode);
+                        decor.model.draw(loopCycle, decor.angle2, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, decor.x - World.cx, decor.y - World.cy, decor.z - World.cz, decor.typecode);
                     } else if ((decor.angle1 & 0x300) !== 0) {
-                        const x: number = decor.x - World.eyeX;
-                        const y: number = decor.y - World.eyeY;
-                        const z: number = decor.z - World.eyeZ;
+                        const x: number = decor.x - World.cx;
+                        const y: number = decor.y - World.cy;
+                        const z: number = decor.z - World.cz;
                         const angle: number = decor.angle2;
 
                         let nearestX: number;
@@ -1924,25 +1951,25 @@ export default class World {
                         if ((decor.angle1 & 0x100) !== 0 && nearestZ >= nearestX) {
                             const drawX: number = x + World.WALL_DECORATION_INSET_X[angle];
                             const drawZ: number = z + World.WALL_DECORATION_INSET_Z[angle];
-                            decor.model.draw(loopCycle, angle * 512 + 256, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, drawX, y, drawZ, decor.typecode);
+                            decor.model.draw(loopCycle, angle * 512 + 256, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, drawX, y, drawZ, decor.typecode);
                         }
 
                         if ((decor.angle1 & 0x200) !== 0 && nearestZ <= nearestX) {
                             const drawX: number = x + World.WALL_DECORATION_OUTSET_X[angle];
                             const drawZ: number = z + World.WALL_DECORATION_OUTSET_Z[angle];
-                            decor.model.draw(loopCycle, (angle * 512 + 1280) & 0x7ff, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, drawX, y, drawZ, decor.typecode);
+                            decor.model.draw(loopCycle, (angle * 512 + 1280) & 0x7ff, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, drawX, y, drawZ, decor.typecode);
                         }
                     }
                 }
 
                 const wall: Wall | null = tile.wall;
                 if (wall) {
-                    if ((wall.angle2 & tile.backWallTypes) !== 0 && !this.isTileSideOccluded(originalLevel, tileX, tileZ, wall.angle2)) {
-                        wall.model2?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                    if ((wall.angle2 & tile.backWallTypes) !== 0 && !this.wallOccluded(originalLevel, tileX, tileZ, wall.angle2)) {
+                        wall.model2?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
 
-                    if ((wall.angle1 & tile.backWallTypes) !== 0 && !this.isTileSideOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
-                        wall.model1?.draw(loopCycle, 0, World.sinEyePitch, World.cosEyePitch, World.sinEyeYaw, World.cosEyeYaw, wall.x - World.eyeX, wall.y - World.eyeY, wall.z - World.eyeZ, wall.typecode);
+                    if ((wall.angle1 & tile.backWallTypes) !== 0 && !this.wallOccluded(originalLevel, tileX, tileZ, wall.angle1)) {
+                        wall.model1?.draw(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
                 }
             }
@@ -1954,28 +1981,28 @@ export default class World {
                 }
             }
 
-            if (tileX < World.eyeTileX) {
+            if (tileX < World.gx) {
                 const adjacent: Square | null = tiles[tileX + 1][tileZ];
                 if (adjacent && adjacent.drawBack) {
                     World.drawTileQueue.push(adjacent);
                 }
             }
 
-            if (tileZ < World.eyeTileZ) {
+            if (tileZ < World.gz) {
                 const adjacent: Square | null = tiles[tileX][tileZ + 1];
                 if (adjacent && adjacent.drawBack) {
                     World.drawTileQueue.push(adjacent);
                 }
             }
 
-            if (tileX > World.eyeTileX) {
+            if (tileX > World.gx) {
                 const adjacent: Square | null = tiles[tileX - 1][tileZ];
                 if (adjacent && adjacent.drawBack) {
                     World.drawTileQueue.push(adjacent);
                 }
             }
 
-            if (tileZ > World.eyeTileZ) {
+            if (tileZ > World.gz) {
                 const adjacent: Square | null = tiles[tileX][tileZ - 1];
                 if (adjacent && adjacent.drawBack) {
                     World.drawTileQueue.push(adjacent);
@@ -1986,18 +2013,18 @@ export default class World {
 
     private drawQuickGround(quick: QuickGround, level: number, tileX: number, tileZ: number, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number): void {
         let x3: number;
-        let x0: number = (x3 = (tileX << 7) - World.eyeX);
+        let x0: number = (x3 = (tileX << 7) - World.cx);
         let z1: number;
-        let z0: number = (z1 = (tileZ << 7) - World.eyeZ);
+        let z0: number = (z1 = (tileZ << 7) - World.cz);
         let x2: number;
         let x1: number = (x2 = x0 + 128);
         let z3: number;
         let z2: number = (z3 = z0 + 128);
 
-        let y0: number = this.levelHeightmaps[level][tileX][tileZ] - World.eyeY;
-        let y1: number = this.levelHeightmaps[level][tileX + 1][tileZ] - World.eyeY;
-        let y2: number = this.levelHeightmaps[level][tileX + 1][tileZ + 1] - World.eyeY;
-        let y3: number = this.levelHeightmaps[level][tileX][tileZ + 1] - World.eyeY;
+        let y0: number = this.groundHeight[level][tileX][tileZ] - World.cy;
+        let y1: number = this.groundHeight[level][tileX + 1][tileZ] - World.cy;
+        let y2: number = this.groundHeight[level][tileX + 1][tileZ + 1] - World.cy;
+        let y3: number = this.groundHeight[level][tileX][tileZ + 1] - World.cy;
 
         let tmp: number = (z0 * sinEyeYaw + x0 * cosEyeYaw) >> 16;
         z0 = (z0 * cosEyeYaw - x0 * sinEyeYaw) >> 16;
@@ -2106,9 +2133,9 @@ export default class World {
         let vertexCount: number = ground.vertexX.length;
 
         for (let i: number = 0; i < vertexCount; i++) {
-            let x: number = ground.vertexX[i] - World.eyeX;
-            let y: number = ground.vertexY[i] - World.eyeY;
-            let z: number = ground.vertexZ[i] - World.eyeZ;
+            let x: number = ground.vertexX[i] - World.cx;
+            let y: number = ground.vertexY[i] - World.cy;
+            let z: number = ground.vertexZ[i] - World.cz;
 
             let tmp: number = (z * sinEyeYaw + x * cosEyeYaw) >> 16;
             z = (z * cosEyeYaw - x * sinEyeYaw) >> 16;
@@ -2210,44 +2237,46 @@ export default class World {
         }
     }
 
-    private tileVisible(level: number, x: number, z: number): boolean {
-        const cycle: number = this.levelTileOcclusionCycles[level][x][z];
-        if (cycle === -World.cycle) {
+    // (based on a real name)
+    private groundOccluded(level: number, x: number, z: number): boolean {
+        const cycle: number = this.occlusionCycle[level][x][z];
+        if (cycle === -World.cycleNo) {
             return false;
-        } else if (cycle === World.cycle) {
+        } else if (cycle === World.cycleNo) {
             return true;
         } else {
             const sx: number = x << 7;
             const sz: number = z << 7;
             if (
-                this.occluded(sx + 1, this.levelHeightmaps[level][x][z], sz + 1) &&
-                this.occluded(sx + 128 - 1, this.levelHeightmaps[level][x + 1][z], sz + 1) &&
-                this.occluded(sx + 128 - 1, this.levelHeightmaps[level][x + 1][z + 1], sz + 128 - 1) &&
-                this.occluded(sx + 1, this.levelHeightmaps[level][x][z + 1], sz + 128 - 1)
+                this.occluded(sx + 1, this.groundHeight[level][x][z], sz + 1) &&
+                this.occluded(sx + 128 - 1, this.groundHeight[level][x + 1][z], sz + 1) &&
+                this.occluded(sx + 128 - 1, this.groundHeight[level][x + 1][z + 1], sz + 128 - 1) &&
+                this.occluded(sx + 1, this.groundHeight[level][x][z + 1], sz + 128 - 1)
             ) {
-                this.levelTileOcclusionCycles[level][x][z] = World.cycle;
+                this.occlusionCycle[level][x][z] = World.cycleNo;
                 return true;
             } else {
-                this.levelTileOcclusionCycles[level][x][z] = -World.cycle;
+                this.occlusionCycle[level][x][z] = -World.cycleNo;
                 return false;
             }
         }
     }
 
-    private isTileSideOccluded(level: number, x: number, z: number, type: number): boolean {
-        if (!this.tileVisible(level, x, z)) {
+    // (real name)
+    private wallOccluded(level: number, x: number, z: number, type: number): boolean {
+        if (!this.groundOccluded(level, x, z)) {
             return false;
         }
 
         const sceneX: number = x << 7;
         const sceneZ: number = z << 7;
-        const sceneY: number = this.levelHeightmaps[level][x][z] - 1;
+        const sceneY: number = this.groundHeight[level][x][z] - 1;
         const y0: number = sceneY - 120;
         const y1: number = sceneY - 230;
         const y2: number = sceneY - 238;
         if (type < 16) {
             if (type === 1) {
-                if (sceneX > World.eyeX) {
+                if (sceneX > World.cx) {
                     if (!this.occluded(sceneX, sceneY, sceneZ)) {
                         return false;
                     }
@@ -2269,7 +2298,7 @@ export default class World {
                 return this.occluded(sceneX, y1, sceneZ + 128);
             }
             if (type === 2) {
-                if (sceneZ < World.eyeZ) {
+                if (sceneZ < World.cz) {
                     if (!this.occluded(sceneX, sceneY, sceneZ + 128)) {
                         return false;
                     }
@@ -2291,7 +2320,7 @@ export default class World {
                 return this.occluded(sceneX + 128, y1, sceneZ + 128);
             }
             if (type === 4) {
-                if (sceneX < World.eyeX) {
+                if (sceneX < World.cx) {
                     if (!this.occluded(sceneX + 128, sceneY, sceneZ)) {
                         return false;
                     }
@@ -2313,7 +2342,7 @@ export default class World {
                 return this.occluded(sceneX + 128, y1, sceneZ + 128);
             }
             if (type === 8) {
-                if (sceneZ > World.eyeZ) {
+                if (sceneZ > World.cz) {
                     if (!this.occluded(sceneX, sceneY, sceneZ)) {
                         return false;
                     }
@@ -2352,27 +2381,29 @@ export default class World {
         return true;
     }
 
-    private isTileColumnOccluded(level: number, tileX: number, tileZ: number, y: number): boolean {
-        if (this.tileVisible(level, tileX, tileZ)) {
+    // (real name)
+    private spriteOccluded(level: number, tileX: number, tileZ: number, y: number): boolean {
+        if (this.groundOccluded(level, tileX, tileZ)) {
             const x: number = tileX << 7;
             const z: number = tileZ << 7;
             return (
-                this.occluded(x + 1, this.levelHeightmaps[level][tileX][tileZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.levelHeightmaps[level][tileX + 1][tileZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.levelHeightmaps[level][tileX + 1][tileZ + 1] - y, z + 128 - 1) &&
-                this.occluded(x + 1, this.levelHeightmaps[level][tileX][tileZ + 1] - y, z + 128 - 1)
+                this.occluded(x + 1, this.groundHeight[level][tileX][tileZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundHeight[level][tileX + 1][tileZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundHeight[level][tileX + 1][tileZ + 1] - y, z + 128 - 1) &&
+                this.occluded(x + 1, this.groundHeight[level][tileX][tileZ + 1] - y, z + 128 - 1)
             );
         }
         return false;
     }
 
-    private locVisible(level: number, minX: number, maxX: number, minZ: number, maxZ: number, y: number): boolean {
+    // (real name is spriteOccluded, no overloads in TS)
+    private spriteOccluded2(level: number, minX: number, maxX: number, minZ: number, maxZ: number, y: number): boolean {
         let x: number;
         let z: number;
         if (minX !== maxX || minZ !== maxZ) {
             for (x = minX; x <= maxX; x++) {
                 for (z = minZ; z <= maxZ; z++) {
-                    if (this.levelTileOcclusionCycles[level][x][z] === -World.cycle) {
+                    if (this.occlusionCycle[level][x][z] === -World.cycleNo) {
                         return false;
                     }
                 }
@@ -2380,7 +2411,7 @@ export default class World {
 
             z = (minX << 7) + 1;
             const z0: number = (minZ << 7) + 2;
-            const y0: number = this.levelHeightmaps[level][minX][minZ] - y;
+            const y0: number = this.groundHeight[level][minX][minZ] - y;
             if (!this.occluded(z, y0, z0)) {
                 return false;
             }
@@ -2394,19 +2425,20 @@ export default class World {
             if (!this.occluded(z, y0, z1)) {
                 return false;
             } else return this.occluded(x1, y0, z1);
-        } else if (this.tileVisible(level, minX, minZ)) {
+        } else if (this.groundOccluded(level, minX, minZ)) {
             x = minX << 7;
             z = minZ << 7;
             return (
-                this.occluded(x + 1, this.levelHeightmaps[level][minX][minZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.levelHeightmaps[level][minX + 1][minZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.levelHeightmaps[level][minX + 1][minZ + 1] - y, z + 128 - 1) &&
-                this.occluded(x + 1, this.levelHeightmaps[level][minX][minZ + 1] - y, z + 128 - 1)
+                this.occluded(x + 1, this.groundHeight[level][minX][minZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundHeight[level][minX + 1][minZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundHeight[level][minX + 1][minZ + 1] - y, z + 128 - 1) &&
+                this.occluded(x + 1, this.groundHeight[level][minX][minZ + 1] - y, z + 128 - 1)
             );
         }
         return false;
     }
 
+    // (real name)
     private occluded(x: number, y: number, z: number): boolean {
         for (let i: number = 0; i < World.activeOccluderCount; i++) {
             const occluder: Occlude | null = World.activeOccluders[i];

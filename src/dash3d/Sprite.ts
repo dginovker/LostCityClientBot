@@ -13,7 +13,7 @@ export default class Sprite {
     readonly minSceneTileZ: number;
     readonly maxSceneTileZ: number;
     readonly typecode: number;
-    readonly info: number; // byte
+    readonly typecode2: number; // byte
 
     // runtime
     distance: number = 0;
@@ -31,6 +31,6 @@ export default class Sprite {
         this.minSceneTileZ = minSceneTileZ;
         this.maxSceneTileZ = maxSceneTileZ;
         this.typecode = typecode;
-        this.info = info;
+        this.typecode2 = info;
     }
 }
