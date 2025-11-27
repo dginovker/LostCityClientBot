@@ -2,22 +2,23 @@ import Packet from '#/io/Packet.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 
+// jag::oldscape::dash3d::AnimBase
 export default class AnimBase {
-    length: number = 0;
-    types: Uint8Array | null = null;
-    labels: (Uint8Array | null)[] | null = null;
+    size: number = 0;
+    type: Uint8Array | null = null; // jag::graphics::AnimBase::GetTransformType
+    labels: (Uint8Array | null)[] | null = null; // jag::graphics::AnimBase::GetTransformLabels
 
     constructor(buf: Packet) {
-        this.length = buf.g1();
+        this.size = buf.g1();
 
-        this.types = new Uint8Array(this.length);
-        this.labels = new TypedArray1d(this.length, null);
+        this.type = new Uint8Array(this.size);
+        this.labels = new TypedArray1d(this.size, null);
 
-        for (let i = 0; i < this.length; i++) {
-            this.types[i] = buf.g1();
+        for (let i = 0; i < this.size; i++) {
+            this.type[i] = buf.g1();
         }
 
-        for (let i = 0; i < this.length; i++) {
+        for (let i = 0; i < this.size; i++) {
             const count = buf.g1();
             this.labels[i] = new Uint8Array(count);
 

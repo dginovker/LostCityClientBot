@@ -404,7 +404,7 @@ export class Client extends GameShell {
     private orbitCameraX: number = 0;
     private orbitCameraZ: number = 0;
     private groundh: Int32Array[][] | null = null; // (real name)
-    private mapf: Uint8Array[][] | null = null;
+    private mapl: Uint8Array[][] | null = null;
     private tileLastOccupiedCycle: Int32Array[] = new Int32Array2d(CollisionConstants.SIZE, CollisionConstants.SIZE);
     private projectX: number = 0;
     private projectY: number = 0;
@@ -613,7 +613,7 @@ export class Client extends GameShell {
             const jagWordenc: Jagfile = await this.getJagFile('wordenc', 'chat system', 7, 50);
             const jagSounds: Jagfile = await this.getJagFile('sounds', 'sound effects', 8, 55);
 
-            this.mapf = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
+            this.mapl = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
             this.groundh = new Int32Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE + 1, CollisionConstants.SIZE + 1);
             this.world = new World(this.groundh, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
             for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
@@ -2099,7 +2099,7 @@ export class Client extends GameShell {
 
     // (real name)
     private checkMinimap(): void {
-        if (Client.lowMem && this.sceneState === 2 && ClientBuild.levelBuilt !== this.minusedlevel) {
+        if (Client.lowMem && this.sceneState === 2 && ClientBuild.minusedlevel !== this.minusedlevel) {
             this.areaViewport?.bind();
             this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colors.BLACK);
             this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colors.WHITE);
@@ -2155,7 +2155,7 @@ export class Client extends GameShell {
         }
 
         this.sceneState = 2;
-        ClientBuild.levelBuilt = this.minusedlevel;
+        ClientBuild.minusedlevel = this.minusedlevel;
         this.mapBuild();
         this.out.p1isaac(ClientProt.MAP_BUILD_COMPLETE);
         return 0;
@@ -2175,7 +2175,7 @@ export class Client extends GameShell {
                 this.levelCollisionMap[level]?.reset();
             }
 
-            const build: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.groundh!, this.mapf!);
+            const build: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.groundh!, this.mapl!);
             ClientBuild.lowMem = World.lowMem;
 
             const maps: number = this.mapBuildGroundData?.length ?? 0;
@@ -2329,11 +2329,11 @@ export class Client extends GameShell {
             let offset: number = (CollisionConstants.SIZE - 1 - z) * 512 * 4 + 24628;
 
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
-                if (this.mapf && (this.mapf[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
+                if (this.mapl && (this.mapl[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
                     this.world?.render2DGround(level, x, z, pixels, offset, 512);
                 }
 
-                if (level < 3 && this.mapf && (this.mapf[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
+                if (level < 3 && this.mapl && (this.mapl[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
                     this.world?.render2DGround(level + 1, x, z, pixels, offset, 512);
                 }
 
@@ -2348,11 +2348,11 @@ export class Client extends GameShell {
 
         for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
-                if (this.mapf && (this.mapf[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
+                if (this.mapl && (this.mapl[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
                     this.drawDetail(x, z, level, inactiveRgb, activeRgb);
                 }
 
-                if (level < 3 && this.mapf && (this.mapf[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
+                if (level < 3 && this.mapl && (this.mapl[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
                     this.drawDetail(x, z, level + 1, inactiveRgb, activeRgb);
                 }
             }
@@ -3297,7 +3297,7 @@ export class Client extends GameShell {
                 for (let x: number = orbitTileX - 4; x <= orbitTileX + 4; x++) {
                     for (let z: number = orbitTileZ - 4; z <= orbitTileZ + 4; z++) {
                         let level: number = this.minusedlevel;
-                        if (level < 3 && this.mapf && (this.mapf[1][x][z] & MapFlag.VisBelow) !== 0) {
+                        if (level < 3 && this.mapl && (this.mapl[1][x][z] & MapFlag.VisBelow) !== 0) {
                             level++;
                         }
 
@@ -4909,12 +4909,12 @@ export class Client extends GameShell {
 
     // (real name)
     private roofCheck2(): number {
-        if (!this.mapf) {
+        if (!this.mapl) {
             return 0; // custom
         }
 
         const y: number = this.getAvH(this.minusedlevel, this.cameraX, this.cameraZ);
-        return y - this.cameraY >= 800 || (this.mapf[this.minusedlevel][this.cameraX >> 7][this.cameraZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
+        return y - this.cameraY >= 800 || (this.mapl[this.minusedlevel][this.cameraX >> 7][this.cameraZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
     }
 
     // (real name)
@@ -4927,7 +4927,7 @@ export class Client extends GameShell {
             const playerLocalTileX: number = this.localPlayer.x >> 7;
             const playerLocalTileZ: number = this.localPlayer.z >> 7;
 
-            if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
+            if (this.mapl && (this.mapl[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                 top = this.minusedlevel;
             }
 
@@ -4956,7 +4956,7 @@ export class Client extends GameShell {
                         cameraLocalTileX--;
                     }
 
-                    if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
+                    if (this.mapl && (this.mapl[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                         top = this.minusedlevel;
                     }
 
@@ -4970,7 +4970,7 @@ export class Client extends GameShell {
                             cameraLocalTileZ--;
                         }
 
-                        if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
+                        if (this.mapl && (this.mapl[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                             top = this.minusedlevel;
                         }
                     }
@@ -4986,7 +4986,7 @@ export class Client extends GameShell {
                         cameraLocalTileZ--;
                     }
 
-                    if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
+                    if (this.mapl && (this.mapl[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                         top = this.minusedlevel;
                     }
 
@@ -5000,7 +5000,7 @@ export class Client extends GameShell {
                             cameraLocalTileX--;
                         }
 
-                        if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
+                        if (this.mapl && (this.mapl[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                             top = this.minusedlevel;
                         }
                     }
@@ -5008,7 +5008,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.localPlayer && this.mapf && (this.mapf[this.minusedlevel][this.localPlayer.x >> 7][this.localPlayer.z >> 7] & MapFlag.RemoveRoof) !== 0) {
+        if (this.localPlayer && this.mapl && (this.mapl[this.minusedlevel][this.localPlayer.x >> 7][this.localPlayer.z >> 7] & MapFlag.RemoveRoof) !== 0) {
             top = this.minusedlevel;
         }
 
@@ -5291,7 +5291,7 @@ export class Client extends GameShell {
         }
 
         let realLevel: number = level;
-        if (level < 3 && this.mapf && (this.mapf[1][tileX][tileZ] & MapFlag.LinkBelow) !== 0) {
+        if (level < 3 && this.mapl && (this.mapl[1][tileX][tileZ] & MapFlag.LinkBelow) !== 0) {
             realLevel = level + 1;
         }
 
@@ -7660,7 +7660,7 @@ export class Client extends GameShell {
 
         if (id >= 0) {
             let tileLevel: number = level;
-            if (this.mapf && level < 3 && (this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
+            if (this.mapl && level < 3 && (this.mapl[1][x][z] & MapFlag.LinkBelow) !== 0) {
                 tileLevel = level + 1;
             }
 

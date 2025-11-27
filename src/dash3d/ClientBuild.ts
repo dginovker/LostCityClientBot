@@ -1,16 +1,15 @@
 import FloType from '#/config/FloType.js';
 import LocType from '#/config/LocType.js';
 
+import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
 import CollisionMap, { CollisionConstants } from '#/dash3d/CollisionMap.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 import LocShape from '#/dash3d/LocShape.js';
-import World from '#/dash3d/World.js';
-
-import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
 import { MapFlag } from '#/dash3d/MapFlag.js';
 import Model from '#/dash3d/Model.js';
 import type ModelSource from '#/dash3d/ModelSource.js';
 import { OverlayShape } from '#/dash3d/OverlayShape.js';
+import World from '#/dash3d/World.js';
 
 import { Colors } from '#/graphics/Colors.js';
 import Pix3D from '#/graphics/Pix3D.js';
@@ -20,21 +19,21 @@ import Packet from '#/io/Packet.js';
 
 import { Int32Array2d, Int32Array3d, Uint8Array3d } from '#/util/Arrays.js';
 
-// noinspection JSSuspiciousNameCombination,DuplicatedCode
+// jag::oldscape::ClientBuild
 export default class ClientBuild {
-    static readonly WSHAPE0: Int8Array = Int8Array.of(1, 2, 4, 8); // (real name)
-    static readonly WSHAPE1: Uint8Array = Uint8Array.of(16, 32, 64, 128); // (real name)
-    static readonly DECORXOF: Int8Array = Int8Array.of(1, 0, -1, 0); // (real name)
-    static readonly DECORZOF: Int8Array = Int8Array.of(0, -1, 0, 1); // (real name)
+    static readonly WSHAPE0: Int8Array = Int8Array.of(1, 2, 4, 8); // jag::oldscape::ClientBuild::WSHAPE0
+    static readonly WSHAPE1: Uint8Array = Uint8Array.of(16, 32, 64, 128); // jag::oldscape::ClientBuild::WSHAPE1
+    static readonly DECORXOF: Int8Array = Int8Array.of(1, 0, -1, 0); // jag::oldscape::ClientBuild::DECORXOF
+    static readonly DECORZOF: Int8Array = Int8Array.of(0, -1, 0, 1); // jag::oldscape::ClientBuild::DECORZOF
 
-    static hueOff: number = ((Math.random() * 17.0) | 0) - 8; // (real name) hue offset
-    static ligOff: number = ((Math.random() * 33.0) | 0) - 16; // (real name) lightness offset
+    static hueOff: number = ((Math.random() * 17.0) | 0) - 8; // jag::oldscape::ClientBuild::m_hueOff
+    static ligOff: number = ((Math.random() * 33.0) | 0) - 16; // jag::oldscape::ClientBuild::m_ligOff
 
     static lowMem: boolean = true;
-    static levelBuilt: number = 0;
+    static minusedlevel: number = 0; // jag::oldscape::ClientBuild::minusedlevel
     static fullbright: boolean = false;
 
-    // (real name)
+    // jag::oldscape::ClientBuild::PerlinNoise
     static perlinNoise(x: number, z: number): number {
         let value: number = this.interpolatedNoise(x + 45365, z + 91923, 4) + ((this.interpolatedNoise(x + 10294, z + 37821, 2) - 128) >> 1) + ((this.interpolatedNoise(x, z, 1) - 128) >> 2) - 128;
         value = ((value * 0.3) | 0) + 35;
@@ -46,7 +45,7 @@ export default class ClientBuild {
         return value;
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::InterpolatedNoise
     static interpolatedNoise(x: number, z: number, scale: number): number {
         const intX: number = (x / scale) | 0;
         const fracX: number = x & (scale - 1);
@@ -61,13 +60,13 @@ export default class ClientBuild {
         return this.interpolate(i1, i2, fracZ, scale);
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::Interpolate
     static interpolate(a: number, b: number, x: number, scale: number): number {
         const f: number = (65536 - Pix3D.cosTable[((x * 1024) / scale) | 0]) >> 1;
         return ((a * (65536 - f)) >> 16) + ((b * f) >> 16);
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::SmoothNoise
     static smoothNoise(x: number, y: number): number {
         const corners: number = this.noise(x - 1, y - 1) + this.noise(x + 1, y - 1) + this.noise(x - 1, y + 1) + this.noise(x + 1, y + 1);
         const sides: number = this.noise(x - 1, y) + this.noise(x + 1, y) + this.noise(x, y - 1) + this.noise(x, y + 1);
@@ -75,14 +74,14 @@ export default class ClientBuild {
         return ((corners / 16) | 0) + ((sides / 8) | 0) + ((center / 4) | 0);
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::Noise
     static noise(x: number, y: number): number {
         const n: number = x + y * 57;
         const n1: bigint = BigInt((n << 13) ^ n);
         return Number(((n1 * (n1 * n1 * 15731n + 789221n) + 1376312589n) & 0x7fffffffn) >> 19n) & 0xff;
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::ChangeLocAvailable
     static changeLocAvailable(id: number, shape: number): boolean {
 		const loc = LocType.get(id);
 		if (shape == 11) {
@@ -94,7 +93,7 @@ export default class ClientBuild {
 		return loc.checkModel(shape);
 	}
 
-    // (real name)
+    // jag::oldscape::ClientBuild::ChangeLocUnchecked
     static changeLocUnchecked(loopCycle: number, level: number, x: number, z: number, scene: World | null, levelHeightmap: Int32Array[][], collision: CollisionMap | null, locId: number, shape: number, angle: number, trueLevel: number): void {
         const heightSW: number = levelHeightmap[trueLevel][x][z];
         const heightSE: number = levelHeightmap[trueLevel][x + 1][z];
@@ -319,26 +318,28 @@ export default class ClientBuild {
 
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
-    private readonly groundh: Int32Array[][]; // (real name) ground heightmap
-    private readonly mapf: Uint8Array[][];
-    private readonly floort1: Uint8Array[][]; // (real name) floor type 1 (underlay)
-    private readonly floort2: Uint8Array[][]; // (real name) floor type 2 (overlay)
-    private readonly floors: Uint8Array[][]; // (real name) floor shape
-    private readonly floorr: Uint8Array[][]; // (real name) floor rotation
-    private readonly shadow: Uint8Array[][]; // (real name)
-    private readonly mapl: Int32Array[]; // (real name) light map
-    private readonly huetot: Int32Array; // (real name) hue total, used for blending tiles
-    private readonly sattot: Int32Array; // (real name) saturation total, used for blending tiles
-    private readonly ligtot: Int32Array; // (real name) lightness total, used for blending tiles
-    private readonly comtot: Int32Array; // (real name) used for blending tiles
-    private readonly tot: Int32Array; // (real name) used for blending tiles
-    private readonly mapo: Int32Array[][]; // (real name) occlusion map
 
-    public constructor(maxTileX: number, maxTileZ: number, groundh: Int32Array[][], mapf: Uint8Array[][]) {
+    private readonly groundh: Int32Array[][]; // jag::oldscape::ClientBuild::m_groundh
+    private readonly mapl: Uint8Array[][]; // jag::oldscape::ClientBuild::m_mapl
+    private readonly floort1: Uint8Array[][]; // jag::oldscape::ClientBuild::m_floort1
+    private readonly floort2: Uint8Array[][]; // jag::oldscape::ClientBuild::m_floort2
+    private readonly floors: Uint8Array[][]; // jag::oldscape::ClientBuild::m_floors
+    private readonly floorr: Uint8Array[][]; // jag::oldscape::ClientBuild::m_floorr
+    private readonly shadow: Uint8Array[][]; // jag::oldscape::ClientBuild::m_shadow
+    private readonly lightmap: Int32Array[]; // jag::oldscape::ClientBuild::m_lightmap
+    private readonly huetot: Int32Array; // jag::oldscape::ClientBuild::m_huetot
+    private readonly sattot: Int32Array; // jag::oldscape::ClientBuild::m_sattot
+    private readonly ligtot: Int32Array; // jag::oldscape::ClientBuild::m_ligtot
+    private readonly comtot: Int32Array; // jag::oldscape::ClientBuild::m_comtot
+    private readonly tot: Int32Array; // jag::oldscape::ClientBuild::m_tot
+    private readonly mapo: Int32Array[][]; // jag::oldscape::ClientBuild::m_mapo
+
+    public constructor(maxTileX: number, maxTileZ: number, groundh: Int32Array[][], mapl: Uint8Array[][]) {
         this.maxTileX = maxTileX;
         this.maxTileZ = maxTileZ;
+
         this.groundh = groundh;
-        this.mapf = mapf;
+        this.mapl = mapl;
 
         this.floort1 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
         this.floort2 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
@@ -347,7 +348,7 @@ export default class ClientBuild {
 
         this.mapo = new Int32Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
         this.shadow = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
-        this.mapl = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
+        this.lightmap = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
 
         this.huetot = new Int32Array(maxTileZ);
         this.sattot = new Int32Array(maxTileZ);
@@ -356,15 +357,15 @@ export default class ClientBuild {
         this.tot = new Int32Array(maxTileZ);
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::FinishBuild
     finishBuild(scene: World | null, collision: (CollisionMap | null)[]): void {
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
             for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
                 for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                    if ((this.mapf[level][x][z] & MapFlag.Block) !== 0) {
+                    if ((this.mapl[level][x][z] & MapFlag.Block) !== 0) {
                         let trueLevel: number = level;
 
-                        if ((this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
+                        if ((this.mapl[1][x][z] & MapFlag.LinkBelow) !== 0) {
                             trueLevel--;
                         }
 
@@ -413,7 +414,7 @@ export default class ClientBuild {
                     const light: number = lightAmbient + (((lightX * normalX + lightY * normalY + lightZ * normalZ) / lightMagnitude) | 0);
                     const shade: number = (shademap[x - 1][z] >> 2) + (shademap[x + 1][z] >> 3) + (shademap[x][z - 1] >> 2) + (shademap[x][z + 1] >> 3) + (shademap[x][z] >> 1);
 
-                    this.mapl[x][z] = light - shade;   
+                    this.lightmap[x][z] = light - shade;   
                 }
             }
 
@@ -483,7 +484,7 @@ export default class ClientBuild {
                             magnitudeAccumulator -= this.tot[dz2];
                         }
 
-                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.mapf[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisLevel(level, x0, z0) === ClientBuild.levelBuilt))) {
+                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.mapl[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisBelowLevel(level, x0, z0) === ClientBuild.minusedlevel))) {
                             const underlayId: number = this.floort1[level][x0][z0] & 0xff;
                             const overlayId: number = this.floort2[level][x0][z0] & 0xff;
 
@@ -493,10 +494,10 @@ export default class ClientBuild {
                                 const heightNE: number = this.groundh[level][x0 + 1][z0 + 1];
                                 const heightNW: number = this.groundh[level][x0][z0 + 1];
 
-                                const lightSW: number = this.mapl[x0][z0];
-                                const lightSE: number = this.mapl[x0 + 1][z0];
-                                const lightNE: number = this.mapl[x0 + 1][z0 + 1];
-                                const lightNW: number = this.mapl[x0][z0 + 1];
+                                const lightSW: number = this.lightmap[x0][z0];
+                                const lightSE: number = this.lightmap[x0 + 1][z0];
+                                const lightNE: number = this.lightmap[x0 + 1][z0 + 1];
+                                const lightNW: number = this.lightmap[x0][z0 + 1];
 
                                 let baseColor: number = -1;
                                 let tintColor: number = -1;
@@ -611,7 +612,7 @@ export default class ClientBuild {
 
             for (let stz: number = 1; stz < this.maxTileZ - 1; stz++) {
                 for (let stx: number = 1; stx < this.maxTileX - 1; stx++) {
-                    scene?.setLayer(level, stx, stz, this.getVisLevel(level, stx, stz));
+                    scene?.setLayer(level, stx, stz, this.getVisBelowLevel(level, stx, stz));
                 }
             }
         }
@@ -622,7 +623,7 @@ export default class ClientBuild {
 
         for (let x: number = 0; x < this.maxTileX; x++) {
             for (let z: number = 0; z < this.maxTileZ; z++) {
-                if ((this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
+                if ((this.mapl[1][x][z] & MapFlag.LinkBelow) !== 0) {
                     scene?.pushDown(x, z);
                 }
             }
@@ -788,7 +789,7 @@ export default class ClientBuild {
         }
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::FadeAdjacent
     fadeAdjacent(startZ: number, startX: number, endZ: number, endX: number) {
         for (let z: number = startZ; z <= startZ + endZ; z++) {
             for (let x: number = startX; x <= startX + endX; x++) {
@@ -815,7 +816,7 @@ export default class ClientBuild {
         }
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::LoadGroundSquare
     loadGround(originX: number, originZ: number, xOffset: number, zOffset: number, src: Uint8Array): void {
         const buf: Packet = new Packet(src);
 
@@ -827,7 +828,7 @@ export default class ClientBuild {
                     let opcode: number;
 
                     if (stx >= 0 && stx < CollisionConstants.SIZE && stz >= 0 && stz < CollisionConstants.SIZE) {
-                        this.mapf[level][stx][stz] = 0;
+                        this.mapl[level][stx][stz] = 0;
 
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
@@ -859,7 +860,7 @@ export default class ClientBuild {
                                 this.floors[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
                                 this.floorr[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
                             } else if (opcode <= 81) {
-                                this.mapf[level][stx][stz] = ((opcode - 49) << 24) >> 24;
+                                this.mapl[level][stx][stz] = ((opcode - 49) << 24) >> 24;
                             } else {
                                 this.floort1[level][stx][stz] = ((opcode - 81) << 24) >> 24;
                             }
@@ -887,7 +888,7 @@ export default class ClientBuild {
         }
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::CheckLocations
     static checkLocations(src: Uint8Array, xOffset: number, zOffset: number): boolean {
         let ready = true;
 		const buf = new Packet(src);
@@ -944,7 +945,7 @@ export default class ClientBuild {
         return ready;
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::PrefetchLocations
     static prefetchLocations(buf: Packet, od: OnDemand) {
 		let locId = -1;
 		while (true) {
@@ -969,7 +970,7 @@ export default class ClientBuild {
 		}
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::LoadLocations
     loadLocations(loopCycle: number, scene: World | null, cmaps: (CollisionMap | null)[], src: Uint8Array, xOffset: number, zOffset: number): void {
         const buf: Packet = new Packet(src);
         let locId: number = -1;
@@ -1004,7 +1005,7 @@ export default class ClientBuild {
 
                 if (stx > 0 && stz > 0 && stx < CollisionConstants.SIZE - 1 && stz < CollisionConstants.SIZE - 1) {
                     let currentLevel: number = level;
-                    if ((this.mapf[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
+                    if ((this.mapl[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
                         currentLevel = level - 1;
                     }
 
@@ -1019,14 +1020,14 @@ export default class ClientBuild {
         }
     }
 
-    // (real name)
-    private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World | null, cmap: CollisionMap | null, locId: number, shape: number, angle: number): void {
+    // jag::oldscape::ClientBuild::AddLoc
+    private addLoc(loopCycle: number, level: number, x: number, z: number, world: World | null, cmap: CollisionMap | null, locId: number, shape: number, angle: number): void {
         if (ClientBuild.lowMem) {
-            if ((this.mapf[level][x][z] & MapFlag.ForceHighDetail) !== 0) {
+            if ((this.mapl[level][x][z] & MapFlag.ForceHighDetail) !== 0) {
                 return;
             }
 
-            if (this.getVisLevel(level, x, z) !== ClientBuild.levelBuilt) {
+            if (this.getVisBelowLevel(level, x, z) !== ClientBuild.minusedlevel) {
                 return;
             }
         }
@@ -1056,7 +1057,7 @@ export default class ClientBuild {
                     model = new ClientLocAnim(loopCycle, locId, 22, shape, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
                 }
 
-                scene?.setGroundDecor(model, level, x, z, y, typecode, typecode2);
+                world?.setGroundDecor(model, level, x, z, y, typecode, typecode2);
 
                 if (loc.blockwalk && loc.active && cmap) {
                     cmap.blockGround(x, z);
@@ -1086,7 +1087,7 @@ export default class ClientBuild {
                     height = loc.length;
                 }
 
-                if (scene?.addScenery(level, x, z, y, model, typecode, typecode2, width, height, yaw) && loc.shadow) {
+                if (world?.addScenery(level, x, z, y, model, typecode, typecode2, width, height, yaw) && loc.shadow) {
                     let model2: Model | null;
                     if (model instanceof Model) {
                         model2 = model;
@@ -1122,7 +1123,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
+            world?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
             if (shape >= LocShape.ROOF_STRAIGHT.id && shape <= LocShape.ROOF_FLAT.id && shape !== LocShape.ROOF_DIAGONAL_WITH_ROOFEDGE.id && level > 0) {
                 this.mapo[level][x][z] |= 0x924;
@@ -1139,7 +1140,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 0, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWall(level, x, z, y, ClientBuild.WSHAPE0[angle], 0, model, null, typecode, typecode2);
+            world?.setWall(level, x, z, y, ClientBuild.WSHAPE0[angle], 0, model, null, typecode, typecode2);
 
             if (angle === LocAngle.WEST) {
                 if (loc.shadow) {
@@ -1184,7 +1185,7 @@ export default class ClientBuild {
             }
 
             if (loc.wallwidth !== 16) {
-                scene?.setWallDecorationOffset(level, x, z, loc.wallwidth);
+                world?.setWallDecorationOffset(level, x, z, loc.wallwidth);
             }
         } else if (shape === LocShape.WALL_DIAGONAL_CORNER.id) {
             let model: ModelSource | null;
@@ -1194,7 +1195,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 1, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWall(level, x, z, y, ClientBuild.WSHAPE1[angle], 0, model, null, typecode, typecode2);
+            world?.setWall(level, x, z, y, ClientBuild.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.shadow) {
                 if (angle === LocAngle.WEST) {
@@ -1224,7 +1225,7 @@ export default class ClientBuild {
                 model2 = new ClientLocAnim(loopCycle, locId, 2, offset, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWall(
+            world?.setWall(
                 level,
                 x,
                 z,
@@ -1258,7 +1259,7 @@ export default class ClientBuild {
             }
 
             if (loc.wallwidth !== 16) {
-                scene?.setWallDecorationOffset(level, x, z, loc.wallwidth);
+                world?.setWallDecorationOffset(level, x, z, loc.wallwidth);
             }
         } else if (shape === LocShape.WALL_SQUARE_CORNER.id) {
             let model: ModelSource | null;
@@ -1268,7 +1269,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 3, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setWall(level, x, z, y, ClientBuild.WSHAPE1[angle], 0, model, null, typecode, typecode2);
+            world?.setWall(level, x, z, y, ClientBuild.WSHAPE1[angle], 0, model, null, typecode, typecode2);
 
             if (loc.shadow) {
                 if (angle === LocAngle.WEST) {
@@ -1293,7 +1294,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, shape, angle, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
+            world?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
             if (loc.blockwalk && cmap) {
                 cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
@@ -1306,11 +1307,11 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, ClientBuild.WSHAPE0[angle]);
+            world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, ClientBuild.WSHAPE0[angle]);
         } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
             let wallwidth: number = 16;
-            if (scene) {
-                const typecode: number = scene.wallType(level, x, z);
+            if (world) {
+                const typecode: number = world.wallType(level, x, z);
                 if (typecode > 0) {
                     wallwidth = LocType.get((typecode >> 14) & 0x7fff).wallwidth;
                 }
@@ -1323,7 +1324,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setDecor(
+            world?.setDecor(
                 level,
                 x,
                 z,
@@ -1344,7 +1345,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
+            world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -1353,7 +1354,7 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
+            world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
         } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH.id) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
@@ -1362,20 +1363,20 @@ export default class ClientBuild {
                 model = new ClientLocAnim(loopCycle, locId, 4, 0, heightSW, heightSE, heightNE, heightNW, loc.anim, true);
             }
 
-            scene?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 768);
+            world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 768);
         }
     }
 
-    // (real name)
-    private getVisLevel(level: number, stx: number, stz: number): number {
-        if ((this.mapf[level][stx][stz] & MapFlag.VisBelow) === 0) {
-            return level <= 0 || (this.mapf[1][stx][stz] & MapFlag.LinkBelow) === 0 ? level : level - 1;
+    // jag::oldscape::ClientBuild::GetVisBelowLevel
+    private getVisBelowLevel(level: number, stx: number, stz: number): number {
+        if ((this.mapl[level][stx][stz] & MapFlag.VisBelow) === 0) {
+            return level <= 0 || (this.mapl[1][stx][stz] & MapFlag.LinkBelow) === 0 ? level : level - 1;
         }
 
         return 0;
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::GetTable
     static getTable(hue: number, saturation: number, lightness: number): number {
         if (lightness > 179) {
             saturation = (saturation / 2) | 0;
@@ -1392,7 +1393,7 @@ export default class ClientBuild {
         return (((hue / 4) | 0) << 10) + (((saturation / 32) | 0) << 7) + ((lightness / 2) | 0);
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::GetUCol
     static getUCol(hsl: number, lightness: number): number {
         if (hsl === -1) {
             return 12345678;
@@ -1408,7 +1409,7 @@ export default class ClientBuild {
         return (hsl & 0xff80) + lightness;
     }
 
-    // (real name)
+    // jag::oldscape::ClientBuild::GetOCol
     static getOCol(hsl: number, scalar: number): number {
         if (hsl === -2) {
             return 12345678;
