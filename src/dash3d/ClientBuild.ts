@@ -816,7 +816,7 @@ export default class ClientBuild {
         }
     }
 
-    // jag::oldscape::ClientBuild::LoadGroundSquare
+    // jag::oldscape::ClientBuild::LoadGround
     loadGround(originX: number, originZ: number, xOffset: number, zOffset: number, src: Uint8Array): void {
         const buf: Packet = new Packet(src);
 

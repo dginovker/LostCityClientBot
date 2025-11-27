@@ -32,11 +32,12 @@ export default class ClientLocAnim extends ModelSource {
         this.seqCycle = loopCycle;
 
         if (randomFrame && this.seq.loops !== -1) {
-            this.seqFrame = (Math.random() * this.seq.frameCount) | 0;
+            this.seqFrame = (Math.random() * this.seq.numFrames) | 0;
             this.seqCycle -= (Math.random() * this.seq.getDuration(this.seqFrame)) | 0;
         }
     }
 
+    // jag::oldscape::ClientLocAnim::GetTempModel
     getTempModel(loopCycle: number): Model | null {
         if (this.seq) {
             let delta = loopCycle - this.seqCycle;
@@ -48,13 +49,13 @@ export default class ClientLocAnim extends ModelSource {
                 delta -= this.seq.getDuration((this.seqFrame));
                 this.seqFrame++;
 
-                if (this.seqFrame < this.seq.frameCount) {
+                if (this.seqFrame < this.seq.numFrames) {
                     continue;
                 }
 
                 this.seqFrame -= this.seq.loops;
 
-                if (this.seqFrame < 0 || this.seqFrame >= this.seq.frameCount) {
+                if (this.seqFrame < 0 || this.seqFrame >= this.seq.numFrames) {
                     this.seq = null;
                     break;
                 }

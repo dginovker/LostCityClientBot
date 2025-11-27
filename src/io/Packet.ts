@@ -52,11 +52,9 @@ export default class Packet extends DoublyLinkable {
         return Packet.getcrc(src, offset, length) == expected;
     }
 
-    // constructor
     private readonly view: DataView;
     readonly data: Uint8Array;
 
-    // runtime
     pos: number = 0;
     bitPos: number = 0;
     random: Isaac | null = null;

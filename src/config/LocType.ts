@@ -35,8 +35,8 @@ export default class LocType extends ConfigType {
     hillskew: boolean = false;
     sharelight: boolean = false;
     occlude: boolean = false;
-    static mc1: LruCache | null = new LruCache(500); // (real name)
-    static mc2: LruCache | null = new LruCache(30); // (based on a real name)
+    static mc1: LruCache | null = new LruCache(500); // jag::oldscape::configdecoder::LocType::m_mc1
+    static mc2: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::LocType::m_mc2
     ambient: number = 0;
     contrast: number = 0;
     anim: number = -1;
@@ -227,7 +227,7 @@ export default class LocType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::LocType::CheckModel
     checkModel(shape: number): boolean {
         if (this.models === null) {
             return true;
@@ -254,7 +254,7 @@ export default class LocType extends ConfigType {
         return true;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::LocType::CheckModelAll
     checkModelAll(): boolean {
         if (this.models == null) {
             return true;
@@ -270,7 +270,6 @@ export default class LocType extends ConfigType {
         return ready;
     }
 
-    // (based on a real name)
     prefetchModelAll(od: OnDemand) {
         if (this.models == null) {
             return;
@@ -284,7 +283,7 @@ export default class LocType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::LocType::GetModel
     getModel(shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, transformId: number): Model | null {
         let modified = this.buildModel(shape, angle, transformId);
         if (!modified) {
@@ -315,7 +314,7 @@ export default class LocType extends ConfigType {
         return modified;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::LocType::BuildModel
     buildModel(shape: number, angle: number, transformId: number): Model | null {
         let model: Model | null = null;
         let typecode: bigint = 0n;

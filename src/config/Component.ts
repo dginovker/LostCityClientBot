@@ -352,7 +352,8 @@ export default class Component {
 		this.linkObjCount[dst] = tmp;
     }
 
-    getModel(primaryFrame: number, secondaryFrame: number, active: boolean, localPlayer: ClientPlayer | null): Model | null {
+    // jag::oldscape::rs2lib::IfType::GetTempModel
+    getTempModel(primaryFrame: number, secondaryFrame: number, active: boolean, localPlayer: ClientPlayer | null): Model | null {
         let model: Model | null = null;
         if (active) {
             model = this.loadModel(this.model2Type, this.model2Id, localPlayer);

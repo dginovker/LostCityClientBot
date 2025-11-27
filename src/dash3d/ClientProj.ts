@@ -17,7 +17,6 @@ export default class ClientProj extends ModelSource {
     readonly projArc: number;
     readonly projTarget: number;
 
-    // runtime
     mobile: boolean = false;
     x: number = 0.0;
     z: number = 0.0;
@@ -47,7 +46,7 @@ export default class ClientProj extends ModelSource {
         this.projOffsetY = offsetY;
     }
 
-    // (real name)
+    // jag::oldscape::ClientProj::SetTarget
     setTarget(dstX: number, dstY: number, dstZ: number, cycle: number): void {
         if (!this.mobile) {
             const dx: number = dstX - this.srcX;
@@ -69,7 +68,7 @@ export default class ClientProj extends ModelSource {
         this.accelerationY = ((dstY - this.y - this.projVelocityY * dt) * 2.0) / (dt * dt);
     }
 
-    // (real name)
+    // jag::oldscape::ClientProj::Move
     move(delta: number): void {
         this.mobile = true;
         this.x += this.projVelocityX * delta;
@@ -85,14 +84,14 @@ export default class ClientProj extends ModelSource {
             while (this.seqCycle > this.spotanim.seq.getDuration(this.seqFrame)) {
                 this.seqCycle -= this.spotanim.seq.getDuration(this.seqFrame) + 1;
                 this.seqFrame++;
-                if (this.seqFrame >= this.spotanim.seq.frameCount) {
+                if (this.seqFrame >= this.spotanim.seq.numFrames) {
                     this.seqFrame = 0;
                 }
             }
         }
     }
 
-    // (real name)
+    // jag::oldscape::ClientProj::GetTempModel
     getTempModel(): Model | null {
         const spotModel: Model | null = this.spotanim.getTempModel();
         if (!spotModel) {

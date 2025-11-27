@@ -32,7 +32,7 @@ export default abstract class GameShell {
     protected nextMouseClickTime: number = 0;
     public mouseClickTime: number = 0;
 
-    public keyHeld: number[] = []; // (real name)
+    public keyHeld: number[] = []; // jag::oldscape::ClientInputHandler::KeyHeld
     protected keyQueue: number[] = [];
     protected keyQueueReadPos: number = 0;
     protected keyQueueWritePos: number = 0;

@@ -26,20 +26,20 @@ export default class SeqType extends ConfigType {
     static count: number = 0;
     static list: SeqType[] = [];
 
-    frameCount: number = 0;
+    numFrames: number = 0; // jag::oldscape::configdecoder::SeqType::GetNumFrames
     frames: Int16Array | null = null;
     iframes: Int16Array | null = null;
     delay: Int16Array | null = null;
-    loops: number = -1;
+    loops: number = -1; // jag::game::SeqType::GetLoops
     walkmerge: Int32Array | null = null;
     stretches: boolean = false;
-    priority: number = 5;
-    replaceheldleft: number = -1;
-    replaceheldright: number = -1;
-    maxloops: number = 99;
-    preanim_move: number = -1;
-    postanim_move: number = -1;
-    duplicatebehavior: number = -1;
+    priority: number = 5; // jag::game::SeqType::GetPriority
+    replaceheldleft: number = -1; // jag::game::SeqType::GetReplaceHeldLeft
+    replaceheldright: number = -1; // jag::game::SeqType::GetReplaceHeldRight
+    maxloops: number = 99; // jag::game::SeqType::GetMaxLoops
+    preanim_move: number = -1; // jag::game::SeqType::GetPreanimMove
+    postanim_move: number = -1; // jag::game::SeqType::GetPostanimMove
+    duplicatebehavior: number = -1; // jag::game::SeqType::GetDuplicateBehaviour
 
     static unpack(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('seq.dat'));
@@ -70,8 +70,8 @@ export default class SeqType extends ConfigType {
                 }
             }
 
-            if (seq.frameCount === 0) {
-                seq.frameCount = 1;
+            if (seq.numFrames === 0) {
+                seq.numFrames = 1;
 
                 seq.frames = new Int16Array(1);
                 seq.frames[0] = -1;
@@ -85,7 +85,7 @@ export default class SeqType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::SeqType::GetDuration
     getDuration(frame: number) {
         if (!this.delay || !this.frames) {
             return 0;
@@ -109,12 +109,12 @@ export default class SeqType extends ConfigType {
 
     decode(code: number, dat: Packet): void {
         if (code === 1) {
-            this.frameCount = dat.g1();
-            this.frames = new Int16Array(this.frameCount);
-            this.iframes = new Int16Array(this.frameCount);
-            this.delay = new Int16Array(this.frameCount);
+            this.numFrames = dat.g1();
+            this.frames = new Int16Array(this.numFrames);
+            this.iframes = new Int16Array(this.numFrames);
+            this.delay = new Int16Array(this.numFrames);
 
-            for (let i: number = 0; i < this.frameCount; i++) {
+            for (let i: number = 0; i < this.numFrames; i++) {
                 this.frames[i] = dat.g2();
 
                 this.iframes[i] = dat.g2();

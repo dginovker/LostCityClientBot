@@ -39,7 +39,7 @@ export default class NpcType extends ConfigType {
     alwaysontop: boolean = false;
     headicon: number = -1;
     turnspeed: number = 32;
-    static modelCache: LruCache | null = new LruCache(30); // (real name)
+    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
     ambient: number = 0;
     contrast: number = 0;
 
@@ -157,8 +157,8 @@ export default class NpcType extends ConfigType {
         }
     }
 
-    // (real name)
-    getModel(primaryTransformId: number, secondaryTransformId: number, seqMask: Int32Array | null): Model | null {
+    // jag::oldscape::configdecoder::NpcType::GetTempModel
+    getTempModel(primaryTransformId: number, secondaryTransformId: number, seqMask: Int32Array | null): Model | null {
         let model: Model | null = null;
 
         if (NpcType.modelCache) {
@@ -228,7 +228,7 @@ export default class NpcType extends ConfigType {
         return tmp;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::NpcType::GetHead
     getHead(): Model | null {
         if (!this.heads) {
             return null;

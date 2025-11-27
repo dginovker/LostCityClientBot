@@ -12,7 +12,6 @@ export default class MapSpotAnim extends ModelSource {
     readonly y: number;
     readonly startCycle: number;
 
-    // runtime
     seqComplete: boolean = false;
     seqFrame: number = 0;
     seqCycle: number = 0;
@@ -37,7 +36,7 @@ export default class MapSpotAnim extends ModelSource {
             this.seqCycle -= this.spotType.seq.getDuration(this.seqFrame) + 1;
             this.seqFrame++;
 
-            if (this.seqFrame >= this.spotType.seq.frameCount) {
+            if (this.seqFrame >= this.spotType.seq.numFrames) {
                 this.seqFrame = 0;
                 this.seqComplete = true;
             }

@@ -43,13 +43,13 @@ export default abstract class ClientEntity extends ModelSource {
     spotanimCycle: number = 0;
     spotanimLastCycle: number = 0;
     spotanimHeight: number = 0;
-    forceMoveStartSceneTileX: number = 0;
-    forceMoveEndSceneTileX: number = 0;
-    forceMoveStartSceneTileZ: number = 0;
-    forceMoveEndSceneTileZ: number = 0;
-    forceMoveEndCycle: number = 0;
-    forceMoveStartCycle: number = 0;
-    forceMoveFaceDirection: number = 0;
+    exactMoveStartSceneTileX: number = 0;
+    exactMoveEndSceneTileX: number = 0;
+    exactMoveStartSceneTileZ: number = 0;
+    exactMoveEndSceneTileZ: number = 0;
+    exactMoveEndCycle: number = 0;
+    exactMoveStartCycle: number = 0;
+    exactMoveFaceDirection: number = 0;
     cycle: number = 0;
     height: number = 0;
     dstYaw: number = 0;
@@ -60,14 +60,16 @@ export default abstract class ClientEntity extends ModelSource {
     seqDelayMove: number = 0;
     preanimRouteLength: number = 0;
 
-    abstract isVisible(): boolean;
+    // jag::oldscape::ClientEntity::Ready
+    abstract isReady(): boolean;
 
-    move(teleport: boolean, x: number, z: number): void {
+    // jag::oldscape::ClientNpc::Teleport
+    teleport(jump: boolean, x: number, z: number): void {
         if (this.primarySeqId !== -1 && SeqType.list[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
             this.primarySeqId = -1;
         }
 
-        if (!teleport) {
+        if (!jump) {
             const dx: number = x - this.routeTileX[0];
             const dz: number = z - this.routeTileZ[0];
 
@@ -98,7 +100,8 @@ export default abstract class ClientEntity extends ModelSource {
         this.z = this.routeTileZ[0] * 128 + this.size * 64;
     }
 
-    step(running: boolean, direction: number): void {
+    // jag::oldscape::ClientNpc::MoveCode
+    moveCode(running: boolean, direction: number): void {
         let nextX: number = this.routeTileX[0];
         let nextZ: number = this.routeTileZ[0];
 
@@ -143,12 +146,14 @@ export default abstract class ClientEntity extends ModelSource {
         this.routeRun[0] = running;
     }
 
-    clearRoute() {
+    // jag::oldscape::ClientEntity::AbortRoute
+    abortRoute() {
         this.routeLength = 0;
         this.preanimRouteLength = 0;
     }
 
-    hit(loopCycle: number, type: number, value: number) {
+    // jag::oldscape::ClientEntity::AddHitmark
+    addHitmark(loopCycle: number, type: number, value: number) {
         for (let i = 0; i < 4; i++) {
             if (this.damageCycles[i] <= loopCycle) {
                 this.damageValues[i] = value;

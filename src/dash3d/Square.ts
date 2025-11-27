@@ -11,7 +11,6 @@ import Decor from '#/dash3d/Decor.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class Square extends Linkable {
-    // constructor
     level: number;
     readonly x: number;
     readonly z: number;
@@ -19,7 +18,6 @@ export default class Square extends Linkable {
     readonly locs: (Sprite | null)[];
     readonly primaryExtendDirections: Int32Array;
 
-    // runtime
     quickGround: QuickGround | null = null;
     ground: Ground | null = null;
     wall: Wall | null = null;

@@ -8,7 +8,7 @@ export default class Decor {
     readonly angle2: number;
     model: ModelSource;
     readonly typecode: number;
-    readonly typecode2: number; // byte
+    readonly typecode2: number;
 
     constructor(y: number, x: number, z: number, type: number, angle: number, model: ModelSource, typecode: number, info: number) {
         this.y = y;

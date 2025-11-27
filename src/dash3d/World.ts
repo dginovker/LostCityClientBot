@@ -22,14 +22,17 @@ import { Int32Array3d, TypedArray1d, TypedArray2d, TypedArray3d, TypedArray4d } 
 import type ModelSource from '#/dash3d/ModelSource.js';
 import type VertexNormal from '#/dash3d/VertexNormal.js';
 
+// jag::oldscape::dash3d::world
 export default class World {
-    static readonly PRETAB: Uint8Array = Uint8Array.of(19, 55, 38, 155, 255, 110, 137, 205, 76); // (real name)
-    static readonly MIDTAB: Uint8Array = Uint8Array.of(160, 192, 80, 96, 0, 144, 80, 48, 160); // (real name)
-    static readonly POSTTAB: Uint8Array = Uint8Array.of(76, 8, 137, 4, 0, 1, 38, 2, 19); // (real name)
-    static readonly MIDDEP_16: Int8Array = Int8Array.of(0, 0, 2, 0, 0, 2, 1, 1, 0); // (real name)
-    static readonly MIDDEP_32: Int8Array = Int8Array.of(2, 0, 0, 2, 0, 0, 0, 4, 4); // (real name)
-    static readonly MIDDEP_64: Int8Array = Int8Array.of(0, 4, 4, 8, 0, 0, 8, 0, 0); // (real name)
-    static readonly MIDDEP_128: Int8Array = Int8Array.of(1, 1, 0, 0, 0, 8, 0, 0, 8); // (real name)
+    static readonly PRETAB: Uint8Array = Uint8Array.of(19, 55, 38, 155, 255, 110, 137, 205, 76); // jag::oldscape::dash3d::world::PRETAB
+    static readonly MIDTAB: Uint8Array = Uint8Array.of(160, 192, 80, 96, 0, 144, 80, 48, 160); // jag::oldscape::dash3d::world::MIDTAB
+    static readonly POSTTAB: Uint8Array = Uint8Array.of(76, 8, 137, 4, 0, 1, 38, 2, 19); // jag::oldscape::dash3d::world::POSTTAB
+
+    static readonly MIDDEP_16: Int8Array = Int8Array.of(0, 0, 2, 0, 0, 2, 1, 1, 0); // jag::oldscape::dash3d::world::MIDDEP_16
+    static readonly MIDDEP_32: Int8Array = Int8Array.of(2, 0, 0, 2, 0, 0, 0, 4, 4); // jag::oldscape::dash3d::world::MIDDEP_32
+    static readonly MIDDEP_64: Int8Array = Int8Array.of(0, 4, 4, 8, 0, 0, 8, 0, 0); // jag::oldscape::dash3d::world::MIDDEP_64
+    static readonly MIDDEP_128: Int8Array = Int8Array.of(1, 1, 0, 0, 0, 8, 0, 0, 8); // jag::oldscape::dash3d::world::MIDDEP_128
+
     static readonly WALL_DECORATION_INSET_X: Int8Array = Int8Array.of(53, -53, -53, 53);
     static readonly WALL_DECORATION_INSET_Z: Int8Array = Int8Array.of(-53, -53, 53, 53);
     static readonly WALL_DECORATION_OUTSET_X: Int8Array = Int8Array.of(-45, 45, 45, -45);
@@ -50,7 +53,7 @@ export default class World {
         Int8Array.of(1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0), // FAN_SMALL_SHAPE
         Int8Array.of(0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1), // FAN_BIG_SHAPE
         Int8Array.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1)  // TRAPEZIUM_SHAPE
-    ]; // (real name)
+    ]; // jag::oldscape::dash3d::world::MINIMAP_SHAPE
 
     // prettier-ignore
     static readonly MINIMAP_ROTATE: Int8Array[] = [
@@ -58,7 +61,7 @@ export default class World {
         Int8Array.of(12, 8, 4, 0, 13, 9, 5, 1, 14, 10, 6, 2, 15, 11, 7, 3),
         Int8Array.of(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0),
         Int8Array.of(3, 7, 11, 15, 2, 6, 10, 14, 1, 5, 9, 13, 0, 4, 8, 12),
-    ]; // (real name)
+    ]; // jag::oldscape::dash3d::world::MINIMAP_ROTATE
 
     // prettier-ignore
     static readonly TEXTURE_HSL: Int32Array = Int32Array.of(
@@ -71,36 +74,36 @@ export default class World {
         41, 41
     );
 
-    static lowMem: boolean = true; // (real name)
+    static lowMem: boolean = true; // jag::oldscape::dash3d::world::m_lowMem
 
-    private static cameraSinX: number = 0; // (real name)
-    private static cameraCosX: number = 0; // (real name)
-    private static cameraSinY: number = 0; // (real name)
-    private static cameraCosY: number = 0; // (real name)
+    private static cameraSinX: number = 0; // jag::oldscape::dash3d::world::m_cameraSinX
+    private static cameraCosX: number = 0; // jag::oldscape::dash3d::world::m_cameraCosX
+    private static cameraSinY: number = 0; // jag::oldscape::dash3d::world::m_cameraSinY
+    private static cameraCosY: number = 0; // jag::oldscape::dash3d::world::m_cameraCosY
 
-    private static fillLeft: number = 0; // (real name)
+    private static fillLeft: number = 0; // jag::oldscape::dash3d::world::m_fillLeft
     private static fillQueue: LinkList = new LinkList();
 
-    static maxLevel: number = 0; // (real name)
+    static maxLevel: number = 0; // jag::oldscape::dash3d::world::m_maxLevel
 
-    private static cycleNo: number = 0; // (real name)
+    private static cycleNo: number = 0; // jag::oldscape::dash3d::world::m_cycleNo
 
-    private static minX: number = 0; // (real name)
-    private static maxX: number = 0; // (real name)
-    private static minZ: number = 0; // (real name)
-    private static maxZ: number = 0; // (real name)
+    private static minX: number = 0; // jag::oldscape::dash3d::world::m_minX
+    private static maxX: number = 0; // jag::oldscape::dash3d::world::m_maxX
+    private static minZ: number = 0; // jag::oldscape::dash3d::world::m_minZ
+    private static maxZ: number = 0; // jag::oldscape::dash3d::world::m_maxZ
 
-    private static gx: number = 0; // (real name)
-    private static gz: number = 0; // (real name)
-    private static cx: number = 0; // (real name)
-    private static cy: number = 0; // (real name)
-    private static cz: number = 0; // (real name)
+    private static gx: number = 0; // jag::oldscape::dash3d::world::m_gx
+    private static gz: number = 0; // jag::oldscape::dash3d::world::m_gz
+    private static cx: number = 0; // jag::oldscape::dash3d::world::m_cx
+    private static cy: number = 0; // jag::oldscape::dash3d::world::m_cy
+    private static cz: number = 0; // jag::oldscape::dash3d::world::m_cz
 
-    private static click: boolean = false; // (real name)
-    static clickX: number = 0; // (real name)
-    static clickY: number = 0; // (real name)
-    static groundX: number = -1; // (real name)
-    static groundZ: number = -1; // (real name)
+    private static click: boolean = false; // jag::oldscape::dash3d::world::m_click
+    static clickX: number = 0; // jag::oldscape::dash3d::world::m_clickX
+    static clickY: number = 0; // jag::oldscape::dash3d::world::m_clickY
+    static groundX: number = -1; // jag::oldscape::dash3d::world::m_groundX
+    static groundZ: number = -1; // jag::oldscape::dash3d::world::m_groundZ
 
     private static visibilityMatrix: boolean[][][][] = new TypedArray4d(8, 32, 51, 51, false);
     private static visibilityMap: boolean[][] | null = null;
@@ -192,7 +195,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetOcclude
     static setOcclude(level: number, type: number, minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): void {
         World.levelOccluders[level][World.levelOccluderCount[level]++] = new Occlude((minX / 128) | 0, (maxX / 128) | 0, (minZ / 128) | 0, (maxZ / 128) | 0, type, minX, maxX, minZ, maxZ, minY, maxY);
     }
@@ -202,15 +205,16 @@ export default class World {
         const tmp: number = (z * this.cameraCosY - x * this.cameraSinY) >> 16;
         const pz: number = (y * this.cameraSinX + tmp * this.cameraCosX) >> 16;
         const py: number = (y * this.cameraCosX - tmp * this.cameraSinX) >> 16;
+
         if (pz < 50 || pz > 3500) {
             return false;
         }
+
         const viewportX: number = this.viewportCenterX + (((px << 9) / pz) | 0);
         const viewportY: number = this.viewportCenterY + (((py << 9) / pz) | 0);
         return viewportX >= this.viewportLeft && viewportX <= this.viewportRight && viewportY >= this.viewportTop && viewportY <= this.viewportBottom;
     }
 
-    // ----
     private readonly maxLevel: number;
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
@@ -221,7 +225,6 @@ export default class World {
     private readonly mergeIndexA: Int32Array;
     private readonly mergeIndexB: Int32Array;
 
-    // runtime
     private changedLocCount: number = 0;
     private minLevel: number = 0;
     private tmpMergeIndex: number = 0;
@@ -241,7 +244,7 @@ export default class World {
         this.resetMap();
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::ResetMap(void)
     resetMap(): void {
         for (let level: number = 0; level < this.maxLevel; level++) {
             for (let x: number = 0; x < this.maxTileX; x++) {
@@ -268,7 +271,7 @@ export default class World {
         World.locBuffer.fill(null);
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::FillBaseLevel
     fillBaseLevel(level: number): void {
         this.minLevel = level;
 
@@ -279,7 +282,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::PushDown
     pushDown(stx: number, stz: number): void {
         const below: Square | null = this.levelTiles[0][stx][stz];
 
@@ -304,7 +307,7 @@ export default class World {
         this.levelTiles[3][stx][stz] = null;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetLayer
     setLayer(level: number, stx: number, stz: number, drawLevel: number): void {
         const tile: Square | null = this.levelTiles[level][stx][stz];
         if (!tile) {
@@ -314,7 +317,7 @@ export default class World {
         tile.drawLevel = drawLevel;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetGround
     setGround(
         level: number,
         x: number,
@@ -393,7 +396,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetGroundDecor
     setGroundDecor(model: ModelSource | null, tileLevel: number, tileX: number, tileZ: number, y: number, typecode: number, typecode2: number): void {
         if (!this.levelTiles[tileLevel][tileX][tileZ]) {
             this.levelTiles[tileLevel][tileX][tileZ] = new Square(tileLevel, tileX, tileZ);
@@ -405,7 +408,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DelGroundDecor
     delGroundDecor(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -415,7 +418,7 @@ export default class World {
         tile.groundDecor = null;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetObj
     setObj(stx: number, stz: number, y: number, level: number, typecode: number, topObj: ModelSource | null, middleObj: ModelSource | null, bottomObj: ModelSource | null): void {
         let stackOffset: number = 0;
 
@@ -442,7 +445,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DelObj
     delObj(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -452,7 +455,7 @@ export default class World {
         tile.groundObject = null;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetWall
     setWall(level: number, tileX: number, tileZ: number, y: number, angle1: number, angle2: number, model1: ModelSource | null, model2: ModelSource | null, typecode1: number, typecode2: number): void {
         if (!model1 && !model2) {
             return;
@@ -470,31 +473,35 @@ export default class World {
         }
     }
 
-    // (real name)
-    delWall(level: number, x: number, z: number, force: number): void {
+    // jag::oldscape::dash3d::world::DelWall
+    delWall(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
-        if (force === 1 && tile) {
-            tile.wall = null;
+        if (!tile) {
+            return;
         }
+
+        tile.wall = null;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetDecor
     setDecor(level: number, tileX: number, tileZ: number, y: number, offsetX: number, offsetZ: number, typecode: number, model: ModelSource | null, info: number, angle: number, type: number): void {
         if (!model) {
             return;
         }
+
         for (let l: number = level; l >= 0; l--) {
             if (!this.levelTiles[l][tileX][tileZ]) {
                 this.levelTiles[l][tileX][tileZ] = new Square(l, tileX, tileZ);
             }
         }
+
         const tile: Square | null = this.levelTiles[level][tileX][tileZ];
         if (tile) {
             tile.decor = new Decor(y, tileX * 128 + offsetX + 64, tileZ * 128 + offsetZ + 64, type, angle, model, typecode, info);
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DelDecor
     delDecor(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -594,7 +601,7 @@ export default class World {
         wall.model2 = modelB;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::AddScenery
     addScenery(level: number, tileX: number, tileZ: number, y: number, model: ModelSource | null, typecode: number, info: number, width: number, length: number, yaw: number): boolean {
         if (!model) {
             return true;
@@ -605,7 +612,7 @@ export default class World {
         return this.setSprite(sceneX, sceneZ, y, level, tileX, tileZ, width, length, model, typecode, info, yaw, false);
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::AddDynamic
     addDynamic(level: number, x: number, y: number, z: number, model: ModelSource | null, typecode: number, yaw: number, padding: number, forwardPadding: boolean): boolean {
         if (!model) {
             return true;
@@ -639,12 +646,12 @@ export default class World {
         return this.setSprite(x, z, y, level, x0, z0, x1 + 1 - x0, z1 - z0 + 1, model, typecode, 0, yaw, true);
     }
 
-    // (real name is addDynamic, no overloads in TS)
+    // jag::oldscape::dash3d::world::AddDynamic
     addDynamic2(level: number, x: number, y: number, z: number, minTileX: number, minTileZ: number, maxTileX: number, maxTileZ: number, model: ModelSource | null, typecode: number, yaw: number): boolean {
         return !model || this.setSprite(x, z, y, level, minTileX, minTileZ, maxTileX + 1 - minTileX, maxTileZ - minTileZ + 1, model, typecode, 0, yaw, true);
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DelLoc
     delLoc(level: number, x: number, z: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -660,7 +667,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::RemoveSprites
     removeSprites(): void {
         for (let i: number = 0; i < this.changedLocCount; i++) {
             const loc: Sprite | null = this.changedLocs[i];
@@ -674,19 +681,19 @@ export default class World {
         this.changedLocCount = 0;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::WallType
     wallType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.wall ? 0 : tile.wall.typecode;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DecorType
     decorType(level: number, z: number, x: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.decor ? 0 : tile.decor.typecode;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SceneType
     sceneType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -703,25 +710,25 @@ export default class World {
         return 0;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::GdType
     gdType(level: number, x: number, z: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.groundDecor ? 0 : tile.groundDecor.typecode;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::GetWall
     getWall(level: number, x: number, z: number): Wall | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.wall ? null : tile.wall;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::GetDecor
     getDecor(level: number, z: number, x: number): Decor | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.decor ? null : tile.decor;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::GetScene
     getScene(level: number, x: number, z: number): Sprite | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -738,13 +745,13 @@ export default class World {
         return null;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::GetGd
     getGd(level: number, x: number, z: number): GroundDecor | null {
         const tile: Square | null = this.levelTiles[level][x][z];
         return !tile || !tile.groundDecor ? null : tile.groundDecor;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::TypeCode2
     typecode2(level: number, x: number, z: number, typecode: number): number {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -766,7 +773,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::ShareLight
     shareLight(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
         const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
@@ -808,7 +815,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::ShareLightGd
     shareLightGd(level: number, tileX: number, tileZ: number, model: Model): void {
         if (tileX < this.maxTileX) {
             const tile: Square | null = this.levelTiles[level][tileX + 1][tileZ];
@@ -839,7 +846,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::ShareLightLoc
     shareLightLoc(level: number, tileX: number, tileZ: number, tileSizeX: number, tileSizeZ: number, model: Model): void {
         let allowFaceRemoval: boolean = true;
 
@@ -978,7 +985,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::Render2DGround
     render2DGround(level: number, x: number, z: number, dst: Int32Array, offset: number, step: number): void {
         const tile: Square | null = this.levelTiles[level][x][z];
         if (!tile) {
@@ -1040,7 +1047,7 @@ export default class World {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::dash3d::world::UpdateMousePickingRSeven
     updateMousePicking(mouseX: number, mouseY: number): void {
         World.click = true;
         World.clickX = mouseX;
@@ -1049,7 +1056,7 @@ export default class World {
         World.groundZ = -1;
     }
 
-    // (based on a real name)
+    // jag::oldscape::dash3d::world::RenderAllSlow
     renderAll(eyeX: number, eyeY: number, eyeZ: number, topLevel: number, eyeYaw: number, eyePitch: number, loopCycle: number): void {
         if (eyeX < 0) {
             eyeX = 0;
@@ -1231,7 +1238,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SetSprite
     private setSprite(
         x: number,
         z: number,
@@ -1304,7 +1311,7 @@ export default class World {
         return true;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::DelSprite
     private delSprite(loc: Sprite): void {
         for (let tx: number = loc.minSceneTileX; tx <= loc.maxSceneTileX; tx++) {
             for (let tz: number = loc.minSceneTileZ; tz <= loc.maxSceneTileZ; tz++) {
@@ -1334,7 +1341,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::CalcOcclude
     private calcOcclude(): void {
         const count: number = World.levelOccluderCount[World.maxLevel];
         const occluders: (Occlude | null)[] = World.levelOccluders[World.maxLevel];
@@ -1484,7 +1491,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::Fill
     private fill(next: Square, checkAdjacent: boolean, loopCycle: number): void {
         World.fillQueue.push(next);
 
@@ -2021,7 +2028,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::SoftwareWorldRenderer::RenderQuickGround
     private renderQuickGround(quick: QuickGround, level: number, tileX: number, tileZ: number, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number): void {
         let x3: number;
         let x0: number = (x3 = (tileX << 7) - World.cx);
@@ -2139,7 +2146,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::SoftwareWorldRenderer::RenderGround
     private renderGround(tileX: number, tileZ: number, ground: Ground, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number): void {
         let vertexCount: number = ground.vertexX.length;
 
@@ -2249,7 +2256,7 @@ export default class World {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::dash3d::world::GroundoOcluded [sic]
     private groundOccluded(level: number, x: number, z: number): boolean {
         const cycle: number = this.occlusionCycle[level][x][z];
         if (cycle === -World.cycleNo) {
@@ -2274,7 +2281,7 @@ export default class World {
         }
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::WallOccluded
     private wallOccluded(level: number, x: number, z: number, type: number): boolean {
         if (!this.groundOccluded(level, x, z)) {
             return false;
@@ -2393,7 +2400,7 @@ export default class World {
         return true;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::SpriteOccluded
     private spriteOccluded(level: number, tileX: number, tileZ: number, y: number): boolean {
         if (this.groundOccluded(level, tileX, tileZ)) {
             const x: number = tileX << 7;
@@ -2408,7 +2415,7 @@ export default class World {
         return false;
     }
 
-    // (real name is spriteOccluded, no overloads in TS)
+    // jag::oldscape::dash3d::world::SpriteOccluded
     private spriteOccluded2(level: number, minX: number, maxX: number, minZ: number, maxZ: number, y: number): boolean {
         let x: number;
         let z: number;
@@ -2450,7 +2457,7 @@ export default class World {
         return false;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::Occluded
     private occluded(x: number, y: number, z: number): boolean {
         for (let i: number = 0; i < World.activeOccluderCount; i++) {
             const occluder: Occlude | null = World.activeOccluders[i];
@@ -2518,7 +2525,7 @@ export default class World {
         return false;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::world::InsideTriangle
     private insideTriangle(x: number, y: number, y0: number, y1: number, y2: number, x0: number, x1: number, x2: number): boolean {
         if (y < y0 && y < y1 && y < y2) {
             return false;

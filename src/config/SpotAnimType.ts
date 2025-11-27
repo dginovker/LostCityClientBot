@@ -22,7 +22,7 @@ export default class SpotAnimType extends ConfigType {
     angle: number = 0;
     ambient: number = 0;
     contrast: number = 0;
-    static modelCache: LruCache | null = new LruCache(30);
+    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
 
     static unpack(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('spotanim.dat'));
@@ -32,6 +32,7 @@ export default class SpotAnimType extends ConfigType {
         }
     }
 
+    // jag::oldscape::configdecoder::SpotType::Decode
     decode(code: number, dat: Packet): void {
         if (code === 1) {
             this.model = dat.g2();
@@ -60,7 +61,7 @@ export default class SpotAnimType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::SpotType::GetTempModel2 [sic]
     getTempModel(): Model | null {
         let model: Model | null = null;
 

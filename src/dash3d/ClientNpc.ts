@@ -21,12 +21,13 @@ export const enum NpcUpdate {
 export default class ClientNpc extends ClientEntity {
     type: NpcType | null = null;
 
+    // jag::oldscape::ClientNpc::GetTempModel
     getTempModel(): Model | null {
         if (this.type == null) {
             return null;
         }
 
-        let model = this.getAnimatedModel();
+        let model = this.getTempModel2();
         if (model == null) {
             return null;
         }
@@ -66,7 +67,7 @@ export default class ClientNpc extends ClientEntity {
         return model;
     }
 
-    private getAnimatedModel(): Model | null {
+    private getTempModel2(): Model | null {
         if (!this.type) {
             return null;
         }
@@ -78,7 +79,7 @@ export default class ClientNpc extends ClientEntity {
                 secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];
             }
 
-            return this.type.getModel(secondaryTransform, -1, null);
+            return this.type.getTempModel(secondaryTransform, -1, null);
         } else {
             const primarySeq = SeqType.list[this.primarySeqId];
             let primaryTransform = -1;
@@ -92,11 +93,12 @@ export default class ClientNpc extends ClientEntity {
                 secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];
             }
 
-            return this.type.getModel(primaryTransform, secondaryTransform, primarySeq.walkmerge);
+            return this.type.getTempModel(primaryTransform, secondaryTransform, primarySeq.walkmerge);
         }
     }
 
-    isVisible(): boolean {
+    // jag::oldscape::ClientNpc::Ready
+    isReady(): boolean {
         return this.type !== null;
     }
 }

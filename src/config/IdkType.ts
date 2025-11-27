@@ -56,7 +56,7 @@ export default class IdkType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::IdkType::CheckModel
     checkModel(): boolean {
         if (!this.models) {
             return true;
@@ -73,7 +73,7 @@ export default class IdkType extends ConfigType {
         return ready;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::IdkType::GetModelNoCheck
     getModelNoCheck(): Model | null {
         if (!this.models) {
             return null;
@@ -98,7 +98,7 @@ export default class IdkType extends ConfigType {
         return model;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::IdkType::CheckHead
     checkHead(): boolean {
         let ready = true;
 
@@ -111,7 +111,7 @@ export default class IdkType extends ConfigType {
         return ready;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::IdkType::GetHeadNoCheck
     getHeadNoCheck(): Model {
         let count: number = 0;
 

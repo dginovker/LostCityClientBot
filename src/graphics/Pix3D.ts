@@ -21,7 +21,7 @@ export default class Pix3D extends Pix2D {
     static centerX: number = 0;
     static centerY: number = 0;
 
-    static lowDetail: boolean = true; // (real name)
+    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
     static hclip: boolean = false;
     static trans: number = 0;
 

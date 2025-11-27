@@ -144,12 +144,12 @@ export class Client extends GameShell {
     private imageTitle8: PixMap | null = null;
     private imageTitlebox: Pix8 | null = null;
     private imageTitlebutton: Pix8 | null = null;
-    private loginscreen: number = 0; // (real name)
-    private loginSelect: number = 0; // (real name)
-    private loginMes1: string = ''; // (real name)
-    private loginMes2: string = ''; // (real name)
-    private loginUser: string = ''; // (real name)
-    private loginPass: string = ''; // (real name)
+    private loginscreen: number = 0; // jag::oldscape::TitleScreen::m_loginscreen
+    private loginSelect: number = 0; // jag::oldscape::TitleScreen::m_loginSelect
+    private loginMes1: string = ''; // jag::oldscape::TitleScreen::m_loginMes1
+    private loginMes2: string = ''; // jag::oldscape::TitleScreen::m_loginMes2
+    private loginUser: string = ''; // jag::oldscape::TitleScreen::m_loginUser
+    private loginPass: string = ''; // jag::oldscape::TitleScreen::m_loginPass
 
     // fonts
     private fontPlain11: PixFont | null = null;
@@ -385,9 +385,9 @@ export class Client extends GameShell {
     private sceneCenterZoneZ: number = 0;
     private sceneBaseTileX: number = 0;
     private sceneBaseTileZ: number = 0;
-    private mapBuildGroundData: (Uint8Array | null)[] | null = null; // (real name)
+    private mapBuildGroundData: (Uint8Array | null)[] | null = null; // m_mapBuildGroundData
     private mapBuildGroundFile: number[] = [];
-    private mapBuildLocationData: (Uint8Array | null)[] | null = null; // (real name)
+    private mapBuildLocationData: (Uint8Array | null)[] | null = null; // m_mapBuildLocationData
     private mapBuildLocationFile: number[] = [];
     private mapBuildIndex: Int32Array | null = null;
     private withinTutorialIsland: boolean = false;
@@ -396,15 +396,15 @@ export class Client extends GameShell {
     private scenePrevBaseTileZ: number = 0;
     private textureBuffer: Int8Array = new Int8Array(16384);
     private levelCollisionMap: (CollisionMap | null)[] = new TypedArray1d(CollisionConstants.LEVELS, null);
-    private minusedlevel: number = 0; // (real name)
     private orbitCameraPitch: number = 128;
     private orbitCameraYaw: number = 0;
     private orbitCameraYawVelocity: number = 0;
     private orbitCameraPitchVelocity: number = 0;
     private orbitCameraX: number = 0;
     private orbitCameraZ: number = 0;
-    private groundh: Int32Array[][] | null = null; // (real name)
-    private mapl: Uint8Array[][] | null = null;
+    private minusedlevel: number = 0; // jag::oldscape::ClientBuild::minusedlevel
+    private groundh: Int32Array[][] | null = null; // jag::oldscape::ClientBuild::m_groundh
+    private mapl: Uint8Array[][] | null = null; // jag::oldscape::ClientBuild::m_mapl
     private tileLastOccupiedCycle: Int32Array[] = new Int32Array2d(CollisionConstants.SIZE, CollisionConstants.SIZE);
     private projectX: number = 0;
     private projectY: number = 0;
@@ -1297,7 +1297,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::TitleScreen::Loop
     private async titleScreenLoop(): Promise<void> {
         if (this.loginscreen === 0) {
             let x: number = ((this.width / 2) | 0) - 80;
@@ -1662,7 +1662,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::Logout
     private async logout(): Promise<void> {
         if (this.stream) {
             this.stream.close();
@@ -1734,7 +1734,7 @@ export class Client extends GameShell {
         this.redrawFrame = true;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GameLoop
     private async gameLoop(): Promise<void> {
         if (this.players === null) {
             // client is unloading asynchronously
@@ -2097,7 +2097,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlCheckMinimap
     private checkMinimap(): void {
         if (Client.lowMem && this.sceneState === 2 && ClientBuild.minusedlevel !== this.minusedlevel) {
             this.areaViewport?.bind();
@@ -2161,7 +2161,7 @@ export class Client extends GameShell {
         return 0;
     }
 
-    // (based on a real name)
+    // jag::oldscape::Client::MapBuildLoop
     private mapBuild(): void {
         try {
             this.minimapLevel = -1;
@@ -2301,7 +2301,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::LocChangePostBuildCorrect
     private locChangePostBuildCorrect(): void {
         for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
             if (loc.endTime === -1) {
@@ -2313,7 +2313,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::minimap::Minimap::BuildBuffer
     private buildBuffer(level: number): void {
         if (!this.imageMinimap) {
             return;
@@ -2415,7 +2415,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::LocChangeDoQueue
     private locChangeDoQueue(): void {
         if (this.sceneState !== 2) {
             return;
@@ -2448,7 +2448,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlDoSoundsQueue
     async soundsDoQueue() {
         for (let wave: number = 0; wave < this.waveCount; wave++) {
             if (this.waveDelay[wave] <= 0) {
@@ -3186,7 +3186,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::CloseModal
     private closeModal(): void {
         this.out.p1isaac(ClientProt.CLOSE_MODAL);
 
@@ -3206,7 +3206,7 @@ export class Client extends GameShell {
         this.mainLayerId = -1;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlTimeoutChat
     private timeoutChat(): void {
         for (let i: number = -1; i < this.playerCount; i++) {
             let index: number;
@@ -3240,7 +3240,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlFollowCamera
     private followCamera(): void {
         if (!this.localPlayer) {
             return; // custom
@@ -3324,7 +3324,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlCinemaCamera
     private cinemaCamera(): void {
         let x: number = this.cutsceneSrcLocalTileX * 128 + 64;
         let z: number = this.cutsceneSrcLocalTileZ * 128 + 64;
@@ -3697,7 +3697,7 @@ export class Client extends GameShell {
         // super.debug = true;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlMovePlayers
     private movePlayers(): void {
         for (let i: number = -1; i < this.playerCount; i++) {
             let index: number;
@@ -3714,7 +3714,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlMoveNpcs
     private moveNpcs(): void {
         for (let i: number = 0; i < this.npcCount; i++) {
             const id: number = this.npcIds[i];
@@ -3726,31 +3726,31 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlMoveEntity
     private moveEntity(e: ClientEntity): void {
         if (e.x < 128 || e.z < 128 || e.x >= 13184 || e.z >= 13184) {
             e.primarySeqId = -1;
             e.spotanimId = -1;
-            e.forceMoveEndCycle = 0;
-            e.forceMoveStartCycle = 0;
+            e.exactMoveEndCycle = 0;
+            e.exactMoveStartCycle = 0;
             e.x = e.routeTileX[0] * 128 + e.size * 64;
             e.z = e.routeTileZ[0] * 128 + e.size * 64;
-            e.clearRoute();
+            e.abortRoute();
         }
 
         if (e === this.localPlayer && (e.x < 1536 || e.z < 1536 || e.x >= 11776 || e.z >= 11776)) {
             e.primarySeqId = -1;
             e.spotanimId = -1;
-            e.forceMoveEndCycle = 0;
-            e.forceMoveStartCycle = 0;
+            e.exactMoveEndCycle = 0;
+            e.exactMoveStartCycle = 0;
             e.x = e.routeTileX[0] * 128 + e.size * 64;
             e.z = e.routeTileZ[0] * 128 + e.size * 64;
-            e.clearRoute();
+            e.abortRoute();
         }
 
-        if (e.forceMoveEndCycle > this.loopCycle) {
+        if (e.exactMoveEndCycle > this.loopCycle) {
             this.exactMove1(e);
-        } else if (e.forceMoveStartCycle >= this.loopCycle) {
+        } else if (e.exactMoveStartCycle >= this.loopCycle) {
             this.exactMove2(e);
         } else {
             this.routeMove(e);
@@ -3760,57 +3760,57 @@ export class Client extends GameShell {
         this.entityAnim(e);
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlExactMove1
     private exactMove1(e: ClientEntity): void {
-        const delta: number = e.forceMoveEndCycle - this.loopCycle;
-        const dstX: number = e.forceMoveStartSceneTileX * 128 + e.size * 64;
-        const dstZ: number = e.forceMoveStartSceneTileZ * 128 + e.size * 64;
+        const delta: number = e.exactMoveEndCycle - this.loopCycle;
+        const dstX: number = e.exactMoveStartSceneTileX * 128 + e.size * 64;
+        const dstZ: number = e.exactMoveStartSceneTileZ * 128 + e.size * 64;
 
         e.x += ((dstX - e.x) / delta) | 0;
         e.z += ((dstZ - e.z) / delta) | 0;
 
         e.seqDelayMove = 0;
 
-        if (e.forceMoveFaceDirection === 0) {
+        if (e.exactMoveFaceDirection === 0) {
             e.dstYaw = 1024;
-        } else if (e.forceMoveFaceDirection === 1) {
+        } else if (e.exactMoveFaceDirection === 1) {
             e.dstYaw = 1536;
-        } else if (e.forceMoveFaceDirection === 2) {
+        } else if (e.exactMoveFaceDirection === 2) {
             e.dstYaw = 0;
-        } else if (e.forceMoveFaceDirection === 3) {
+        } else if (e.exactMoveFaceDirection === 3) {
             e.dstYaw = 512;
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlExactMove2
     private exactMove2(e: ClientEntity): void {
-        if (e.forceMoveStartCycle === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getDuration(e.primarySeqFrame)) {
-            const duration: number = e.forceMoveStartCycle - e.forceMoveEndCycle;
-            const delta: number = this.loopCycle - e.forceMoveEndCycle;
-            const dx0: number = e.forceMoveStartSceneTileX * 128 + e.size * 64;
-            const dz0: number = e.forceMoveStartSceneTileZ * 128 + e.size * 64;
-            const dx1: number = e.forceMoveEndSceneTileX * 128 + e.size * 64;
-            const dz1: number = e.forceMoveEndSceneTileZ * 128 + e.size * 64;
+        if (e.exactMoveStartCycle === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getDuration(e.primarySeqFrame)) {
+            const duration: number = e.exactMoveStartCycle - e.exactMoveEndCycle;
+            const delta: number = this.loopCycle - e.exactMoveEndCycle;
+            const dx0: number = e.exactMoveStartSceneTileX * 128 + e.size * 64;
+            const dz0: number = e.exactMoveStartSceneTileZ * 128 + e.size * 64;
+            const dx1: number = e.exactMoveEndSceneTileX * 128 + e.size * 64;
+            const dz1: number = e.exactMoveEndSceneTileZ * 128 + e.size * 64;
             e.x = ((dx0 * (duration - delta) + dx1 * delta) / duration) | 0;
             e.z = ((dz0 * (duration - delta) + dz1 * delta) / duration) | 0;
         }
 
         e.seqDelayMove = 0;
 
-        if (e.forceMoveFaceDirection === 0) {
+        if (e.exactMoveFaceDirection === 0) {
             e.dstYaw = 1024;
-        } else if (e.forceMoveFaceDirection === 1) {
+        } else if (e.exactMoveFaceDirection === 1) {
             e.dstYaw = 1536;
-        } else if (e.forceMoveFaceDirection === 2) {
+        } else if (e.exactMoveFaceDirection === 2) {
             e.dstYaw = 0;
-        } else if (e.forceMoveFaceDirection === 3) {
+        } else if (e.exactMoveFaceDirection === 3) {
             e.dstYaw = 512;
         }
 
         e.yaw = e.dstYaw;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlRouteMove
     private routeMove(e: ClientEntity): void {
         e.secondarySeqId = e.readyanim;
 
@@ -3942,7 +3942,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlEntityFace
     private entityFace(e: ClientEntity): void {
         if (e.targetId !== -1 && e.targetId < 32768) {
             const npc: ClientNpc | null = this.npcs[e.targetId];
@@ -4007,7 +4007,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GlEntityAnim
     private entityAnim(e: ClientEntity): void {
         e.needsForwardDrawPadding = false;
 
@@ -4016,12 +4016,12 @@ export class Client extends GameShell {
             seq = SeqType.list[e.secondarySeqId];
             e.secondarySeqCycle++;
 
-            if (e.secondarySeqFrame < seq.frameCount && e.secondarySeqCycle > seq.getDuration(e.secondarySeqFrame)) {
+            if (e.secondarySeqFrame < seq.numFrames && e.secondarySeqCycle > seq.getDuration(e.secondarySeqFrame)) {
                 e.secondarySeqCycle = 0;
                 e.secondarySeqFrame++;
             }
 
-            if (e.secondarySeqFrame >= seq.frameCount) {
+            if (e.secondarySeqFrame >= seq.numFrames) {
                 e.secondarySeqCycle = 0;
                 e.secondarySeqFrame = 0;
             }
@@ -4035,13 +4035,13 @@ export class Client extends GameShell {
             seq = SpotAnimType.list[e.spotanimId].seq;
             e.spotanimCycle++;
 
-            while (seq && e.spotanimFrame < seq.frameCount && e.spotanimCycle > seq.getDuration(e.spotanimFrame)) {
+            while (seq && e.spotanimFrame < seq.numFrames && e.spotanimCycle > seq.getDuration(e.spotanimFrame)) {
                 e.spotanimCycle -= seq.getDuration(e.spotanimFrame);
                 e.spotanimFrame++;
             }
 
-            if (seq && e.spotanimFrame >= seq.frameCount) {
-                if (e.spotanimFrame < 0 || e.spotanimFrame >= seq.frameCount) {
+            if (seq && e.spotanimFrame >= seq.numFrames) {
+                if (e.spotanimFrame < 0 || e.spotanimFrame >= seq.numFrames) {
                     e.spotanimId = -1;
                 }
             }
@@ -4049,7 +4049,7 @@ export class Client extends GameShell {
 
         if (e.primarySeqId != -1 && e.primarySeqDelay <= 1) {
             seq = SeqType.list[e.primarySeqId];
-            if (seq.preanim_move === PreanimMove.DELAYANIM && e.preanimRouteLength > 0 && this.loopCycle >= e.forceMoveStartCycle && this.loopCycle > e.forceMoveEndCycle) {
+            if (seq.preanim_move === PreanimMove.DELAYANIM && e.preanimRouteLength > 0 && this.loopCycle >= e.exactMoveStartCycle && this.loopCycle > e.exactMoveEndCycle) {
                 e.primarySeqDelay = 1;
                 return;
             }
@@ -4059,12 +4059,12 @@ export class Client extends GameShell {
             seq = SeqType.list[e.primarySeqId];
             e.primarySeqCycle++;
 
-            while (e.primarySeqFrame < seq.frameCount && e.primarySeqCycle > seq.getDuration(e.primarySeqFrame)) {
+            while (e.primarySeqFrame < seq.numFrames && e.primarySeqCycle > seq.getDuration(e.primarySeqFrame)) {
                 e.primarySeqCycle -= seq.getDuration(e.primarySeqFrame);
                 e.primarySeqFrame++;
             }
 
-            if (e.primarySeqFrame >= seq.frameCount) {
+            if (e.primarySeqFrame >= seq.numFrames) {
                 e.primarySeqFrame -= seq.loops;
                 e.primarySeqLoop++;
 
@@ -4072,7 +4072,7 @@ export class Client extends GameShell {
                     e.primarySeqId = -1;
                 }
 
-                if (e.primarySeqFrame < 0 || e.primarySeqFrame >= seq.frameCount) {
+                if (e.primarySeqFrame < 0 || e.primarySeqFrame >= seq.numFrames) {
                     e.primarySeqId = -1;
                 }
             }
@@ -4276,7 +4276,7 @@ export class Client extends GameShell {
         });
     }
 
-    // (based on a real name)
+    // jag::oldscape::TitleScreen::Draw
     private async titleScreenDraw(): Promise<void> {
         await this.loadTitle();
         this.imageTitle4?.bind();
@@ -4367,7 +4367,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::Client::GameDraw
     private gameDraw(): void {
         if (this.players === null) {
             // client is unloading asynchronously
@@ -4399,7 +4399,7 @@ export class Client extends GameShell {
         }
 
         if (this.sceneState === 2) {
-            this.drawScene();
+            this.gameDrawMain();
         }
 
         if (this.menuVisible && this.menuArea === 1) {
@@ -4650,7 +4650,8 @@ export class Client extends GameShell {
         this.sceneDelta = 0;
     }
 
-    private drawScene(): void {
+    // jag::oldscape::Client::GameDrawMain
+    private gameDrawMain(): void {
         this.sceneCycle++;
 
         this.addNpcs(true);
@@ -4736,7 +4737,7 @@ export class Client extends GameShell {
         this.cameraYaw = cameraYaw;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmAddPlayerToWorld
     private addPlayers(): void {
         if (!this.localPlayer) {
             return;
@@ -4757,7 +4758,7 @@ export class Client extends GameShell {
                 id = this.playerIds[i] << 14;
             }
 
-            if (!player || !player.isVisible()) {
+            if (!player || !player.isReady()) {
                 continue;
             }
 
@@ -4792,13 +4793,13 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmAddNPCs
     private addNpcs(alwaysontop: boolean): void {
         for (let i: number = 0; i < this.npcCount; i++) {
             const npc: ClientNpc | null = this.npcs[this.npcIds[i]];
             const typecode: number = ((this.npcIds[i] << 14) + 0x20000000) | 0;
 
-            if (!npc || !npc.isVisible() || npc.type?.alwaysontop !== alwaysontop) {
+            if (!npc || !npc.isReady() || npc.type?.alwaysontop !== alwaysontop) {
                 continue;
             }
 
@@ -4821,7 +4822,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmAddProjectiles
     private addProjectiles(): void {
         for (let proj: ClientProj | null = this.projectiles.head() as ClientProj | null; proj; proj = this.projectiles.next() as ClientProj | null) {
             if (proj.projLevel !== this.minusedlevel || this.loopCycle > proj.lastCycle) {
@@ -4854,7 +4855,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmAddMapAnim
     private addMapAnim(): void {
         for (let spot: MapSpotAnim | null = this.spotanims.head() as MapSpotAnim | null; spot; spot = this.spotanims.next() as MapSpotAnim | null) {
             if (spot.spotLevel !== this.minusedlevel || spot.seqComplete) {
@@ -4871,7 +4872,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::CamFollow
     private camFollow(targetX: number, targetY: number, targetZ: number, yaw: number, pitch: number, distance: number): void {
         const invPitch: number = (2048 - pitch) & 0x7ff;
         const invYaw: number = (2048 - yaw) & 0x7ff;
@@ -4907,7 +4908,7 @@ export class Client extends GameShell {
         this.cameraYaw = yaw;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmRoofCheck2
     private roofCheck2(): number {
         if (!this.mapl) {
             return 0; // custom
@@ -4917,7 +4918,7 @@ export class Client extends GameShell {
         return y - this.cameraY >= 800 || (this.mapl[this.minusedlevel][this.cameraX >> 7][this.cameraZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmRoofCheck
     private roofCheck(): number {
         let top: number = 3;
 
@@ -5015,7 +5016,7 @@ export class Client extends GameShell {
         return top;
     }
 
-    // (based on a real name)
+    // jag::oldscape::Client::GdmEntityOverlays
     private entityOverlays(): void {
         this.chatCount = 0;
 
@@ -5029,7 +5030,7 @@ export class Client extends GameShell {
                 entity = this.npcs[this.npcIds[index - this.playerCount]];
             }
 
-            if (!entity || !entity.isVisible()) {
+            if (!entity || !entity.isReady()) {
                 continue;
             }
 
@@ -5223,7 +5224,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::Client::GdmCoordArrow
     private coordArrow(): void {
         if (this.hintType !== 2 || !this.imageHeadicon[2]) {
             return;
@@ -5236,12 +5237,12 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name is getOverlayPos, no overloads in TS)
+    // jag::oldscape::Client::GetOverlayPos
     private getOverlayPosEntity(entity: ClientEntity, height: number): void {
         this.getOverlayPos(entity.x, height, entity.z);
     }
 
-    // (real name)
+    // jag::oldscape::Client::GetOverlayPos
     private getOverlayPos(x: number, height: number, z: number): void {
         if (x < 128 || z < 128 || x > 13056 || z > 13056) {
             this.projectX = -1;
@@ -5277,7 +5278,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GetAvH
     private getAvH(level: number, sceneX: number, sceneZ: number): number {
         if (!this.groundh) {
             return 0; // custom
@@ -5302,7 +5303,7 @@ export class Client extends GameShell {
         return (y00 * (128 - tileLocalZ) + y11 * tileLocalZ) >> 7;
     }
 
-    // (real name)
+    // jag::oldscape::dash3d::TextureCache::RunAnims
     private runAnims(cycle: number): void {
         if (!Client.lowMem) {
             if (Pix3D.textureCycle[17] >= cycle) {
@@ -5346,7 +5347,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmOtherOverlays
     private otherOverlays(): void {
         this.drawPrivateMessages();
 
@@ -5490,7 +5491,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::GdmGetSpecialArea
     private getSpecialArea(): void {
         if (!this.localPlayer) {
             return;
@@ -5572,7 +5573,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::minimap::Minimap::DrawDetail
     private drawDetail(tileX: number, tileZ: number, level: number, wallRgb: number, doorRgb: number): void {
         if (!this.world || !this.imageMinimap) {
             return;
@@ -6030,7 +6031,7 @@ export class Client extends GameShell {
         return type !== 1;
     }
 
-    // (real name)
+    // jag::oldscape::Client::TcpIn
     private async tcpIn(): Promise<boolean> {
         if (!this.stream) {
             return false;
@@ -7294,7 +7295,7 @@ export class Client extends GameShell {
         return true;
     }
 
-    // (real name)
+    // jag::oldscape::Client::ZonePacket
     private zonePacket(buf: Packet, opcode: number): void {
         const pos: number = buf.g1();
         let x: number = this.baseX + ((pos >> 4) & 0x7);
@@ -7537,7 +7538,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::LocChangeCreate
     private locChangeCreate(endTime: number, type: number, angle: number, layer: number, z: number, shape: number, level: number, x: number, startTime: number): void {
         let loc: LocChange | null = null;
         for (let next: LocChange | null = this.locChanges.head() as LocChange | null; next; next = this.locChanges.next() as LocChange | null) {
@@ -7564,7 +7565,7 @@ export class Client extends GameShell {
         loc.endTime = endTime;
     }
 
-    // (real name)
+    // jag::oldscape::Client::LocChangeSetOld
     private locChangeSetOld(loc: LocChange): void {
         if (!this.world) {
             return;
@@ -7597,7 +7598,7 @@ export class Client extends GameShell {
         loc.oldAngle = otherAngle;
     }
 
-    // (real name)
+    // jag::oldscape::Client::LocChangeUnchecked
     private locChangeUnchecked(level: number, x: number, z: number, id: number, angle: number, shape: number, layer: number): void {
         if (x < 1 || z < 1 || x > 102 || z > 102) {
             return;
@@ -7629,7 +7630,7 @@ export class Client extends GameShell {
             const otherAngle: number = otherInfo >> 6;
 
             if (layer === LocLayer.WALL) {
-                this.world?.delWall(level, x, z, 1);
+                this.world?.delWall(level, x, z);
 
                 const type: LocType = LocType.get(otherId);
                 if (type.blockwalk) {
@@ -7670,7 +7671,7 @@ export class Client extends GameShell {
         }
     }
 
-    // (real name)
+    // jag::oldscape::Client::ShowObject
     private showObject(x: number, z: number): void {
         const objStacks: LinkList | null = this.objStacks[this.minusedlevel][x][z];
         if (!objStacks) {
@@ -7762,7 +7763,7 @@ export class Client extends GameShell {
                 this.entityUpdateIds[this.entityUpdateCount++] = Constants.LOCAL_PLAYER_INDEX;
             } else if (op === 1) {
                 const walkDir: number = buf.gBit(3);
-                this.localPlayer?.step(false, walkDir);
+                this.localPlayer?.moveCode(false, walkDir);
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
@@ -7770,10 +7771,10 @@ export class Client extends GameShell {
                 }
             } else if (op === 2) {
                 const walkDir: number = buf.gBit(3);
-                this.localPlayer?.step(true, walkDir);
+                this.localPlayer?.moveCode(true, walkDir);
 
                 const runDir: number = buf.gBit(3);
-                this.localPlayer?.step(true, runDir);
+                this.localPlayer?.moveCode(true, runDir);
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
@@ -7785,7 +7786,7 @@ export class Client extends GameShell {
                 const localZ: number = buf.gBit(7);
                 const jump: number = buf.gBit(1);
 
-                this.localPlayer?.move(jump === 1, localX, localZ);
+                this.localPlayer?.teleport(jump === 1, localX, localZ);
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
@@ -7836,7 +7837,7 @@ export class Client extends GameShell {
                     }
 
                     const walkDir: number = buf.gBit(3);
-                    player?.step(false, walkDir);
+                    player?.moveCode(false, walkDir);
 
                     const extendedInfo: number = buf.gBit(1);
                     if (extendedInfo === 1) {
@@ -7849,10 +7850,10 @@ export class Client extends GameShell {
                     }
 
                     const walkDir: number = buf.gBit(3);
-                    player?.step(true, walkDir);
+                    player?.moveCode(true, walkDir);
 
                     const runDir: number = buf.gBit(3);
-                    player?.step(true, runDir);
+                    player?.moveCode(true, runDir);
 
                     const extendedInfo: number = buf.gBit(1);
                     if (extendedInfo === 1) {
@@ -7900,7 +7901,7 @@ export class Client extends GameShell {
             const jump: number = buf.gBit(1);
 
             if (this.localPlayer) {
-                player?.move(jump === 1, this.localPlayer.routeTileX[0] + dx, this.localPlayer.routeTileZ[0] + dz);
+                player?.teleport(jump === 1, this.localPlayer.routeTileX[0] + dx, this.localPlayer.routeTileZ[0] + dz);
             }
 
             const extendedInfo: number = buf.gBit(1);
@@ -7995,7 +7996,7 @@ export class Client extends GameShell {
             const damage = buf.g1();
             const damageType = buf.g1();
 
-            player.hit(this.loopCycle, damageType, damage);
+            player.addHitmark(this.loopCycle, damageType, damage);
             player.combatCycle = this.loopCycle + 400;
             player.health = buf.g1();
             player.totalHealth = buf.g1();
@@ -8012,7 +8013,7 @@ export class Client extends GameShell {
             const length: number = buf.g1();
             const start: number = buf.pos;
 
-            if (player.name && player.visible) {
+            if (player.name && player.ready) {
                 const username: bigint = JString.toBase37(player.name);
                 let ignored: boolean = false;
 
@@ -8069,22 +8070,22 @@ export class Client extends GameShell {
         }
 
         if ((mask & PlayerUpdate.EXACT_MOVE) !== 0) {
-            player.forceMoveStartSceneTileX = buf.g1();
-            player.forceMoveStartSceneTileZ = buf.g1();
-            player.forceMoveEndSceneTileX = buf.g1();
-            player.forceMoveEndSceneTileZ = buf.g1();
-            player.forceMoveEndCycle = buf.g2() + this.loopCycle;
-            player.forceMoveStartCycle = buf.g2() + this.loopCycle;
-            player.forceMoveFaceDirection = buf.g1();
+            player.exactMoveStartSceneTileX = buf.g1();
+            player.exactMoveStartSceneTileZ = buf.g1();
+            player.exactMoveEndSceneTileX = buf.g1();
+            player.exactMoveEndSceneTileZ = buf.g1();
+            player.exactMoveEndCycle = buf.g2() + this.loopCycle;
+            player.exactMoveStartCycle = buf.g2() + this.loopCycle;
+            player.exactMoveFaceDirection = buf.g1();
 
-            player.clearRoute();
+            player.abortRoute();
         }
 
         if ((mask & PlayerUpdate.DAMAGE2) !== 0) {
             const damage = buf.g1();
             const damageType = buf.g1();
 
-            player.hit(this.loopCycle, damageType, damage);
+            player.addHitmark(this.loopCycle, damageType, damage);
             player.combatCycle = this.loopCycle + 400;
             player.health = buf.g1();
             player.totalHealth = buf.g1();
@@ -8167,7 +8168,7 @@ export class Client extends GameShell {
                     }
 
                     const walkDir: number = buf.gBit(3);
-                    npc?.step(false, walkDir);
+                    npc?.moveCode(false, walkDir);
 
                     const extendedInfo: number = buf.gBit(1);
                     if (extendedInfo === 1) {
@@ -8180,10 +8181,10 @@ export class Client extends GameShell {
                     }
 
                     const walkDir: number = buf.gBit(3);
-                    npc?.step(true, walkDir);
+                    npc?.moveCode(true, walkDir);
 
                     const runDir: number = buf.gBit(3);
-                    npc?.step(true, runDir);
+                    npc?.moveCode(true, runDir);
 
                     const extendedInfo: number = buf.gBit(1);
                     if (extendedInfo === 1) {
@@ -8234,7 +8235,7 @@ export class Client extends GameShell {
             }
 
             if (this.localPlayer) {
-                npc?.move(false, this.localPlayer.routeTileX[0] + dx, this.localPlayer.routeTileZ[0] + dz);
+                npc?.teleport(false, this.localPlayer.routeTileX[0] + dx, this.localPlayer.routeTileZ[0] + dz);
             }
 
             const extendedInfo: number = buf.gBit(1);
@@ -8260,7 +8261,7 @@ export class Client extends GameShell {
                 const damage = buf.g1();
                 const damageType = buf.g1();
 
-                npc.hit(this.loopCycle, damageType, damage);
+                npc.addHitmark(this.loopCycle, damageType, damage);
                 npc.combatCycle = this.loopCycle + 400;
                 npc.health = buf.g1();
                 npc.totalHealth = buf.g1();
@@ -8314,7 +8315,7 @@ export class Client extends GameShell {
                 const damage = buf.g1();
                 const damageType = buf.g1();
 
-                npc.hit(this.loopCycle, damageType, damage);
+                npc.addHitmark(this.loopCycle, damageType, damage);
                 npc.combatCycle = this.loopCycle + 400;
                 npc.health = buf.g1();
                 npc.totalHealth = buf.g1();
@@ -9625,11 +9626,11 @@ export class Client extends GameShell {
 
                 let model: Model | null = null;
                 if (seqId === -1) {
-                    model = child.getModel(-1, -1, active, this.localPlayer);
+                    model = child.getTempModel(-1, -1, active, this.localPlayer);
                 } else {
                     const seq: SeqType = SeqType.list[seqId];
                     if (seq.frames && seq.iframes) {
-                        model = child.getModel(seq.frames[child.seqFrame], seq.iframes[child.seqFrame], active, this.localPlayer);
+                        model = child.getTempModel(seq.frames[child.seqFrame], seq.iframes[child.seqFrame], active, this.localPlayer);
                     }
                 }
 
@@ -9771,7 +9772,7 @@ export class Client extends GameShell {
         return value < 999999999 ? String(value) : '*';
     }
 
-    // (real name)
+    // jag::oldscape::Client::GetIfActive
     private getIfActive(com: Component): boolean {
         if (!com.scriptComparator) {
             return false;
@@ -9805,7 +9806,7 @@ export class Client extends GameShell {
         return true;
     }
 
-    // (real name)
+    // jag::oldscape::Client::GetIfVar
     private getIfVar(component: Component, scriptId: number): number {
         if (!component.scripts || scriptId >= component.scripts.length) {
             return -2;
@@ -10201,10 +10202,10 @@ export class Client extends GameShell {
                         child.seqCycle -= type.getDuration(child.seqFrame) + 1;
                         child.seqFrame++;
 
-                        if (child.seqFrame >= type.frameCount) {
+                        if (child.seqFrame >= type.numFrames) {
                             child.seqFrame -= type.loops;
 
-                            if (child.seqFrame < 0 || child.seqFrame >= type.frameCount) {
+                            if (child.seqFrame < 0 || child.seqFrame >= type.numFrames) {
                                 child.seqFrame = 0;
                             }
                         }
@@ -10875,7 +10876,7 @@ export class Client extends GameShell {
 
         for (let i: number = 0; i < this.npcCount; i++) {
             const npc: ClientNpc | null = this.npcs[this.npcIds[i]];
-            if (npc && npc.isVisible() && npc.type && npc.type.minimap) {
+            if (npc && npc.isReady() && npc.type && npc.type.minimap) {
                 anchorX = ((npc.x / 32) | 0) - ((this.localPlayer.x / 32) | 0);
                 anchorY = ((npc.z / 32) | 0) - ((this.localPlayer.z / 32) | 0);
                 this.drawOnMinimap(anchorY, this.imageMapdot1, anchorX);
@@ -10884,7 +10885,7 @@ export class Client extends GameShell {
 
         for (let i: number = 0; i < this.playerCount; i++) {
             const player: ClientPlayer | null = this.players[this.playerIds[i]];
-            if (player && player.isVisible() && player.name) {
+            if (player && player.isReady() && player.name) {
                 anchorX = ((player.x / 32) | 0) - ((this.localPlayer.x / 32) | 0);
                 anchorY = ((player.z / 32) | 0) - ((this.localPlayer.z / 32) | 0);
 

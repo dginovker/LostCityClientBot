@@ -1,7 +1,6 @@
 import type ModelSource from '#/dash3d/ModelSource.js';
 
 export default class Sprite {
-    // constructor
     readonly locLevel: number;
     readonly y: number;
     readonly x: number;
@@ -13,9 +12,8 @@ export default class Sprite {
     readonly minSceneTileZ: number;
     readonly maxSceneTileZ: number;
     readonly typecode: number;
-    readonly typecode2: number; // byte
+    readonly typecode2: number;
 
-    // runtime
     distance: number = 0;
     cycle: number = 0;
 

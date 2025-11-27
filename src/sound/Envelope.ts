@@ -13,7 +13,8 @@ export default class Envelope {
     private amplitude: number = 0;
     private ticks: number = 0;
 
-    unpack(dat: Packet): void {
+    // jag::oldscape::sound::Envelope::Load
+    load(dat: Packet): void {
         this.form = dat.g1();
         this.start = dat.g4();
         this.end = dat.g4();
@@ -28,7 +29,8 @@ export default class Envelope {
         }
     }
 
-    reset(): void {
+    // jag::oldscape::sound::Envelope::GenInit
+    genInit(): void {
         this.threshold = 0;
         this.position = 0;
         this.delta = 0;
@@ -36,7 +38,8 @@ export default class Envelope {
         this.ticks = 0;
     }
 
-    evaluate(delta: number): number {
+    // jag::oldscape::sound::Envelope::GenNext
+    genNext(delta: number): number {
         if (this.ticks >= this.threshold && this.shapePeak && this.shapeDelta) {
             this.amplitude = this.shapePeak[this.position++] << 15;
 

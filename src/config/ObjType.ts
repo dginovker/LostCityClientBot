@@ -21,11 +21,11 @@ export default class ObjType extends ConfigType {
     static cachePos: number = 0;
     static membersWorld: boolean = true;
     model: number = 0;
-    name: string | null = null;
+    name: string | null = null; // jag::game::ObjType::GetName
     desc: string | null = null;
     recol_s: Uint16Array | null = null;
     recol_d: Uint16Array | null = null;
-    zoom2d: number = 2000;
+    zoom2d: number = 2000; // jag::game::ObjType::GetZoom2D
     xan2d: number = 0;
     yan2d: number = 0;
     zan2d: number = 0;
@@ -36,7 +36,7 @@ export default class ObjType extends ConfigType {
     cost: number = 1;
     members: boolean = false;
     static modelCache: LruCache | null = new LruCache(50);
-    static spriteCache: LruCache | null = new LruCache(200); // (based on a real name)
+    static spriteCache: LruCache | null = new LruCache(200);
     manwearOffsetY: number = 0;
     womanwearOffsetY: number = 0;
     manwear: number = -1;
@@ -49,8 +49,8 @@ export default class ObjType extends ConfigType {
     manhead2: number = -1;
     womanhead: number = -1;
     womanhead2: number = -1;
-    certlink: number = -1;
-    certtemplate: number = -1;
+    certlink: number = -1; // jag::game::ObjType::GetCertLink
+    certtemplate: number = -1; // jag::game::ObjType::GetCertTemplate
     resizex: number = 0;
     resizey: number = 0;
     resizez: number = 0;
@@ -260,7 +260,7 @@ export default class ObjType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::GenCert
     private genCert(): void {
         const template: ObjType = ObjType.get(this.certtemplate);
         this.model = template.model;
@@ -288,7 +288,6 @@ export default class ObjType extends ConfigType {
         this.stackable = true;
     }
 
-    // (based on a real name)
     getModel(count: number): Model | null {
         if (this.countobj && this.countco && count > 1) {
             let id: number = -1;
@@ -365,7 +364,7 @@ export default class ObjType extends ConfigType {
         return model;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::GetSprite
     static getSprite(id: number, count: number, outlineRgb: number): Pix32 | null {
         if (ObjType.spriteCache && outlineRgb === 0) {
             let icon: Pix32 | null = ObjType.spriteCache.get(BigInt(id)) as Pix32 | null;
@@ -523,7 +522,7 @@ export default class ObjType extends ConfigType {
         return icon;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::CheckWearModel
     checkWearModel(gender: number): boolean {
 		let wear = this.manwear;
 		let wear2 = this.manwear2;
@@ -551,7 +550,7 @@ export default class ObjType extends ConfigType {
 		return ready;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::GetWearModelNoCheck
     getWearModelNoCheck(gender: number): Model | null {
         let id1: number = this.manwear;
         if (gender === 1) {
@@ -609,7 +608,7 @@ export default class ObjType extends ConfigType {
         return model;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::CheckHeadModel
     checkHeadModel(gender: number): boolean {
 		let head = this.manhead;
 		let head2 = this.manhead2;
@@ -632,7 +631,7 @@ export default class ObjType extends ConfigType {
 		return ready;
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::ObjType::GetHeadModelNoCheck
     getHeadModelNoCheck(gender: number): Model | null {
         let head1: number = this.manhead;
         if (gender === 1) {

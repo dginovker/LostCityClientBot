@@ -121,7 +121,7 @@ export default class ClientPlayer extends ClientEntity {
         BodyColorDest.BODY_RECOLOR_LIME,
         BodyColorDest.BODY_RECOLOR_CYAN,
         BodyColorDest.BODY_RECOLOR_EMERALD
-    ]; // (real name)
+    ]; // jag::oldscape::rs2lib::PlayerModel::m_recol2d
 
     // prettier-ignore
     static readonly recol1d: number[][] = [
@@ -193,19 +193,19 @@ export default class ClientPlayer extends ClientEntity {
             SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
             SkinColor.SKIN
         ]
-    ]; // (real name)
+    ]; // jag::oldscape::rs2lib::PlayerModel::m_recol1d
 
     name: string | null = null;
-    visible: boolean = false;
+    ready: boolean = false; // jag::oldscape::ClientPlayer::Ready
     gender: number = 0;
     headicons: number = 0;
     appearance: Uint16Array = new Uint16Array(12);
     colour: Uint16Array = new Uint16Array(5);
     combatLevel: number = 0;
-    baseId: bigint = 0n; // (based on a real name)
+    baseId: bigint = 0n; // jag::oldscape::rs2lib::PlayerModel::CalcBaseId
     lowMemory: boolean = false;
     modelCacheKey: bigint = -1n;
-    static modelCache: LruCache | null = new LruCache(200); // (real name)
+    static modelCache: LruCache | null = new LruCache(200); // jag::oldscape::rs2lib::PlayerModel::m_modelCache
     y: number = 0;
     locStartCycle: number = 0;
     locStopCycle: number = 0;
@@ -219,7 +219,7 @@ export default class ClientPlayer extends ClientEntity {
     maxTileZ: number = 0;
     transmog: NpcType | null = null;
 
-    // (real name)
+    // jag::oldscape::ClientPlayer::SetAppearance
     setAppearance(buf: Packet): void {
         buf.pos = 0;
 
@@ -285,7 +285,7 @@ export default class ClientPlayer extends ClientEntity {
 
         this.name = JString.formatName(JString.fromBase37(buf.g8()));
         this.combatLevel = buf.g1();
-        this.visible = true;
+        this.ready = true;
 
         this.baseId = 0n;
         for (let part: number = 0; part < 12; part++) {
@@ -308,9 +308,9 @@ export default class ClientPlayer extends ClientEntity {
         this.baseId += BigInt(this.gender);
     }
 
-    // (real name)
+    // jag::oldscape::ClientPlayer::GetTempModel
     getTempModel(loopCycle: number): Model | null {
-        if (!this.visible) {
+        if (!this.ready) {
             return null;
         }
 
@@ -398,7 +398,6 @@ export default class ClientPlayer extends ClientEntity {
         return model;
     }
 
-    // (based on real name)
     getTempModel2(): Model | null {
         if (this.transmog != null) {
             let transformId = -1;
@@ -413,7 +412,7 @@ export default class ClientPlayer extends ClientEntity {
                     transformId = frames[this.secondarySeqFrame];
                 }
             }
-            return this.transmog.getModel(transformId, -1, null);
+            return this.transmog.getTempModel(transformId, -1, null);
         }
 
         let hash: bigint = this.baseId;
@@ -556,9 +555,9 @@ export default class ClientPlayer extends ClientEntity {
         return tmp;
     }
 
-    // (real name)
+    // jag::oldscape::rs2lib::PlayerModel::GetHeadModel
     getHeadModel(): Model | null {
-        if (!this.visible) {
+        if (!this.ready) {
             return null;
         }
 
@@ -616,7 +615,8 @@ export default class ClientPlayer extends ClientEntity {
         return tmp;
     }
 
-    isVisible(): boolean {
-        return this.visible;
+    // jag::oldscape::ClientPlayer::Ready
+    isReady(): boolean {
+        return this.ready;
     }
 }

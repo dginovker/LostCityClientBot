@@ -11,7 +11,6 @@ export const enum CollisionConstants {
 export default class CollisionMap {
     static index = (x: number, z: number): number => x * CollisionConstants.SIZE + z;
 
-    // constructor
     readonly startX: number;
     readonly startZ: number;
     readonly sizeX: number;
@@ -27,7 +26,7 @@ export default class CollisionMap {
         this.reset();
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::Reset
     reset(): void {
         for (let x: number = 0; x < this.sizeX; x++) {
             for (let z: number = 0; z < this.sizeZ; z++) {
@@ -41,17 +40,16 @@ export default class CollisionMap {
         }
     }
 
-    // (based on a real name)
+    // jag::oldscape::movement::CollisionMap::BlockGround
     blockGround(tileX: number, tileZ: number): void {
         this.flags[CollisionMap.index(tileX - this.startX, tileZ - this.startZ)] |= CollisionFlag.FLOOR;
     }
 
-    // (based on a real name)
     unblockGround(tileX: number, tileZ: number): void {
         this.flags[CollisionMap.index(tileX - this.startX, tileZ - this.startZ)] &= ~CollisionFlag.FLOOR;
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::AddLoc
     addLoc(tileX: number, tileZ: number, sizeX: number, sizeZ: number, angle: LocAngle, blockrange: boolean): void {
         let flags: number = CollisionFlag.LOC;
         if (blockrange) {
@@ -81,7 +79,7 @@ export default class CollisionMap {
         }
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::DelLoc
     delLoc(tileX: number, tileZ: number, sizeX: number, sizeZ: number, angle: LocAngle, blockrange: boolean): void {
         let flags: number = CollisionFlag.LOC;
         if (blockrange) {
@@ -110,7 +108,7 @@ export default class CollisionMap {
         }
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::AddWall
     addWall(tileX: number, tileZ: number, shape: number, angle: LocAngle, blockrange: boolean): void {
         const x: number = tileX - this.startX;
         const z: number = tileZ - this.startZ;
@@ -176,7 +174,7 @@ export default class CollisionMap {
         }
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::DelWall
     delWall(tileX: number, tileZ: number, shape: number, angle: LocAngle, blockrange: boolean): void {
         const x: number = tileX - this.startX;
         const z: number = tileZ - this.startZ;
@@ -242,7 +240,7 @@ export default class CollisionMap {
         }
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::TestWall
     testWall(srcX: number, srcZ: number, dstX: number, dstZ: number, shape: number, angle: LocAngle): boolean {
         if (srcX === dstX && srcZ === dstZ) {
             return true;
@@ -344,7 +342,7 @@ export default class CollisionMap {
         return false;
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::TestWDecor
     testWDecor(srcX: number, srcZ: number, dstX: number, dstZ: number, shape: number, angle: number): boolean {
         if (srcX === dstX && srcZ === dstZ) {
             return true;
@@ -400,7 +398,7 @@ export default class CollisionMap {
         return false;
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::TestLoc
     testLoc(srcX: number, srcZ: number, dstX: number, dstZ: number, dstSizeX: number, dstSizeZ: number, forceapproach: number): boolean {
         const maxX: number = dstX + dstSizeX - 1;
         const maxZ: number = dstZ + dstSizeZ - 1;
@@ -420,12 +418,12 @@ export default class CollisionMap {
         return false;
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::AddCMap
     private addCMap(x: number, z: number, flags: number): void {
         this.flags[CollisionMap.index(x, z)] |= flags;
     }
 
-    // (real name)
+    // jag::oldscape::movement::CollisionMap::RemCMap
     private remCMap(x: number, z: number, flags: number): void {
         this.flags[CollisionMap.index(x, z)] &= CollisionFlag.BOUNDS - flags;
     }

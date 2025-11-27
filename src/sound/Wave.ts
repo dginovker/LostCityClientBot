@@ -48,7 +48,7 @@ export default class Wave {
                 dat.pos--;
 
                 this.tones[tone] = new Tone();
-                this.tones[tone]?.unpack(dat);
+                this.tones[tone]?.load(dat);
             }
         }
 

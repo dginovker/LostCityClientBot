@@ -50,7 +50,7 @@ export default class FloType extends ConfigType {
         }
     }
 
-    // (real name)
+    // jag::oldscape::configdecoder::FloType::GetHsl
     private getHsl(rgb: number): void {
         const red: number = ((rgb >> 16) & 0xff) / 256.0;
         const green: number = ((rgb >> 8) & 0xff) / 256.0;
