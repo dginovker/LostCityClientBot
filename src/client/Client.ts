@@ -740,7 +740,8 @@ export class Client extends GameShell {
                 }
 
                 if (priority != 0) {
-                    await this.onDemand.prefetchPriority(0, i, priority);
+                    this.onDemand.requestModel(i);
+                    // await this.onDemand.prefetchPriority(0, i, priority);
                 }
             }
 
