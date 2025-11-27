@@ -67,6 +67,7 @@ import WordPack from '#/wordenc/WordPack.js';
 import Wave from '#/sound/Wave.js';
 import OnDemand from '#/io/OnDemand.js';
 import MobileKeyboard from '#/client/MobileKeyboard.js';
+import { MapFlag } from '#/dash3d/MapFlag.js';
 
 const enum Constants {
     CLIENT_VERSION = 254,
@@ -347,7 +348,7 @@ export class Client extends GameShell {
     private activeMapFunctionZ: Int32Array = new Int32Array(1000);
 
     // scene
-    private scene: World | null = null;
+    private world: World | null = null;
     private sceneState: number = 0;
     private sceneDelta: number = 0;
     private sceneCycle: number = 0;
@@ -402,8 +403,8 @@ export class Client extends GameShell {
     private orbitCameraPitchVelocity: number = 0;
     private orbitCameraX: number = 0;
     private orbitCameraZ: number = 0;
-    private levelHeightmap: Int32Array[][] | null = null;
-    private levelTileFlags: Uint8Array[][] | null = null;
+    private groundh: Int32Array[][] | null = null; // (real name)
+    private mapf: Uint8Array[][] | null = null;
     private tileLastOccupiedCycle: Int32Array[] = new Int32Array2d(CollisionConstants.SIZE, CollisionConstants.SIZE);
     private projectX: number = 0;
     private projectY: number = 0;
@@ -612,9 +613,9 @@ export class Client extends GameShell {
             const jagWordenc: Jagfile = await this.getJagFile('wordenc', 'chat system', 7, 50);
             const jagSounds: Jagfile = await this.getJagFile('sounds', 'sound effects', 8, 55);
 
-            this.levelTileFlags = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
-            this.levelHeightmap = new Int32Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE + 1, CollisionConstants.SIZE + 1);
-            this.scene = new World(this.levelHeightmap, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
+            this.mapf = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
+            this.groundh = new Int32Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE + 1, CollisionConstants.SIZE + 1);
+            this.world = new World(this.groundh, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
             for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
                 this.levelCollisionMap[level] = new CollisionMap();
             }
@@ -1674,7 +1675,7 @@ export class Client extends GameShell {
 
         InputTracking.setDisabled();
         this.clearCache();
-        this.scene?.resetMap();
+        this.world?.resetMap();
 
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
             this.levelCollisionMap[level]?.reset();
@@ -2167,13 +2168,13 @@ export class Client extends GameShell {
             this.projectiles.clear();
             Pix3D.clearTexels();
             this.clearCache();
-            this.scene?.resetMap();
+            this.world?.resetMap();
 
             for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
                 this.levelCollisionMap[level]?.reset();
             }
 
-            const world: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.levelHeightmap!, this.levelTileFlags!);
+            const build: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.groundh!, this.mapf!);
             ClientBuild.lowMem = World.lowMem;
 
             const maps: number = this.mapBuildGroundData?.length ?? 0;
@@ -2192,9 +2193,9 @@ export class Client extends GameShell {
             }
 
             if (Client.lowMem) {
-                this.scene?.fillBaseLevel(this.minusedlevel);
+                this.world?.fillBaseLevel(this.minusedlevel);
             } else {
-                this.scene?.fillBaseLevel(0);
+                this.world?.fillBaseLevel(0);
             }
 
             if (this.mapBuildIndex && this.mapBuildGroundData) {
@@ -2206,7 +2207,7 @@ export class Client extends GameShell {
                     const data: Uint8Array | null = this.mapBuildGroundData[i];
 
                     if (data) {
-                        world.loadGround((this.sceneCenterZoneX - 6) * 8, (this.sceneCenterZoneZ - 6) * 8, x, z, data);
+                        build.loadGround((this.sceneCenterZoneX - 6) * 8, (this.sceneCenterZoneZ - 6) * 8, x, z, data);
                     }
                 }
 
@@ -2216,7 +2217,7 @@ export class Client extends GameShell {
                     const data: Uint8Array | null = this.mapBuildGroundData[i];
 
                     if (!data && this.sceneCenterZoneZ < 800) {
-                        world.fadeAdjacent(z, x, 64, 64);
+                        build.fadeAdjacent(z, x, 64, 64);
                     }
                 }
             }
@@ -2230,14 +2231,14 @@ export class Client extends GameShell {
                     if (data) {
                         const x: number = (this.mapBuildIndex[i] >> 8) * 64 - this.sceneBaseTileX;
                         const z: number = (this.mapBuildIndex[i] & 0xff) * 64 - this.sceneBaseTileZ;
-                        world.loadLocations(this.loopCycle, this.scene, this.levelCollisionMap, data, x, z);
+                        build.loadLocations(this.loopCycle, this.world, this.levelCollisionMap, data, x, z);
                     }
                 }
             }
 
             this.out.p1isaac(ClientProt.NO_TIMEOUT);
 
-            world.finishBuild(this.scene, this.levelCollisionMap);
+            build.finishBuild(this.world, this.levelCollisionMap);
             this.areaViewport?.bind();
 
             this.out.p1isaac(ClientProt.NO_TIMEOUT);
@@ -2327,12 +2328,12 @@ export class Client extends GameShell {
             let offset: number = (CollisionConstants.SIZE - 1 - z) * 512 * 4 + 24628;
 
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
-                if (this.levelTileFlags && (this.levelTileFlags[level][x][z] & 0x18) === 0) {
-                    this.scene?.render2DGround(level, x, z, pixels, offset, 512);
+                if (this.mapf && (this.mapf[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
+                    this.world?.render2DGround(level, x, z, pixels, offset, 512);
                 }
 
-                if (level < 3 && this.levelTileFlags && (this.levelTileFlags[level + 1][x][z] & 0x8) !== 0) {
-                    this.scene?.render2DGround(level + 1, x, z, pixels, offset, 512);
+                if (level < 3 && this.mapf && (this.mapf[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
+                    this.world?.render2DGround(level + 1, x, z, pixels, offset, 512);
                 }
 
                 offset += 4;
@@ -2346,11 +2347,11 @@ export class Client extends GameShell {
 
         for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
-                if (this.levelTileFlags && (this.levelTileFlags[level][x][z] & 0x18) === 0) {
+                if (this.mapf && (this.mapf[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
                     this.drawDetail(x, z, level, inactiveRgb, activeRgb);
                 }
 
-                if (level < 3 && this.levelTileFlags && (this.levelTileFlags[level + 1][x][z] & 0x8) !== 0) {
+                if (level < 3 && this.mapf && (this.mapf[level + 1][x][z] & MapFlag.VisBelow) !== 0) {
                     this.drawDetail(x, z, level + 1, inactiveRgb, activeRgb);
                 }
             }
@@ -2362,7 +2363,7 @@ export class Client extends GameShell {
 
         for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
             for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                let typecode: number = this.scene?.gdType(this.minusedlevel, x, z) ?? 0;
+                let typecode: number = this.world?.gdType(this.minusedlevel, x, z) ?? 0;
                 if (typecode === 0) {
                     continue;
                 }
@@ -2745,7 +2746,7 @@ export class Client extends GameShell {
 
             lastTypecode = typecode;
 
-            if (entityType === 2 && this.scene && this.scene.typecode2(this.minusedlevel, x, z, typecode) >= 0) {
+            if (entityType === 2 && this.world && this.world.typecode2(this.minusedlevel, x, z, typecode) >= 0) {
                 const loc: LocType = LocType.get(typeId);
 
                 if (this.objSelected === 1) {
@@ -3290,16 +3291,16 @@ export class Client extends GameShell {
         const orbitY: number = this.getAvH(this.minusedlevel, this.orbitCameraX, this.orbitCameraZ);
         let maxY: number = 0;
 
-        if (this.levelHeightmap) {
+        if (this.groundh) {
             if (orbitTileX > 3 && orbitTileZ > 3 && orbitTileX < 100 && orbitTileZ < 100) {
                 for (let x: number = orbitTileX - 4; x <= orbitTileX + 4; x++) {
                     for (let z: number = orbitTileZ - 4; z <= orbitTileZ + 4; z++) {
                         let level: number = this.minusedlevel;
-                        if (level < 3 && this.levelTileFlags && (this.levelTileFlags[1][x][z] & 0x2) === 2) {
+                        if (level < 3 && this.mapf && (this.mapf[1][x][z] & MapFlag.VisBelow) !== 0) {
                             level++;
                         }
 
-                        const y: number = orbitY - this.levelHeightmap[level][x][z];
+                        const y: number = orbitY - this.groundh[level][x][z];
                         if (y > maxY) {
                             maxY = y;
                         }
@@ -4719,8 +4720,8 @@ export class Client extends GameShell {
         Model.mouseY = this.mouseY - 4;
 
         Pix2D.cls();
-        this.scene?.renderAll(this.cameraX, this.cameraY, this.cameraZ, level, this.cameraYaw, this.cameraPitch, this.loopCycle);
-        this.scene?.removeSprites();
+        this.world?.renderAll(this.cameraX, this.cameraY, this.cameraZ, level, this.cameraYaw, this.cameraPitch, this.loopCycle);
+        this.world?.removeSprites();
         this.entityOverlays();
         this.coordArrow();
         this.runAnims(cycle);
@@ -4781,11 +4782,11 @@ export class Client extends GameShell {
                 }
 
                 player.y = this.getAvH(this.minusedlevel, player.x, player.z);
-                this.scene?.addDynamic(this.minusedlevel, player.x, player.y, player.z, player, id, player.yaw, 60, player.needsForwardDrawPadding);
+                this.world?.addDynamic(this.minusedlevel, player.x, player.y, player.z, player, id, player.yaw, 60, player.needsForwardDrawPadding);
             } else {
                 player.lowMemory = false;
                 player.y = this.getAvH(this.minusedlevel, player.x, player.z);
-                this.scene?.addDynamic2(this.minusedlevel, player.x, player.y, player.z, player.minTileX, player.minTileZ, player.maxTileX, player.maxTileZ, player, id, player.yaw);
+                this.world?.addDynamic2(this.minusedlevel, player.x, player.y, player.z, player.minTileX, player.minTileZ, player.maxTileX, player.maxTileZ, player, id, player.yaw);
             }
         }
     }
@@ -4815,7 +4816,7 @@ export class Client extends GameShell {
                 this.tileLastOccupiedCycle[x][z] = this.sceneCycle;
             }
 
-            this.scene?.addDynamic(this.minusedlevel, npc.x, this.getAvH(this.minusedlevel, npc.x, npc.z), npc.z, npc, typecode, npc.yaw, (npc.size - 1) * 64 + 60, npc.needsForwardDrawPadding);
+            this.world?.addDynamic(this.minusedlevel, npc.x, this.getAvH(this.minusedlevel, npc.x, npc.z), npc.z, npc, typecode, npc.yaw, (npc.size - 1) * 64 + 60, npc.needsForwardDrawPadding);
         }
     }
 
@@ -4847,7 +4848,7 @@ export class Client extends GameShell {
                 }
 
                 proj.move(this.sceneDelta);
-                this.scene?.addDynamic(this.minusedlevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
+                this.world?.addDynamic(this.minusedlevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
             }
         }
     }
@@ -4863,7 +4864,7 @@ export class Client extends GameShell {
                 if (spot.seqComplete) {
                     spot.unlink();
                 } else {
-                    this.scene?.addDynamic(spot.spotLevel, spot.x, spot.y, spot.z, spot, -1, 0, 60, false);
+                    this.world?.addDynamic(spot.spotLevel, spot.x, spot.y, spot.z, spot, -1, 0, 60, false);
                 }
             }
         }
@@ -4907,12 +4908,12 @@ export class Client extends GameShell {
 
     // (real name)
     private roofCheck2(): number {
-        if (!this.levelTileFlags) {
+        if (!this.mapf) {
             return 0; // custom
         }
 
         const y: number = this.getAvH(this.minusedlevel, this.cameraX, this.cameraZ);
-        return y - this.cameraY >= 800 || (this.levelTileFlags[this.minusedlevel][this.cameraX >> 7][this.cameraZ >> 7] & 0x4) === 0 ? 3 : this.minusedlevel;
+        return y - this.cameraY >= 800 || (this.mapf[this.minusedlevel][this.cameraX >> 7][this.cameraZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
     }
 
     // (real name)
@@ -4925,7 +4926,7 @@ export class Client extends GameShell {
             const playerLocalTileX: number = this.localPlayer.x >> 7;
             const playerLocalTileZ: number = this.localPlayer.z >> 7;
 
-            if (this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & 0x4) !== 0) {
+            if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                 top = this.minusedlevel;
             }
 
@@ -4954,7 +4955,7 @@ export class Client extends GameShell {
                         cameraLocalTileX--;
                     }
 
-                    if (this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & 0x4) !== 0) {
+                    if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                         top = this.minusedlevel;
                     }
 
@@ -4968,7 +4969,7 @@ export class Client extends GameShell {
                             cameraLocalTileZ--;
                         }
 
-                        if (this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & 0x4) !== 0) {
+                        if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                             top = this.minusedlevel;
                         }
                     }
@@ -4984,7 +4985,7 @@ export class Client extends GameShell {
                         cameraLocalTileZ--;
                     }
 
-                    if (this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & 0x4) !== 0) {
+                    if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                         top = this.minusedlevel;
                     }
 
@@ -4998,7 +4999,7 @@ export class Client extends GameShell {
                             cameraLocalTileX--;
                         }
 
-                        if (this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & 0x4) !== 0) {
+                        if (this.mapf && (this.mapf[this.minusedlevel][cameraLocalTileX][cameraLocalTileZ] & MapFlag.RemoveRoof) !== 0) {
                             top = this.minusedlevel;
                         }
                     }
@@ -5006,7 +5007,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.localPlayer && this.levelTileFlags && (this.levelTileFlags[this.minusedlevel][this.localPlayer.x >> 7][this.localPlayer.z >> 7] & 0x4) !== 0) {
+        if (this.localPlayer && this.mapf && (this.mapf[this.minusedlevel][this.localPlayer.x >> 7][this.localPlayer.z >> 7] & MapFlag.RemoveRoof) !== 0) {
             top = this.minusedlevel;
         }
 
@@ -5277,7 +5278,7 @@ export class Client extends GameShell {
 
     // (real name)
     private getAvH(level: number, sceneX: number, sceneZ: number): number {
-        if (!this.levelHeightmap) {
+        if (!this.groundh) {
             return 0; // custom
         }
 
@@ -5289,14 +5290,14 @@ export class Client extends GameShell {
         }
 
         let realLevel: number = level;
-        if (level < 3 && this.levelTileFlags && (this.levelTileFlags[1][tileX][tileZ] & 0x2) === 2) {
+        if (level < 3 && this.mapf && (this.mapf[1][tileX][tileZ] & MapFlag.LinkBelow) !== 0) {
             realLevel = level + 1;
         }
 
         const tileLocalX: number = sceneX & 0x7f;
         const tileLocalZ: number = sceneZ & 0x7f;
-        const y00: number = (this.levelHeightmap[realLevel][tileX][tileZ] * (128 - tileLocalX) + this.levelHeightmap[realLevel][tileX + 1][tileZ] * tileLocalX) >> 7;
-        const y11: number = (this.levelHeightmap[realLevel][tileX][tileZ + 1] * (128 - tileLocalX) + this.levelHeightmap[realLevel][tileX + 1][tileZ + 1] * tileLocalX) >> 7;
+        const y00: number = (this.groundh[realLevel][tileX][tileZ] * (128 - tileLocalX) + this.groundh[realLevel][tileX + 1][tileZ] * tileLocalX) >> 7;
+        const y11: number = (this.groundh[realLevel][tileX][tileZ + 1] * (128 - tileLocalX) + this.groundh[realLevel][tileX + 1][tileZ + 1] * tileLocalX) >> 7;
         return (y00 * (128 - tileLocalZ) + y11 * tileLocalZ) >> 7;
     }
 
@@ -5572,13 +5573,13 @@ export class Client extends GameShell {
 
     // (real name)
     private drawDetail(tileX: number, tileZ: number, level: number, wallRgb: number, doorRgb: number): void {
-        if (!this.scene || !this.imageMinimap) {
+        if (!this.world || !this.imageMinimap) {
             return;
         }
 
-        let typecode: number = this.scene.wallType(level, tileX, tileZ);
+        let typecode: number = this.world.wallType(level, tileX, tileZ);
         if (typecode !== 0) {
-            const info: number = this.scene.typecode2(level, tileX, tileZ, typecode);
+            const info: number = this.world.typecode2(level, tileX, tileZ, typecode);
             const angle: number = (info >> 6) & 0x3;
             const shape: number = info & 0x1f;
             let rgb: number = wallRgb;
@@ -5661,9 +5662,9 @@ export class Client extends GameShell {
             }
         }
 
-        typecode = this.scene.sceneType(level, tileX, tileZ);
+        typecode = this.world.sceneType(level, tileX, tileZ);
         if (typecode !== 0) {
-            const info: number = this.scene.typecode2(level, tileX, tileZ, typecode);
+            const info: number = this.world.typecode2(level, tileX, tileZ, typecode);
             const angle: number = (info >> 6) & 0x3;
             const shape: number = info & 0x1f;
             const locId: number = (typecode >> 14) & 0x7fff;
@@ -5701,7 +5702,7 @@ export class Client extends GameShell {
             }
         }
 
-        typecode = this.scene.gdType(level, tileX, tileZ);
+        typecode = this.world.gdType(level, tileX, tileZ);
         if (typecode !== 0) {
             const locId = (typecode >> 14) & 0x7fff;
 
@@ -5718,12 +5719,12 @@ export class Client extends GameShell {
     }
 
     private interactWithLoc(opcode: number, x: number, z: number, typecode: number): boolean {
-        if (!this.localPlayer || !this.scene) {
+        if (!this.localPlayer || !this.world) {
             return false;
         }
 
         const locId: number = (typecode >> 14) & 0x7fff;
-        const info: number = this.scene.typecode2(this.minusedlevel, x, z, typecode);
+        const info: number = this.world.typecode2(this.minusedlevel, x, z, typecode);
         if (info === -1) {
             return false;
         }
@@ -7327,14 +7328,14 @@ export class Client extends GameShell {
 
             const seqId: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && this.scene && this.levelHeightmap) {
-                const heightSW = this.levelHeightmap[this.minusedlevel][x][z];
-                const heightSE = this.levelHeightmap[this.minusedlevel][x + 1][z];
-                const heightNE = this.levelHeightmap[this.minusedlevel][x + 1][z + 1];
-                const heightNW = this.levelHeightmap[this.minusedlevel][x][z + 1];
+            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && this.world && this.groundh) {
+                const heightSW = this.groundh[this.minusedlevel][x][z];
+                const heightSE = this.groundh[this.minusedlevel][x + 1][z];
+                const heightNE = this.groundh[this.minusedlevel][x + 1][z + 1];
+                const heightNW = this.groundh[this.minusedlevel][x][z + 1];
 
                 if (layer == 0) {
-                    const wall = this.scene.getWall(this.minusedlevel, x, z);
+                    const wall = this.world.getWall(this.minusedlevel, x, z);
                     if (wall) {
                         const locId = wall.typecode >> 14 & 0x7FFF;
                         if (shape == 2) {
@@ -7345,12 +7346,12 @@ export class Client extends GameShell {
                         }
                     }
                 } else if (layer == 1) {
-                    const decor = this.scene.getDecor(this.minusedlevel, z, x);
+                    const decor = this.world.getDecor(this.minusedlevel, z, x);
                     if (decor) {
                         decor.model = new ClientLocAnim(this.loopCycle, decor.typecode >> 14 & 0x7FFF, 4, 0, heightSW, heightNE, heightNE, heightNW, seqId, false);
                     }
                 } else if (layer == 2) {
-                    const sprite = this.scene.getScene(this.minusedlevel, x, z);
+                    const sprite = this.world.getScene(this.minusedlevel, x, z);
                     if (shape == 11) {
                         shape = 10;
                     }
@@ -7359,7 +7360,7 @@ export class Client extends GameShell {
                         sprite.model = new ClientLocAnim(this.loopCycle, sprite.typecode >> 14 & 0x7FFF, shape, angle, heightSW, heightSE, heightNE, heightNW, seqId, false);
                     }
                 } else if (layer == 3) {
-                    const decor = this.scene.getGd(this.minusedlevel, x, z);
+                    const decor = this.world.getGd(this.minusedlevel, x, z);
                     if (decor) {
                         decor.model = new ClientLocAnim(this.loopCycle, decor.typecode >> 14 & 0x7FFF, 22, angle, heightSW, heightSE, heightNE, heightNW, seqId, false);
                     }
@@ -7468,13 +7469,13 @@ export class Client extends GameShell {
                 player = this.players[pid];
             }
 
-            if (player && this.levelHeightmap) {
+            if (player && this.groundh) {
                 const loc: LocType = LocType.get(id);
 
-                const heightSW: number = this.levelHeightmap[this.minusedlevel][x][z];
-                const heightSE: number = this.levelHeightmap[this.minusedlevel][x + 1][z];
-                const heightNE: number = this.levelHeightmap[this.minusedlevel][x + 1][z + 1];
-                const heightNW: number = this.levelHeightmap[this.minusedlevel][x][z + 1];
+                const heightSW: number = this.groundh[this.minusedlevel][x][z];
+                const heightSE: number = this.groundh[this.minusedlevel][x + 1][z];
+                const heightNE: number = this.groundh[this.minusedlevel][x + 1][z + 1];
+                const heightNW: number = this.groundh[this.minusedlevel][x][z + 1];
 
                 let model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
                 if (model) {
@@ -7564,7 +7565,7 @@ export class Client extends GameShell {
 
     // (real name)
     private locChangeSetOld(loc: LocChange): void {
-        if (!this.scene) {
+        if (!this.world) {
             return;
         }
 
@@ -7574,17 +7575,17 @@ export class Client extends GameShell {
         let otherAngle: number = 0;
 
         if (loc.layer === LocLayer.WALL) {
-            typecode = this.scene.wallType(loc.level, loc.x, loc.z);
+            typecode = this.world.wallType(loc.level, loc.x, loc.z);
         } else if (loc.layer === LocLayer.WALL_DECOR) {
-            typecode = this.scene.decorType(loc.level, loc.z, loc.x);
+            typecode = this.world.decorType(loc.level, loc.z, loc.x);
         } else if (loc.layer === LocLayer.GROUND) {
-            typecode = this.scene.sceneType(loc.level, loc.x, loc.z);
+            typecode = this.world.sceneType(loc.level, loc.x, loc.z);
         } else if (loc.layer === LocLayer.GROUND_DECOR) {
-            typecode = this.scene.gdType(loc.level, loc.x, loc.z);
+            typecode = this.world.gdType(loc.level, loc.x, loc.z);
         }
 
         if (typecode !== 0) {
-            const otherInfo: number = this.scene.typecode2(loc.level, loc.x, loc.z, typecode);
+            const otherInfo: number = this.world.typecode2(loc.level, loc.x, loc.z, typecode);
             otherId = (typecode >> 14) & 0x7fff;
             otherShape = otherInfo & 0x1f;
             otherAngle = otherInfo >> 6;
@@ -7605,38 +7606,38 @@ export class Client extends GameShell {
             return;
         }
 
-        if (!this.scene) {
+        if (!this.world) {
             return;
         }
 
         let typecode: number = 0;
         if (layer === LocLayer.WALL) {
-            typecode = this.scene.wallType(level, x, z);
+            typecode = this.world.wallType(level, x, z);
         } else if (layer === LocLayer.WALL_DECOR) {
-            typecode = this.scene.decorType(level, z, x);
+            typecode = this.world.decorType(level, z, x);
         } else if (layer === LocLayer.GROUND) {
-            typecode = this.scene.sceneType(level, x, z);
+            typecode = this.world.sceneType(level, x, z);
         } else if (layer === LocLayer.GROUND_DECOR) {
-            typecode = this.scene.gdType(level, x, z);
+            typecode = this.world.gdType(level, x, z);
         }
 
         if (typecode !== 0) {
-            const otherInfo: number = this.scene.typecode2(level, x, z, typecode);
+            const otherInfo: number = this.world.typecode2(level, x, z, typecode);
             const otherId: number = (typecode >> 14) & 0x7fff;
             const otherShape: number = otherInfo & 0x1f;
             const otherAngle: number = otherInfo >> 6;
 
             if (layer === LocLayer.WALL) {
-                this.scene?.delWall(level, x, z, 1);
+                this.world?.delWall(level, x, z, 1);
 
                 const type: LocType = LocType.get(otherId);
                 if (type.blockwalk) {
                     this.levelCollisionMap[level]?.delWall(x, z, otherShape, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.WALL_DECOR) {
-                this.scene?.delDecor(level, x, z);
+                this.world?.delDecor(level, x, z);
             } else if (layer === LocLayer.GROUND) {
-                this.scene.delLoc(level, x, z);
+                this.world.delLoc(level, x, z);
 
                 const type: LocType = LocType.get(otherId);
                 if (x + type.width > CollisionConstants.SIZE - 1 || z + type.width > CollisionConstants.SIZE - 1 || x + type.length > CollisionConstants.SIZE - 1 || z + type.length > CollisionConstants.SIZE - 1) {
@@ -7647,7 +7648,7 @@ export class Client extends GameShell {
                     this.levelCollisionMap[level]?.delLoc(x, z, type.width, type.length, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.GROUND_DECOR) {
-                this.scene?.delGroundDecor(level, x, z);
+                this.world?.delGroundDecor(level, x, z);
 
                 const type: LocType = LocType.get(otherId);
                 if (type.blockwalk && type.active) {
@@ -7658,12 +7659,12 @@ export class Client extends GameShell {
 
         if (id >= 0) {
             let tileLevel: number = level;
-            if (this.levelTileFlags && level < 3 && (this.levelTileFlags[1][x][z] & 0x2) === 2) {
+            if (this.mapf && level < 3 && (this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
                 tileLevel = level + 1;
             }
 
-            if (this.levelHeightmap) {
-                ClientBuild.changeLocUnchecked(this.loopCycle, level, x, z, this.scene, this.levelHeightmap, this.levelCollisionMap[level], id, shape, angle, tileLevel);
+            if (this.groundh) {
+                ClientBuild.changeLocUnchecked(this.loopCycle, level, x, z, this.world, this.groundh, this.levelCollisionMap[level], id, shape, angle, tileLevel);
             }
         }
     }
@@ -7672,7 +7673,7 @@ export class Client extends GameShell {
     private showObject(x: number, z: number): void {
         const objStacks: LinkList | null = this.objStacks[this.minusedlevel][x][z];
         if (!objStacks) {
-            this.scene?.delObj(this.minusedlevel, x, z);
+            this.world?.delObj(this.minusedlevel, x, z);
             return;
         }
 
@@ -7712,7 +7713,7 @@ export class Client extends GameShell {
         }
 
         const typecode: number = (x + (z << 7) + 0x60000000) | 0;
-        this.scene?.setObj(x, z, this.getAvH(this.minusedlevel, x * 128 + 64, z * 128 + 64), this.minusedlevel, typecode, topObj, middleObj, bottomObj);
+        this.world?.setObj(x, z, this.getAvH(this.minusedlevel, x * 128 + 64, z * 128 + 64), this.minusedlevel, typecode, topObj, middleObj, bottomObj);
     }
 
     private getPlayerPos(buf: Packet, size: number): void {
@@ -9064,9 +9065,9 @@ export class Client extends GameShell {
 
         if (action === 660) {
             if (this.menuVisible) {
-                this.scene?.updateMousePicking(b - 8, c - 11);
+                this.world?.updateMousePicking(b - 8, c - 11);
             } else {
-                this.scene?.updateMousePicking(this.mouseClickX - 8, this.mouseClickY - 11);
+                this.world?.updateMousePicking(this.mouseClickX - 8, this.mouseClickY - 11);
             }
         }
 

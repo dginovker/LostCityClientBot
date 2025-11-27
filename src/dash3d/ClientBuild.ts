@@ -7,26 +7,18 @@ import LocShape from '#/dash3d/LocShape.js';
 import World from '#/dash3d/World.js';
 
 import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
-
+import { MapFlag } from '#/dash3d/MapFlag.js';
+import Model from '#/dash3d/Model.js';
+import type ModelSource from '#/dash3d/ModelSource.js';
 import { OverlayShape } from '#/dash3d/OverlayShape.js';
 
 import { Colors } from '#/graphics/Colors.js';
 import Pix3D from '#/graphics/Pix3D.js';
-import Model from '#/dash3d/Model.js';
 
+import type OnDemand from '#/io/OnDemand.js';
 import Packet from '#/io/Packet.js';
 
 import { Int32Array2d, Int32Array3d, Uint8Array3d } from '#/util/Arrays.js';
-import type ModelSource from '#/dash3d/ModelSource.js';
-import type OnDemand from '#/io/OnDemand.js';
-
-const enum MapFlag {
-    Block = 0x1,
-    LinkBelow = 0x2,
-    RemoveRoof = 0x4,
-    VisBelow = 0x8,
-    ForceHighDetail = 0x10,
-}
 
 // noinspection JSSuspiciousNameCombination,DuplicatedCode
 export default class ClientBuild {
@@ -328,7 +320,7 @@ export default class ClientBuild {
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
     private readonly groundh: Int32Array[][]; // (real name) ground heightmap
-    private readonly flags: Uint8Array[][];
+    private readonly mapf: Uint8Array[][];
     private readonly floort1: Uint8Array[][]; // (real name) floor type 1 (underlay)
     private readonly floort2: Uint8Array[][]; // (real name) floor type 2 (overlay)
     private readonly floors: Uint8Array[][]; // (real name) floor shape
@@ -342,11 +334,11 @@ export default class ClientBuild {
     private readonly tot: Int32Array; // (real name) used for blending tiles
     private readonly mapo: Int32Array[][]; // (real name) occlusion map
 
-    public constructor(maxTileX: number, maxTileZ: number, levelHeightmap: Int32Array[][], levelTileFlags: Uint8Array[][]) {
+    public constructor(maxTileX: number, maxTileZ: number, groundh: Int32Array[][], mapf: Uint8Array[][]) {
         this.maxTileX = maxTileX;
         this.maxTileZ = maxTileZ;
-        this.groundh = levelHeightmap;
-        this.flags = levelTileFlags;
+        this.groundh = groundh;
+        this.mapf = mapf;
 
         this.floort1 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
         this.floort2 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
@@ -369,10 +361,10 @@ export default class ClientBuild {
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
             for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
                 for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                    if ((this.flags[level][x][z] & MapFlag.Block) !== 0) {
+                    if ((this.mapf[level][x][z] & MapFlag.Block) !== 0) {
                         let trueLevel: number = level;
 
-                        if ((this.flags[1][x][z] & MapFlag.LinkBelow) !== 0) {
+                        if ((this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
                             trueLevel--;
                         }
 
@@ -491,7 +483,7 @@ export default class ClientBuild {
                             magnitudeAccumulator -= this.tot[dz2];
                         }
 
-                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.flags[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisLevel(level, x0, z0) === ClientBuild.levelBuilt))) {
+                        if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.mapf[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisLevel(level, x0, z0) === ClientBuild.levelBuilt))) {
                             const underlayId: number = this.floort1[level][x0][z0] & 0xff;
                             const overlayId: number = this.floort2[level][x0][z0] & 0xff;
 
@@ -630,7 +622,7 @@ export default class ClientBuild {
 
         for (let x: number = 0; x < this.maxTileX; x++) {
             for (let z: number = 0; z < this.maxTileZ; z++) {
-                if ((this.flags[1][x][z] & MapFlag.LinkBelow) !== 0) {
+                if ((this.mapf[1][x][z] & MapFlag.LinkBelow) !== 0) {
                     scene?.pushDown(x, z);
                 }
             }
@@ -835,7 +827,7 @@ export default class ClientBuild {
                     let opcode: number;
 
                     if (stx >= 0 && stx < CollisionConstants.SIZE && stz >= 0 && stz < CollisionConstants.SIZE) {
-                        this.flags[level][stx][stz] = 0;
+                        this.mapf[level][stx][stz] = 0;
 
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
@@ -867,7 +859,7 @@ export default class ClientBuild {
                                 this.floors[level][stx][stz] = ((((opcode - 2) / 4) | 0) << 24) >> 24;
                                 this.floorr[level][stx][stz] = (((opcode - 2) & 0x3) << 24) >> 24;
                             } else if (opcode <= 81) {
-                                this.flags[level][stx][stz] = ((opcode - 49) << 24) >> 24;
+                                this.mapf[level][stx][stz] = ((opcode - 49) << 24) >> 24;
                             } else {
                                 this.floort1[level][stx][stz] = ((opcode - 81) << 24) >> 24;
                             }
@@ -1012,7 +1004,7 @@ export default class ClientBuild {
 
                 if (stx > 0 && stz > 0 && stx < CollisionConstants.SIZE - 1 && stz < CollisionConstants.SIZE - 1) {
                     let currentLevel: number = level;
-                    if ((this.flags[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
+                    if ((this.mapf[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
                         currentLevel = level - 1;
                     }
 
@@ -1030,7 +1022,7 @@ export default class ClientBuild {
     // (real name)
     private addLoc(loopCycle: number, level: number, x: number, z: number, scene: World | null, cmap: CollisionMap | null, locId: number, shape: number, angle: number): void {
         if (ClientBuild.lowMem) {
-            if ((this.flags[level][x][z] & MapFlag.ForceHighDetail) !== 0) {
+            if ((this.mapf[level][x][z] & MapFlag.ForceHighDetail) !== 0) {
                 return;
             }
 
@@ -1376,8 +1368,8 @@ export default class ClientBuild {
 
     // (real name)
     private getVisLevel(level: number, stx: number, stz: number): number {
-        if ((this.flags[level][stx][stz] & MapFlag.VisBelow) === 0) {
-            return level <= 0 || (this.flags[1][stx][stz] & MapFlag.LinkBelow) === 0 ? level : level - 1;
+        if ((this.mapf[level][stx][stz] & MapFlag.VisBelow) === 0) {
+            return level <= 0 || (this.mapf[1][stx][stz] & MapFlag.LinkBelow) === 0 ? level : level - 1;
         }
 
         return 0;
