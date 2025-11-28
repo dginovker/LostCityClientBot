@@ -36,18 +36,12 @@ async function bunBuild(entry: string, external: string[] = [], minify = true, d
     };
 }
 
-// todo: workaround due to a bun bug https://github.com/oven-sh/bun/issues/16509: not remapping external
-function replaceDepsUrl(source: string) {
-    return source.replaceAll('#3rdparty', '.');
-}
-
 // ----
 
 if (!fs.existsSync('out')) {
     fs.mkdirSync('out');
 }
 
-fs.copyFileSync('src/3rdparty/bzip2-wasm/bzip2.wasm', 'out/bzip2.wasm');
 fs.copyFileSync('src/3rdparty/tinymidipcm/tinymidipcm.wasm', 'out/tinymidipcm.wasm');
 
 const args = process.argv.slice(2);
@@ -58,15 +52,12 @@ const entrypoints = [
     'src/mapview/MapView.ts'
 ];
 
-const deps = await bunBuild('./src/3rdparty/deps.js', [], true, ['console']);
-fs.writeFileSync('out/deps.js', deps.source);
-
 for (const file of entrypoints) {
     const output = path.basename(file).replace('.ts', '.js').toLowerCase();
 
-    const script = await bunBuild(file, ['#3rdparty/*'], prod, prod ? ['console'] : []);
-
+    const script = await bunBuild(file, [], prod, prod ? ['console'] : []);
     if (script) {
-        fs.writeFileSync('out/' + output, replaceDepsUrl(script.source));
+        fs.writeFileSync(`out/${output}`, script.source);
+        fs.writeFileSync(`out/${output}.map`, script.sourcemap);
     }
 }

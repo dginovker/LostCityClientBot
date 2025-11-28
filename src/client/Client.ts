@@ -1,4 +1,5 @@
-import { playWave, setWaveVolume, stopMidi, setMidiVolume, playMidi } from '#3rdparty/deps.js';
+import { playWave, setWaveVolume } from '#3rdparty/audio.js';
+import { stopMidi, setMidiVolume, playMidi } from '#3rdparty/tinymidipcm.js';
 
 import GameShell from '#/client/GameShell.js';
 import InputTracking from '#/client/InputTracking.js';

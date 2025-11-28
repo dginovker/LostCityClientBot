@@ -1,14 +1,18 @@
+import type { Unzipped } from 'fflate';
+import { gunzipSync, unzipSync } from 'fflate';
+
 import type { Client } from '#/client/Client.js';
+
 import DoublyLinkList from '#/datastruct/DoublyLinkList.js';
 import LinkList from '#/datastruct/LinkList.js';
+
 import ClientStream from '#/io/ClientStream.js';
 import type Jagfile from '#/io/Jagfile.js';
 import OnDemandProvider from '#/io/OnDemandProvider.js';
 import OnDemandRequest from '#/io/OnDemandRequest.js';
 import Packet from '#/io/Packet.js';
-import { downloadUrl, sleep } from '#/util/JsUtil';
-import { gunzipSync, unzipSync } from '#3rdparty/deps.js';
-import type { Unzipped } from 'fflate';
+
+import { downloadUrl, sleep } from '#/util/JsUtil.js';
 
 export default class OnDemand extends OnDemandProvider {
     modernized: boolean = true;

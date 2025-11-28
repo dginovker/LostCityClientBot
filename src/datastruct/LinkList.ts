@@ -1,4 +1,4 @@
-import Linkable from './Linkable';
+import Linkable from '#/datastruct/Linkable.js';
 
 export default class LinkList {
     private readonly sentinel: Linkable = new Linkable();
