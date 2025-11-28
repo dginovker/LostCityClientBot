@@ -20,15 +20,15 @@ export default class PixMap {
     }
 
     bind(): void {
-        Pix2D.bind(this.data, this.width, this.height);
+        Pix2D.setPixels(this.data, this.width, this.height);
     }
 
     draw(x: number, y: number): void {
-        this.#setPixels();
+        this.prepareCanvas();
         this.ctx.putImageData(this.img, x, y);
     }
 
-    #setPixels(): void {
+    private prepareCanvas(): void {
         const length: number = this.data.length;
         const pixels: Int32Array = this.data;
         const paint: Uint32Array = this.paint;

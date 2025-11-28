@@ -1864,8 +1864,8 @@ export default class Model extends ModelSource {
 
             if (Model.vertexScreenX && Model.vertexScreenY && Model.vertexScreenZ) {
                 Model.vertexScreenZ[v] = z - midZ;
-                Model.vertexScreenX[v] = Pix3D.centerX + (((x << 9) / z) | 0);
-                Model.vertexScreenY[v] = Pix3D.centerY + (((y << 9) / z) | 0);
+                Model.vertexScreenX[v] = Pix3D.projectionX + (((x << 9) / z) | 0);
+                Model.vertexScreenY[v] = Pix3D.projectionY + (((y << 9) / z) | 0);
             }
 
             if (this.texturedFaceCount > 0 && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
@@ -1896,12 +1896,12 @@ export default class Model extends ModelSource {
 
         const midX: number = (relativeZ * sinEyeYaw + relativeX * cosEyeYaw) >> 16;
         let leftX: number = (midX - this.radius) << 9;
-        if (((leftX / maxZ) | 0) >= Pix2D.centerX2d) {
+        if (((leftX / maxZ) | 0) >= Pix2D.centerX) {
             return;
         }
 
         let rightX: number = (midX + this.radius) << 9;
-        if (((rightX / maxZ) | 0) <= -Pix2D.centerX2d) {
+        if (((rightX / maxZ) | 0) <= -Pix2D.centerX) {
             return;
         }
 
@@ -1909,13 +1909,13 @@ export default class Model extends ModelSource {
         const radiusSinEyePitch: number = (this.radius * sinEyePitch) >> 16;
 
         let bottomY: number = (midY + radiusSinEyePitch) << 9;
-        if (((bottomY / maxZ) | 0) <= -Pix2D.centerY2d) {
+        if (((bottomY / maxZ) | 0) <= -Pix2D.centerY) {
             return;
         }
 
         const yPrime: number = radiusSinEyePitch + ((this.minY * cosEyePitch) >> 16);
         let topY: number = (midY - yPrime) << 9;
-        if (((topY / maxZ) | 0) >= Pix2D.centerY2d) {
+        if (((topY / maxZ) | 0) >= Pix2D.centerY) {
             return;
         }
 
@@ -1946,8 +1946,8 @@ export default class Model extends ModelSource {
                 topY = (topY / z) | 0;
             }
 
-            const mouseX: number = Model.mouseX - Pix3D.centerX;
-            const mouseY: number = Model.mouseY - Pix3D.centerY;
+            const mouseX: number = Model.mouseX - Pix3D.projectionX;
+            const mouseY: number = Model.mouseY - Pix3D.projectionY;
             if (mouseX > leftX && mouseX < rightX && mouseY > topY && mouseY < bottomY) {
                 if (this.useAABBMouseCheck) {
                     Model.pickedBitsets[Model.pickedCount++] = typecode;
@@ -1957,8 +1957,8 @@ export default class Model extends ModelSource {
             }
         }
 
-        const centerX: number = Pix3D.centerX;
-        const centerY: number = Pix3D.centerY;
+        const centerX: number = Pix3D.projectionX;
+        const centerY: number = Pix3D.projectionY;
 
         let sinYaw: number = 0;
         let cosYaw: number = 0;
@@ -2076,7 +2076,7 @@ export default class Model extends ModelSource {
                         Model.faceNearClipped[f] = false;
                     }
                     if (Model.faceClippedX) {
-                        Model.faceClippedX[f] = xA < 0 || xB < 0 || xC < 0 || xA > Pix2D.boundX || xB > Pix2D.boundX || xC > Pix2D.boundX;
+                        Model.faceClippedX[f] = xA < 0 || xB < 0 || xC < 0 || xA > Pix2D.clipX || xB > Pix2D.clipX || xC > Pix2D.clipX;
                     }
 
                     if (Model.tmpDepthFaces && Model.tmpDepthFaceCount) {
@@ -2380,8 +2380,8 @@ export default class Model extends ModelSource {
         let elements: number = 0;
 
         if (Model.vertexViewSpaceZ) {
-            const centerX: number = Pix3D.centerX;
-            const centerY: number = Pix3D.centerY;
+            const centerX: number = Pix3D.projectionX;
+            const centerY: number = Pix3D.projectionY;
 
             const a: number = this.faceVertexA![face];
             const b: number = this.faceVertexB![face];
@@ -2478,7 +2478,7 @@ export default class Model extends ModelSource {
         Pix3D.hclip = false;
 
         if (elements === 3) {
-            if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX) {
+            if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.clipX || x1 > Pix2D.clipX || x2 > Pix2D.clipX) {
                 Pix3D.hclip = true;
             }
 
@@ -2547,7 +2547,7 @@ export default class Model extends ModelSource {
                 );
             }
         } else if (elements === 4) {
-            if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX || Model.clippedX[3] < 0 || Model.clippedX[3] > Pix2D.boundX) {
+            if (x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.clipX || x1 > Pix2D.clipX || x2 > Pix2D.clipX || Model.clippedX[3] < 0 || Model.clippedX[3] > Pix2D.clipX) {
                 Pix3D.hclip = true;
             }
 

@@ -2092,19 +2092,19 @@ export default class World {
             return;
         }
 
-        const px0: number = Pix3D.centerX + (((x0 << 9) / z0) | 0);
-        const py0: number = Pix3D.centerY + (((y0 << 9) / z0) | 0);
-        const pz0: number = Pix3D.centerX + (((x1 << 9) / z1) | 0);
-        const px1: number = Pix3D.centerY + (((y1 << 9) / z1) | 0);
-        const py1: number = Pix3D.centerX + (((x2 << 9) / z2) | 0);
-        const pz1: number = Pix3D.centerY + (((y2 << 9) / z2) | 0);
-        const px3: number = Pix3D.centerX + (((x3 << 9) / z3) | 0);
-        const py3: number = Pix3D.centerY + (((y3 << 9) / z3) | 0);
+        const px0: number = Pix3D.projectionX + (((x0 << 9) / z0) | 0);
+        const py0: number = Pix3D.projectionY + (((y0 << 9) / z0) | 0);
+        const pz0: number = Pix3D.projectionX + (((x1 << 9) / z1) | 0);
+        const px1: number = Pix3D.projectionY + (((y1 << 9) / z1) | 0);
+        const py1: number = Pix3D.projectionX + (((x2 << 9) / z2) | 0);
+        const pz1: number = Pix3D.projectionY + (((y2 << 9) / z2) | 0);
+        const px3: number = Pix3D.projectionX + (((x3 << 9) / z3) | 0);
+        const py3: number = Pix3D.projectionY + (((y3 << 9) / z3) | 0);
 
         Pix3D.trans = 0;
 
         if ((py1 - px3) * (px1 - py3) - (pz1 - py3) * (pz0 - px3) > 0) {
-            Pix3D.hclip = py1 < 0 || px3 < 0 || pz0 < 0 || py1 > Pix2D.boundX || px3 > Pix2D.boundX || pz0 > Pix2D.boundX;
+            Pix3D.hclip = py1 < 0 || px3 < 0 || pz0 < 0 || py1 > Pix2D.clipX || px3 > Pix2D.clipX || pz0 > Pix2D.clipX;
 
             if (World.click && this.insideTriangle(World.clickX, World.clickY, pz1, py3, px1, py1, px3, pz0)) {
                 World.groundX = tileX;
@@ -2126,7 +2126,7 @@ export default class World {
         }
 
         if ((px0 - pz0) * (py3 - px1) - (py0 - px1) * (px3 - pz0) > 0) {
-            Pix3D.hclip = px0 < 0 || pz0 < 0 || px3 < 0 || px0 > Pix2D.boundX || pz0 > Pix2D.boundX || px3 > Pix2D.boundX;
+            Pix3D.hclip = px0 < 0 || pz0 < 0 || px3 < 0 || px0 > Pix2D.clipX || pz0 > Pix2D.clipX || px3 > Pix2D.clipX;
 
             if (World.click && this.insideTriangle(World.clickX, World.clickY, py0, px1, py3, px0, pz0, px3)) {
                 World.groundX = tileX;
@@ -2173,8 +2173,8 @@ export default class World {
                 Ground.drawTextureVertexZ[i] = z;
             }
 
-            Ground.drawVertexX[i] = Pix3D.centerX + (((x << 9) / z) | 0);
-            Ground.drawVertexY[i] = Pix3D.centerY + (((y << 9) / z) | 0);
+            Ground.drawVertexX[i] = Pix3D.projectionX + (((x << 9) / z) | 0);
+            Ground.drawVertexY[i] = Pix3D.projectionY + (((y << 9) / z) | 0);
         }
 
         Pix3D.trans = 0;
@@ -2193,7 +2193,7 @@ export default class World {
             const y2: number = Ground.drawVertexY[c];
 
             if ((x0 - x1) * (y2 - y1) - (y0 - y1) * (x2 - x1) > 0) {
-                Pix3D.hclip = x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.boundX || x1 > Pix2D.boundX || x2 > Pix2D.boundX;
+                Pix3D.hclip = x0 < 0 || x1 < 0 || x2 < 0 || x0 > Pix2D.clipX || x1 > Pix2D.clipX || x2 > Pix2D.clipX;
 
                 if (World.click && this.insideTriangle(World.clickX, World.clickY, y0, y1, y2, x0, x1, x2)) {
                     World.groundX = tileX;

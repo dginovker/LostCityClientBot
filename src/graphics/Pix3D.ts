@@ -6,32 +6,29 @@ import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
 
 // noinspection JSSuspiciousNameCombination,DuplicatedCode
 export default class Pix3D extends Pix2D {
-    static lowMem: boolean = false;
+    static divTable: Int32Array = new Int32Array(512); // jag::oldscape::dash3d::Pix3D::m_divTable
+    static divTable2: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_divTable2
+    static sinTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_sinTable
+    static cosTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_cosTable
+    static colourTable: Int32Array = new Int32Array(65536); // jag::oldscape::dash3d::Pix3D::m_colourTable
 
-    static divTable: Int32Array = new Int32Array(512);
-    static divTable2: Int32Array = new Int32Array(2048);
-    static sinTable: Int32Array = new Int32Array(2048);
-    static cosTable: Int32Array = new Int32Array(2048);
-    static colourTable: Int32Array = new Int32Array(65536);
+    static scanline: Int32Array = new Int32Array();
+
+    static lowMem: boolean = false;
+    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
+    static hclip: boolean = false; // jag::oldscape::dash3d::Pix3D::SetHClip
+    static trans: number = 0; // jag::oldscape::dash3d::Pix3D::SetTrans
 
     static textures: (Pix8 | null)[] = new TypedArray1d(50, null);
     static textureCount: number = 0;
-
-    static lineOffset: Int32Array = new Int32Array();
-    static centerX: number = 0;
-    static centerY: number = 0;
-
-    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
-    static hclip: boolean = false;
-    static trans: number = 0;
-
+    static projectionX: number = 0;
+    static projectionY: number = 0;
     static texelPool: (Int32Array | null)[] | null = null;
     static activeTexels: (Int32Array | null)[] = new TypedArray1d(50, null);
     static poolSize: number = 0;
     static cycle: number = 0;
     static textureCycle: Int32Array = new Int32Array(50);
     static texPal: (Int32Array | null)[] = new TypedArray1d(50, null);
-
     private static opaque: boolean = false;
     private static textureTranslucent: boolean[] = new TypedArray1d(50, false);
     private static averageTextureRgb: Int32Array = new Int32Array(50);
@@ -53,22 +50,22 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    static init2D(): void {
-        this.lineOffset = new Int32Array(Pix2D.height2d);
-        for (let y: number = 0; y < Pix2D.height2d; y++) {
-            this.lineOffset[y] = Pix2D.width2d * y;
+    static init(): void {
+        this.scanline = new Int32Array(Pix2D.height);
+        for (let y: number = 0; y < Pix2D.height; y++) {
+            this.scanline[y] = Pix2D.width * y;
         }
-        this.centerX = (Pix2D.width2d / 2) | 0;
-        this.centerY = (Pix2D.height2d / 2) | 0;
+        this.projectionX = (Pix2D.width / 2) | 0;
+        this.projectionY = (Pix2D.height / 2) | 0;
     }
 
-    static init3D(width: number, height: number): void {
-        this.lineOffset = new Int32Array(height);
+    static initWH(width: number, height: number): void {
+        this.scanline = new Int32Array(height);
         for (let y: number = 0; y < height; y++) {
-            this.lineOffset[y] = width * y;
+            this.scanline[y] = width * y;
         }
-        this.centerX = (width / 2) | 0;
-        this.centerY = (height / 2) | 0;
+        this.projectionX = (width / 2) | 0;
+        this.projectionY = (height / 2) | 0;
     }
 
     static clearTexels(): void {
@@ -97,7 +94,7 @@ export default class Pix3D extends Pix2D {
 
         for (let i: number = 0; i < 50; i++) {
             try {
-                this.textures[i] = Pix8.fromArchive(textures, i.toString());
+                this.textures[i] = Pix8.load(textures, i.toString());
                 if (this.lowMem && this.textures[i]?.owi === 128) {
                     this.textures[i]?.halveSize();
                 } else {
@@ -217,17 +214,21 @@ export default class Pix3D extends Pix2D {
         return texels;
     }
 
+    // jag::oldscape::dash3d::Pix3D::InitColourTable
     static initColourTable(brightness: number): void {
         const randomBrightness: number = brightness + Math.random() * 0.03 - 0.015;
+
         let offset: number = 0;
         for (let y: number = 0; y < 512; y++) {
             const hue: number = ((y / 8) | 0) / 64.0 + 0.0078125;
             const saturation: number = (y & 0x7) / 8.0 + 0.0625;
+
             for (let x: number = 0; x < 128; x++) {
                 const lightness: number = x / 128.0;
                 let r: number = lightness;
                 let g: number = lightness;
                 let b: number = lightness;
+
                 if (saturation !== 0.0) {
                     let q: number;
                     if (lightness < 0.5) {
@@ -235,15 +236,18 @@ export default class Pix3D extends Pix2D {
                     } else {
                         q = lightness + saturation - lightness * saturation;
                     }
+
                     const p: number = lightness * 2.0 - q;
                     let t: number = hue + 0.3333333333333333;
                     if (t > 1.0) {
                         t--;
                     }
+
                     let d11: number = hue - 0.3333333333333333;
                     if (d11 < 0.0) {
                         d11++;
                     }
+
                     if (t * 6.0 < 1.0) {
                         r = p + (q - p) * 6.0 * t;
                     } else if (t * 2.0 < 1.0) {
@@ -253,6 +257,7 @@ export default class Pix3D extends Pix2D {
                     } else {
                         r = p;
                     }
+
                     if (hue * 6.0 < 1.0) {
                         g = p + (q - p) * 6.0 * hue;
                     } else if (hue * 2.0 < 1.0) {
@@ -262,6 +267,7 @@ export default class Pix3D extends Pix2D {
                     } else {
                         g = p;
                     }
+
                     if (d11 * 6.0 < 1.0) {
                         b = p + (q - p) * 6.0 * d11;
                     } else if (d11 * 2.0 < 1.0) {
@@ -272,6 +278,7 @@ export default class Pix3D extends Pix2D {
                         b = p;
                     }
                 }
+
                 const intR: number = (r * 256.0) | 0;
                 const intG: number = (g * 256.0) | 0;
                 const intB: number = (b * 256.0) | 0;
@@ -279,11 +286,13 @@ export default class Pix3D extends Pix2D {
                 this.colourTable[offset++] = this.gammaCorrect(rgb, randomBrightness);
             }
         }
+
         for (let id: number = 0; id < 50; id++) {
             const texture: Pix8 | null = this.textures[id];
             if (!texture) {
                 continue;
             }
+
             const palette: Int32Array = texture.bpal;
             this.texPal[id] = new Int32Array(palette.length);
             for (let i: number = 0; i < palette.length; i++) {
@@ -291,6 +300,7 @@ export default class Pix3D extends Pix2D {
                 if (!texturePalette) {
                     continue;
                 }
+
                 texturePalette[i] = this.gammaCorrect(palette[i], randomBrightness);
             }
         }
@@ -300,6 +310,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
+    // jag::math::RunetekColour::GammaCorrectOSRS
     private static gammaCorrect(rgb: number, gamma: number): number {
         const r: number = (rgb >> 16) / 256.0;
         const g: number = ((rgb >> 8) & 0xff) / 256.0;
@@ -313,6 +324,7 @@ export default class Pix3D extends Pix2D {
         return (intR << 16) + (intG << 8) + intB;
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::GouraudTriangle
     static gouraudTriangle(xA: number, xB: number, xC: number, yA: number, yB: number, yC: number, colorA: number, colorB: number, colorC: number): void {
         let xStepAB: number = 0;
         let colorStepAB: number = 0;
@@ -336,12 +348,12 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA < Pix2D.bottom) {
-                if (yB > Pix2D.bottom) {
-                    yB = Pix2D.bottom;
+            if (yA < Pix2D.boundBottom) {
+                if (yB > Pix2D.boundBottom) {
+                    yB = Pix2D.boundBottom;
                 }
-                if (yC > Pix2D.bottom) {
-                    yC = Pix2D.bottom;
+                if (yC > Pix2D.boundBottom) {
+                    yC = Pix2D.boundBottom;
                 }
                 if (yB < yC) {
                     xC = xA <<= 0x10;
@@ -363,7 +375,7 @@ export default class Pix3D extends Pix2D {
                     if ((yA !== yB && xStepAC < xStepAB) || (yA === yB && xStepAC > xStepBC)) {
                         yC -= yB;
                         yB -= yA;
-                        yA = Pix3D.lineOffset[yA];
+                        yA = Pix3D.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yB--;
@@ -379,7 +391,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     colorC += colorStepAC;
                                     colorB += colorStepBC;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
@@ -387,12 +399,12 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             colorC += colorStepAC;
                             colorA += colorStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                         }
                     } else {
                         yC -= yB;
                         yB -= yA;
-                        yA = Pix3D.lineOffset[yA];
+                        yA = Pix3D.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yB--;
@@ -408,7 +420,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     colorC += colorStepAC;
                                     colorB += colorStepBC;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yA, 0);
@@ -416,7 +428,7 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             colorC += colorStepAC;
                             colorA += colorStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                         }
                     }
                 } else {
@@ -439,7 +451,7 @@ export default class Pix3D extends Pix2D {
                     if ((yA !== yC && xStepAC < xStepAB) || (yA === yC && xStepBC > xStepAB)) {
                         yB -= yC;
                         yC -= yA;
-                        yA = Pix3D.lineOffset[yA];
+                        yA = Pix3D.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -455,7 +467,7 @@ export default class Pix3D extends Pix2D {
                                     xA += xStepAB;
                                     colorC += colorStepBC;
                                     colorA += colorStepAB;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yA, 0);
@@ -463,12 +475,12 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             colorB += colorStepAC;
                             colorA += colorStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                         }
                     } else {
                         yB -= yC;
                         yC -= yA;
-                        yA = Pix3D.lineOffset[yA];
+                        yA = Pix3D.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -484,7 +496,7 @@ export default class Pix3D extends Pix2D {
                                     xA += xStepAB;
                                     colorC += colorStepBC;
                                     colorA += colorStepAB;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yA, 0);
@@ -492,18 +504,18 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             colorB += colorStepAC;
                             colorA += colorStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                         }
                     }
                 }
             }
         } else if (yB <= yC) {
-            if (yB < Pix2D.bottom) {
-                if (yC > Pix2D.bottom) {
-                    yC = Pix2D.bottom;
+            if (yB < Pix2D.boundBottom) {
+                if (yC > Pix2D.boundBottom) {
+                    yC = Pix2D.boundBottom;
                 }
-                if (yA > Pix2D.bottom) {
-                    yA = Pix2D.bottom;
+                if (yA > Pix2D.boundBottom) {
+                    yA = Pix2D.boundBottom;
                 }
                 if (yC < yA) {
                     xA = xB <<= 0x10;
@@ -525,7 +537,7 @@ export default class Pix3D extends Pix2D {
                     if ((yB !== yC && xStepAB < xStepBC) || (yB === yC && xStepAB > xStepAC)) {
                         yA -= yC;
                         yC -= yB;
-                        yB = Pix3D.lineOffset[yB];
+                        yB = Pix3D.scanline[yB];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -541,7 +553,7 @@ export default class Pix3D extends Pix2D {
                                     xC += xStepAC;
                                     colorA += colorStepAB;
                                     colorC += colorStepAC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xA >> 16, xB >> 16, colorA >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
@@ -549,12 +561,12 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             colorA += colorStepAB;
                             colorB += colorStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                         }
                     } else {
                         yA -= yC;
                         yC -= yB;
-                        yB = Pix3D.lineOffset[yB];
+                        yB = Pix3D.scanline[yB];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -570,7 +582,7 @@ export default class Pix3D extends Pix2D {
                                     xC += xStepAC;
                                     colorA += colorStepAB;
                                     colorC += colorStepAC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xB >> 16, xA >> 16, colorB >> 7, colorA >> 7, Pix2D.pixels, yB, 0);
@@ -578,7 +590,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             colorA += colorStepAB;
                             colorB += colorStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                         }
                     }
                 } else {
@@ -600,7 +612,7 @@ export default class Pix3D extends Pix2D {
                     }
                     yC -= yA;
                     yA -= yB;
-                    yB = Pix3D.lineOffset[yB];
+                    yB = Pix3D.scanline[yB];
                     if (xStepAB < xStepBC) {
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
@@ -617,7 +629,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     colorA += colorStepAC;
                                     colorB += colorStepBC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yB, 0);
@@ -625,7 +637,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             colorC += colorStepAB;
                             colorB += colorStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                         }
                     } else {
                         // eslint-disable-next-line no-constant-condition
@@ -643,7 +655,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     colorA += colorStepAC;
                                     colorB += colorStepBC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                 }
                             }
                             this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yB, 0);
@@ -651,17 +663,17 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             colorC += colorStepAB;
                             colorB += colorStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                         }
                     }
                 }
             }
-        } else if (yC < Pix2D.bottom) {
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+        } else if (yC < Pix2D.boundBottom) {
+            if (yA > Pix2D.boundBottom) {
+                yA = Pix2D.boundBottom;
             }
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.boundBottom) {
+                yB = Pix2D.boundBottom;
             }
             if (yA < yB) {
                 xB = xC <<= 0x10;
@@ -682,7 +694,7 @@ export default class Pix3D extends Pix2D {
                 }
                 yB -= yA;
                 yA -= yC;
-                yC = Pix3D.lineOffset[yC];
+                yC = Pix3D.scanline[yC];
                 if (xStepBC < xStepAC) {
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
@@ -699,7 +711,7 @@ export default class Pix3D extends Pix2D {
                                 xA += xStepAB;
                                 colorB += colorStepBC;
                                 colorA += colorStepAB;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                             }
                         }
                         this.gouraudRaster(xB >> 16, xC >> 16, colorB >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
@@ -707,7 +719,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         colorB += colorStepBC;
                         colorC += colorStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                     }
                 } else {
                     // eslint-disable-next-line no-constant-condition
@@ -725,7 +737,7 @@ export default class Pix3D extends Pix2D {
                                 xA += xStepAB;
                                 colorB += colorStepBC;
                                 colorA += colorStepAB;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                             }
                         }
                         this.gouraudRaster(xC >> 16, xB >> 16, colorC >> 7, colorB >> 7, Pix2D.pixels, yC, 0);
@@ -733,7 +745,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         colorB += colorStepBC;
                         colorC += colorStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                     }
                 }
             } else {
@@ -755,7 +767,7 @@ export default class Pix3D extends Pix2D {
                 }
                 yA -= yB;
                 yB -= yC;
-                yC = Pix3D.lineOffset[yC];
+                yC = Pix3D.scanline[yC];
                 if (xStepBC < xStepAC) {
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
@@ -772,7 +784,7 @@ export default class Pix3D extends Pix2D {
                                 xC += xStepAC;
                                 colorB += colorStepAB;
                                 colorC += colorStepAC;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                             }
                         }
                         this.gouraudRaster(xA >> 16, xC >> 16, colorA >> 7, colorC >> 7, Pix2D.pixels, yC, 0);
@@ -780,7 +792,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         colorA += colorStepBC;
                         colorC += colorStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                     }
                 } else {
                     // eslint-disable-next-line no-constant-condition
@@ -798,7 +810,7 @@ export default class Pix3D extends Pix2D {
                                 xC += xStepAC;
                                 colorB += colorStepAB;
                                 colorC += colorStepAC;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                             }
                         }
                         this.gouraudRaster(xC >> 16, xA >> 16, colorC >> 7, colorA >> 7, Pix2D.pixels, yC, 0);
@@ -806,13 +818,14 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         colorA += colorStepBC;
                         colorC += colorStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                     }
                 }
             }
         }
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::GouraudRaster
     private static gouraudRaster(x0: number, x1: number, color0: number, color1: number, dst: Int32Array, offset: number, length: number): void {
         let rgb: number;
 
@@ -825,8 +838,8 @@ export default class Pix3D extends Pix2D {
                 } else {
                     colorStep = 0;
                 }
-                if (x1 > Pix2D.boundX) {
-                    x1 = Pix2D.boundX;
+                if (x1 > Pix2D.clipX) {
+                    x1 = Pix2D.clipX;
                 }
                 if (x0 < 0) {
                     color0 -= x0 * colorStep;
@@ -903,8 +916,8 @@ export default class Pix3D extends Pix2D {
         } else if (x0 < x1) {
             const colorStep: number = ((color1 - color0) / (x1 - x0)) | 0;
             if (Pix3D.hclip) {
-                if (x1 > Pix2D.boundX) {
-                    x1 = Pix2D.boundX;
+                if (x1 > Pix2D.clipX) {
+                    x1 = Pix2D.clipX;
                 }
                 if (x0 < 0) {
                     color0 -= x0 * colorStep;
@@ -936,6 +949,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::FlatTriangle
     static flatTriangle(x0: number, x1: number, x2: number, y0: number, y1: number, y2: number, color: number): void {
         let xStepAB: number = 0;
         if (y1 !== y0) {
@@ -950,12 +964,12 @@ export default class Pix3D extends Pix2D {
             xStepAC = (((x0 - x2) << 16) / (y0 - y2)) | 0;
         }
         if (y0 <= y1 && y0 <= y2) {
-            if (y0 < Pix2D.bottom) {
-                if (y1 > Pix2D.bottom) {
-                    y1 = Pix2D.bottom;
+            if (y0 < Pix2D.boundBottom) {
+                if (y1 > Pix2D.boundBottom) {
+                    y1 = Pix2D.boundBottom;
                 }
-                if (y2 > Pix2D.bottom) {
-                    y2 = Pix2D.bottom;
+                if (y2 > Pix2D.boundBottom) {
+                    y2 = Pix2D.boundBottom;
                 }
                 if (y1 < y2) {
                     x2 = x0 <<= 0x10;
@@ -972,7 +986,7 @@ export default class Pix3D extends Pix2D {
                     if ((y0 !== y1 && xStepAC < xStepAB) || (y0 === y1 && xStepAC > xStepBC)) {
                         y2 -= y1;
                         y1 -= y0;
-                        y0 = this.lineOffset[y0];
+                        y0 = this.scanline[y0];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y1--;
@@ -986,18 +1000,18 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepAC;
                                     x1 += xStepBC;
-                                    y0 += Pix2D.width2d;
+                                    y0 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                             x2 += xStepAC;
                             x0 += xStepAB;
-                            y0 += Pix2D.width2d;
+                            y0 += Pix2D.width;
                         }
                     } else {
                         y2 -= y1;
                         y1 -= y0;
-                        y0 = this.lineOffset[y0];
+                        y0 = this.scanline[y0];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y1--;
@@ -1011,13 +1025,13 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepAC;
                                     x1 += xStepBC;
-                                    y0 += Pix2D.width2d;
+                                    y0 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                             x2 += xStepAC;
                             x0 += xStepAB;
-                            y0 += Pix2D.width2d;
+                            y0 += Pix2D.width;
                         }
                     }
                 } else {
@@ -1035,7 +1049,7 @@ export default class Pix3D extends Pix2D {
                     if ((y0 !== y2 && xStepAC < xStepAB) || (y0 === y2 && xStepBC > xStepAB)) {
                         y1 -= y2;
                         y2 -= y0;
-                        y0 = this.lineOffset[y0];
+                        y0 = this.scanline[y0];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y2--;
@@ -1049,18 +1063,18 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepBC;
                                     x0 += xStepAB;
-                                    y0 += Pix2D.width2d;
+                                    y0 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y0, color);
                             x1 += xStepAC;
                             x0 += xStepAB;
-                            y0 += Pix2D.width2d;
+                            y0 += Pix2D.width;
                         }
                     } else {
                         y1 -= y2;
                         y2 -= y0;
-                        y0 = this.lineOffset[y0];
+                        y0 = this.scanline[y0];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y2--;
@@ -1074,24 +1088,24 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y0, color);
                                     x2 += xStepBC;
                                     x0 += xStepAB;
-                                    y0 += Pix2D.width2d;
+                                    y0 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y0, color);
                             x1 += xStepAC;
                             x0 += xStepAB;
-                            y0 += Pix2D.width2d;
+                            y0 += Pix2D.width;
                         }
                     }
                 }
             }
         } else if (y1 <= y2) {
-            if (y1 < Pix2D.bottom) {
-                if (y2 > Pix2D.bottom) {
-                    y2 = Pix2D.bottom;
+            if (y1 < Pix2D.boundBottom) {
+                if (y2 > Pix2D.boundBottom) {
+                    y2 = Pix2D.boundBottom;
                 }
-                if (y0 > Pix2D.bottom) {
-                    y0 = Pix2D.bottom;
+                if (y0 > Pix2D.boundBottom) {
+                    y0 = Pix2D.boundBottom;
                 }
                 if (y2 < y0) {
                     x0 = x1 <<= 0x10;
@@ -1108,7 +1122,7 @@ export default class Pix3D extends Pix2D {
                     if ((y1 !== y2 && xStepAB < xStepBC) || (y1 === y2 && xStepAB > xStepAC)) {
                         y0 -= y2;
                         y2 -= y1;
-                        y1 = this.lineOffset[y1];
+                        y1 = this.scanline[y1];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y2--;
@@ -1122,18 +1136,18 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAB;
                                     x2 += xStepAC;
-                                    y1 += Pix2D.width2d;
+                                    y1 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                             x0 += xStepAB;
                             x1 += xStepBC;
-                            y1 += Pix2D.width2d;
+                            y1 += Pix2D.width;
                         }
                     } else {
                         y0 -= y2;
                         y2 -= y1;
-                        y1 = this.lineOffset[y1];
+                        y1 = this.scanline[y1];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y2--;
@@ -1147,13 +1161,13 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAB;
                                     x2 += xStepAC;
-                                    y1 += Pix2D.width2d;
+                                    y1 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                             x0 += xStepAB;
                             x1 += xStepBC;
-                            y1 += Pix2D.width2d;
+                            y1 += Pix2D.width;
                         }
                     }
                 } else {
@@ -1171,7 +1185,7 @@ export default class Pix3D extends Pix2D {
                     if (xStepAB < xStepBC) {
                         y2 -= y0;
                         y0 -= y1;
-                        y1 = this.lineOffset[y1];
+                        y1 = this.scanline[y1];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y0--;
@@ -1185,18 +1199,18 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAC;
                                     x1 += xStepBC;
-                                    y1 += Pix2D.width2d;
+                                    y1 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y1, color);
                             x2 += xStepAB;
                             x1 += xStepBC;
-                            y1 += Pix2D.width2d;
+                            y1 += Pix2D.width;
                         }
                     } else {
                         y2 -= y0;
                         y0 -= y1;
-                        y1 = this.lineOffset[y1];
+                        y1 = this.scanline[y1];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             y0--;
@@ -1210,23 +1224,23 @@ export default class Pix3D extends Pix2D {
                                     this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y1, color);
                                     x0 += xStepAC;
                                     x1 += xStepBC;
-                                    y1 += Pix2D.width2d;
+                                    y1 += Pix2D.width;
                                 }
                             }
                             this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y1, color);
                             x2 += xStepAB;
                             x1 += xStepBC;
-                            y1 += Pix2D.width2d;
+                            y1 += Pix2D.width;
                         }
                     }
                 }
             }
-        } else if (y2 < Pix2D.bottom) {
-            if (y0 > Pix2D.bottom) {
-                y0 = Pix2D.bottom;
+        } else if (y2 < Pix2D.boundBottom) {
+            if (y0 > Pix2D.boundBottom) {
+                y0 = Pix2D.boundBottom;
             }
-            if (y1 > Pix2D.bottom) {
-                y1 = Pix2D.bottom;
+            if (y1 > Pix2D.boundBottom) {
+                y1 = Pix2D.boundBottom;
             }
             if (y0 < y1) {
                 x1 = x2 <<= 0x10;
@@ -1243,7 +1257,7 @@ export default class Pix3D extends Pix2D {
                 if (xStepBC < xStepAC) {
                     y1 -= y0;
                     y0 -= y2;
-                    y2 = this.lineOffset[y2];
+                    y2 = this.scanline[y2];
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
                         y0--;
@@ -1257,18 +1271,18 @@ export default class Pix3D extends Pix2D {
                                 this.flatRaster(x1 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepBC;
                                 x0 += xStepAB;
-                                y2 += Pix2D.width2d;
+                                y2 += Pix2D.width;
                             }
                         }
                         this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                         x1 += xStepBC;
                         x2 += xStepAC;
-                        y2 += Pix2D.width2d;
+                        y2 += Pix2D.width;
                     }
                 } else {
                     y1 -= y0;
                     y0 -= y2;
-                    y2 = this.lineOffset[y2];
+                    y2 = this.scanline[y2];
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
                         y0--;
@@ -1282,13 +1296,13 @@ export default class Pix3D extends Pix2D {
                                 this.flatRaster(x0 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepBC;
                                 x0 += xStepAB;
-                                y2 += Pix2D.width2d;
+                                y2 += Pix2D.width;
                             }
                         }
                         this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                         x1 += xStepBC;
                         x2 += xStepAC;
-                        y2 += Pix2D.width2d;
+                        y2 += Pix2D.width;
                     }
                 }
             } else {
@@ -1306,7 +1320,7 @@ export default class Pix3D extends Pix2D {
                 if (xStepBC < xStepAC) {
                     y0 -= y1;
                     y1 -= y2;
-                    y2 = this.lineOffset[y2];
+                    y2 = this.scanline[y2];
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
                         y1--;
@@ -1320,18 +1334,18 @@ export default class Pix3D extends Pix2D {
                                 this.flatRaster(x1 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepAB;
                                 x2 += xStepAC;
-                                y2 += Pix2D.width2d;
+                                y2 += Pix2D.width;
                             }
                         }
                         this.flatRaster(x0 >> 16, x2 >> 16, Pix2D.pixels, y2, color);
                         x0 += xStepBC;
                         x2 += xStepAC;
-                        y2 += Pix2D.width2d;
+                        y2 += Pix2D.width;
                     }
                 } else {
                     y0 -= y1;
                     y1 -= y2;
-                    y2 = this.lineOffset[y2];
+                    y2 = this.scanline[y2];
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
                         y1--;
@@ -1345,23 +1359,24 @@ export default class Pix3D extends Pix2D {
                                 this.flatRaster(x2 >> 16, x1 >> 16, Pix2D.pixels, y2, color);
                                 x1 += xStepAB;
                                 x2 += xStepAC;
-                                y2 += Pix2D.width2d;
+                                y2 += Pix2D.width;
                             }
                         }
                         this.flatRaster(x2 >> 16, x0 >> 16, Pix2D.pixels, y2, color);
                         x0 += xStepBC;
                         x2 += xStepAC;
-                        y2 += Pix2D.width2d;
+                        y2 += Pix2D.width;
                     }
                 }
             }
         }
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::FlatRaster
     private static flatRaster(x0: number, x1: number, dst: Int32Array, offset: number, rgb: number): void {
         if (this.hclip) {
-            if (x1 > Pix2D.boundX) {
-                x1 = Pix2D.boundX;
+            if (x1 > Pix2D.clipX) {
+                x1 = Pix2D.clipX;
             }
             if (x0 < 0) {
                 x0 = 0;
@@ -1423,6 +1438,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::TextureTriangle
     static textureTriangle(
         xA: number,
         xB: number,
@@ -1489,13 +1505,13 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA < Pix2D.bottom) {
-                if (yB > Pix2D.bottom) {
-                    yB = Pix2D.bottom;
+            if (yA < Pix2D.boundBottom) {
+                if (yB > Pix2D.boundBottom) {
+                    yB = Pix2D.boundBottom;
                 }
 
-                if (yC > Pix2D.bottom) {
-                    yC = Pix2D.bottom;
+                if (yC > Pix2D.boundBottom) {
+                    yC = Pix2D.boundBottom;
                 }
 
                 if (yB < yC) {
@@ -1515,7 +1531,7 @@ export default class Pix3D extends Pix2D {
                         shadeB -= shadeStepBC * yB;
                         yB = 0;
                     }
-                    const dy: number = yA - this.centerY;
+                    const dy: number = yA - this.projectionY;
                     u += uStepVertical * dy;
                     v += vStepVertical * dy;
                     w += wStepVertical * dy;
@@ -1525,7 +1541,7 @@ export default class Pix3D extends Pix2D {
                     if ((yA !== yB && xStepAC < xStepAB) || (yA === yB && xStepAC > xStepBC)) {
                         yC -= yB;
                         yB -= yA;
-                        yA = this.lineOffset[yA];
+                        yA = this.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yB--;
@@ -1541,7 +1557,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     shadeC += shadeStepAC;
                                     shadeB += shadeStepBC;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1555,7 +1571,7 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             shadeC += shadeStepAC;
                             shadeA += shadeStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1566,7 +1582,7 @@ export default class Pix3D extends Pix2D {
                     } else {
                         yC -= yB;
                         yB -= yA;
-                        yA = this.lineOffset[yA];
+                        yA = this.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yB--;
@@ -1582,7 +1598,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     shadeC += shadeStepAC;
                                     shadeB += shadeStepBC;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1596,7 +1612,7 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             shadeC += shadeStepAC;
                             shadeA += shadeStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1622,7 +1638,7 @@ export default class Pix3D extends Pix2D {
                         shadeC -= shadeStepBC * yC;
                         yC = 0;
                     }
-                    const dy: number = yA - this.centerY;
+                    const dy: number = yA - this.projectionY;
                     u += uStepVertical * dy;
                     v += vStepVertical * dy;
                     w += wStepVertical * dy;
@@ -1632,7 +1648,7 @@ export default class Pix3D extends Pix2D {
                     if ((yA === yC || xStepAC >= xStepAB) && (yA !== yC || xStepBC <= xStepAB)) {
                         yB -= yC;
                         yC -= yA;
-                        yA = this.lineOffset[yA];
+                        yA = this.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -1648,7 +1664,7 @@ export default class Pix3D extends Pix2D {
                                     xA += xStepAB;
                                     shadeC += shadeStepBC;
                                     shadeA += shadeStepAB;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1662,7 +1678,7 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             shadeB += shadeStepAC;
                             shadeA += shadeStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1673,7 +1689,7 @@ export default class Pix3D extends Pix2D {
                     } else {
                         yB -= yC;
                         yC -= yA;
-                        yA = this.lineOffset[yA];
+                        yA = this.scanline[yA];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -1689,7 +1705,7 @@ export default class Pix3D extends Pix2D {
                                     xA += xStepAB;
                                     shadeC += shadeStepBC;
                                     shadeA += shadeStepAB;
-                                    yA += Pix2D.width2d;
+                                    yA += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1703,7 +1719,7 @@ export default class Pix3D extends Pix2D {
                             xA += xStepAB;
                             shadeB += shadeStepAC;
                             shadeA += shadeStepAB;
-                            yA += Pix2D.width2d;
+                            yA += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1715,12 +1731,12 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB < Pix2D.bottom) {
-                if (yC > Pix2D.bottom) {
-                    yC = Pix2D.bottom;
+            if (yB < Pix2D.boundBottom) {
+                if (yC > Pix2D.boundBottom) {
+                    yC = Pix2D.boundBottom;
                 }
-                if (yA > Pix2D.bottom) {
-                    yA = Pix2D.bottom;
+                if (yA > Pix2D.boundBottom) {
+                    yA = Pix2D.boundBottom;
                 }
                 if (yC < yA) {
                     xA = xB <<= 0x10;
@@ -1739,7 +1755,7 @@ export default class Pix3D extends Pix2D {
                         shadeC -= shadeStepAC * yC;
                         yC = 0;
                     }
-                    const dy: number = yB - this.centerY;
+                    const dy: number = yB - this.projectionY;
                     u += uStepVertical * dy;
                     v += vStepVertical * dy;
                     w += wStepVertical * dy;
@@ -1749,7 +1765,7 @@ export default class Pix3D extends Pix2D {
                     if ((yB !== yC && xStepAB < xStepBC) || (yB === yC && xStepAB > xStepAC)) {
                         yA -= yC;
                         yC -= yB;
-                        yB = this.lineOffset[yB];
+                        yB = this.scanline[yB];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -1765,7 +1781,7 @@ export default class Pix3D extends Pix2D {
                                     xC += xStepAC;
                                     shadeA += shadeStepAB;
                                     shadeC += shadeStepAC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1779,7 +1795,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             shadeA += shadeStepAB;
                             shadeB += shadeStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1790,7 +1806,7 @@ export default class Pix3D extends Pix2D {
                     } else {
                         yA -= yC;
                         yC -= yB;
-                        yB = this.lineOffset[yB];
+                        yB = this.scanline[yB];
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
                             yC--;
@@ -1806,7 +1822,7 @@ export default class Pix3D extends Pix2D {
                                     xC += xStepAC;
                                     shadeA += shadeStepAB;
                                     shadeC += shadeStepAC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1820,7 +1836,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             shadeA += shadeStepAB;
                             shadeB += shadeStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1846,7 +1862,7 @@ export default class Pix3D extends Pix2D {
                         shadeA -= shadeStepAC * yA;
                         yA = 0;
                     }
-                    const dy: number = yB - this.centerY;
+                    const dy: number = yB - this.projectionY;
                     u += uStepVertical * dy;
                     v += vStepVertical * dy;
                     w += wStepVertical * dy;
@@ -1855,7 +1871,7 @@ export default class Pix3D extends Pix2D {
                     w |= 0;
                     yC -= yA;
                     yA -= yB;
-                    yB = this.lineOffset[yB];
+                    yB = this.scanline[yB];
                     if (xStepAB < xStepBC) {
                         // eslint-disable-next-line no-constant-condition
                         while (true) {
@@ -1872,7 +1888,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     shadeA += shadeStepAC;
                                     shadeB += shadeStepBC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1886,7 +1902,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             shadeC += shadeStepAB;
                             shadeB += shadeStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1910,7 +1926,7 @@ export default class Pix3D extends Pix2D {
                                     xB += xStepBC;
                                     shadeA += shadeStepAC;
                                     shadeB += shadeStepBC;
-                                    yB += Pix2D.width2d;
+                                    yB += Pix2D.width;
                                     u += uStepVertical;
                                     v += vStepVertical;
                                     w += wStepVertical;
@@ -1924,7 +1940,7 @@ export default class Pix3D extends Pix2D {
                             xB += xStepBC;
                             shadeC += shadeStepAB;
                             shadeB += shadeStepBC;
-                            yB += Pix2D.width2d;
+                            yB += Pix2D.width;
                             u += uStepVertical;
                             v += vStepVertical;
                             w += wStepVertical;
@@ -1935,12 +1951,12 @@ export default class Pix3D extends Pix2D {
                     }
                 }
             }
-        } else if (yC < Pix2D.bottom) {
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+        } else if (yC < Pix2D.boundBottom) {
+            if (yA > Pix2D.boundBottom) {
+                yA = Pix2D.boundBottom;
             }
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.boundBottom) {
+                yB = Pix2D.boundBottom;
             }
             if (yA < yB) {
                 xB = xC <<= 0x10;
@@ -1959,7 +1975,7 @@ export default class Pix3D extends Pix2D {
                     shadeA -= shadeStepAB * yA;
                     yA = 0;
                 }
-                const dy: number = yC - this.centerY;
+                const dy: number = yC - this.projectionY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -1968,7 +1984,7 @@ export default class Pix3D extends Pix2D {
                 w |= 0;
                 yB -= yA;
                 yA -= yC;
-                yC = this.lineOffset[yC];
+                yC = this.scanline[yC];
                 if (xStepBC < xStepAC) {
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
@@ -1985,7 +2001,7 @@ export default class Pix3D extends Pix2D {
                                 xA += xStepAB;
                                 shadeB += shadeStepBC;
                                 shadeA += shadeStepAB;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                                 u += uStepVertical;
                                 v += vStepVertical;
                                 w += wStepVertical;
@@ -1999,7 +2015,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         shadeB += shadeStepBC;
                         shadeC += shadeStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                         u += uStepVertical;
                         v += vStepVertical;
                         w += wStepVertical;
@@ -2023,7 +2039,7 @@ export default class Pix3D extends Pix2D {
                                 xA += xStepAB;
                                 shadeB += shadeStepBC;
                                 shadeA += shadeStepAB;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                                 u += uStepVertical;
                                 v += vStepVertical;
                                 w += wStepVertical;
@@ -2037,7 +2053,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         shadeB += shadeStepBC;
                         shadeC += shadeStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                         u += uStepVertical;
                         v += vStepVertical;
                         w += wStepVertical;
@@ -2063,7 +2079,7 @@ export default class Pix3D extends Pix2D {
                     shadeB -= shadeStepAB * yB;
                     yB = 0;
                 }
-                const dy: number = yC - this.centerY;
+                const dy: number = yC - this.projectionY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -2072,7 +2088,7 @@ export default class Pix3D extends Pix2D {
                 w |= 0;
                 yA -= yB;
                 yB -= yC;
-                yC = this.lineOffset[yC];
+                yC = this.scanline[yC];
                 if (xStepBC < xStepAC) {
                     // eslint-disable-next-line no-constant-condition
                     while (true) {
@@ -2089,7 +2105,7 @@ export default class Pix3D extends Pix2D {
                                 xC += xStepAC;
                                 shadeB += shadeStepAB;
                                 shadeC += shadeStepAC;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                                 u += uStepVertical;
                                 v += vStepVertical;
                                 w += wStepVertical;
@@ -2103,7 +2119,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         shadeA += shadeStepBC;
                         shadeC += shadeStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                         u += uStepVertical;
                         v += vStepVertical;
                         w += wStepVertical;
@@ -2127,7 +2143,7 @@ export default class Pix3D extends Pix2D {
                                 xC += xStepAC;
                                 shadeB += shadeStepAB;
                                 shadeC += shadeStepAC;
-                                yC += Pix2D.width2d;
+                                yC += Pix2D.width;
                                 u += uStepVertical;
                                 v += vStepVertical;
                                 w += wStepVertical;
@@ -2141,7 +2157,7 @@ export default class Pix3D extends Pix2D {
                         xC += xStepAC;
                         shadeA += shadeStepBC;
                         shadeC += shadeStepAC;
-                        yC += Pix2D.width2d;
+                        yC += Pix2D.width;
                         u += uStepVertical;
                         v += vStepVertical;
                         w += wStepVertical;
@@ -2154,6 +2170,7 @@ export default class Pix3D extends Pix2D {
         }
     }
 
+    // jag::oldscape::dash3d::SoftwarePix3D::TextureRaster
     private static textureRaster(
         xA: number,
         xB: number,
@@ -2180,8 +2197,8 @@ export default class Pix3D extends Pix2D {
         if (this.hclip) {
             shadeStrides = ((shadeB - shadeA) / (xB - xA)) | 0;
 
-            if (xB > Pix2D.boundX) {
-                xB = Pix2D.boundX;
+            if (xB > Pix2D.clipX) {
+                xB = Pix2D.clipX;
             }
 
             if (xA < 0) {
@@ -2218,7 +2235,7 @@ export default class Pix3D extends Pix2D {
         if (this.lowMem && texels) {
             nextU = 0;
             nextV = 0;
-            dx = xA - this.centerX;
+            dx = xA - this.projectionX;
             u = u + (uStride >> 3) * dx;
             v = v + (vStride >> 3) * dx;
             w = w + (wStride >> 3) * dx;
@@ -2394,7 +2411,7 @@ export default class Pix3D extends Pix2D {
         }
         nextU = 0;
         nextV = 0;
-        dx = xA - this.centerX;
+        dx = xA - this.projectionX;
         u = u + (uStride >> 3) * dx;
         v = v + (vStride >> 3) * dx;
         w = w + (wStride >> 3) * dx;

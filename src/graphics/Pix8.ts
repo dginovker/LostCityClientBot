@@ -5,15 +5,16 @@ import Pix2D from '#/graphics/Pix2D.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
+// jag::oldscape::graphics::Pix8
 export default class Pix8 extends DoublyLinkable {
     pixels: Int8Array;
-    wi: number;
-    hi: number;
-    xof: number;
-    yof: number;
-    owi: number;
-    ohi: number;
-    readonly bpal: Int32Array;
+    wi: number; // jag::oldscape::graphics::pixloader::m_wi
+    hi: number; // jag::oldscape::graphics::pixloader::m_hi
+    xof: number; // jag::oldscape::graphics::pixloader::m_xof
+    yof: number; // jag::oldscape::graphics::pixloader::m_yof
+    owi: number; // jag::oldscape::graphics::pixloader::m_owi
+    ohi: number; // jag::oldscape::graphics::pixloader::m_ohi
+    readonly bpal: Int32Array; // jag::oldscape::graphics::pixloader::m_bpal
 
     constructor(width: number, height: number, palette: Int32Array) {
         super();
@@ -25,9 +26,9 @@ export default class Pix8 extends DoublyLinkable {
         this.bpal = palette;
     }
 
-    static fromArchive(archive: Jagfile, name: string, sprite: number = 0): Pix8 {
-        const dat: Packet = new Packet(archive.read(name + '.dat'));
-        const index: Packet = new Packet(archive.read('index.dat'));
+    static load(jag: Jagfile, name: string, sprite: number = 0): Pix8 {
+        const dat: Packet = new Packet(jag.read(name + '.dat'));
+        const index: Packet = new Packet(jag.read('index.dat'));
 
         // cropW/cropH are shared across all sprites in a single image
         index.pos = dat.g2();
@@ -88,6 +89,7 @@ export default class Pix8 extends DoublyLinkable {
         return image;
     }
 
+    // jag::oldscape::graphics::Pix8::HalveSize
     halveSize(): void {
         this.owi |= 0;
         this.ohi |= 0;
@@ -110,6 +112,7 @@ export default class Pix8 extends DoublyLinkable {
         this.yof = 0;
     }
 
+    // jag::oldscape::graphics::Pix32::Trim
     trim(): void {
         if (this.wi === this.owi && this.hi === this.ohi) {
             return;
@@ -129,6 +132,7 @@ export default class Pix8 extends DoublyLinkable {
         this.yof = 0;
     }
 
+    // jag::oldscape::graphics::Pix8::HFlip
     hflip(): void {
         const pixels: Int8Array = this.pixels;
         const width: number = this.wi;
@@ -147,6 +151,7 @@ export default class Pix8 extends DoublyLinkable {
         }
     }
 
+    // jag::oldscape::graphics::Pix8::VFlip
     vflip(): void {
         const pixels: Int8Array = this.pixels;
         const width: number = this.wi;
@@ -164,6 +169,7 @@ export default class Pix8 extends DoublyLinkable {
         }
     }
 
+    // jag::oldscape::graphics::Pix8::RgbAdjust
     rgbAdjust(r: number, g: number, b: number): void {
         for (let i: number = 0; i < this.bpal.length; i++) {
             let red: number = (this.bpal[i] >> 16) & 0xff;
@@ -194,6 +200,7 @@ export default class Pix8 extends DoublyLinkable {
         }
     }
 
+    // jag::oldscape::graphics::NXTPix2D::PlotSprite
     plotSprite(x: number, y: number): void {
         x |= 0;
         y |= 0;
@@ -201,37 +208,37 @@ export default class Pix8 extends DoublyLinkable {
         x += this.xof;
         y += this.yof;
 
-        let dstOff: number = x + y * Pix2D.width2d;
+        let dstOff: number = x + y * Pix2D.width;
         let srcOff: number = 0;
         let h: number = this.hi;
         let w: number = this.wi;
-        let dstStep: number = Pix2D.width2d - w;
+        let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.boundTop;
             srcOff += cutoff * w;
-            dstOff += cutoff * Pix2D.width2d;
+            dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.boundBottom) {
+            h -= y + h - Pix2D.boundBottom;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.boundLeft;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.boundRight) {
+            const cutoff: number = x + w - Pix2D.boundRight;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -242,6 +249,7 @@ export default class Pix8 extends DoublyLinkable {
         }
     }
 
+    // jag::oldscape::graphics::NXTPix2D::PlotSprite
     private plot(w: number, h: number, src: Int8Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number): void {
         const qw: number = -(w >> 2);
         w = -(w & 0x3);
@@ -291,8 +299,10 @@ export default class Pix8 extends DoublyLinkable {
         }
     }
 
-    // mapview:
-    clip(arg0: number, arg1: number, arg2: number, arg3: number): void {
+    /// mapview applet:
+
+    // jag::oldscape::graphics::NXTPix2D::ScalePlotSprite
+    scalePlotSprite(arg0: number, arg1: number, arg2: number, arg3: number): void {
         try {
             const local2: number = this.wi;
             const local5: number = this.hi;
@@ -314,57 +324,58 @@ export default class Pix8 extends DoublyLinkable {
             }
             arg2 = ((arg2 * (this.wi - (local7 >> 16))) / local24) | 0;
             arg3 = ((arg3 * (this.hi - (local9 >> 16))) / local27) | 0;
-            let local133: number = arg0 + arg1 * Pix2D.width2d;
-            let local137: number = Pix2D.width2d - arg2;
+            let local133: number = arg0 + arg1 * Pix2D.width;
+            let local137: number = Pix2D.width - arg2;
             let local144: number;
-            if (arg1 < Pix2D.top) {
-                local144 = Pix2D.top - arg1;
+            if (arg1 < Pix2D.boundTop) {
+                local144 = Pix2D.boundTop - arg1;
                 arg3 -= local144;
                 arg1 = 0;
-                local133 += local144 * Pix2D.width2d;
+                local133 += local144 * Pix2D.width;
                 local9 += local39 * local144;
             }
-            if (arg1 + arg3 > Pix2D.bottom) {
-                arg3 -= arg1 + arg3 - Pix2D.bottom;
+            if (arg1 + arg3 > Pix2D.boundBottom) {
+                arg3 -= arg1 + arg3 - Pix2D.boundBottom;
             }
-            if (arg0 < Pix2D.left) {
-                local144 = Pix2D.left - arg0;
+            if (arg0 < Pix2D.boundLeft) {
+                local144 = Pix2D.boundLeft - arg0;
                 arg2 -= local144;
                 arg0 = 0;
                 local133 += local144;
                 local7 += local33 * local144;
                 local137 += local144;
             }
-            if (arg0 + arg2 > Pix2D.right) {
-                local144 = arg0 + arg2 - Pix2D.right;
+            if (arg0 + arg2 > Pix2D.boundRight) {
+                local144 = arg0 + arg2 - Pix2D.boundRight;
                 arg2 -= local144;
                 local137 += local144;
             }
-            this.plot_scale(Pix2D.pixels, this.pixels, this.bpal, local7, local9, local133, local137, arg2, arg3, local33, local39, local2);
+            this.plotScale(Pix2D.pixels, this.pixels, this.bpal, local7, local9, local133, local137, arg2, arg3, local33, local39, local2);
         } catch (ignore) {
             console.log('error in sprite clipping routine');
         }
     }
 
-    private plot_scale(arg0: Int32Array, arg1: Int8Array, arg2: Int32Array, arg3: number, arg4: number, arg5: number, arg6: number, arg7: number, arg8: number, arg9: number, arg10: number, arg11: number): void {
+    // jag::oldscape::graphics::NXTPix2D::PlotScale
+    private plotScale(dst: Int32Array, src: Int8Array, bpal: Int32Array, offW: number, offH: number, dstOff: number, dstStep: number, w: number, h: number, scaleCropWidth: number, scaleCropHeight: number, arg11: number): void {
         try {
-            const local3: number = arg3;
-            for (let local6: number = -arg8; local6 < 0; local6++) {
-                const local14: number = (arg4 >> 16) * arg11;
-                for (let local17: number = -arg7; local17 < 0; local17++) {
-                    const local27: number = arg1[(arg3 >> 16) + local14];
-                    if (local27 == 0) {
-                        arg5++;
+            const lastOffW: number = offW;
+            for (let y: number = -h; y < 0; y++) {
+                const offY: number = (offH >> 16) * arg11;
+                for (let x: number = -w; x < 0; x++) {
+                    const rgb: number = src[(offW >> 16) + offY];
+                    if (rgb == 0) {
+                        dstOff++;
                     } else {
-                        arg0[arg5++] = arg2[local27 & 0xff];
+                        dst[dstOff++] = bpal[rgb & 0xff];
                     }
-                    arg3 += arg9;
+                    offW += scaleCropWidth;
                 }
-                arg4 += arg10;
-                arg3 = local3;
-                arg5 += arg6;
+                offH += scaleCropHeight;
+                offW = lastOffW;
+                dstOff += dstStep;
             }
-        } catch (ignore) {
+        } catch (e) {
             console.log('error in plot_scale');
         }
     }

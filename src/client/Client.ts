@@ -638,7 +638,7 @@ export class Client extends GameShell {
                 this.onDemand.request(2, this.midiSong);
 
                 while (this.onDemand.remaining() > 0) {
-                    await this.updateOnDemand();
+                    await this.onDemandLoop();
                     await sleep(100);
                 }
             }
@@ -656,7 +656,7 @@ export class Client extends GameShell {
                     await this.drawProgress(65, 'Loading animations - ' + ((progress * 100 / animCount) | 0) + '%');
                 }
 
-                await this.updateOnDemand();
+                await this.onDemandLoop();
                 await sleep(100);
             }
 
@@ -677,7 +677,7 @@ export class Client extends GameShell {
                     await this.drawProgress(70, 'Loading models - ' + ((progress * 100 / modelPrefetch) | 0) + '%');
                 }
 
-                await this.updateOnDemand();
+                await this.onDemandLoop();
                 await sleep(100);
             }
 
@@ -709,7 +709,7 @@ export class Client extends GameShell {
                         await this.drawProgress(75, 'Loading maps - ' + ((progress * 100 / mapPrefetch) | 0) + '%');
                     }
 
-                    await this.updateOnDemand();
+                    await this.onDemandLoop();
                     await sleep(100);
                 }
             }
@@ -758,26 +758,26 @@ export class Client extends GameShell {
 
             await this.drawProgress(80, 'Unpacking media');
 
-            this.imageInvback = Pix8.fromArchive(jagMedia, 'invback', 0);
-            this.imageChatback = Pix8.fromArchive(jagMedia, 'chatback', 0);
-            this.imageMapback = Pix8.fromArchive(jagMedia, 'mapback', 0);
+            this.imageInvback = Pix8.load(jagMedia, 'invback', 0);
+            this.imageChatback = Pix8.load(jagMedia, 'chatback', 0);
+            this.imageMapback = Pix8.load(jagMedia, 'mapback', 0);
 
-            this.imageBackbase1 = Pix8.fromArchive(jagMedia, 'backbase1', 0);
-            this.imageBackbase2 = Pix8.fromArchive(jagMedia, 'backbase2', 0);
-            this.imageBackhmid1 = Pix8.fromArchive(jagMedia, 'backhmid1', 0);
+            this.imageBackbase1 = Pix8.load(jagMedia, 'backbase1', 0);
+            this.imageBackbase2 = Pix8.load(jagMedia, 'backbase2', 0);
+            this.imageBackhmid1 = Pix8.load(jagMedia, 'backhmid1', 0);
 
             for (let i: number = 0; i < 13; i++) {
-                this.imageSideicons[i] = Pix8.fromArchive(jagMedia, 'sideicons', i);
+                this.imageSideicons[i] = Pix8.load(jagMedia, 'sideicons', i);
             }
 
-            this.imageCompass = Pix32.fromArchive(jagMedia, 'compass', 0);
+            this.imageCompass = Pix32.load(jagMedia, 'compass', 0);
 
-            this.imageMapedge = Pix32.fromArchive(jagMedia, 'mapedge', 0);
+            this.imageMapedge = Pix32.load(jagMedia, 'mapedge', 0);
             this.imageMapedge.trim();
 
             try {
                 for (let i: number = 0; i < 50; i++) {
-                    this.imageMapscene[i] = Pix8.fromArchive(jagMedia, 'mapscene', i);
+                    this.imageMapscene[i] = Pix8.load(jagMedia, 'mapscene', i);
                 }
             } catch (e) {
                 /* empty */
@@ -785,7 +785,7 @@ export class Client extends GameShell {
 
             try {
                 for (let i: number = 0; i < 50; i++) {
-                    this.imageMapfunction[i] = Pix32.fromArchive(jagMedia, 'mapfunction', i);
+                    this.imageMapfunction[i] = Pix32.load(jagMedia, 'mapfunction', i);
                 }
             } catch (e) {
                 /* empty */
@@ -793,7 +793,7 @@ export class Client extends GameShell {
 
             try {
                 for (let i: number = 0; i < 20; i++) {
-                    this.imageHitmarks[i] = Pix32.fromArchive(jagMedia, 'hitmarks', i);
+                    this.imageHitmarks[i] = Pix32.load(jagMedia, 'hitmarks', i);
                 }
             } catch (e) {
                 /* empty */
@@ -801,93 +801,93 @@ export class Client extends GameShell {
 
             try {
                 for (let i: number = 0; i < 20; i++) {
-                    this.imageHeadicon[i] = Pix32.fromArchive(jagMedia, 'headicons', i);
+                    this.imageHeadicon[i] = Pix32.load(jagMedia, 'headicons', i);
                 }
             } catch (e) {
                 /* empty */
             }
 
-            this.imageMapmarker0 = Pix32.fromArchive(jagMedia, 'mapmarker', 0);
-            this.imageMapmarker1 = Pix32.fromArchive(jagMedia, 'mapmarker', 1);
+            this.imageMapmarker0 = Pix32.load(jagMedia, 'mapmarker', 0);
+            this.imageMapmarker1 = Pix32.load(jagMedia, 'mapmarker', 1);
 
             for (let i: number = 0; i < 8; i++) {
-                this.imageCrosses[i] = Pix32.fromArchive(jagMedia, 'cross', i);
+                this.imageCrosses[i] = Pix32.load(jagMedia, 'cross', i);
             }
 
-            this.imageMapdot0 = Pix32.fromArchive(jagMedia, 'mapdots', 0);
-            this.imageMapdot1 = Pix32.fromArchive(jagMedia, 'mapdots', 1);
-            this.imageMapdot2 = Pix32.fromArchive(jagMedia, 'mapdots', 2);
-            this.imageMapdot3 = Pix32.fromArchive(jagMedia, 'mapdots', 3);
+            this.imageMapdot0 = Pix32.load(jagMedia, 'mapdots', 0);
+            this.imageMapdot1 = Pix32.load(jagMedia, 'mapdots', 1);
+            this.imageMapdot2 = Pix32.load(jagMedia, 'mapdots', 2);
+            this.imageMapdot3 = Pix32.load(jagMedia, 'mapdots', 3);
 
-            this.imageScrollbar0 = Pix8.fromArchive(jagMedia, 'scrollbar', 0);
-            this.imageScrollbar1 = Pix8.fromArchive(jagMedia, 'scrollbar', 1);
+            this.imageScrollbar0 = Pix8.load(jagMedia, 'scrollbar', 0);
+            this.imageScrollbar1 = Pix8.load(jagMedia, 'scrollbar', 1);
 
-            this.imageRedstone1 = Pix8.fromArchive(jagMedia, 'redstone1', 0);
-            this.imageRedstone2 = Pix8.fromArchive(jagMedia, 'redstone2', 0);
-            this.imageRedstone3 = Pix8.fromArchive(jagMedia, 'redstone3', 0);
+            this.imageRedstone1 = Pix8.load(jagMedia, 'redstone1', 0);
+            this.imageRedstone2 = Pix8.load(jagMedia, 'redstone2', 0);
+            this.imageRedstone3 = Pix8.load(jagMedia, 'redstone3', 0);
 
-            this.imageRedstone1h = Pix8.fromArchive(jagMedia, 'redstone1', 0);
+            this.imageRedstone1h = Pix8.load(jagMedia, 'redstone1', 0);
             this.imageRedstone1h?.hflip();
 
-            this.imageRedstone2h = Pix8.fromArchive(jagMedia, 'redstone2', 0);
+            this.imageRedstone2h = Pix8.load(jagMedia, 'redstone2', 0);
             this.imageRedstone2h?.hflip();
 
-            this.imageRedstone1v = Pix8.fromArchive(jagMedia, 'redstone1', 0);
+            this.imageRedstone1v = Pix8.load(jagMedia, 'redstone1', 0);
             this.imageRedstone1v?.vflip();
 
-            this.imageRedstone2v = Pix8.fromArchive(jagMedia, 'redstone2', 0);
+            this.imageRedstone2v = Pix8.load(jagMedia, 'redstone2', 0);
             this.imageRedstone2v?.vflip();
 
-            this.imageRedstone3v = Pix8.fromArchive(jagMedia, 'redstone3', 0);
+            this.imageRedstone3v = Pix8.load(jagMedia, 'redstone3', 0);
             this.imageRedstone3v?.vflip();
 
-            this.imageRedstone1hv = Pix8.fromArchive(jagMedia, 'redstone1', 0);
+            this.imageRedstone1hv = Pix8.load(jagMedia, 'redstone1', 0);
             this.imageRedstone1hv?.hflip();
             this.imageRedstone1hv?.vflip();
 
-            this.imageRedstone2hv = Pix8.fromArchive(jagMedia, 'redstone2', 0);
+            this.imageRedstone2hv = Pix8.load(jagMedia, 'redstone2', 0);
             this.imageRedstone2hv?.hflip();
             this.imageRedstone2hv?.vflip();
 
             for (let i = 0; i < 2; i++) {
-                this.imageModIcons[i] = Pix8.fromArchive(jagMedia, 'mod_icons', i);
+                this.imageModIcons[i] = Pix8.load(jagMedia, 'mod_icons', i);
             }
 
-            const backleft1: Pix32 = Pix32.fromArchive(jagMedia, 'backleft1', 0);
+            const backleft1: Pix32 = Pix32.load(jagMedia, 'backleft1', 0);
             this.areaBackleft1 = new PixMap(backleft1.wi, backleft1.hi);
-            backleft1.blitOpaque(0, 0);
+            backleft1.quickPlotSprite(0, 0);
 
-            const backleft2: Pix32 = Pix32.fromArchive(jagMedia, 'backleft2', 0);
+            const backleft2: Pix32 = Pix32.load(jagMedia, 'backleft2', 0);
             this.areaBackleft2 = new PixMap(backleft2.wi, backleft2.hi);
-            backleft2.blitOpaque(0, 0);
+            backleft2.quickPlotSprite(0, 0);
 
-            const backright1: Pix32 = Pix32.fromArchive(jagMedia, 'backright1', 0);
+            const backright1: Pix32 = Pix32.load(jagMedia, 'backright1', 0);
             this.areaBackright1 = new PixMap(backright1.wi, backright1.hi);
-            backright1.blitOpaque(0, 0);
+            backright1.quickPlotSprite(0, 0);
 
-            const backright2: Pix32 = Pix32.fromArchive(jagMedia, 'backright2', 0);
+            const backright2: Pix32 = Pix32.load(jagMedia, 'backright2', 0);
             this.areaBackright2 = new PixMap(backright2.wi, backright2.hi);
-            backright2.blitOpaque(0, 0);
+            backright2.quickPlotSprite(0, 0);
 
-            const backtop1: Pix32 = Pix32.fromArchive(jagMedia, 'backtop1', 0);
+            const backtop1: Pix32 = Pix32.load(jagMedia, 'backtop1', 0);
             this.areaBacktop1 = new PixMap(backtop1.wi, backtop1.hi);
-            backtop1.blitOpaque(0, 0);
+            backtop1.quickPlotSprite(0, 0);
 
-            const backvmid1: Pix32 = Pix32.fromArchive(jagMedia, 'backvmid1', 0);
+            const backvmid1: Pix32 = Pix32.load(jagMedia, 'backvmid1', 0);
             this.areaBackvmid1 = new PixMap(backvmid1.wi, backvmid1.hi);
-            backvmid1.blitOpaque(0, 0);
+            backvmid1.quickPlotSprite(0, 0);
 
-            const backvmid2: Pix32 = Pix32.fromArchive(jagMedia, 'backvmid2', 0);
+            const backvmid2: Pix32 = Pix32.load(jagMedia, 'backvmid2', 0);
             this.areaBackvmid2 = new PixMap(backvmid2.wi, backvmid2.hi);
-            backvmid2.blitOpaque(0, 0);
+            backvmid2.quickPlotSprite(0, 0);
 
-            const backvmid3: Pix32 = Pix32.fromArchive(jagMedia, 'backvmid3', 0);
+            const backvmid3: Pix32 = Pix32.load(jagMedia, 'backvmid3', 0);
             this.areaBackvmid3 = new PixMap(backvmid3.wi, backvmid3.hi);
-            backvmid3.blitOpaque(0, 0);
+            backvmid3.quickPlotSprite(0, 0);
 
-            const backhmid2: Pix32 = Pix32.fromArchive(jagMedia, 'backhmid2', 0);
+            const backhmid2: Pix32 = Pix32.load(jagMedia, 'backhmid2', 0);
             this.areaBackhmid2 = new PixMap(backhmid2.wi, backhmid2.hi);
-            backhmid2.blitOpaque(0, 0);
+            backhmid2.quickPlotSprite(0, 0);
 
             const randR: number = ((Math.random() * 21.0) | 0) - 10;
             const randG: number = ((Math.random() * 21.0) | 0) - 10;
@@ -971,14 +971,14 @@ export class Client extends GameShell {
                 this.minimapMaskLineLengths[y - 5] = right - left;
             }
 
-            Pix3D.init3D(479, 96);
-            this.areaChatbackOffsets = Pix3D.lineOffset;
+            Pix3D.initWH(479, 96);
+            this.areaChatbackOffsets = Pix3D.scanline;
 
-            Pix3D.init3D(190, 261);
-            this.areaSidebarOffsets = Pix3D.lineOffset;
+            Pix3D.initWH(190, 261);
+            this.areaSidebarOffsets = Pix3D.scanline;
 
-            Pix3D.init3D(512, 334);
-            this.areaViewportOffsets = Pix3D.lineOffset;
+            Pix3D.initWH(512, 334);
+            this.areaViewportOffsets = Pix3D.scanline;
 
             const distance: Int32Array = new Int32Array(9);
             for (let x: number = 0; x < 9; x++) {
@@ -1016,7 +1016,7 @@ export class Client extends GameShell {
             await this.titleScreenLoop();
         }
 
-        await this.updateOnDemand();
+        await this.onDemandLoop();
     }
 
     async draw() {
@@ -1232,7 +1232,7 @@ export class Client extends GameShell {
         return new Jagfile(data);
     }
 
-    async updateOnDemand() {
+    async onDemandLoop() {
         if (!this.onDemand) {
             return;
         }
@@ -1410,6 +1410,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::Client::LoginPoll
     private async login(username: string, password: string, reconnect: boolean): Promise<void> {
         try {
             if (!reconnect) {
@@ -1675,7 +1676,7 @@ export class Client extends GameShell {
         this.loginPass = '';
 
         InputTracking.setDisabled();
-        this.clearCache();
+        this.clearCaches();
         this.world?.resetMap();
 
         for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
@@ -1688,7 +1689,7 @@ export class Client extends GameShell {
         this.nextMusicDelay = 0;
     }
 
-    private clearCache(): void {
+    private clearCaches(): void {
         LocType.mc1?.clear();
         LocType.mc2?.clear();
         NpcType.modelCache?.clear();
@@ -2117,7 +2118,7 @@ export class Client extends GameShell {
 
         if (this.sceneState === 2 && this.minusedlevel !== this.minimapLevel) {
             this.minimapLevel = this.minusedlevel;
-            this.buildBuffer(this.minusedlevel);
+            this.minimapBuildBuffer(this.minusedlevel);
         }
     }
 
@@ -2168,7 +2169,7 @@ export class Client extends GameShell {
             this.spotanims.clear();
             this.projectiles.clear();
             Pix3D.clearTexels();
-            this.clearCache();
+            this.clearCaches();
             this.world?.resetMap();
 
             for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
@@ -2314,7 +2315,7 @@ export class Client extends GameShell {
     }
 
     // jag::oldscape::minimap::Minimap::BuildBuffer
-    private buildBuffer(level: number): void {
+    private minimapBuildBuffer(level: number): void {
         if (!this.imageMinimap) {
             return;
         }
@@ -2344,7 +2345,7 @@ export class Client extends GameShell {
         const inactiveRgb: number = ((((Math.random() * 20.0) | 0) + 238 - 10) << 16) + ((((Math.random() * 20.0) | 0) + 238 - 10) << 8) + ((Math.random() * 20.0) | 0) + 238 - 10;
         const activeRgb: number = (((Math.random() * 20.0) | 0) + 238 - 10) << 16;
 
-        this.imageMinimap.bind();
+        this.imageMinimap.setPixels();
 
         for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
             for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
@@ -3475,7 +3476,7 @@ export class Client extends GameShell {
 
                             if (this.socialInputType === 2 && this.friendCount > 0) {
                                 username = JString.toBase37(this.socialInput);
-                                this.removeFriend(username);
+                                this.delFriend(username);
                             }
 
                             if (this.socialInputType === 3 && this.socialInput.length > 0 && this.socialName37) {
@@ -3509,7 +3510,7 @@ export class Client extends GameShell {
 
                             if (this.socialInputType === 5 && this.ignoreCount > 0) {
                                 username = JString.toBase37(this.socialInput);
-                                this.removeIgnore(username);
+                                this.delIgnore(username);
                             }
                         }
                     } else if (this.chatbackInputOpen) {
@@ -3693,8 +3694,8 @@ export class Client extends GameShell {
         console.log(`draw-cycle:${this.drawCycle}`);
         console.log(`ptype:${this.ptype}`);
         console.log(`psize:${this.psize}`);
-        // stream.debug();
-        // super.debug = true;
+        // this.stream?.debug();
+        this.debug = true;
     }
 
     // jag::oldscape::Client::GlMovePlayers
@@ -4139,68 +4140,68 @@ export class Client extends GameShell {
             return;
         }
 
-        const background: Pix32 = await Pix32.fromJpeg(this.jagTitle, 'title');
+        const background: Pix32 = await Pix32.loadJpeg(this.jagTitle, 'title');
 
         this.imageTitle0?.bind();
-        background.blitOpaque(0, 0);
+        background.quickPlotSprite(0, 0);
 
         this.imageTitle1?.bind();
-        background.blitOpaque(-637, 0);
+        background.quickPlotSprite(-637, 0);
 
         this.imageTitle2?.bind();
-        background.blitOpaque(-128, 0);
+        background.quickPlotSprite(-128, 0);
 
         this.imageTitle3?.bind();
-        background.blitOpaque(-202, -371);
+        background.quickPlotSprite(-202, -371);
 
         this.imageTitle4?.bind();
-        background.blitOpaque(-202, -171);
+        background.quickPlotSprite(-202, -171);
 
         this.imageTitle5?.bind();
-        background.blitOpaque(0, -265);
+        background.quickPlotSprite(0, -265);
 
         this.imageTitle6?.bind();
-        background.blitOpaque(-562, -265);
+        background.quickPlotSprite(-562, -265);
 
         this.imageTitle7?.bind();
-        background.blitOpaque(-128, -171);
+        background.quickPlotSprite(-128, -171);
 
         this.imageTitle8?.bind();
-        background.blitOpaque(-562, -171);
+        background.quickPlotSprite(-562, -171);
 
         // draw right side (mirror image)
         background.hflip();
 
         this.imageTitle0?.bind();
-        background.blitOpaque(382, 0);
+        background.quickPlotSprite(382, 0);
 
         this.imageTitle1?.bind();
-        background.blitOpaque(-255, 0);
+        background.quickPlotSprite(-255, 0);
 
         this.imageTitle2?.bind();
-        background.blitOpaque(254, 0);
+        background.quickPlotSprite(254, 0);
 
         this.imageTitle3?.bind();
-        background.blitOpaque(180, -371);
+        background.quickPlotSprite(180, -371);
 
         this.imageTitle4?.bind();
-        background.blitOpaque(180, -171);
+        background.quickPlotSprite(180, -171);
 
         this.imageTitle5?.bind();
-        background.blitOpaque(382, -265);
+        background.quickPlotSprite(382, -265);
 
         this.imageTitle6?.bind();
-        background.blitOpaque(-180, -265);
+        background.quickPlotSprite(-180, -265);
 
         this.imageTitle7?.bind();
-        background.blitOpaque(254, -171);
+        background.quickPlotSprite(254, -171);
 
         this.imageTitle8?.bind();
-        background.blitOpaque(-180, -171);
+        background.quickPlotSprite(-180, -171);
 
-        const logo: Pix32 = Pix32.fromArchive(this.jagTitle, 'logo');
+        const logo: Pix32 = Pix32.load(this.jagTitle, 'logo');
         this.imageTitle2?.bind();
-        logo.draw(((this.width / 2) | 0) - ((logo.wi / 2) | 0) - 128, 18);
+        logo.plotSprite(((this.width / 2) | 0) - ((logo.wi / 2) | 0) - 128, 18);
     }
 
     private loadTitleImages(): void {
@@ -4208,10 +4209,10 @@ export class Client extends GameShell {
             return;
         }
 
-        this.imageTitlebox = Pix8.fromArchive(this.jagTitle, 'titlebox');
-        this.imageTitlebutton = Pix8.fromArchive(this.jagTitle, 'titlebutton');
+        this.imageTitlebox = Pix8.load(this.jagTitle, 'titlebox');
+        this.imageTitlebutton = Pix8.load(this.jagTitle, 'titlebutton');
         for (let i: number = 0; i < 12; i++) {
-            this.imageRunes[i] = Pix8.fromArchive(this.jagTitle, 'runes', i);
+            this.imageRunes[i] = Pix8.load(this.jagTitle, 'runes', i);
         }
         this.imageFlamesLeft = new Pix32(128, 265);
         this.imageFlamesRight = new Pix32(128, 265);
@@ -4264,14 +4265,14 @@ export class Client extends GameShell {
         this.flameGradient = new Int32Array(256);
         this.flameBuffer0 = new Int32Array(32768);
         this.flameBuffer1 = new Int32Array(32768);
-        this.updateFlameBuffer(null);
+        this.generateFlameCoolingMap(null);
         this.flameBuffer3 = new Int32Array(32768);
         this.flameBuffer2 = new Int32Array(32768);
 
         this.drawProgress(10, 'Connecting to fileserver').then((): void => {
             if (!this.flameActive) {
                 this.flameActive = true;
-                this.flamesInterval = setInterval(this.runFlames.bind(this), 35);
+                this.flamesInterval = setInterval(this.renderFlames.bind(this), 35);
             }
         });
     }
@@ -4430,7 +4431,7 @@ export class Client extends GameShell {
             this.chatInterface.scrollPos = this.chatScrollHeight - this.chatScrollOffset - 77;
 
             if (this.mouseX > 448 && this.mouseX < 560 && this.mouseY > 332) {
-                this.handleScrollInput(this.mouseX - 17, this.mouseY - 357, this.chatScrollHeight, 77, false, 463, 0, this.chatInterface);
+                this.doScrollbar(this.mouseX - 17, this.mouseY - 357, this.chatScrollHeight, 77, false, 463, 0, this.chatInterface);
             }
 
             let offset: number = this.chatScrollHeight - this.chatInterface.scrollPos - 77;
@@ -4726,7 +4727,7 @@ export class Client extends GameShell {
         this.world?.removeSprites();
         this.entityOverlays();
         this.coordArrow();
-        this.runAnims(cycle);
+        this.textureRunAnims(cycle);
         this.otherOverlays();
         this.areaViewport?.draw(4, 4);
 
@@ -5041,7 +5042,7 @@ export class Client extends GameShell {
                     this.getOverlayPosEntity(entity, entity.height + 15);
 
                     if (this.projectX > -1) {
-                        this.imageHeadicon[npc.headicon]?.draw(this.projectX - 12, this.projectY - 30);
+                        this.imageHeadicon[npc.headicon]?.plotSprite(this.projectX - 12, this.projectY - 30);
                     }
                 }
 
@@ -5049,7 +5050,7 @@ export class Client extends GameShell {
                     this.getOverlayPosEntity(entity, entity.height + 15);
 
                     if (this.projectX > -1) {
-                        this.imageHeadicon[2]?.draw(this.projectX - 12, this.projectY - 28);
+                        this.imageHeadicon[2]?.plotSprite(this.projectX - 12, this.projectY - 28);
                     }
                 }
             } else {
@@ -5062,7 +5063,7 @@ export class Client extends GameShell {
                     if (this.projectX > -1) {
                         for (let icon: number = 0; icon < 8; icon++) {
                             if ((player.headicons & (0x1 << icon)) !== 0) {
-                                this.imageHeadicon[icon]?.draw(this.projectX - 12, this.projectY - y);
+                                this.imageHeadicon[icon]?.plotSprite(this.projectX - 12, this.projectY - y);
                                 y -= 25;
                             }
                         }
@@ -5073,7 +5074,7 @@ export class Client extends GameShell {
                     this.getOverlayPosEntity(entity, entity.height + 15);
 
                     if (this.projectX > -1) {
-                        this.imageHeadicon[7]?.draw(this.projectX - 12, this.projectY - y);
+                        this.imageHeadicon[7]?.plotSprite(this.projectX - 12, this.projectY - y);
                     }
                 }
             }
@@ -5134,7 +5135,7 @@ export class Client extends GameShell {
                         this.projectY -= 10;
                     }
 
-                    this.imageHitmarks[entity.damageTypes[i]]?.draw(this.projectX - 12, this.projectY - 12);
+                    this.imageHitmarks[entity.damageTypes[i]]?.plotSprite(this.projectX - 12, this.projectY - 12);
                     this.fontPlain11?.centreString(this.projectX, this.projectY + 4, entity.damageValues[i].toString(), Colors.BLACK);
                     this.fontPlain11?.centreString(this.projectX - 1, this.projectY + 3, entity.damageValues[i].toString(), Colors.WHITE);
                 }
@@ -5233,7 +5234,7 @@ export class Client extends GameShell {
         this.getOverlayPos(((this.hintTileX - this.sceneBaseTileX) << 7) + this.hintOffsetX, this.hintHeight * 2, ((this.hintTileZ - this.sceneBaseTileZ) << 7) + this.hintOffsetZ);
 
         if (this.projectX > -1 && this.loopCycle % 20 < 10) {
-            this.imageHeadicon[2].draw(this.projectX - 12, this.projectY - 28);
+            this.imageHeadicon[2].plotSprite(this.projectX - 12, this.projectY - 28);
         }
     }
 
@@ -5270,8 +5271,8 @@ export class Client extends GameShell {
         dy = tmp;
 
         if (dz >= 50) {
-            this.projectX = Pix3D.centerX + (((dx << 9) / dz) | 0);
-            this.projectY = Pix3D.centerY + (((dy << 9) / dz) | 0);
+            this.projectX = Pix3D.projectionX + (((dx << 9) / dz) | 0);
+            this.projectY = Pix3D.projectionY + (((dy << 9) / dz) | 0);
         } else {
             this.projectX = -1;
             this.projectY = -1;
@@ -5304,7 +5305,7 @@ export class Client extends GameShell {
     }
 
     // jag::oldscape::dash3d::TextureCache::RunAnims
-    private runAnims(cycle: number): void {
+    private textureRunAnims(cycle: number): void {
         if (!Client.lowMem) {
             if (Pix3D.textureCycle[17] >= cycle) {
                 const texture: Pix8 | null = Pix3D.textures[17];
@@ -5352,9 +5353,9 @@ export class Client extends GameShell {
         this.drawPrivateMessages();
 
         if (this.crossMode === 1) {
-            this.imageCrosses[(this.crossCycle / 100) | 0]?.draw(this.crossX - 8 - 4, this.crossY - 8 - 4);
+            this.imageCrosses[(this.crossCycle / 100) | 0]?.plotSprite(this.crossX - 8 - 4, this.crossY - 8 - 4);
         } else if (this.crossMode === 2) {
-            this.imageCrosses[((this.crossCycle / 100) | 0) + 4]?.draw(this.crossX - 8 - 4, this.crossY - 8 - 4);
+            this.imageCrosses[((this.crossCycle / 100) | 0) + 4]?.plotSprite(this.crossX - 8 - 4, this.crossY - 8 - 4);
         }
 
         if (this.mainOverlayLayerId !== -1) {
@@ -5377,7 +5378,7 @@ export class Client extends GameShell {
         }
 
         if (this.inMultizone === 1) {
-            this.imageHeadicon[1]?.draw(472, 296);
+            this.imageHeadicon[1]?.plotSprite(472, 296);
         }
 
         if (this.displayFps) {
@@ -8092,6 +8093,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::Client::GetNPCPos
     private getNpcPos(buf: Packet, size: number): void {
         this.entityRemovalCount = 0;
         this.entityUpdateCount = 0;
@@ -8126,6 +8128,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::Client::GetNPCPosOldVis
     private getNpcPosOldVis(buf: Packet): void {
         buf.bits();
 
@@ -8197,6 +8200,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::Client::GetNPCPosNewVis
     private getNpcPosNewVis(buf: Packet, size: number): void {
         while (buf.bitPos + 21 < size * 8) {
             const index: number = buf.gBit(14);
@@ -8247,6 +8251,7 @@ export class Client extends GameShell {
         buf.bytes();
     }
 
+    // jag::oldscape::Client::GetNPCPosExtended
     private getNpcPosExtended(buf: Packet): void {
         for (let i: number = 0; i < this.entityUpdateCount; i++) {
             const id: number = this.entityUpdateIds[i];
@@ -9084,9 +9089,9 @@ export class Client extends GameShell {
                 } else if (action === 436) {
                     this.addIgnore(username);
                 } else if (action === 557) {
-                    this.removeFriend(username);
+                    this.delFriend(username);
                 } else if (action === 556) {
-                    this.removeIgnore(username);
+                    this.delIgnore(username);
                 }
             }
         }
@@ -9312,10 +9317,10 @@ export class Client extends GameShell {
             return;
         }
 
-        const left: number = Pix2D.left;
-        const top: number = Pix2D.top;
-        const right: number = Pix2D.right;
-        const bottom: number = Pix2D.bottom;
+        const left: number = Pix2D.boundLeft;
+        const top: number = Pix2D.boundTop;
+        const right: number = Pix2D.boundRight;
+        const bottom: number = Pix2D.boundBottom;
 
         Pix2D.setClipping(x, y, x + com.width, y + com.height);
         const children: number = com.children.length;
@@ -9372,7 +9377,7 @@ export class Client extends GameShell {
                             let dy: number = 0;
                             const id: number = child.linkObjType[slot] - 1;
 
-                            if ((slotX > Pix2D.left - 32 && slotX < Pix2D.right && slotY > Pix2D.top - 32 && slotY < Pix2D.bottom) || (this.objDragArea !== 0 && this.objDragSlot === slot)) {
+                            if ((slotX > Pix2D.boundLeft - 32 && slotX < Pix2D.boundRight && slotY > Pix2D.boundTop - 32 && slotY < Pix2D.boundBottom) || (this.objDragArea !== 0 && this.objDragSlot === slot)) {
                                 let outline = 0;
                                 if (this.objSelected == 1 && this.objSelectedSlot == slot && this.objSelectedLayerId == child.id) {
                                     outline = 16777215;
@@ -9397,10 +9402,10 @@ export class Client extends GameShell {
                                             dy = 0;
                                         }
 
-                                        icon.drawAlpha(128, slotX + dx, slotY + dy);
+                                        icon.transPlotSprite(128, slotX + dx, slotY + dy);
 
-                                        if (slotY + dy < Pix2D.top && com.scrollPos > 0) {
-                                            let autoscroll = (Pix2D.top - slotY - dy) * this.sceneDelta / 3;
+                                        if (slotY + dy < Pix2D.boundTop && com.scrollPos > 0) {
+                                            let autoscroll = (Pix2D.boundTop - slotY - dy) * this.sceneDelta / 3;
                                             if (autoscroll > this.sceneDelta * 10) {
                                                 autoscroll = this.sceneDelta * 10;
                                             }
@@ -9413,8 +9418,8 @@ export class Client extends GameShell {
                                             this.objGrabY += autoscroll;
                                         }
 
-                                        if (slotY + dy + 32 > Pix2D.bottom && com.scrollPos < com.scrollSize - com.height) {
-                                            let autoscroll = (slotY + dy + 32 - Pix2D.bottom) * this.sceneDelta / 3;
+                                        if (slotY + dy + 32 > Pix2D.boundBottom && com.scrollPos < com.scrollSize - com.height) {
+                                            let autoscroll = (slotY + dy + 32 - Pix2D.boundBottom) * this.sceneDelta / 3;
                                             if (autoscroll > this.sceneDelta * 10) {
                                                 autoscroll = this.sceneDelta * 10;
                                             }
@@ -9427,9 +9432,9 @@ export class Client extends GameShell {
                                             this.objGrabY -= autoscroll;
                                         }
                                     } else if (this.selectedArea !== 0 && this.selectedItem === slot && this.selectedLayerId === child.id) {
-                                        icon.drawAlpha(128, slotX, slotY);
+                                        icon.transPlotSprite(128, slotX, slotY);
                                     } else {
-                                        icon.draw(slotX, slotY);
+                                        icon.plotSprite(slotX, slotY);
                                     }
 
                                     if (icon.owi === 33 || child.linkObjCount[slot] !== 1) {
@@ -9441,7 +9446,7 @@ export class Client extends GameShell {
                             }
                         } else if (child.invSlotGraphic && slot < 20) {
                             const image: Pix32 | null = child.invSlotGraphic[slot];
-                            image?.draw(slotX, slotY);
+                            image?.plotSprite(slotX, slotY);
                         }
 
                         slot++;
@@ -9513,7 +9518,7 @@ export class Client extends GameShell {
                     colour = child.colour;
                 }
 
-                if (Pix2D.width2d == 479) {
+                if (Pix2D.width == 479) {
                     if (colour == 0xffff00) {
                         colour = 0x0000ff;
                     }
@@ -9604,13 +9609,13 @@ export class Client extends GameShell {
                     image = child.graphic;
                 }
 
-                image?.draw(childX, childY);
+                image?.plotSprite(childX, childY);
             } else if (child.type === ComponentType.TYPE_MODEL) {
-                const tmpX: number = Pix3D.centerX;
-                const tmpY: number = Pix3D.centerY;
+                const tmpX: number = Pix3D.projectionX;
+                const tmpY: number = Pix3D.projectionY;
 
-                Pix3D.centerX = childX + ((child.width / 2) | 0);
-                Pix3D.centerY = childY + ((child.height / 2) | 0);
+                Pix3D.projectionX = childX + ((child.width / 2) | 0);
+                Pix3D.projectionY = childY + ((child.height / 2) | 0);
 
                 const eyeY: number = (Pix3D.sinTable[child.modelXAn] * child.modelZoom) >> 16;
                 const eyeZ: number = (Pix3D.cosTable[child.modelXAn] * child.modelZoom) >> 16;
@@ -9638,8 +9643,8 @@ export class Client extends GameShell {
                     model.objRender(0, child.modelYAn, 0, child.modelXAn, 0, eyeY, eyeZ);
                 }
 
-                Pix3D.centerX = tmpX;
-                Pix3D.centerY = tmpY;
+                Pix3D.projectionX = tmpX;
+                Pix3D.projectionY = tmpY;
             } else if (child.type === ComponentType.TYPE_INV_TEXT) {
                 const font: PixFont | null = child.font;
                 if (!font || !child.linkObjType || !child.linkObjCount) {
@@ -9679,6 +9684,7 @@ export class Client extends GameShell {
         Pix2D.setClipping(left, top, right, bottom);
     }
 
+    // jag::oldscape::Client::DrawScrollbar
     private drawScrollbar(x: number, y: number, scrollY: number, scrollHeight: number, height: number): void {
         this.imageScrollbar0?.plotSprite(x, y);
         this.imageScrollbar1?.plotSprite(x, y + height - 16);
@@ -9728,7 +9734,8 @@ export class Client extends GameShell {
         return ' ' + s;
     }
 
-    private handleScrollInput(mouseX: number, mouseY: number, scrollableHeight: number, height: number, redraw: boolean, left: number, top: number, component: Component): void {
+    // jag::oldscape::Client::DoScrollbar
+    private doScrollbar(mouseX: number, mouseY: number, scrollableHeight: number, height: number, redraw: boolean, left: number, top: number, component: Component): void {
         if (this.scrollGrabbed) {
             this.scrollInputPadding = 32;
         } else {
@@ -9930,7 +9937,7 @@ export class Client extends GameShell {
                 this.handleComponentInput(child, mouseX, mouseY, childX, childY, child.scrollPos);
 
                 if (child.scrollSize > child.height) {
-                    this.handleScrollInput(mouseX, mouseY, child.scrollSize, child.height, true, childX + child.width, childY, child);
+                    this.doScrollbar(mouseX, mouseY, child.scrollSize, child.height, true, childX + child.width, childY, child);
                 }
             } else if (child.type === 2) {
                 let slot: number = 0;
@@ -10170,6 +10177,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::Client::AnimateLayer
     private animateLayer(id: number, delta: number): boolean {
         const parent: Component = Component.list[id];
         if (!parent.children) {
@@ -10666,7 +10674,7 @@ export class Client extends GameShell {
     private drawSidebar(): void {
         this.areaSidebar?.bind();
         if (this.areaSidebarOffsets) {
-            Pix3D.lineOffset = this.areaSidebarOffsets;
+            Pix3D.scanline = this.areaSidebarOffsets;
         }
 
         this.imageInvback?.plotSprite(0, 0);
@@ -10685,14 +10693,14 @@ export class Client extends GameShell {
 
         this.areaViewport?.bind();
         if (this.areaViewportOffsets) {
-            Pix3D.lineOffset = this.areaViewportOffsets;
+            Pix3D.scanline = this.areaViewportOffsets;
         }
     }
 
     private drawChat(): void {
         this.areaChatback?.bind();
         if (this.areaChatbackOffsets) {
-            Pix3D.lineOffset = this.areaChatbackOffsets;
+            Pix3D.scanline = this.areaChatbackOffsets;
         }
 
         this.imageChatback?.plotSprite(0, 0);
@@ -10839,7 +10847,7 @@ export class Client extends GameShell {
 
         this.areaViewport?.bind();
         if (this.areaViewportOffsets) {
-            Pix3D.lineOffset = this.areaViewportOffsets;
+            Pix3D.scanline = this.areaViewportOffsets;
         }
     }
 
@@ -10854,8 +10862,8 @@ export class Client extends GameShell {
         let anchorX: number = ((this.localPlayer.x / 32) | 0) + 48;
         let anchorY: number = 464 - ((this.localPlayer.z / 32) | 0);
 
-        this.imageMinimap?.drawRotatedMasked(25, 5, 146, 151, this.minimapMaskLineOffsets, this.minimapMaskLineLengths, anchorX, anchorY, angle, this.macroMinimapZoom + 256);
-        this.imageCompass?.drawRotatedMasked(0, 0, 33, 33, this.compassMaskLineOffsets, this.compassMaskLineLengths, 25, 25, this.orbitCameraYaw, 256);
+        this.imageMinimap?.scanlineRotatePlotSprite(25, 5, 146, 151, this.minimapMaskLineOffsets, this.minimapMaskLineLengths, anchorX, anchorY, angle, this.macroMinimapZoom + 256);
+        this.imageCompass?.scanlineRotatePlotSprite(0, 0, 33, 33, this.compassMaskLineOffsets, this.compassMaskLineLengths, 25, 25, this.orbitCameraYaw, 256);
 
         for (let i: number = 0; i < this.activeMapFunctionCount; i++) {
             anchorX = this.activeMapFunctionX[i] * 4 + 2 - ((this.localPlayer.x / 32) | 0);
@@ -10968,7 +10976,7 @@ export class Client extends GameShell {
         const var15 = (Math.sin(var13) * 63.0) | 0;
         const var16 = (Math.cos(var13) * 57.0) | 0;
 
-        this.imageMapedge?.drawRotated(83 - var16 - 20, var13, 256, 15, 15, 20, 20, var15 + 94 + 4 - 10);
+        this.imageMapedge?.rotatePlotSprite(83 - var16 - 20, var13, 256, 15, 15, 20, 20, var15 + 94 + 4 - 10);
     }
 
     private drawOnMinimap(dy: number, image: Pix32 | null, dx: number): void {
@@ -10993,12 +11001,13 @@ export class Client extends GameShell {
         const y: number = (dy * cosAngle - dx * sinAngle) >> 16;
 
         if (distance > 2500 && this.imageMapback) {
-            image.drawMasked(x + 94 - ((image.owi / 2) | 0) + 4, 83 - y - ((image.ohi / 2) | 0) - 4, this.imageMapback);
+            image.scanlinePlotSprite(x + 94 - ((image.owi / 2) | 0) + 4, 83 - y - ((image.ohi / 2) | 0) - 4, this.imageMapback);
         } else {
-            image.draw(x + 94 - ((image.owi / 2) | 0) + 4, 83 - y - ((image.ohi / 2) | 0) - 4);
+            image.plotSprite(x + 94 - ((image.owi / 2) | 0) + 4, 83 - y - ((image.ohi / 2) | 0) - 4);
         }
     }
 
+    // jag::oldscape::Client::AddChat
     private addChat(type: number, text: string, sender: string): void {
         if (type === 0 && this.tutLayerId !== -1) {
             this.modalMessage = text;
@@ -11020,6 +11029,7 @@ export class Client extends GameShell {
         this.messageText[0] = text;
     }
 
+    // jag::oldscape::FriendSystem::IsFriend
     private isFriend(username: string | null): boolean {
         if (!username) {
             return false;
@@ -11038,6 +11048,7 @@ export class Client extends GameShell {
         return username.toLowerCase() === this.localPlayer.name?.toLowerCase();
     }
 
+    // jag::oldscape::FriendSystem::AddFriend
     private addFriend(username: bigint): void {
         if (username === 0n) {
             return;
@@ -11083,7 +11094,8 @@ export class Client extends GameShell {
         }
     }
 
-    private removeFriend(username: bigint): void {
+    // jag::oldscape::FriendSystem::DelFriend
+    private delFriend(username: bigint): void {
         if (username === 0n) {
             return;
         }
@@ -11106,6 +11118,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::FriendSystem::AddIgnore
     private addIgnore(username: bigint): void {
         if (username === 0n) {
             return;
@@ -11138,7 +11151,8 @@ export class Client extends GameShell {
         this.out.p8(username);
     }
 
-    private removeIgnore(username: bigint): void {
+    // jag::oldscape::FriendSystem::DelIgnore
+    private delIgnore(username: bigint): void {
         if (username === 0n) {
             return;
         }
@@ -11185,7 +11199,8 @@ export class Client extends GameShell {
         this.imageFlamesRight = null;
     }
 
-    runFlames(): void {
+    // jag::oldscape::TitleFlames::RenderFlames
+    renderFlames(): void {
         if (!this.flameActive) {
             return;
         }
@@ -11197,6 +11212,7 @@ export class Client extends GameShell {
         this.drawFlames();
     }
 
+    // jag::oldscape::TitleFlames::UpdateFlames
     private updateFlames(): void {
         if (!this.flameBuffer3 || !this.flameBuffer2 || !this.flameBuffer0 || !this.flameLineOffset) {
             return;
@@ -11226,7 +11242,7 @@ export class Client extends GameShell {
         this.flameCycle0 += 128;
         if (this.flameCycle0 > this.flameBuffer0.length) {
             this.flameCycle0 -= this.flameBuffer0.length;
-            this.updateFlameBuffer(this.imageRunes[(Math.random() * 12.0) | 0]);
+            this.generateFlameCoolingMap(this.imageRunes[(Math.random() * 12.0) | 0]);
         }
 
         for (let y: number = 1; y < height - 1; y++) {
@@ -11265,7 +11281,8 @@ export class Client extends GameShell {
         }
     }
 
-    private updateFlameBuffer(image: Pix8 | null): void {
+    // jag::oldscape::TitleFlames::GenerateFlameCoolingMap
+    private generateFlameCoolingMap(image: Pix8 | null): void {
         if (!this.flameBuffer0 || !this.flameBuffer1) {
             return;
         }
@@ -11312,6 +11329,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::TitleFlames::DrawFlames
     private drawFlames(): void {
         if (!this.flameGradient || !this.flameGradient0 || !this.flameGradient1 || !this.flameGradient2 || !this.flameLineOffset || !this.flameBuffer3) {
             return;
@@ -11323,21 +11341,21 @@ export class Client extends GameShell {
         if (this.flameGradientCycle0 > 0) {
             for (let i: number = 0; i < 256; i++) {
                 if (this.flameGradientCycle0 > 768) {
-                    this.flameGradient[i] = this.mix(this.flameGradient0[i], 1024 - this.flameGradientCycle0, this.flameGradient1[i]);
+                    this.flameGradient[i] = this.titleFlamesMerge(this.flameGradient0[i], 1024 - this.flameGradientCycle0, this.flameGradient1[i]);
                 } else if (this.flameGradientCycle0 > 256) {
                     this.flameGradient[i] = this.flameGradient1[i];
                 } else {
-                    this.flameGradient[i] = this.mix(this.flameGradient1[i], 256 - this.flameGradientCycle0, this.flameGradient0[i]);
+                    this.flameGradient[i] = this.titleFlamesMerge(this.flameGradient1[i], 256 - this.flameGradientCycle0, this.flameGradient0[i]);
                 }
             }
         } else if (this.flameGradientCycle1 > 0) {
             for (let i: number = 0; i < 256; i++) {
                 if (this.flameGradientCycle1 > 768) {
-                    this.flameGradient[i] = this.mix(this.flameGradient0[i], 1024 - this.flameGradientCycle1, this.flameGradient2[i]);
+                    this.flameGradient[i] = this.titleFlamesMerge(this.flameGradient0[i], 1024 - this.flameGradientCycle1, this.flameGradient2[i]);
                 } else if (this.flameGradientCycle1 > 256) {
                     this.flameGradient[i] = this.flameGradient2[i];
                 } else {
-                    this.flameGradient[i] = this.mix(this.flameGradient2[i], 256 - this.flameGradientCycle1, this.flameGradient0[i]);
+                    this.flameGradient[i] = this.titleFlamesMerge(this.flameGradient2[i], 256 - this.flameGradientCycle1, this.flameGradient0[i]);
                 }
             }
         } else {
@@ -11425,7 +11443,8 @@ export class Client extends GameShell {
         }
     }
 
-    private mix(src: number, alpha: number, dst: number): number {
+    // jag::oldscape::TitleFlames::Merge
+    private titleFlamesMerge(src: number, alpha: number, dst: number): number {
         const invAlpha: number = 256 - alpha;
         return ((((src & 0xff00ff) * invAlpha + (dst & 0xff00ff) * alpha) & 0xff00ff00) + (((src & 0xff00) * invAlpha + (dst & 0xff00) * alpha) & 0xff0000)) >> 8;
     }

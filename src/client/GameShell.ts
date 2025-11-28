@@ -101,7 +101,7 @@ export default abstract class GameShell {
         canvas.width = width;
         canvas.height = height;
         this.drawArea = new PixMap(width, height);
-        Pix3D.init2D();
+        Pix3D.init();
     }
 
     async run() {

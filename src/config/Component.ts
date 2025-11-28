@@ -35,7 +35,7 @@ export const enum ButtonType {
 };
 
 export default class Component {
-    static list: Component[] = [];
+    static list: Component[] = []; // jag::oldscape::rs2lib::IfType::m_list
     linkObjType: Int32Array | null = null;
     linkObjCount: Int32Array | null = null;
     seqFrame: number = 0;
@@ -69,8 +69,8 @@ export default class Component {
     targetText: string | null = null;
     targetMask: number = -1;
     option: string | null = null;
-    static modelCache: LruCache = new LruCache(30);
-    static imageCache: LruCache | null = null;
+    static modelCache: LruCache = new LruCache(30); // jag::oldscape::rs2lib::IfType::m_modelCache
+    static spriteCache: LruCache | null = null; // jag::oldscape::rs2lib::IfType::m_spriteCache
     marginX: number = 0;
     marginY: number = 0;
     colour: number = 0;
@@ -99,7 +99,7 @@ export default class Component {
     iop: (string | null)[] | null = null;
 
     static unpack(interfaces: Jagfile, media: Jagfile | null, fonts: PixFont[]): void {
-        this.imageCache = new LruCache(50000);
+        this.spriteCache = new LruCache(50000);
 
         const data: Packet = new Packet(interfaces.read('data'));
         let layer: number = -1;
@@ -335,7 +335,7 @@ export default class Component {
             }
         }
 
-        this.imageCache = null;
+        this.spriteCache = null;
     }
 
     swapObj(src: number, dst: number) {
@@ -454,16 +454,16 @@ export default class Component {
     private static getImage(media: Jagfile, name: string, spriteIndex: number): Pix32 | null {
         const uid: bigint = (JString.hashCode(name) << 8n) | BigInt(spriteIndex);
 
-        if (this.imageCache) {
-            const image: Pix32 | null = this.imageCache.get(uid) as Pix32 | null;
+        if (this.spriteCache) {
+            const image: Pix32 | null = this.spriteCache.get(uid) as Pix32 | null;
             if (image) {
                 return image;
             }
         }
 
         try {
-            const image = Pix32.fromArchive(media, name, spriteIndex);
-            this.imageCache?.put(uid, image);
+            const image = Pix32.load(media, name, spriteIndex);
+            this.spriteCache?.put(uid, image);
             return image;
         } catch (e) {
             return null;

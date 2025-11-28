@@ -5,14 +5,15 @@ import Pix8 from '#/graphics/Pix8.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
+// jag::oldscape::graphics::Pix32
 export default class Pix32 extends Pix2D {
     pixels: Int32Array;
-    wi: number;
-    hi: number;
-    xof: number;
-    yof: number;
-    owi: number;
-    ohi: number;
+    wi: number; // jag::oldscape::graphics::pixloader::m_wi
+    hi: number; // jag::oldscape::graphics::pixloader::m_hi
+    xof: number; // jag::oldscape::graphics::pixloader::m_xof
+    yof: number; // jag::oldscape::graphics::pixloader::m_yof
+    owi: number; // jag::oldscape::graphics::pixloader::m_owi
+    ohi: number; // jag::oldscape::graphics::pixloader::m_ohi
 
     constructor(width: number, height: number) {
         super();
@@ -23,7 +24,7 @@ export default class Pix32 extends Pix2D {
         this.xof = this.yof = 0;
     }
 
-    static async fromJpeg(archive: Jagfile, name: string): Promise<Pix32> {
+    static async loadJpeg(archive: Jagfile, name: string): Promise<Pix32> {
         const dat: Uint8Array | null = archive.read(name + '.dat');
         if (!dat) {
             throw new Error();
@@ -41,9 +42,9 @@ export default class Pix32 extends Pix2D {
         return image;
     }
 
-    static fromArchive(archive: Jagfile, name: string, sprite: number = 0): Pix32 {
-        const dat: Packet = new Packet(archive.read(name + '.dat'));
-        const index: Packet = new Packet(archive.read('index.dat'));
+    static load(jag: Jagfile, name: string, sprite: number = 0): Pix32 {
+        const dat: Packet = new Packet(jag.read(name + '.dat'));
+        const index: Packet = new Packet(jag.read('index.dat'));
 
         // cropW/cropH are shared across all sprites in a single image
         index.pos = dat.g2();
@@ -106,6 +107,7 @@ export default class Pix32 extends Pix2D {
         return image;
     }
 
+    // jag::oldscape::graphics::Pix32::Trim
     trim(): void {
 		const pixels = new Int32Array(this.owi * this.ohi);
 		for (let y = 0; y < this.hi; y++) {
@@ -121,6 +123,7 @@ export default class Pix32 extends Pix2D {
 		this.yof = 0;
     }
 
+    // jag::oldscape::graphics::Pix32::HFlip
     hflip(): void {
         const pixels: Int32Array = this.pixels;
         const width: number = this.wi;
@@ -139,6 +142,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
+    // jag::oldscape::graphics::Pix32::VFlip
     vflip(): void {
         const pixels: Int32Array = this.pixels;
         const width: number = this.wi;
@@ -156,6 +160,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
+    // jag::oldscape::graphics::Pix32::RgbAdjust
     rgbAdjust(r: number, g: number, b: number): void {
         for (let i: number = 0; i < this.pixels.length; i++) {
             const rgb: number = this.pixels[i];
@@ -190,159 +195,255 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    bind(): void {
-        Pix2D.bind(this.pixels, this.wi, this.hi);
+    setPixels(): void {
+        Pix2D.setPixels(this.pixels, this.wi, this.hi);
     }
 
-    draw(x: number, y: number): void {
+    // jag::oldscape::graphics::NXTPix2D::PlotSprite
+    plotSprite(x: number, y: number): void {
         x |= 0;
         y |= 0;
 
         x += this.xof;
         y += this.yof;
 
-        let dstOff: number = x + y * Pix2D.width2d;
+        let dstOff: number = x + y * Pix2D.width;
         let srcOff: number = 0;
 
         let h: number = this.hi;
         let w: number = this.wi;
 
-        let dstStep: number = Pix2D.width2d - w;
+        let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.boundTop;
             srcOff += cutoff * w;
-            dstOff += cutoff * Pix2D.width2d;
+            dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.boundBottom) {
+            h -= y + h - Pix2D.boundBottom;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.boundLeft;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.boundRight) {
+            const cutoff: number = x + w - Pix2D.boundRight;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
         if (w > 0 && h > 0) {
-            this.copyImageDraw(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
+            this.plot(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
         }
     }
 
-    drawAlpha(alpha: number, x: number, y: number): void {
+    // jag::oldscape::graphics::NXTPix2D::PlotSprite
+    private plot(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number): void {
+        const qw: number = -(w >> 2);
+        w = -(w & 0x3);
+
+        for (let y: number = -h; y < 0; y++) {
+            for (let x: number = qw; x < 0; x++) {
+                let rgb: number = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    dst[dstOff++] = rgb;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    dst[dstOff++] = rgb;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    dst[dstOff++] = rgb;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    dst[dstOff++] = rgb;
+                }
+            }
+
+            for (let x: number = w; x < 0; x++) {
+                const rgb: number = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    dst[dstOff++] = rgb;
+                }
+            }
+
+            dstOff += dstStep;
+            srcOff += srcStep;
+        }
+    }
+
+    // jag::oldscape::graphics::NXTPix2D::TransPlotSprite
+    transPlotSprite(alpha: number, x: number, y: number): void {
         x |= 0;
         y |= 0;
 
         x += this.xof;
         y += this.yof;
 
-        let dstStep: number = x + y * Pix2D.width2d;
+        let dstStep: number = x + y * Pix2D.width;
         let srcStep: number = 0;
         let h: number = this.hi;
         let w: number = this.wi;
-        let dstOff: number = Pix2D.width2d - w;
+        let dstOff: number = Pix2D.width - w;
         let srcOff: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.boundTop;
             srcStep += cutoff * w;
-            dstStep += cutoff * Pix2D.width2d;
+            dstStep += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.boundBottom) {
+            h -= y + h - Pix2D.boundBottom;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.boundLeft;
             srcStep += cutoff;
             dstStep += cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.boundRight) {
+            const cutoff: number = x + w - Pix2D.boundRight;
             w -= cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
         if (w > 0 && h > 0) {
-            this.copyPixelsAlpha(w, h, this.pixels, srcStep, srcOff, Pix2D.pixels, dstStep, dstOff, alpha);
+            this.tranSprite(w, h, this.pixels, srcStep, srcOff, Pix2D.pixels, dstStep, dstOff, alpha);
         }
     }
 
-    blitOpaque(x: number, y: number): void {
+    // jag::oldscape::graphics::NXTPix2D::TranSprite
+    private tranSprite(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number, alpha: number): void {
+        const invAlpha: number = 256 - alpha;
+
+        for (let y: number = -h; y < 0; y++) {
+            for (let x: number = -w; x < 0; x++) {
+                const rgb: number = src[srcOff++];
+                if (rgb === 0) {
+                    dstOff++;
+                } else {
+                    const dstRgb: number = dst[dstOff];
+                    dst[dstOff++] = ((((rgb & 0xff00ff) * alpha + (dstRgb & 0xff00ff) * invAlpha) & 0xff00ff00) + (((rgb & 0xff00) * alpha + (dstRgb & 0xff00) * invAlpha) & 0xff0000)) >> 8;
+                }
+            }
+
+            dstOff += dstStep;
+            srcOff += srcStep;
+        }
+    }
+
+    // jag::oldscape::graphics::NXTPix2D::QuickPlotSprite
+    quickPlotSprite(x: number, y: number): void {
         x |= 0;
         y |= 0;
 
         x += this.xof;
         y += this.yof;
 
-        let dstOff: number = x + y * Pix2D.width2d;
+        let dstOff: number = x + y * Pix2D.width;
         let srcOff: number = 0;
 
         let h: number = this.hi;
         let w: number = this.wi;
 
-        let dstStep: number = Pix2D.width2d - w;
+        let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.boundTop;
             srcOff += cutoff * w;
-            dstOff += cutoff * Pix2D.width2d;
+            dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.boundBottom) {
+            h -= y + h - Pix2D.boundBottom;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.boundLeft;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.boundRight) {
+            const cutoff: number = x + w - Pix2D.boundRight;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
         if (w > 0 && h > 0) {
-            this.copyImageBlitOpaque(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
+            this.plotQuick(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
         }
     }
 
-    drawRotated(y: number, theta: number, zoom: number, anchorX: number, anchorY: number, w: number, h: number, x: number): void {
+    // jag::oldscape::graphics::NXTPix2D::PlotQuick
+    private plotQuick(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number): void {
+        const qw: number = -(w >> 2);
+        w = -(w & 0x3);
+
+        for (let y: number = -h; y < 0; y++) {
+            for (let x: number = qw; x < 0; x++) {
+                dst[dstOff++] = src[srcOff++];
+                dst[dstOff++] = src[srcOff++];
+                dst[dstOff++] = src[srcOff++];
+                dst[dstOff++] = src[srcOff++];
+            }
+
+            for (let x: number = w; x < 0; x++) {
+                dst[dstOff++] = src[srcOff++];
+            }
+
+            dstOff += dstStep;
+            srcOff += srcStep;
+        }
+    }
+
+    // jag::oldscape::graphics::NXTPix2D::PixelPerfectRotateScalePlotSprite
+    rotatePlotSprite(y: number, theta: number, zoom: number, anchorX: number, anchorY: number, w: number, h: number, x: number): void {
         x |= 0;
         y |= 0;
         w |= 0;
@@ -359,7 +460,7 @@ export default class Pix32 extends Pix2D {
 
             let leftX: number = (anchorX << 16) + (centerY * sinZoom + centerX * cosZoom);
             let leftY: number = (anchorY << 16) + (centerY * cosZoom - centerX * sinZoom);
-            let leftOff: number = x + y * Pix2D.width2d;
+            let leftOff: number = x + y * Pix2D.width;
 
             for (let i: number = 0; i < h; i++) {
                 let dstX: number = leftOff;
@@ -380,14 +481,15 @@ export default class Pix32 extends Pix2D {
 
                 leftX += sinZoom;
                 leftY += cosZoom;
-                leftOff += Pix2D.width2d;
+                leftOff += Pix2D.width;
             }
         } catch (e) {
             /* empty */
         }
     }
 
-    drawRotatedMasked(x: number, y: number, w: number, h: number, lineStart: Int32Array, lineWidth: Int32Array, anchorX: number, anchorY: number, theta: number, zoom: number): void {
+    // jag::oldscape::graphics::NXTPix2D::ScanlineRotatePlotSprite
+    scanlineRotatePlotSprite(x: number, y: number, w: number, h: number, lineStart: Int32Array, lineWidth: Int32Array, anchorX: number, anchorY: number, theta: number, zoom: number): void {
         x |= 0;
         y |= 0;
         w |= 0;
@@ -404,7 +506,7 @@ export default class Pix32 extends Pix2D {
 
             let leftX: number = (anchorX << 16) + centerY * sinZoom + centerX * cosZoom;
             let leftY: number = (anchorY << 16) + (centerY * cosZoom - centerX * sinZoom);
-            let leftOff: number = x + y * Pix2D.width2d;
+            let leftOff: number = x + y * Pix2D.width;
 
             for (let i: number = 0; i < h; i++) {
                 const dstOff: number = lineStart[i];
@@ -421,62 +523,113 @@ export default class Pix32 extends Pix2D {
 
                 leftX += sinZoom;
                 leftY += cosZoom;
-                leftOff += Pix2D.width2d;
+                leftOff += Pix2D.width;
             }
         } catch (e) {
             /* empty */
         }
     }
 
-    drawMasked(x: number, y: number, mask: Pix8): void {
+    // jag::oldscape::graphics::NXTPix2D::ScanlinePlotSprite
+    scanlinePlotSprite(x: number, y: number, mask: Pix8): void {
         x |= 0;
         y |= 0;
 
         x += this.xof;
         y += this.yof;
 
-        let dstStep: number = x + y * Pix2D.width2d;
+        let dstStep: number = x + y * Pix2D.width;
         let srcStep: number = 0;
         let h: number = this.hi;
         let w: number = this.wi;
-        let dstOff: number = Pix2D.width2d - w;
+        let dstOff: number = Pix2D.width - w;
         let srcOff: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.boundTop;
             srcStep += cutoff * w;
-            dstStep += cutoff * Pix2D.width2d;
+            dstStep += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.boundBottom) {
+            h -= y + h - Pix2D.boundBottom;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.boundLeft;
             srcStep += cutoff;
             dstStep += cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.boundRight) {
+            const cutoff: number = x + w - Pix2D.boundRight;
             w -= cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
         if (w > 0 && h > 0) {
-            this.copyPixelsMasked(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstStep, dstOff, mask.pixels);
+            this.scanlinePlot(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstStep, dstOff, mask.pixels);
         }
     }
 
-    private scale(w: number, h: number, src: Int32Array, offW: number, offH: number, dst: Int32Array, dstStep: number, dstOff: number, currentW: number, scaleCropWidth: number, scaleCropHeight: number): void {
+    private scanlinePlot(w: number, h: number, src: Int32Array, srcStep: number, srcOff: number, dst: Int32Array, dstOff: number, dstStep: number, mask: Int8Array): void {
+        const qw: number = -(w >> 2);
+        w = -(w & 0x3);
+
+        for (let y: number = -h; y < 0; y++) {
+            for (let x: number = qw; x < 0; x++) {
+                let rgb: number = src[srcOff++];
+                if (rgb !== 0 && mask[dstOff] === 0) {
+                    dst[dstOff++] = rgb;
+                } else {
+                    dstOff++;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb !== 0 && mask[dstOff] === 0) {
+                    dst[dstOff++] = rgb;
+                } else {
+                    dstOff++;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb !== 0 && mask[dstOff] === 0) {
+                    dst[dstOff++] = rgb;
+                } else {
+                    dstOff++;
+                }
+
+                rgb = src[srcOff++];
+                if (rgb !== 0 && mask[dstOff] === 0) {
+                    dst[dstOff++] = rgb;
+                } else {
+                    dstOff++;
+                }
+            }
+
+            for (let x: number = w; x < 0; x++) {
+                const rgb: number = src[srcOff++];
+                if (rgb !== 0 && mask[dstOff] === 0) {
+                    dst[dstOff++] = rgb;
+                } else {
+                    dstOff++;
+                }
+            }
+
+            dstOff += dstStep;
+            srcOff += srcStep;
+        }
+    }
+
+    // jag::oldscape::graphics::NXTPix2D::PlotScale
+    private plotScale(w: number, h: number, src: Int32Array, offW: number, offH: number, dst: Int32Array, dstStep: number, dstOff: number, currentW: number, scaleCropWidth: number, scaleCropHeight: number): void {
         try {
             const lastOffW: number = offW;
             for (let y: number = -h; y < 0; y++) {
@@ -496,144 +649,6 @@ export default class Pix32 extends Pix2D {
             }
         } catch (e) {
             console.error('error in plot_scale');
-        }
-    }
-
-    private copyImageBlitOpaque(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number): void {
-        const qw: number = -(w >> 2);
-        w = -(w & 0x3);
-
-        for (let y: number = -h; y < 0; y++) {
-            for (let x: number = qw; x < 0; x++) {
-                dst[dstOff++] = src[srcOff++];
-                dst[dstOff++] = src[srcOff++];
-                dst[dstOff++] = src[srcOff++];
-                dst[dstOff++] = src[srcOff++];
-            }
-
-            for (let x: number = w; x < 0; x++) {
-                dst[dstOff++] = src[srcOff++];
-            }
-
-            dstOff += dstStep;
-            srcOff += srcStep;
-        }
-    }
-
-    private copyPixelsAlpha(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number, alpha: number): void {
-        const invAlpha: number = 256 - alpha;
-
-        for (let y: number = -h; y < 0; y++) {
-            for (let x: number = -w; x < 0; x++) {
-                const rgb: number = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    const dstRgb: number = dst[dstOff];
-                    dst[dstOff++] = ((((rgb & 0xff00ff) * alpha + (dstRgb & 0xff00ff) * invAlpha) & 0xff00ff00) + (((rgb & 0xff00) * alpha + (dstRgb & 0xff00) * invAlpha) & 0xff0000)) >> 8;
-                }
-            }
-
-            dstOff += dstStep;
-            srcOff += srcStep;
-        }
-    }
-
-    private copyImageDraw(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number): void {
-        const qw: number = -(w >> 2);
-        w = -(w & 0x3);
-
-        for (let y: number = -h; y < 0; y++) {
-            for (let x: number = qw; x < 0; x++) {
-                let rgb: number = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    dst[dstOff++] = rgb;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    dst[dstOff++] = rgb;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    dst[dstOff++] = rgb;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    dst[dstOff++] = rgb;
-                }
-            }
-
-            for (let x: number = w; x < 0; x++) {
-                const rgb: number = src[srcOff++];
-                if (rgb === 0) {
-                    dstOff++;
-                } else {
-                    dst[dstOff++] = rgb;
-                }
-            }
-
-            dstOff += dstStep;
-            srcOff += srcStep;
-        }
-    }
-
-    private copyPixelsMasked(w: number, h: number, src: Int32Array, srcStep: number, srcOff: number, dst: Int32Array, dstOff: number, dstStep: number, mask: Int8Array): void {
-        const qw: number = -(w >> 2);
-        w = -(w & 0x3);
-
-        for (let y: number = -h; y < 0; y++) {
-            for (let x: number = qw; x < 0; x++) {
-                let rgb: number = src[srcOff++];
-                if (rgb !== 0 && mask[dstOff] === 0) {
-                    dst[dstOff++] = rgb;
-                } else {
-                    dstOff++;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb !== 0 && mask[dstOff] === 0) {
-                    dst[dstOff++] = rgb;
-                } else {
-                    dstOff++;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb !== 0 && mask[dstOff] === 0) {
-                    dst[dstOff++] = rgb;
-                } else {
-                    dstOff++;
-                }
-
-                rgb = src[srcOff++];
-                if (rgb !== 0 && mask[dstOff] === 0) {
-                    dst[dstOff++] = rgb;
-                } else {
-                    dstOff++;
-                }
-            }
-
-            for (let x: number = w; x < 0; x++) {
-                const rgb: number = src[srcOff++];
-                if (rgb !== 0 && mask[dstOff] === 0) {
-                    dst[dstOff++] = rgb;
-                } else {
-                    dstOff++;
-                }
-            }
-
-            dstOff += dstStep;
-            srcOff += srcStep;
         }
     }
 }

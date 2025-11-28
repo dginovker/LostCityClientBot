@@ -236,7 +236,7 @@ export class MapView extends GameShell {
 
         try {
             for (let i: number = 0; i < 50; i++) {
-                this.imageMapscene[i] = Pix8.fromArchive(worldmap, 'mapscene', i);
+                this.imageMapscene[i] = Pix8.load(worldmap, 'mapscene', i);
             }
         } catch (ignore) {
             // empty
@@ -244,16 +244,16 @@ export class MapView extends GameShell {
 
         try {
             for (let i: number = 0; i < 50; i++) {
-                this.imageMapfunction[i] = Pix32.fromArchive(worldmap, 'mapfunction', i);
+                this.imageMapfunction[i] = Pix32.load(worldmap, 'mapfunction', i);
             }
         } catch (ignore) {
             // empty
         }
 
-        this.imageMapdot0 = Pix32.fromArchive(worldmap, 'mapdots', 0);
-        this.imageMapdot1 = Pix32.fromArchive(worldmap, 'mapdots', 1);
-        this.imageMapdot2 = Pix32.fromArchive(worldmap, 'mapdots', 2);
-        this.imageMapdot3 = Pix32.fromArchive(worldmap, 'mapdots', 3);
+        this.imageMapdot0 = Pix32.load(worldmap, 'mapdots', 0);
+        this.imageMapdot1 = Pix32.load(worldmap, 'mapdots', 1);
+        this.imageMapdot2 = Pix32.load(worldmap, 'mapdots', 2);
+        this.imageMapdot3 = Pix32.load(worldmap, 'mapdots', 3);
 
         this.b12 = PixFont.fromArchive(worldmap, 'b12');
         // this.f11 = new WorldmapFont(11, true, this);
@@ -270,7 +270,7 @@ export class MapView extends GameShell {
         if (this.shouldClearEmptyTiles) this.clearEmptyTiles();
 
         this.imageOverview = new Pix32(this.imageOverviewWidth, this.imageOverviewHeight);
-        this.imageOverview.bind();
+        this.imageOverview.setPixels();
         this.drawMap(0, 0, this.sizeX, this.sizeZ, 0, 0, this.imageOverviewWidth, this.imageOverviewHeight);
         Pix2D.drawRect(0, 0, this.imageOverviewWidth, this.imageOverviewHeight, 0);
         Pix2D.drawRect(1, 1, this.imageOverviewWidth - 2, this.imageOverviewHeight - 2, this.colorInactiveBorderTL);
@@ -294,7 +294,7 @@ export class MapView extends GameShell {
             this.drawMap(left, top, right, bottom, 0, 0, this.width, this.height);
 
             if (this.showOverview) {
-                this.imageOverview?.blitOpaque(this.overviewX, this.overviewY);
+                this.imageOverview?.quickPlotSprite(this.overviewX, this.overviewY);
 
                 Pix2D.fillRectTrans(
                     (this.overviewX + (this.imageOverviewWidth * left) / this.sizeX) | 0,
@@ -337,7 +337,7 @@ export class MapView extends GameShell {
                             continue;
                         }
 
-                        this.imageMapfunction[row + this.lastKeyPage].draw(this.keyX + 3, y);
+                        this.imageMapfunction[row + this.lastKeyPage].plotSprite(this.keyX + 3, y);
                         this.b12?.drawString(this.keyX + 21, y + 14, this.keyNames[row + this.lastKeyPage], 0);
 
                         let rgb: number = 0xffffff;
@@ -931,7 +931,7 @@ export class MapView extends GameShell {
                     if (shape == 0 || lengthX <= 1 || lengthY <= 1) {
                         Pix2D.fillRect(startX, startY, lengthX, lengthY, overlay);
                     } else {
-                        this.drawSmoothEdges(Pix2D.pixels, startY * Pix2D.width2d + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
+                        this.drawSmoothEdges(Pix2D.pixels, startY * Pix2D.width + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
                     }
                 }
             }
@@ -1036,7 +1036,7 @@ export class MapView extends GameShell {
 
                 const mapscene: number = this.locMapscenes[x + left][y + top];
                 if (mapscene != 0) {
-                    this.imageMapscene[mapscene - 1].clip(startX - lengthX / 2, startY - lengthY / 2, lengthX * 2, lengthY * 2);
+                    this.imageMapscene[mapscene - 1].scalePlotSprite(startX - lengthX / 2, startY - lengthY / 2, lengthX * 2, lengthY * 2);
                 }
 
                 const mapfunction: number = this.locMapfunction[x + left][y + top];
@@ -1050,7 +1050,7 @@ export class MapView extends GameShell {
         }
 
         for (let i: number = 0; i < visibleMapFunctionCount; i++) {
-            this.imageMapfunction[this.visibleMapFunctions[i]].draw(this.visibleMapFunctionsX[i] - 7, this.visibleMapFunctionsY[i] - 7);
+            this.imageMapfunction[this.visibleMapFunctions[i]].plotSprite(this.visibleMapFunctionsX[i] - 7, this.visibleMapFunctionsY[i] - 7);
         }
 
         if (MapView.shouldDrawItems) {
@@ -1081,7 +1081,7 @@ export class MapView extends GameShell {
                     endY += heightOffset;
 
                     if (this.objTiles[x + left][y + top]) {
-                        this.imageMapdot0?.draw(startX, startY);
+                        this.imageMapdot0?.plotSprite(startX, startY);
                     }
                 }
             }
@@ -1115,7 +1115,7 @@ export class MapView extends GameShell {
                     endY += heightOffset;
 
                     if (this.npcTiles[x + left][y + top]) {
-                        this.imageMapdot1?.draw(startX, startY);
+                        this.imageMapdot1?.plotSprite(startX, startY);
                     }
                 }
             }
@@ -1124,7 +1124,7 @@ export class MapView extends GameShell {
         if (this.flashTimer > 0) {
             for (let i: number = 0; i < visibleMapFunctionCount; i++) {
                 if (this.visibleMapFunctions[i] == this.currentKey) {
-                    this.imageMapfunction[this.visibleMapFunctions[i]].draw(this.visibleMapFunctionsX[i] - 7, this.visibleMapFunctionsY[i] - 7);
+                    this.imageMapfunction[this.visibleMapFunctions[i]].plotSprite(this.visibleMapFunctionsX[i] - 7, this.visibleMapFunctionsY[i] - 7);
 
                     if (this.flashTimer % 10 < 5) {
                         Pix2D.fillCircle(this.visibleMapFunctionsX[i], this.visibleMapFunctionsY[i], 15, 0xffff00, 128);
@@ -1222,7 +1222,7 @@ export class MapView extends GameShell {
     }
 
     drawSmoothEdges(data: Int32Array, off: number, color: number, overlay: number, width: number, height: number, shape: number, rotation: number): void {
-        const step: number = Pix2D.width2d - width;
+        const step: number = Pix2D.width - width;
         if (shape == 9) {
             shape = 1;
             rotation = (rotation + 1) & 0x3;

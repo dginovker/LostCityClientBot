@@ -414,21 +414,21 @@ export default class ObjType extends ConfigType {
 
         const icon: Pix32 = new Pix32(32, 32);
 
-        const _cx: number = Pix3D.centerX;
-        const _cy: number = Pix3D.centerY;
-        const _loff: Int32Array = Pix3D.lineOffset;
+        const _cx: number = Pix3D.projectionX;
+        const _cy: number = Pix3D.projectionY;
+        const _loff: Int32Array = Pix3D.scanline;
         const _data: Int32Array = Pix2D.pixels;
-        const _w: number = Pix2D.width2d;
-        const _h: number = Pix2D.height2d;
-        const _l: number = Pix2D.left;
-        const _r: number = Pix2D.right;
-        const _t: number = Pix2D.top;
-        const _b: number = Pix2D.bottom;
+        const _w: number = Pix2D.width;
+        const _h: number = Pix2D.height;
+        const _l: number = Pix2D.boundLeft;
+        const _r: number = Pix2D.boundRight;
+        const _t: number = Pix2D.boundTop;
+        const _b: number = Pix2D.boundBottom;
 
         Pix3D.lowDetail = false;
-        Pix2D.bind(icon.pixels, 32, 32);
+        Pix2D.setPixels(icon.pixels, 32, 32);
         Pix2D.fillRect(0, 0, 32, 32, Colors.BLACK);
-        Pix3D.init2D();
+        Pix3D.init();
 
         let zoom = obj.zoom2d;
         if (outlineRgb === -1) {
@@ -496,7 +496,7 @@ export default class ObjType extends ConfigType {
             const h: number = linkedIcon.ohi;
             linkedIcon.owi = 32;
             linkedIcon.ohi = 32;
-            linkedIcon.draw(0, 0);
+            linkedIcon.plotSprite(0, 0);
             linkedIcon.owi = w;
             linkedIcon.ohi = h;
         }
@@ -505,11 +505,11 @@ export default class ObjType extends ConfigType {
             ObjType.spriteCache.put(BigInt(id), icon);
         }
 
-        Pix2D.bind(_data, _w, _h);
+        Pix2D.setPixels(_data, _w, _h);
         Pix2D.setClipping(_l, _t, _r, _b);
-        Pix3D.centerX = _cx;
-        Pix3D.centerY = _cy;
-        Pix3D.lineOffset = _loff;
+        Pix3D.projectionX = _cx;
+        Pix3D.projectionY = _cy;
+        Pix3D.scanline = _loff;
         Pix3D.lowDetail = true;
 
         if (obj.stackable) {
