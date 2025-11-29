@@ -1500,7 +1500,7 @@ export class Client extends GameShell {
                 this.ptype1 = -1;
                 this.ptype2 = -1;
                 this.psize = 0;
-                this.packetCycle = 0;
+                this.packetCycle = performance.now();
                 this.systemUpdateTimer = 0;
                 this.pendingLogout = 0;
                 this.hintType = 0;
@@ -1638,7 +1638,7 @@ export class Client extends GameShell {
                 this.ptype1 = -1;
                 this.ptype2 = -1;
                 this.psize = 0;
-                this.packetCycle = 0;
+                this.packetCycle = performance.now();
                 this.systemUpdateTimer = 0;
                 this.menuSize = 0;
                 this.menuVisible = false;
