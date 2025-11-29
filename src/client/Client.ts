@@ -1004,7 +1004,7 @@ export class Client extends GameShell {
         }
     }
 
-    async update() {
+    async loop() {
         if (this.errorStarted || this.errorLoading || this.errorHost) {
             return;
         }
@@ -5387,11 +5387,19 @@ export class Client extends GameShell {
             let y: number = 20;
 
             let color: number = Colors.YELLOW;
+            if (this.lfps < 15) {
+                color = Colors.RED;
+            }
+
+            this.fontPlain12?.drawStringRight(x, y, 'Loop Fps:' + this.lfps, color);
+            y += 15;
+
+            color = Colors.YELLOW;
             if (this.fps < 15) {
                 color = Colors.RED;
             }
 
-            this.fontPlain12?.drawStringRight(x, y, 'Fps:' + this.fps, color);
+            this.fontPlain12?.drawStringRight(x, y, 'Draw Fps:' + this.fps, color);
             y += 15;
 
             let memoryUsage = -1;
@@ -11208,6 +11216,7 @@ export class Client extends GameShell {
 
         this.flameCycle++;
 
+        // runs every ~40ms so update twice to compensate
         this.updateFlames();
         this.updateFlames();
         this.drawFlames();

@@ -13,6 +13,7 @@ export default abstract class GameShell {
     protected deltime: number = 20;
     protected mindel: number = 1;
     protected otim: number[] = new Array(10);
+    protected lfps: number = 0;
     protected fps: number = 0;
     protected debug: boolean = false;
     protected drawArea: PixMap | null = null;
@@ -38,13 +39,8 @@ export default abstract class GameShell {
     protected keyQueueWritePos: number = 0;
 
     // custom
-    protected slowestMS: number = 0.0;
-    protected averageMS: number[] = [];
-    protected averageIndexMS: number = 0;
     protected resizeToFit: boolean = false;
     protected tfps: number = 50;
-    protected fpos: number = 0;
-    protected frameTime: number[] = [];
     protected ingame: boolean = false;
 
     // touch controls
@@ -72,7 +68,7 @@ export default abstract class GameShell {
     abstract getReportAbuseInterfaceId(): number; // custom: report abuse input on mobile
 
     protected async load() {}
-    protected async update() {}
+    protected async loop() {}
     protected async draw() {}
     protected refresh() {}
 
@@ -102,6 +98,32 @@ export default abstract class GameShell {
         canvas.height = height;
         this.drawArea = new PixMap(width, height);
         Pix3D.init();
+    }
+
+    private lastDrawTime: number = 0;
+
+    private async drawRaf(start: number) {
+        const rafDelta = start - this.lastDrawTime;
+        // todo: is there a reliable way for us to limit the speed? >50 is overkill
+        //   RAF is called based on the user's refresh rate + power settings
+        //   so on standard monitors this function calls every ~16ms, and "skipping" frames
+        //   means dropping to decrements of 30, 20, 15, 10, 5...
+        // todo: check rafDelta < this.deltime too?
+        if (this.tfps < 50 && rafDelta < 1000 / this.tfps) {
+            requestAnimationFrame(this.drawRaf.bind(this));
+            return;
+        }
+
+        this.lastDrawTime = start;
+        this.fps = (1000 / rafDelta) | 0;
+
+        await this.draw();
+
+        if (this.isMobile) {
+            MobileKeyboard.draw();
+        }
+
+        requestAnimationFrame(this.drawRaf.bind(this));
     }
 
     async run() {
@@ -151,6 +173,8 @@ export default abstract class GameShell {
 
         await this.drawProgress(0, 'Loading...');
         await this.load();
+
+        requestAnimationFrame(this.drawRaf.bind(this));
 
         let ntime: number = 0;
         let opos: number = 0;
@@ -219,7 +243,7 @@ export default abstract class GameShell {
                 this.mouseClickTime = this.nextMouseClickTime;
                 this.nextMouseClickButton = 0;
 
-                await this.update();
+                await this.loop();
 
                 // this.keyQueueReadPos = this.keyQueueWritePos;
                 count += ratio;
@@ -227,26 +251,7 @@ export default abstract class GameShell {
             count &= 0xff;
 
             if (this.deltime > 0) {
-                this.fps = ((ratio * 1000) / (this.deltime * 256)) | 0;
-            }
-
-            const start: number = performance.now();
-
-            await this.draw();
-
-            if (this.isMobile) {
-                MobileKeyboard.draw();
-            }
-
-            this.frameTime[this.fpos] = (performance.now() - start) / 1000;
-            this.fpos = (this.fpos + 1) % this.frameTime.length;
-
-            // this is custom for targeting specific fps (on mobile).
-            if (this.tfps < 50) {
-                const tfps: number = 1000 / this.tfps - (performance.now() - ntime);
-                if (tfps > 0) {
-                    await sleep(tfps);
-                }
+                this.lfps = ((ratio * 1000) / (this.deltime * 256)) | 0;
             }
 
             if (this.debug) {
@@ -255,7 +260,7 @@ export default abstract class GameShell {
                     let o = (opos - i - 1 + 20) % 10;
                     console.log('otim' + o + ':' + this.otim[o]);
                 }
-                console.log('fps:' + this.fps + ' ratio:' + ratio + ' count:' + count);
+                console.log('fps:' + this.lfps + ' ratio:' + ratio + ' count:' + count);
                 console.log('del:' + delta + ' deltime:' + this.deltime + ' mindel:' + this.mindel);
                 console.log('opos:' + opos);
                 this.debug = false;
@@ -320,25 +325,6 @@ export default abstract class GameShell {
         canvas2d.fillText(message, (width / 2) | 0, y + 22);
 
         await sleep(5); // return a slice of time to the main loop so it can update the progress bar
-    }
-
-    protected get ms(): number {
-        const length: number = this.frameTime.length;
-        let ft: number = 0;
-        for (let index: number = 0; index < length; index++) {
-            ft += this.frameTime[index];
-        }
-        const ms: number = (ft / length) * 1000;
-        if (ms > this.slowestMS) {
-            this.slowestMS = ms;
-        }
-        this.averageMS[this.averageIndexMS] = ms;
-        this.averageIndexMS = (this.averageIndexMS + 1) % 250; // 250 circular limit
-        return ms;
-    }
-
-    protected get msAvg(): number {
-        return this.averageMS.reduce((accumulator: number, currentValue: number): number => accumulator + currentValue, 0) / 250; // 250 circular limit
     }
 
     // ----

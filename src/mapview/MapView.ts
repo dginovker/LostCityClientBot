@@ -395,7 +395,7 @@ export class MapView extends GameShell {
         this.redrawTimer = 0;
     }
 
-    async update(): Promise<void> {
+    async loop(): Promise<void> {
         if (this.keyHeld[1] == 1) {
             this.offsetX = (this.offsetX - 16.0 / this.zoom) | 0;
             this.redraw = true;
