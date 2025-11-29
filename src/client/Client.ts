@@ -119,8 +119,8 @@ export class Client extends GameShell {
     private out: Packet = Packet.alloc(1);
     private loginout: Packet = Packet.alloc(1);
     private serverSeed: bigint = 0n;
-    private idleNetCycles: number = 0;
-    private idleTimeout: number = 0;
+    private packetCycle: number = 0;
+    private pendingLogout: number = 0;
     private systemUpdateTimer: number = 0;
     private randomIn: Isaac | null = null;
     private ptype: number = 0;
@@ -1500,13 +1500,13 @@ export class Client extends GameShell {
                 this.ptype1 = -1;
                 this.ptype2 = -1;
                 this.psize = 0;
-                this.idleNetCycles = 0;
+                this.packetCycle = 0;
                 this.systemUpdateTimer = 0;
-                this.idleTimeout = 0;
+                this.pendingLogout = 0;
                 this.hintType = 0;
                 this.menuSize = 0;
                 this.menuVisible = false;
-                this.idleCycles = performance.now();
+                this.idleCycle = performance.now();
 
                 for (let i: number = 0; i < 100; i++) {
                     this.messageText[i] = null;
@@ -1638,7 +1638,7 @@ export class Client extends GameShell {
                 this.ptype1 = -1;
                 this.ptype2 = -1;
                 this.psize = 0;
-                this.idleNetCycles = 0;
+                this.packetCycle = 0;
                 this.systemUpdateTimer = 0;
                 this.menuSize = 0;
                 this.menuVisible = false;
@@ -1747,13 +1747,15 @@ export class Client extends GameShell {
             this.systemUpdateTimer--;
         }
 
-        if (this.idleTimeout > 0) {
-            this.idleTimeout--;
+        if (this.pendingLogout > 0) {
+            this.pendingLogout--;
         }
 
         for (let i: number = 0; i < 5 && (await this.tcpIn()); i++) {
             /* empty */
         }
+
+        const now = performance.now();
 
         if (this.ingame) {
             if (this.mouseClickButton !== 0) {
@@ -1827,9 +1829,8 @@ export class Client extends GameShell {
                 tracking.release();
             }
 
-            this.idleNetCycles++;
-            if (this.idleNetCycles > 250) {
-                // custom: originally 15s (750) but due to a cloudflare issue, lowered to 5s as a patch
+            if (now - this.packetCycle > 5_000) {
+                // no packets received in 5s, connection lost
                 await this.tryReconnect();
             }
 
@@ -1983,15 +1984,10 @@ export class Client extends GameShell {
 
             await this.handleInputKey();
 
-            // idlecycles refactored to use date to circumvent browser throttling the
-            // timers when a different tab is active, or the window has been minimized.
-            // afk logout has to still happen after 90s of no activity (if allowed).
-            // https://developer.chrome.com/blog/timer-throttling-in-chrome-88/
-            if (performance.now() - this.idleCycles > 90_000) {
-                // 4500 ticks * 20ms = 90000ms
-                this.idleTimeout = 250;
-                // 500 ticks * 20ms = 10000ms
-                this.idleCycles = performance.now() - 10_000;
+            if (now - this.idleCycle > 90_000) {
+                // no input in 90s, notify the server
+                this.pendingLogout = 250;
+                this.idleCycle += 10_000; // 10s backoff
 
                 this.out.p1isaac(ClientProt.IDLE_TIMER);
             }
@@ -2055,8 +2051,8 @@ export class Client extends GameShell {
                 this.macroMinimapZoomModifier = -1;
             }
 
-            this.noTimeoutCycle++;
-            if (this.noTimeoutCycle > 50) {
+            if (now - this.noTimeoutCycle > 1_000) {
+                // nothing sent in the last 1s, keep the client connected
                 this.out.p1isaac(ClientProt.NO_TIMEOUT);
             }
 
@@ -2064,19 +2060,19 @@ export class Client extends GameShell {
                 if (this.stream && this.out.pos > 0) {
                     this.stream.write(this.out.data, this.out.pos);
                     this.out.pos = 0;
-                    this.noTimeoutCycle = 0;
+                    this.noTimeoutCycle = now;
                 }
             } catch (e) {
                 console.error(e);
 
-                // todo: reconnect on IO error, logout on other error
+                // todo: reconnect on IO error, logout on any other error
                 await this.tryReconnect();
             }
         }
     }
 
     private async tryReconnect() {
-        if (this.idleTimeout > 0) {
+        if (this.pendingLogout > 0) {
             await this.logout();
             return;
         }
@@ -5387,19 +5383,11 @@ export class Client extends GameShell {
             let y: number = 20;
 
             let color: number = Colors.YELLOW;
-            if (this.lfps < 15) {
-                color = Colors.RED;
-            }
-
-            this.fontPlain12?.drawStringRight(x, y, 'Loop Fps:' + this.lfps, color);
-            y += 15;
-
-            color = Colors.YELLOW;
             if (this.fps < 15) {
                 color = Colors.RED;
             }
 
-            this.fontPlain12?.drawStringRight(x, y, 'Draw Fps:' + this.fps, color);
+            this.fontPlain12?.drawStringRight(x, y, 'Fps:' + this.fps, color);
             y += 15;
 
             let memoryUsage = -1;
@@ -6091,7 +6079,7 @@ export class Client extends GameShell {
             this.in.pos = 0;
             await this.stream.readBytes(this.in.data, 0, this.psize);
 
-            this.idleNetCycles = 0;
+            this.packetCycle = performance.now();
             this.ptype2 = this.ptype1;
             this.ptype1 = this.ptype0;
             this.ptype0 = this.ptype;
@@ -10564,7 +10552,7 @@ export class Client extends GameShell {
             this.socialInputType = 2;
             this.socialMessage = 'Enter name of friend to delete from list';
         } else if (clientCode === ClientCode.CC_LOGOUT) {
-            this.idleTimeout = 250;
+            this.pendingLogout = 250;
             return true;
         } else if (clientCode === ClientCode.CC_ADD_IGNORE) {
             this.redrawChatback = true;

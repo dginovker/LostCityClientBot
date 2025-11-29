@@ -13,14 +13,13 @@ export default abstract class GameShell {
     protected deltime: number = 20;
     protected mindel: number = 1;
     protected otim: number[] = new Array(10);
-    protected lfps: number = 0;
     protected fps: number = 0;
     protected debug: boolean = false;
     protected drawArea: PixMap | null = null;
     protected redrawScreen: boolean = true;
     protected hasFocus: boolean = true;
 
-    public idleCycles: number = performance.now();
+    public idleCycle: number = performance.now();
     public mouseButton: number = 0;
     public mouseX: number = -1;
     public mouseY: number = -1;
@@ -100,32 +99,6 @@ export default abstract class GameShell {
         Pix3D.init();
     }
 
-    private lastDrawTime: number = 0;
-
-    private async drawRaf(start: number) {
-        const rafDelta = start - this.lastDrawTime;
-        // todo: is there a reliable way for us to limit the speed? >50 is overkill
-        //   RAF is called based on the user's refresh rate + power settings
-        //   so on standard monitors this function calls every ~16ms, and "skipping" frames
-        //   means dropping to decrements of 30, 20, 15, 10, 5...
-        // todo: check rafDelta < this.deltime too?
-        if (this.tfps < 50 && rafDelta < 1000 / this.tfps) {
-            requestAnimationFrame(this.drawRaf.bind(this));
-            return;
-        }
-
-        this.lastDrawTime = start;
-        this.fps = (1000 / rafDelta) | 0;
-
-        await this.draw();
-
-        if (this.isMobile) {
-            MobileKeyboard.draw();
-        }
-
-        requestAnimationFrame(this.drawRaf.bind(this));
-    }
-
     async run() {
         canvas.addEventListener(
             'resize',
@@ -173,8 +146,6 @@ export default abstract class GameShell {
 
         await this.drawProgress(0, 'Loading...');
         await this.load();
-
-        requestAnimationFrame(this.drawRaf.bind(this));
 
         let ntime: number = 0;
         let opos: number = 0;
@@ -251,7 +222,21 @@ export default abstract class GameShell {
             count &= 0xff;
 
             if (this.deltime > 0) {
-                this.lfps = ((ratio * 1000) / (this.deltime * 256)) | 0;
+                this.fps = ((ratio * 1000) / (this.deltime * 256)) | 0;
+            }
+
+            await this.draw();
+
+            if (this.isMobile) {
+                MobileKeyboard.draw();
+            }
+
+            // this is custom for targeting specific fps (on mobile).
+            if (this.tfps < 50) {
+                const tfps: number = 1000 / this.tfps - (performance.now() - ntime);
+                if (tfps > 0) {
+                    await sleep(tfps);
+                }
             }
 
             if (this.debug) {
@@ -260,7 +245,7 @@ export default abstract class GameShell {
                     let o = (opos - i - 1 + 20) % 10;
                     console.log('otim' + o + ':' + this.otim[o]);
                 }
-                console.log('fps:' + this.lfps + ' ratio:' + ratio + ' count:' + count);
+                console.log('fps:' + this.fps + ' ratio:' + ratio + ' count:' + count);
                 console.log('del:' + delta + ' deltime:' + this.deltime + ' mindel:' + this.mindel);
                 console.log('opos:' + opos);
                 this.debug = false;
@@ -336,7 +321,7 @@ export default abstract class GameShell {
 
         const { x, y } = this.getMousePos(e);
 
-        this.idleCycles = performance.now();
+        this.idleCycle = performance.now();
         this.nextMouseClickX = x;
         this.nextMouseClickY = y;
         this.nextMouseClickTime = performance.now();
@@ -374,7 +359,7 @@ export default abstract class GameShell {
             // custom: touchscreen support
             // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
 
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.nextMouseClickX = -1;
             this.nextMouseClickY = -1;
             this.nextMouseClickButton = 0;
@@ -395,7 +380,7 @@ export default abstract class GameShell {
     private onmouseup(e: MouseEvent) {
         const { x, y } = this.getMousePos(e);
 
-        this.idleCycles = performance.now();
+        this.idleCycle = performance.now();
         this.mouseButton = 0;
 
         if (InputTracking.enabled) {
@@ -419,7 +404,7 @@ export default abstract class GameShell {
             // custom: touchscreen support
             // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
 
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.mouseX = x;
             this.mouseY = y;
 
@@ -501,7 +486,7 @@ export default abstract class GameShell {
         } else {
             // custom: touchscreen support
 
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.nextMouseClickX = -1;
             this.nextMouseClickY = -1;
             this.nextMouseClickButton = 0;
@@ -520,7 +505,7 @@ export default abstract class GameShell {
 
     private onpointerleave(e: PointerEvent) {
         if (e.pointerType === 'mouse') {
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.mouseX = -1;
             this.mouseY = -1;
 
@@ -535,7 +520,7 @@ export default abstract class GameShell {
             this.mouseButton = 0;
         } else {
             // custom: touchscreen support
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
 
             // release all arrow keys
             this.keyHeld[1] = 0;
@@ -553,7 +538,7 @@ export default abstract class GameShell {
         const { x, y } = this.getMousePos(e);
 
         if (e.pointerType === 'mouse') {
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.mouseX = x;
             this.mouseY = y;
 
@@ -562,7 +547,7 @@ export default abstract class GameShell {
             }
         } else {
             // custom: touchscreen support
-            this.idleCycles = performance.now();
+            this.idleCycle = performance.now();
             this.mouseX = x;
             this.mouseY = y;
 
@@ -623,7 +608,7 @@ export default abstract class GameShell {
     }
 
     private onkeydown(e: KeyboardEvent) {
-        this.idleCycles = performance.now();
+        this.idleCycle = performance.now();
 
         const keyCode = KeyCodes.get(e.key);
         if (!keyCode || (e.code.length === 0 && !e.isTrusted)) {
@@ -665,7 +650,7 @@ export default abstract class GameShell {
             this.refresh();
         }
 
-        this.idleCycles = performance.now();
+        this.idleCycle = performance.now();
 
         const keyCode = KeyCodes.get(e.key);
         if (!keyCode || (e.code.length === 0 && !e.isTrusted)) {
