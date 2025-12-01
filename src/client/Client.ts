@@ -515,6 +515,7 @@ export class Client extends GameShell {
     mouseTrackedX: number = 0;
     mouseTrackedY: number = 0;
     mouseTrackedDelta: number = 0;
+    friendListStatus: number = 0;
 
     // ----
 
@@ -1561,7 +1562,7 @@ export class Client extends GameShell {
                 }
 
                 this.locChanges = new LinkList();
-                // this.friendListStatus = 0;
+                this.friendListStatus = 0;
                 this.friendCount = 0;
                 this.tutLayerId = -1;
                 this.chatLayerId = -1;
@@ -6776,6 +6777,14 @@ export class Client extends GameShell {
                 return true;
             }
 
+            if (this.ptype === ServerProt.FRIENDLIST_LOADED) {
+                this.friendListStatus = this.in.g1();
+                this.redrawSidebar = true;
+
+                this.ptype = -1;
+                return true;
+            }
+
             if (this.ptype === ServerProt.UPDATE_FRIENDLIST) {
                 const username: bigint = this.in.g8();
                 const world: number = this.in.g1();
@@ -10397,27 +10406,48 @@ export class Client extends GameShell {
         let clientCode: number = com.clientCode;
 
         if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_END) || (clientCode >= 701 && clientCode <= 800)) {
-            if (clientCode > 700) {
-                clientCode -= 601;
-            } else {
-                clientCode--;
-            }
-
-            if (clientCode >= this.friendCount) {
-                com.text = '';
+            if (clientCode === ClientCode.CC_FRIENDS_START && this.friendListStatus === 0) {
+                com.text = 'Loading friend list';
+                com.buttonType = 0;
+            } else if (clientCode === ClientCode.CC_FRIENDS_START && this.friendListStatus === 1) {
+                com.text = 'Connecting to friendserver';
+                com.buttonType = 0;
+            } else if (clientCode === 2 && this.friendListStatus !== 2) {
+                com.text = 'Please wait...';
                 com.buttonType = 0;
             } else {
-                com.text = this.friendName[clientCode];
-                com.buttonType = 1;
+                let count = this.friendCount;
+                if (this.friendListStatus != 2) {
+                    count = 0;
+                }
+
+                if (clientCode > 700) {
+                    clientCode -= 601;
+                } else {
+                    clientCode--;
+                }
+
+                if (clientCode >= count) {
+                    com.text = '';
+                    com.buttonType = 0;
+                } else {
+                    com.text = this.friendName[clientCode];
+                    com.buttonType = 1;
+                }
             }
         } else if ((clientCode >= ClientCode.CC_FRIENDS_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS_UPDATE_END) || (clientCode >= 801 && clientCode <= 900)) {
+            let count = this.friendCount;
+            if (this.friendListStatus != 2) {
+                count = 0;
+            }
+
             if (clientCode > 800) {
                 clientCode -= 701;
             } else {
                 clientCode -= 101;
             }
 
-            if (clientCode >= this.friendCount) {
+            if (clientCode >= count) {
                 com.text = '';
                 com.buttonType = 0;
             } else {
@@ -10432,7 +10462,12 @@ export class Client extends GameShell {
                 com.buttonType = 1;
             }
         } else if (clientCode === ClientCode.CC_FRIENDS_SIZE) {
-            com.scrollSize = this.friendCount * 15 + 20;
+            let count = this.friendCount;
+            if (this.friendListStatus != 2) {
+                count = 0;
+            }
+
+            com.scrollSize = count * 15 + 20;
 
             if (com.scrollSize <= com.height) {
                 com.scrollSize = com.height + 1;
@@ -10620,21 +10655,25 @@ export class Client extends GameShell {
     private handleInterfaceAction(com: IfType): boolean {
         const clientCode: number = com.clientCode;
 
-        if (clientCode === ClientCode.CC_ADD_FRIEND) {
-            this.redrawChatback = true;
-            this.chatbackInputOpen = false;
-            this.showSocialInput = true;
-            this.socialInput = '';
-            this.socialInputType = 1;
-            this.socialMessage = 'Enter name of friend to add to list';
-        } else if (clientCode === ClientCode.CC_DEL_FRIEND) {
-            this.redrawChatback = true;
-            this.chatbackInputOpen = false;
-            this.showSocialInput = true;
-            this.socialInput = '';
-            this.socialInputType = 2;
-            this.socialMessage = 'Enter name of friend to delete from list';
-        } else if (clientCode === ClientCode.CC_LOGOUT) {
+        if (this.friendListStatus === 2) {
+            if (clientCode === ClientCode.CC_ADD_FRIEND) {
+                this.redrawChatback = true;
+                this.chatbackInputOpen = false;
+                this.showSocialInput = true;
+                this.socialInput = '';
+                this.socialInputType = 1;
+                this.socialMessage = 'Enter name of friend to add to list';
+            } else if (clientCode === ClientCode.CC_DEL_FRIEND) {
+                this.redrawChatback = true;
+                this.chatbackInputOpen = false;
+                this.showSocialInput = true;
+                this.socialInput = '';
+                this.socialInputType = 2;
+                this.socialMessage = 'Enter name of friend to delete from list';
+            }
+        }
+
+        if (clientCode === ClientCode.CC_LOGOUT) {
             this.pendingLogout = 250;
             return true;
         } else if (clientCode === ClientCode.CC_ADD_IGNORE) {
