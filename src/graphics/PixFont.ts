@@ -20,6 +20,7 @@ export default class PixFont extends DoublyLinkable {
     readonly charAdvance: Int32Array = new Int32Array(95);
     readonly drawWidth: Int32Array = new Int32Array(256);
     private readonly random: JavaRandom = new JavaRandom(BigInt(Date.now()));
+    strikeout: boolean = false;
     height2d: number = 0;
 
     static {
@@ -146,11 +147,17 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
+        this.strikeout = false;
+        const startX = x;
+
         const length: number = str.length;
         y -= this.height2d;
         for (let i: number = 0; i < length; i++) {
             if (str.charAt(i) === '@' && i + 4 < length && str.charAt(i + 4) === '@') {
-                color = this.evaluateTag(str.substring(i + 1, i + 4));
+                const tag = this.evaluateTag(str.substring(i + 1, i + 4));
+                if (tag !== -1) {
+                    color = tag;
+                }
                 i += 4;
             } else {
                 const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
@@ -164,6 +171,10 @@ export default class PixFont extends DoublyLinkable {
 
                 x += this.charAdvance[c];
             }
+        }
+
+        if (this.strikeout) {
+            Pix2D.hline(startX, y + ((this.height2d * 0.7) | 0), Colors.DARKRED, x - startX);
         }
     }
 
@@ -213,7 +224,10 @@ export default class PixFont extends DoublyLinkable {
         const offY: number = y - this.height2d;
         for (let i: number = 0; i < str.length; i++) {
             if (str.charAt(i) === '@' && i + 4 < str.length && str.charAt(i + 4) === '@') {
-                color = this.evaluateTag(str.substring(i + 1, i + 4));
+                const tag = this.evaluateTag(str.substring(i + 1, i + 4));
+                if (tag !== -1) {
+                    color = tag;
+                }
                 i += 4;
             } else {
                 const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
@@ -462,7 +476,11 @@ export default class PixFont extends DoublyLinkable {
         } else if (tag === 'gr3') {
             return Colors.GREEN3;
         } else {
-            return Colors.BLACK;
+            if (tag === 'str') {
+                this.strikeout = true;
+            }
+
+            return -1;
         }
     }
 
