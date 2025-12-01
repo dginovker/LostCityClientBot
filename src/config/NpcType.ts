@@ -1,5 +1,3 @@
-import { ConfigType } from '#/config/ConfigType.js';
-
 import LruCache from '#/datastruct/LruCache.js';
 
 import AnimFrame from '#/dash3d/AnimFrame.js';
@@ -10,17 +8,21 @@ import Packet from '#/io/Packet.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 
-export default class NpcType extends ConfigType {
+export default class NpcType {
     static count: number = 0;
     static idx: Int32Array | null = null;
-    static data: Packet | null = null;
+    static dat: Packet | null = null;
     static cache: (NpcType | null)[] | null = null;
     static cachePos: number = 0;
+    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
+
+    id: number = -1;
+
     name: string | null = null;
     desc: string | null = null;
     size: number = 1;
     models: Uint16Array | null = null;
-    heads: Uint16Array | null = null;
+    head: Uint16Array | null = null;
     readyanim: number = -1;
     walkanim: number = -1;
     walkanim_b: number = -1;
@@ -29,9 +31,6 @@ export default class NpcType extends ConfigType {
     recol_s: Uint16Array | null = null;
     recol_d: Uint16Array | null = null;
     op: (string | null)[] | null = null;
-    resizex: number = -1;
-    resizey: number = -1;
-    resizez: number = -1;
     minimap: boolean = true;
     vislevel: number = -1;
     resizeh: number = 128;
@@ -39,12 +38,11 @@ export default class NpcType extends ConfigType {
     alwaysontop: boolean = false;
     headicon: number = -1;
     turnspeed: number = 32;
-    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
     ambient: number = 0;
     contrast: number = 0;
 
     static unpack(config: Jagfile): void {
-        this.data = new Packet(config.read('npc.dat'));
+        this.dat = new Packet(config.read('npc.dat'));
         const idx: Packet = new Packet(config.read('npc.idx'));
 
         this.count = idx.g2();
@@ -58,12 +56,12 @@ export default class NpcType extends ConfigType {
 
         this.cache = new TypedArray1d(20, null);
         for (let id: number = 0; id < 20; id++) {
-            this.cache[id] = new NpcType(-1);
+            this.cache[id] = new NpcType();
         }
     }
 
     static get(id: number): NpcType {
-        if (!this.cache || !this.idx || !this.data) {
+        if (!this.cache || !this.idx || !this.dat) {
             throw new Error();
         }
 
@@ -76,84 +74,93 @@ export default class NpcType extends ConfigType {
 
         this.cachePos = (this.cachePos + 1) % 20;
 
-        const loc: NpcType = (this.cache[this.cachePos] = new NpcType(id));
-        this.data.pos = this.idx[id];
-        loc.decodeType(this.data);
-        return loc;
+        const npc: NpcType = (this.cache[this.cachePos] = new NpcType());
+        this.dat.pos = this.idx[id];
+        npc.id = id;
+        npc.decode(this.dat);
+
+        return npc;
     }
 
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            const count: number = dat.g1();
-            this.models = new Uint16Array(count);
-
-            for (let i: number = 0; i < count; i++) {
-                this.models[i] = dat.g2();
-            }
-        } else if (code === 2) {
-            this.name = dat.gjstr();
-        } else if (code === 3) {
-            this.desc = dat.gjstr();
-        } else if (code === 12) {
-            this.size = dat.g1b();
-        } else if (code === 13) {
-            this.readyanim = dat.g2();
-        } else if (code === 14) {
-            this.walkanim = dat.g2();
-        } else if (code === 17) {
-            this.walkanim = dat.g2();
-            this.walkanim_b = dat.g2();
-            this.walkanim_r = dat.g2();
-            this.walkanim_l = dat.g2();
-        } else if (code >= 30 && code < 40) {
-            if (!this.op) {
-                this.op = new TypedArray1d(5, null);
+    decode(dat: Packet): void {
+        while (true) {
+            const code = dat.g1();
+            if (code === 0) {
+                break;
             }
 
-            this.op[code - 30] = dat.gjstr();
-            if (this.op[code - 30]?.toLowerCase() === 'hidden') {
-                this.op[code - 30] = null;
-            }
-        } else if (code === 40) {
-            const count: number = dat.g1();
-            this.recol_s = new Uint16Array(count);
-            this.recol_d = new Uint16Array(count);
+            if (code === 1) {
+                const count: number = dat.g1();
+                this.models = new Uint16Array(count);
 
-            for (let i: number = 0; i < count; i++) {
-                this.recol_s[i] = dat.g2();
-                this.recol_d[i] = dat.g2();
-            }
-        } else if (code === 60) {
-            const count: number = dat.g1();
-            this.heads = new Uint16Array(count);
+                for (let i: number = 0; i < count; i++) {
+                    this.models[i] = dat.g2();
+                }
+            } else if (code === 2) {
+                this.name = dat.gjstr();
+            } else if (code === 3) {
+                this.desc = dat.gjstr();
+            } else if (code === 12) {
+                this.size = dat.g1b();
+            } else if (code === 13) {
+                this.readyanim = dat.g2();
+            } else if (code === 14) {
+                this.walkanim = dat.g2();
+            } else if (code === 17) {
+                this.walkanim = dat.g2();
+                this.walkanim_b = dat.g2();
+                this.walkanim_r = dat.g2();
+                this.walkanim_l = dat.g2();
+            } else if (code >= 30 && code < 40) {
+                if (!this.op) {
+                    this.op = new TypedArray1d(5, null);
+                }
 
-            for (let i: number = 0; i < count; i++) {
-                this.heads[i] = dat.g2();
+                this.op[code - 30] = dat.gjstr();
+                if (this.op[code - 30]?.toLowerCase() === 'hidden') {
+                    this.op[code - 30] = null;
+                }
+            } else if (code === 40) {
+                const count: number = dat.g1();
+                this.recol_s = new Uint16Array(count);
+                this.recol_d = new Uint16Array(count);
+
+                for (let i: number = 0; i < count; i++) {
+                    this.recol_s[i] = dat.g2();
+                    this.recol_d[i] = dat.g2();
+                }
+            } else if (code === 60) {
+                const count: number = dat.g1();
+                this.head = new Uint16Array(count);
+
+                for (let i: number = 0; i < count; i++) {
+                    this.head[i] = dat.g2();
+                }
+            } else if (code === 90) {
+                dat.pos += 2;
+            } else if (code === 91) {
+                dat.pos += 2;
+            } else if (code === 92) {
+                dat.pos += 2;
+            } else if (code === 93) {
+                this.minimap = false;
+            } else if (code === 95) {
+                this.vislevel = dat.g2();
+            } else if (code === 97) {
+                this.resizeh = dat.g2();
+            } else if (code === 98) {
+                this.resizev = dat.g2();
+            } else if (code === 99) {
+                this.alwaysontop = true;
+            } else if (code === 100) {
+                this.ambient = dat.g1b();
+            } else if (code === 101) {
+                this.contrast = dat.g1b() * 5;
+            } else if (code === 102) {
+                this.headicon = dat.g2();
+            } else if (code === 103) {
+                this.turnspeed = dat.g2();
             }
-        } else if (code === 90) {
-            this.resizex = dat.g2();
-        } else if (code === 91) {
-            this.resizey = dat.g2();
-        } else if (code === 92) {
-            this.resizez = dat.g2();
-        } else if (code === 93) {
-            this.minimap = false;
-        } else if (code === 95) {
-            this.vislevel = dat.g2();
-        } else if (code === 97) {
-            this.resizeh = dat.g2();
-        } else if (code === 98) {
-            this.resizev = dat.g2();
-        } else if (code === 99) {
-            this.alwaysontop = true;
-        } else if (code === 100) {
-            this.ambient = dat.g1b();
-        } else if (code === 101) {
-            this.contrast = dat.g1b() * 5;
-        } else if (code === 102) {
-            this.headicon = dat.g2();
-        } else if (code === 103) {
-            this.turnspeed = dat.g2();
         }
     }
 
@@ -230,13 +237,13 @@ export default class NpcType extends ConfigType {
 
     // jag::oldscape::configdecoder::NpcType::GetHead
     getHead(): Model | null {
-        if (!this.heads) {
+        if (!this.head) {
             return null;
         }
 
         let exists = false;
-        for (let i = 0; i < this.heads.length; i++) {
-            if (!Model.requestDownload(this.heads[i])) {
+        for (let i = 0; i < this.head.length; i++) {
+            if (!Model.requestDownload(this.head[i])) {
                 exists = true;
             }
         }
@@ -244,9 +251,9 @@ export default class NpcType extends ConfigType {
             return null;
         }
 
-        const models: (Model | null)[] = new TypedArray1d(this.heads.length, null);
-        for (let i: number = 0; i < this.heads.length; i++) {
-            models[i] = Model.load(this.heads[i]);
+        const models: (Model | null)[] = new TypedArray1d(this.head.length, null);
+        for (let i: number = 0; i < this.head.length; i++) {
+            models[i] = Model.load(this.head[i]);
         }
 
         let model: Model | null;

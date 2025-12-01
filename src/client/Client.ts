@@ -943,7 +943,7 @@ export class Client extends GameShell {
                 let right: number = 0;
 
                 for (let x: number = 0; x < 34; x++) {
-                    if (this.imageMapback.pixels[x + y * this.imageMapback.wi] === 0) {
+                    if (this.imageMapback.data[x + y * this.imageMapback.wi] === 0) {
                         if (left === 999) {
                             left = x;
                         }
@@ -962,7 +962,7 @@ export class Client extends GameShell {
                 let right: number = 0;
 
                 for (let x: number = 25; x < 172; x++) {
-                    if (this.imageMapback.pixels[x + y * this.imageMapback.wi] === 0 && (x > 34 || y > 34)) {
+                    if (this.imageMapback.data[x + y * this.imageMapback.wi] === 0 && (x > 34 || y > 34)) {
                         if (left === 999) {
                             left = x;
                         }
@@ -2395,7 +2395,7 @@ export class Client extends GameShell {
             return;
         }
 
-        const pixels: Int32Array = this.imageMinimap.pixels;
+        const pixels: Int32Array = this.imageMinimap.data;
         const length: number = pixels.length;
         for (let i: number = 0; i < length; i++) {
             pixels[i] = 0;
@@ -4292,8 +4292,8 @@ export class Client extends GameShell {
         this.imageFlamesLeft = new Pix32(128, 265);
         this.imageFlamesRight = new Pix32(128, 265);
 
-        if (this.imageTitle0) arraycopy(this.imageTitle0.data, 0, this.imageFlamesLeft.pixels, 0, 33920);
-        if (this.imageTitle1) arraycopy(this.imageTitle1.data, 0, this.imageFlamesRight.pixels, 0, 33920);
+        if (this.imageTitle0) arraycopy(this.imageTitle0.data, 0, this.imageFlamesLeft.data, 0, 33920);
+        if (this.imageTitle1) arraycopy(this.imageTitle1.data, 0, this.imageFlamesRight.data, 0, 33920);
 
         this.flameGradient0 = new Int32Array(256);
         for (let index: number = 0; index < 64; index++) {
@@ -5397,13 +5397,13 @@ export class Client extends GameShell {
                 const bottom: number = texture.wi * texture.hi - 1;
                 const adjustment: number = texture.wi * this.sceneDelta * 2;
 
-                const src: Int8Array = texture.pixels;
+                const src: Int8Array = texture.data;
                 const dst: Int8Array = this.textureBuffer;
                 for (let i: number = 0; i <= bottom; i++) {
                     dst[i] = src[(i - adjustment) & bottom];
                 }
 
-                texture.pixels = dst;
+                texture.data = dst;
                 this.textureBuffer = src;
                 Pix3D.pushTexture(17);
             }
@@ -5416,13 +5416,13 @@ export class Client extends GameShell {
                 const bottom: number = texture.wi * texture.hi - 1;
                 const adjustment: number = texture.wi * this.sceneDelta * 2;
 
-                const src: Int8Array = texture.pixels;
+                const src: Int8Array = texture.data;
                 const dst: Int8Array = this.textureBuffer;
                 for (let i: number = 0; i <= bottom; i++) {
                     dst[i] = src[(i - adjustment) & bottom];
                 }
 
-                texture.pixels = dst;
+                texture.data = dst;
                 this.textureBuffer = src;
                 Pix3D.pushTexture(24);
             }
@@ -5671,7 +5671,7 @@ export class Client extends GameShell {
                 rgb = doorRgb;
             }
 
-            const dst: Int32Array = this.imageMinimap.pixels;
+            const dst: Int32Array = this.imageMinimap.data;
             const offset: number = tileX * 4 + (103 - tileZ) * 512 * 4 + 24624;
             const locId: number = (typecode >> 14) & 0x7fff;
 
@@ -5761,7 +5761,7 @@ export class Client extends GameShell {
                         rgb = 0xee0000;
                     }
 
-                    const dst: Int32Array = this.imageMinimap.pixels;
+                    const dst: Int32Array = this.imageMinimap.data;
                     const offset: number = tileX * 4 + (CollisionConstants.SIZE - 1 - tileZ) * 512 * 4 + 24624;
 
                     if (angle === LocAngle.WEST || angle === LocAngle.EAST) {
@@ -11438,7 +11438,7 @@ export class Client extends GameShell {
 
             for (let y: number = 0; y < image.hi; y++) {
                 for (let x: number = 0; x < image.wi; x++) {
-                    if (image.pixels[off++] !== 0) {
+                    if (image.data[off++] !== 0) {
                         const x0: number = x + image.xof + 16;
                         const y0: number = y + image.yof + 16;
                         const index: number = x0 + (y0 << 7);
@@ -11485,7 +11485,7 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < 33920; i++) {
-            if (this.imageTitle0 && this.imageFlamesLeft) this.imageTitle0.data[i] = this.imageFlamesLeft.pixels[i];
+            if (this.imageTitle0 && this.imageFlamesLeft) this.imageTitle0.data[i] = this.imageFlamesLeft.data[i];
         }
 
         let srcOffset: number = 0;
@@ -11523,7 +11523,7 @@ export class Client extends GameShell {
 
         for (let i: number = 0; i < 33920; i++) {
             if (this.imageTitle1 && this.imageFlamesRight) {
-                this.imageTitle1.data[i] = this.imageFlamesRight.pixels[i];
+                this.imageTitle1.data[i] = this.imageFlamesRight.data[i];
             }
         }
 

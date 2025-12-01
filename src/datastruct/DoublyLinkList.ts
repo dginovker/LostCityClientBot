@@ -39,7 +39,7 @@ export default class DoublyLinkList {
             return null;
         }
 
-        this.cursor = node?.next2 || null;
+        this.cursor = node?.next2 ?? null;
         return node;
     }
 
@@ -50,7 +50,7 @@ export default class DoublyLinkList {
             return null;
         }
 
-        this.cursor = node?.next2 || null;
+        this.cursor = node?.next2 ?? null;
         return node;
     }
 

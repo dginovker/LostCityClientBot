@@ -7,6 +7,7 @@ export default class HashTable {
     constructor(size: number) {
         this.buckets = new Array(size);
         this.bucketCount = size;
+
         for (let i: number = 0; i < size; i++) {
             const sentinel = (this.buckets[i] = new Linkable());
             sentinel.next = sentinel;
@@ -18,10 +19,7 @@ export default class HashTable {
         const start: Linkable = this.buckets[Number(key & BigInt(this.bucketCount - 1))];
 
         for (let node: Linkable | null = start.next; node !== start; node = node?.next ?? null) {
-            if (!node) {
-                continue;
-            }
-            if (node.key === key) {
+            if (node && node.key === key) {
                 return node;
             }
         }

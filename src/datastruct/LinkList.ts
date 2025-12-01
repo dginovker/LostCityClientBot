@@ -52,7 +52,7 @@ export default class LinkList {
             return null;
         }
 
-        this.cursor = node?.next || null;
+        this.cursor = node?.next ?? null;
         return node;
     }
 
@@ -63,7 +63,7 @@ export default class LinkList {
             return null;
         }
 
-        this.cursor = node?.prev || null;
+        this.cursor = node?.prev ?? null;
         return node;
     }
 
@@ -74,7 +74,7 @@ export default class LinkList {
             return null;
         }
 
-        this.cursor = node?.next || null;
+        this.cursor = node?.next ?? null;
         return node;
     }
 
@@ -85,7 +85,7 @@ export default class LinkList {
             return null;
         }
 
-        this.cursor = node?.prev || null;
+        this.cursor = node?.prev ?? null;
         return node;
     }
 

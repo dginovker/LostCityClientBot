@@ -1,5 +1,3 @@
-import { ConfigType } from '#/config/ConfigType.js';
-
 import LruCache from '#/datastruct/LruCache.js';
 
 import Jagfile from '#/io/Jagfile.js';
@@ -13,13 +11,18 @@ import Pix32 from '#/graphics/Pix32.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 
-export default class ObjType extends ConfigType {
+export default class ObjType {
     static count: number = 0;
     static idx: Int32Array | null = null;
-    static data: Packet | null = null;
+    static dat: Packet | null = null;
     static cache: (ObjType | null)[] | null = null;
     static cachePos: number = 0;
     static membersWorld: boolean = true;
+    static modelCache: LruCache | null = new LruCache(50);
+    static spriteCache: LruCache | null = new LruCache(200);
+
+    id: number = -1;
+
     model: number = 0;
     name: string | null = null; // jag::game::ObjType::GetName
     desc: string | null = null;
@@ -31,12 +34,9 @@ export default class ObjType extends ConfigType {
     zan2d: number = 0;
     xof2d: number = 0;
     yof2d: number = 0;
-    code10: number = -1;
     stackable: boolean = false;
     cost: number = 1;
     members: boolean = false;
-    static modelCache: LruCache | null = new LruCache(50);
-    static spriteCache: LruCache | null = new LruCache(200);
     manwearOffsetY: number = 0;
     womanwearOffsetY: number = 0;
     manwear: number = -1;
@@ -64,7 +64,7 @@ export default class ObjType extends ConfigType {
     static unpack(config: Jagfile, members: boolean): void {
         this.membersWorld = members;
 
-        this.data = new Packet(config.read('obj.dat'));
+        this.dat = new Packet(config.read('obj.dat'));
         const idx: Packet = new Packet(config.read('obj.idx'));
 
         this.count = idx.g2();
@@ -78,12 +78,12 @@ export default class ObjType extends ConfigType {
 
         this.cache = new TypedArray1d(10, null);
         for (let id: number = 0; id < 10; id++) {
-            this.cache[id] = new ObjType(-1);
+            this.cache[id] = new ObjType();
         }
     }
 
     static get(id: number): ObjType {
-        if (!this.cache || !this.idx || !this.data) {
+        if (!this.cache || !this.idx || !this.dat) {
             throw new Error();
         }
 
@@ -97,10 +97,10 @@ export default class ObjType extends ConfigType {
         this.cachePos = (this.cachePos + 1) % 10;
 
         const obj: ObjType = this.cache[this.cachePos]!;
-        this.data.pos = this.idx[id];
+        this.dat.pos = this.idx[id];
         obj.id = id;
         obj.reset();
-        obj.decodeType(this.data);
+        obj.decode(this.dat);
 
         if (obj.certtemplate !== -1) {
             obj.genCert();
@@ -128,7 +128,6 @@ export default class ObjType extends ConfigType {
         this.zan2d = 0;
         this.xof2d = 0;
         this.yof2d = 0;
-        this.code10 = -1;
         this.stackable = false;
         this.cost = 1;
         this.members = false;
@@ -157,106 +156,113 @@ export default class ObjType extends ConfigType {
         this.contrast = 0;
     }
 
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            this.model = dat.g2();
-        } else if (code === 2) {
-            this.name = dat.gjstr();
-        } else if (code === 3) {
-            this.desc = dat.gjstr();
-        } else if (code === 4) {
-            this.zoom2d = dat.g2();
-        } else if (code === 5) {
-            this.xan2d = dat.g2();
-        } else if (code === 6) {
-            this.yan2d = dat.g2();
-        } else if (code === 7) {
-            this.xof2d = dat.g2b();
-            if (this.xof2d > 32767) {
-                this.xof2d -= 65536;
-            }
-        } else if (code === 8) {
-            this.yof2d = dat.g2b();
-            if (this.yof2d > 32767) {
-                this.yof2d -= 65536;
-            }
-        } else if (code === 10) {
-            this.code10 = dat.g2();
-        } else if (code === 11) {
-            this.stackable = true;
-        } else if (code === 12) {
-            this.cost = dat.g4();
-        } else if (code === 16) {
-            this.members = true;
-        } else if (code === 23) {
-            this.manwear = dat.g2();
-            this.manwearOffsetY = dat.g1b();
-        } else if (code === 24) {
-            this.manwear2 = dat.g2();
-        } else if (code === 25) {
-            this.womanwear = dat.g2();
-            this.womanwearOffsetY = dat.g1b();
-        } else if (code === 26) {
-            this.womanwear2 = dat.g2();
-        } else if (code >= 30 && code < 35) {
-            if (!this.op) {
-                this.op = new TypedArray1d(5, null);
+    decode(dat: Packet): void {
+        while (true) {
+            const code = dat.g1();
+            if (code === 0) {
+                break;
             }
 
-            this.op[code - 30] = dat.gjstr();
-            if (this.op[code - 30]?.toLowerCase() === 'hidden') {
-                this.op[code - 30] = null;
-            }
-        } else if (code >= 35 && code < 40) {
-            if (!this.iop) {
-                this.iop = new TypedArray1d(5, null);
-            }
-            this.iop[code - 35] = dat.gjstr();
-        } else if (code === 40) {
-            const count: number = dat.g1();
-            this.recol_s = new Uint16Array(count);
-            this.recol_d = new Uint16Array(count);
+            if (code === 1) {
+                this.model = dat.g2();
+            } else if (code === 2) {
+                this.name = dat.gjstr();
+            } else if (code === 3) {
+                this.desc = dat.gjstr();
+            } else if (code === 4) {
+                this.zoom2d = dat.g2();
+            } else if (code === 5) {
+                this.xan2d = dat.g2();
+            } else if (code === 6) {
+                this.yan2d = dat.g2();
+            } else if (code === 7) {
+                this.xof2d = dat.g2b();
+                if (this.xof2d > 32767) {
+                    this.xof2d -= 65536;
+                }
+            } else if (code === 8) {
+                this.yof2d = dat.g2b();
+                if (this.yof2d > 32767) {
+                    this.yof2d -= 65536;
+                }
+            } else if (code === 10) {
+                dat.pos += 2;
+            } else if (code === 11) {
+                this.stackable = true;
+            } else if (code === 12) {
+                this.cost = dat.g4();
+            } else if (code === 16) {
+                this.members = true;
+            } else if (code === 23) {
+                this.manwear = dat.g2();
+                this.manwearOffsetY = dat.g1b();
+            } else if (code === 24) {
+                this.manwear2 = dat.g2();
+            } else if (code === 25) {
+                this.womanwear = dat.g2();
+                this.womanwearOffsetY = dat.g1b();
+            } else if (code === 26) {
+                this.womanwear2 = dat.g2();
+            } else if (code >= 30 && code < 35) {
+                if (!this.op) {
+                    this.op = new TypedArray1d(5, null);
+                }
 
-            for (let i: number = 0; i < count; i++) {
-                this.recol_s[i] = dat.g2();
-                this.recol_d[i] = dat.g2();
-            }
-        } else if (code === 78) {
-            this.manwear3 = dat.g2();
-        } else if (code === 79) {
-            this.womanwear3 = dat.g2();
-        } else if (code === 90) {
-            this.manhead = dat.g2();
-        } else if (code === 91) {
-            this.womanhead = dat.g2();
-        } else if (code === 92) {
-            this.manhead2 = dat.g2();
-        } else if (code === 93) {
-            this.womanhead2 = dat.g2();
-        } else if (code === 95) {
-            this.zan2d = dat.g2();
-        } else if (code === 97) {
-            this.certlink = dat.g2();
-        } else if (code === 98) {
-            this.certtemplate = dat.g2();
-        } else if (code >= 100 && code < 110) {
-            if (!this.countobj || !this.countco) {
-                this.countobj = new Uint16Array(10);
-                this.countco = new Uint16Array(10);
-            }
+                this.op[code - 30] = dat.gjstr();
+                if (this.op[code - 30]?.toLowerCase() === 'hidden') {
+                    this.op[code - 30] = null;
+                }
+            } else if (code >= 35 && code < 40) {
+                if (!this.iop) {
+                    this.iop = new TypedArray1d(5, null);
+                }
+                this.iop[code - 35] = dat.gjstr();
+            } else if (code === 40) {
+                const count: number = dat.g1();
+                this.recol_s = new Uint16Array(count);
+                this.recol_d = new Uint16Array(count);
 
-            this.countobj[code - 100] = dat.g2();
-            this.countco[code - 100] = dat.g2();
-        } else if (code === 110) {
-            this.resizex = dat.g2();
-        } else if (code === 111) {
-            this.resizey = dat.g2();
-        } else if (code === 112) {
-            this.resizez = dat.g2();
-        } else if (code === 113) {
-            this.ambient = dat.g1b();
-        } else if (code === 114) {
-            this.contrast = dat.g1b() * 5;
+                for (let i: number = 0; i < count; i++) {
+                    this.recol_s[i] = dat.g2();
+                    this.recol_d[i] = dat.g2();
+                }
+            } else if (code === 78) {
+                this.manwear3 = dat.g2();
+            } else if (code === 79) {
+                this.womanwear3 = dat.g2();
+            } else if (code === 90) {
+                this.manhead = dat.g2();
+            } else if (code === 91) {
+                this.womanhead = dat.g2();
+            } else if (code === 92) {
+                this.manhead2 = dat.g2();
+            } else if (code === 93) {
+                this.womanhead2 = dat.g2();
+            } else if (code === 95) {
+                this.zan2d = dat.g2();
+            } else if (code === 97) {
+                this.certlink = dat.g2();
+            } else if (code === 98) {
+                this.certtemplate = dat.g2();
+            } else if (code >= 100 && code < 110) {
+                if (!this.countobj || !this.countco) {
+                    this.countobj = new Uint16Array(10);
+                    this.countco = new Uint16Array(10);
+                }
+
+                this.countobj[code - 100] = dat.g2();
+                this.countco[code - 100] = dat.g2();
+            } else if (code === 110) {
+                this.resizex = dat.g2();
+            } else if (code === 111) {
+                this.resizey = dat.g2();
+            } else if (code === 112) {
+                this.resizez = dat.g2();
+            } else if (code === 113) {
+                this.ambient = dat.g1b();
+            } else if (code === 114) {
+                this.contrast = dat.g1b() * 5;
+            }
         }
     }
 
@@ -426,7 +432,7 @@ export default class ObjType extends ConfigType {
         const _b: number = Pix2D.boundBottom;
 
         Pix3D.lowDetail = false;
-        Pix2D.setPixels(icon.pixels, 32, 32);
+        Pix2D.setPixels(icon.data, 32, 32);
         Pix2D.fillRect(0, 0, 32, 32, Colors.BLACK);
         Pix3D.init();
 
@@ -445,18 +451,18 @@ export default class ObjType extends ConfigType {
         // add outline
         for (let x: number = 31; x >= 0; x--) {
             for (let y: number = 31; y >= 0; y--) {
-                if (icon.pixels[x + y * 32] !== 0) {
+                if (icon.data[x + y * 32] !== 0) {
                     continue;
                 }
 
-                if (x > 0 && icon.pixels[x + y * 32 - 1] > 1) {
-                    icon.pixels[x + y * 32] = 1;
-                } else if (y > 0 && icon.pixels[x + (y - 1) * 32] > 1) {
-                    icon.pixels[x + y * 32] = 1;
-                } else if (x < 31 && icon.pixels[x + y * 32 + 1] > 1) {
-                    icon.pixels[x + y * 32] = 1;
-                } else if (y < 31 && icon.pixels[x + (y + 1) * 32] > 1) {
-                    icon.pixels[x + y * 32] = 1;
+                if (x > 0 && icon.data[x + y * 32 - 1] > 1) {
+                    icon.data[x + y * 32] = 1;
+                } else if (y > 0 && icon.data[x + (y - 1) * 32] > 1) {
+                    icon.data[x + y * 32] = 1;
+                } else if (x < 31 && icon.data[x + y * 32 + 1] > 1) {
+                    icon.data[x + y * 32] = 1;
+                } else if (y < 31 && icon.data[x + (y + 1) * 32] > 1) {
+                    icon.data[x + y * 32] = 1;
                 }
             }
         }
@@ -465,18 +471,18 @@ export default class ObjType extends ConfigType {
             // add outline
             for (let x: number = 31; x >= 0; x--) {
                 for (let y: number = 31; y >= 0; y--) {
-                    if (icon.pixels[x + y * 32] !== 0) {
+                    if (icon.data[x + y * 32] !== 0) {
                         continue;
                     }
 
-                    if (x > 0 && icon.pixels[x + y * 32 - 1] === 1) {
-                        icon.pixels[x + y * 32] = outlineRgb;
-                    } else if (y > 0 && icon.pixels[x + (y - 1) * 32] === 1) {
-                        icon.pixels[x + y * 32] = outlineRgb;
-                    } else if (x < 31 && icon.pixels[x + y * 32 + 1] === 1) {
-                        icon.pixels[x + y * 32] = outlineRgb;
-                    } else if (y < 31 && icon.pixels[x + (y + 1) * 32] === 1) {
-                        icon.pixels[x + y * 32] = outlineRgb;
+                    if (x > 0 && icon.data[x + y * 32 - 1] === 1) {
+                        icon.data[x + y * 32] = outlineRgb;
+                    } else if (y > 0 && icon.data[x + (y - 1) * 32] === 1) {
+                        icon.data[x + y * 32] = outlineRgb;
+                    } else if (x < 31 && icon.data[x + y * 32 + 1] === 1) {
+                        icon.data[x + y * 32] = outlineRgb;
+                    } else if (y < 31 && icon.data[x + (y + 1) * 32] === 1) {
+                        icon.data[x + y * 32] = outlineRgb;
                     }
                 }
             }
@@ -484,8 +490,8 @@ export default class ObjType extends ConfigType {
             // add shadow
             for (let x: number = 31; x >= 0; x--) {
                 for (let y: number = 31; y >= 0; y--) {
-                    if (icon.pixels[x + y * 32] === 0 && x > 0 && y > 0 && icon.pixels[x + (y - 1) * 32 - 1] > 0) {
-                        icon.pixels[x + y * 32] = 3153952;
+                    if (icon.data[x + y * 32] === 0 && x > 0 && y > 0 && icon.data[x + (y - 1) * 32 - 1] > 0) {
+                        icon.data[x + y * 32] = 3153952;
                     }
                 }
             }

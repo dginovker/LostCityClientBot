@@ -1,4 +1,3 @@
-import { ConfigType } from '#/config/ConfigType.js';
 import SeqType from '#/config/SeqType.js';
 
 import LruCache from '#/datastruct/LruCache.js';
@@ -8,9 +7,12 @@ import Model from '#/dash3d/Model.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
-export default class SpotAnimType extends ConfigType {
+export default class SpotAnimType {
     static count: number = 0;
     static list: SpotAnimType[] = [];
+    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
+
+    id: number = 0;
 
     model: number = 0;
     anim: number = -1;
@@ -22,42 +24,56 @@ export default class SpotAnimType extends ConfigType {
     angle: number = 0;
     ambient: number = 0;
     contrast: number = 0;
-    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
 
     static unpack(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('spotanim.dat'));
+
         this.count = dat.g2();
-        for (let i: number = 0; i < this.count; i++) {
-            this.list[i] = new SpotAnimType(i).decodeType(dat);
+        this.list = new Array(this.count);
+
+        for (let id: number = 0; id < this.count; id++) {
+            if (!this.list[id]) {
+                this.list[id] = new SpotAnimType();
+            }
+
+            this.list[id].id = id;
+            this.list[id].decode(dat);
         }
     }
 
     // jag::oldscape::configdecoder::SpotType::Decode
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            this.model = dat.g2();
-        } else if (code === 2) {
-            this.anim = dat.g2();
-
-            if (SeqType.list) {
-                this.seq = SeqType.list[this.anim];
+    decode(dat: Packet): void {
+        while (true) {
+            const code = 0;
+            if (code === 0) {
+                break;
             }
-        } else if (code === 4) {
-            this.resizeh = dat.g2();
-        } else if (code === 5) {
-            this.resizev = dat.g2();
-        } else if (code === 6) {
-            this.angle = dat.g2();
-        } else if (code === 7) {
-            this.ambient = dat.g1();
-        } else if (code === 8) {
-            this.contrast = dat.g1();
-        } else if (code >= 40 && code < 50) {
-            this.recol_s[code - 40] = dat.g2();
-        } else if (code >= 50 && code < 60) {
-            this.recol_d[code - 50] = dat.g2();
-        } else {
-            console.log('Error unrecognised spotanim config code: ', code);
+
+            if (code === 1) {
+                this.model = dat.g2();
+            } else if (code === 2) {
+                this.anim = dat.g2();
+
+                if (SeqType.list) {
+                    this.seq = SeqType.list[this.anim];
+                }
+            } else if (code === 4) {
+                this.resizeh = dat.g2();
+            } else if (code === 5) {
+                this.resizev = dat.g2();
+            } else if (code === 6) {
+                this.angle = dat.g2();
+            } else if (code === 7) {
+                this.ambient = dat.g1();
+            } else if (code === 8) {
+                this.contrast = dat.g1();
+            } else if (code >= 40 && code < 50) {
+                this.recol_s[code - 40] = dat.g2();
+            } else if (code >= 50 && code < 60) {
+                this.recol_d[code - 50] = dat.g2();
+            } else {
+                console.log('Error unrecognised spotanim config code: ', code);
+            }
         }
     }
 

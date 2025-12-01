@@ -5,19 +5,19 @@ import Packet from '#/io/Packet.js';
 
 // jag::oldscape::graphics::Pix8
 export default class Pix8 extends Pix2D {
-    pixels: Int8Array;
-    wi: number; // jag::oldscape::graphics::pixloader::m_wi
-    hi: number; // jag::oldscape::graphics::pixloader::m_hi
-    xof: number; // jag::oldscape::graphics::pixloader::m_xof
-    yof: number; // jag::oldscape::graphics::pixloader::m_yof
     owi: number; // jag::oldscape::graphics::pixloader::m_owi
     ohi: number; // jag::oldscape::graphics::pixloader::m_ohi
     readonly bpal: Int32Array; // jag::oldscape::graphics::pixloader::m_bpal
+    xof: number; // jag::oldscape::graphics::pixloader::m_xof
+    yof: number; // jag::oldscape::graphics::pixloader::m_yof
+    wi: number; // jag::oldscape::graphics::pixloader::m_wi
+    hi: number; // jag::oldscape::graphics::pixloader::m_hi
+    data: Int8Array;
 
     constructor(width: number, height: number, palette: Int32Array) {
         super();
 
-        this.pixels = new Int8Array(width * height);
+        this.data = new Int8Array(width * height);
         this.wi = this.owi = width;
         this.hi = this.ohi = height;
         this.xof = this.yof = 0;
@@ -28,24 +28,17 @@ export default class Pix8 extends Pix2D {
         const dat: Packet = new Packet(jag.read(name + '.dat'));
         const index: Packet = new Packet(jag.read('index.dat'));
 
-        // cropW/cropH are shared across all sprites in a single image
         index.pos = dat.g2();
         const owi: number = index.g2();
         const ohi: number = index.g2();
 
-        // palette is shared across all images in a single archive
         const bpalCount: number = index.g1();
         const bpal: Int32Array = new Int32Array(bpalCount);
-        // the first color (0) is reserved for transparency
-        for (let i: number = 1; i < bpalCount; i++) {
-            bpal[i] = index.g3();
-            // black (0) will become transparent, make it black (1) so it's visible
-            if (bpal[i] === 0) {
-                bpal[i] = 1;
-            }
+
+        for (let i: number = 0; i < bpalCount - 1; i++) {
+            bpal[i + 1] = index.g3();
         }
 
-        // advance to sprite
         for (let i: number = 0; i < sprite; i++) {
             index.pos += 2;
             dat.pos += index.g2() * index.g2();
@@ -56,7 +49,6 @@ export default class Pix8 extends Pix2D {
             throw new Error();
         }
 
-        // read sprite
         const xof: number = index.g1();
         const yof: number = index.g1();
         const wi: number = index.g2();
@@ -70,16 +62,13 @@ export default class Pix8 extends Pix2D {
 
         const encoding: number = index.g1();
         if (encoding === 0) {
-            const length: number = image.wi * image.hi;
-            for (let i: number = 0; i < length; i++) {
-                image.pixels[i] = dat.g1b();
+            for (let i: number = 0; i < image.wi * image.hi; i++) {
+                image.data[i] = dat.g1b();
             }
         } else if (encoding === 1) {
-            const width: number = image.wi;
-            const height: number = image.hi;
-            for (let x: number = 0; x < width; x++) {
-                for (let y: number = 0; y < height; y++) {
-                    image.pixels[x + y * width] = dat.g1b();
+            for (let x: number = 0; x < image.wi; x++) {
+                for (let y: number = 0; y < image.hi; y++) {
+                    image.data[x + y * image.wi] = dat.g1b();
                 }
             }
         }
@@ -100,10 +89,11 @@ export default class Pix8 extends Pix2D {
         let off: number = 0;
         for (let y: number = 0; y < this.hi; y++) {
             for (let x: number = 0; x < this.wi; x++) {
-                pixels[((x + this.xof) >> 1) + ((y + this.yof) >> 1) * this.owi] = this.pixels[off++];
+                pixels[((x + this.xof) >> 1) + ((y + this.yof) >> 1) * this.owi] = this.data[off++];
             }
         }
-        this.pixels = pixels;
+
+        this.data = pixels;
         this.wi = this.owi;
         this.hi = this.ohi;
         this.xof = 0;
@@ -120,10 +110,11 @@ export default class Pix8 extends Pix2D {
         let off: number = 0;
         for (let y: number = 0; y < this.hi; y++) {
             for (let x: number = 0; x < this.wi; x++) {
-                pixels[x + this.xof + (y + this.yof) * this.owi] = this.pixels[off++];
+                pixels[x + this.xof + (y + this.yof) * this.owi] = this.data[off++];
             }
         }
-        this.pixels = pixels;
+
+        this.data = pixels;
         this.wi = this.owi;
         this.hi = this.ohi;
         this.xof = 0;
@@ -132,7 +123,7 @@ export default class Pix8 extends Pix2D {
 
     // jag::oldscape::graphics::Pix8::HFlip
     hflip(): void {
-        const pixels: Int8Array = this.pixels;
+        const pixels: Int8Array = this.data;
         const width: number = this.wi;
         const height: number = this.hi;
 
@@ -151,7 +142,7 @@ export default class Pix8 extends Pix2D {
 
     // jag::oldscape::graphics::Pix8::VFlip
     vflip(): void {
-        const pixels: Int8Array = this.pixels;
+        const pixels: Int8Array = this.data;
         const width: number = this.wi;
         const height: number = this.hi;
 
@@ -243,7 +234,7 @@ export default class Pix8 extends Pix2D {
         }
 
         if (w > 0 && h > 0) {
-            this.plot(w, h, this.pixels, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
+            this.plot(w, h, this.data, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep);
         }
     }
 
@@ -348,7 +339,7 @@ export default class Pix8 extends Pix2D {
                 arg2 -= local144;
                 local137 += local144;
             }
-            this.plotScale(Pix2D.pixels, this.pixels, this.bpal, local7, local9, local133, local137, arg2, arg3, local33, local39, local2);
+            this.plotScale(Pix2D.pixels, this.data, this.bpal, local7, local9, local133, local137, arg2, arg3, local33, local39, local2);
         } catch (ignore) {
             console.log('error in sprite clipping routine');
         }

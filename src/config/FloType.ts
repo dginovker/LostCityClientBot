@@ -1,9 +1,7 @@
-import { ConfigType } from '#/config/ConfigType.js';
-
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
-export default class FloType extends ConfigType {
+export default class FloType {
     static count: number = 0;
     static list: FloType[] = [];
 
@@ -11,6 +9,8 @@ export default class FloType extends ConfigType {
     texture: number = -1;
     overlay: boolean = false;
     occlude: boolean = true;
+    debugname: string = '';
+
     hue: number = 0;
     saturation: number = 0;
     lightness: number = 0;
@@ -26,27 +26,34 @@ export default class FloType extends ConfigType {
 
         for (let id: number = 0; id < this.count; id++) {
             if (!this.list[id]) {
-                this.list[id] = new FloType(id);
+                this.list[id] = new FloType();
             }
 
-            this.list[id].decodeType(dat);
+            this.list[id].decode(dat);
         }
     }
 
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            this.rgb = dat.g3();
-            this.getHsl(this.rgb);
-        } else if (code === 2) {
-            this.texture = dat.g1();
-        } else if (code === 3) {
-            this.overlay = true;
-        } else if (code === 5) {
-            this.occlude = false;
-        } else if (code === 6) {
-            this.debugname = dat.gjstr();
-        } else {
-            console.log('Error unrecognised config code: ', code);
+    decode(dat: Packet): void {
+        while (true) {
+            const code = dat.g1();
+            if (code === 0) {
+                break;
+            }
+
+            if (code === 1) {
+                this.rgb = dat.g3();
+                this.getHsl(this.rgb);
+            } else if (code === 2) {
+                this.texture = dat.g1();
+            } else if (code === 3) {
+                this.overlay = true;
+            } else if (code === 5) {
+                this.occlude = false;
+            } else if (code === 6) {
+                this.debugname = dat.gjstr();
+            } else {
+                console.log('Error unrecognised config code: ', code);
+            }
         }
     }
 

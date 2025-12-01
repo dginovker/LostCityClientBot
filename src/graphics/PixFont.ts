@@ -20,7 +20,6 @@ export default class PixFont extends DoublyLinkable {
     readonly charAdvance: Int32Array = new Int32Array(95);
     readonly drawWidth: Int32Array = new Int32Array(256);
     private readonly random: JavaRandom = new JavaRandom(BigInt(Date.now()));
-
     height2d: number = 0;
 
     static {
@@ -30,11 +29,12 @@ export default class PixFont extends DoublyLinkable {
             let c: number = PixFont.CHARSET.indexOf(String.fromCharCode(i));
 
             // This fixes text mangling in Capacitor native builds (Android/IOS)
-            if (isCapacitor)
+            if (isCapacitor) {
                 if (c >= 63) {
                     // "
                     c--;
                 }
+            }
 
             if (c === -1) {
                 c = 74; // space

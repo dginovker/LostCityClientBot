@@ -1,9 +1,7 @@
-import { ConfigType } from '#/config/ConfigType.js';
-
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
-export default class VarBitType extends ConfigType {
+export default class VarBitType {
     static count: number = 0;
     static list: VarBitType[] = [];
 
@@ -14,21 +12,39 @@ export default class VarBitType extends ConfigType {
 
     static unpack(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('varbit.dat'));
+
         this.count = dat.g2();
-        for (let i: number = 0; i < this.count; i++) {
-            this.list[i] = new VarBitType(i).decodeType(dat);
+        this.list = new Array(this.count);
+
+        for (let id: number = 0; id < this.count; id++) {
+            if (!this.list[id]) {
+                this.list[id] = new VarBitType();
+            }
+
+            this.list[id].decode(dat);
         }
+
+        if (dat.pos != dat.data.length) {
+			console.log('varbit load mismatch');
+		}
     }
 
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            this.basevar = dat.g2();
-            this.startbit = dat.g1();
-            this.endbit = dat.g1();
-        } else if (code === 10) {
-            this.debugname = dat.gjstr();
-        } else {
-            console.log('Error unrecognised config code: ', code);
+    decode(dat: Packet): void {
+        while (true) {
+            const code = dat.g1();
+            if (code === 0) {
+                break;
+            }
+
+            if (code === 1) {
+                this.basevar = dat.g2();
+                this.startbit = dat.g1();
+                this.endbit = dat.g1();
+            } else if (code === 10) {
+                this.debugname = dat.gjstr();
+            } else {
+                console.log('Error unrecognised config code: ', code);
+            }
         }
     }
 }

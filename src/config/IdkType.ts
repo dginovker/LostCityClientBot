@@ -1,5 +1,3 @@
-import { ConfigType } from '#/config/ConfigType.js';
-
 import Model from '#/dash3d/Model.js';
 
 import Jagfile from '#/io/Jagfile.js';
@@ -7,7 +5,7 @@ import Packet from '#/io/Packet.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 
-export default class IdkType extends ConfigType {
+export default class IdkType {
     static count: number = 0;
     static list: IdkType[] = [];
 
@@ -26,33 +24,40 @@ export default class IdkType extends ConfigType {
 
         for (let id: number = 0; id < this.count; id++) {
             if (!this.list[id]) {
-                this.list[id] = new IdkType(id);
+                this.list[id] = new IdkType();
             }
 
-            this.list[id].decodeType(dat);
+            this.list[id].decode(dat);
         }
     }
 
-    decode(code: number, dat: Packet): void {
-        if (code === 1) {
-            this.type = dat.g1();
-        } else if (code === 2) {
-            const count: number = dat.g1();
-            this.models = new Int32Array(count);
-
-            for (let i: number = 0; i < count; i++) {
-                this.models[i] = dat.g2();
+    decode(dat: Packet): void {
+        while (true) {
+            const code = dat.g1();
+            if (code === 0) {
+                break;
             }
-        } else if (code === 3) {
-            this.disable = true;
-        } else if (code >= 40 && code < 50) {
-            this.recol_s[code - 40] = dat.g2();
-        } else if (code >= 50 && code < 60) {
-            this.recol_d[code - 50] = dat.g2();
-        } else if (code >= 60 && code < 70) {
-            this.heads[code - 60] = dat.g2();
-        } else {
-            console.log('Error unrecognised config code: ', code);
+
+            if (code === 1) {
+                this.type = dat.g1();
+            } else if (code === 2) {
+                const count: number = dat.g1();
+                this.models = new Int32Array(count);
+
+                for (let i: number = 0; i < count; i++) {
+                    this.models[i] = dat.g2();
+                }
+            } else if (code === 3) {
+                this.disable = true;
+            } else if (code >= 40 && code < 50) {
+                this.recol_s[code - 40] = dat.g2();
+            } else if (code >= 50 && code < 60) {
+                this.recol_d[code - 50] = dat.g2();
+            } else if (code >= 60 && code < 70) {
+                this.heads[code - 60] = dat.g2();
+            } else {
+                console.log('Error unrecognised config code: ', code);
+            }
         }
     }
 

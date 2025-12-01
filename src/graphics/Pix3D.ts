@@ -4,34 +4,34 @@ import Pix8 from '#/graphics/Pix8.js';
 import Jagfile from '#/io/Jagfile.js';
 import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
 
-// noinspection JSSuspiciousNameCombination,DuplicatedCode
+// jag::oldscape::dash3d::Pix3D
 export default class Pix3D extends Pix2D {
+    static lowMem: boolean = false;
+    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
+
     static divTable: Int32Array = new Int32Array(512); // jag::oldscape::dash3d::Pix3D::m_divTable
     static divTable2: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_divTable2
     static sinTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_sinTable
     static cosTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_cosTable
     static colourTable: Int32Array = new Int32Array(65536); // jag::oldscape::dash3d::Pix3D::m_colourTable
 
-    static scanline: Int32Array = new Int32Array();
-
-    static lowMem: boolean = false;
-    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
-    static hclip: boolean = false; // jag::oldscape::dash3d::Pix3D::SetHClip
-    static trans: number = 0; // jag::oldscape::dash3d::Pix3D::SetTrans
-
     static textures: (Pix8 | null)[] = new TypedArray1d(50, null);
+    private static textureTranslucent: boolean[] = new TypedArray1d(50, false);
+    private static averageTextureRgb: Int32Array = new Int32Array(50);
+    static activeTexels: (Int32Array | null)[] = new TypedArray1d(50, null);
+    static textureCycle: Int32Array = new Int32Array(50);
+    static texPal: (Int32Array | null)[] = new TypedArray1d(50, null);
     static textureCount: number = 0;
     static projectionX: number = 0;
     static projectionY: number = 0;
     static texelPool: (Int32Array | null)[] | null = null;
-    static activeTexels: (Int32Array | null)[] = new TypedArray1d(50, null);
     static poolSize: number = 0;
-    static cycle: number = 0;
-    static textureCycle: Int32Array = new Int32Array(50);
-    static texPal: (Int32Array | null)[] = new TypedArray1d(50, null);
     private static opaque: boolean = false;
-    private static textureTranslucent: boolean[] = new TypedArray1d(50, false);
-    private static averageTextureRgb: Int32Array = new Int32Array(50);
+
+    static cycle: number = 0;
+    static scanline: Int32Array = new Int32Array();
+    static hclip: boolean = false; // jag::oldscape::dash3d::Pix3D::SetHClip
+    static trans: number = 0; // jag::oldscape::dash3d::Pix3D::SetTrans
 
     static {
         for (let i: number = 1; i < 512; i++) {
@@ -177,7 +177,7 @@ export default class Pix3D extends Pix2D {
         if (this.lowMem) {
             this.textureTranslucent[id] = false;
             for (let i: number = 0; i < 4096; i++) {
-                const rgb: number = (texels[i] = palette[texture.pixels[i]] & 0xf8f8ff);
+                const rgb: number = (texels[i] = palette[texture.data[i]] & 0xf8f8ff);
                 if (rgb === 0) {
                     this.textureTranslucent[id] = true;
                 }
@@ -189,12 +189,12 @@ export default class Pix3D extends Pix2D {
             if (texture.wi === 64) {
                 for (let y: number = 0; y < 128; y++) {
                     for (let x: number = 0; x < 128; x++) {
-                        texels[x + ((y << 7) | 0)] = palette[texture.pixels[(x >> 1) + (((y >> 1) << 6) | 0)]];
+                        texels[x + ((y << 7) | 0)] = palette[texture.data[(x >> 1) + (((y >> 1) << 6) | 0)]];
                     }
                 }
             } else {
                 for (let i: number = 0; i < 16384; i++) {
-                    texels[i] = palette[texture.pixels[i]];
+                    texels[i] = palette[texture.data[i]];
                 }
             }
 
