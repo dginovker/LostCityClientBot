@@ -122,6 +122,42 @@ export default class PixFont extends DoublyLinkable {
         return font;
     }
 
+    centreString(x: number, y: number, str: string | null, color: number): void {
+        if (!str) {
+            return;
+        }
+
+        x |= 0;
+        y |= 0;
+
+        this.drawString(x - ((this.stringWid(str) / 2) | 0), y, str, color);
+    }
+
+    centreStringTag(x: number, y: number, str: string, color: number, shadowed: boolean): void {
+        x |= 0;
+        y |= 0;
+
+        this.drawStringTag(x - ((this.stringWid(str) / 2) | 0), y, str, color, shadowed);
+    }
+
+    stringWid(str: string | null): number {
+        if (!str) {
+            return 0;
+        }
+
+        const length: number = str.length;
+        let w: number = 0;
+        for (let i: number = 0; i < length; i++) {
+            if (str.charAt(i) === '@' && i + 4 < length && str.charAt(i + 4) === '@') {
+                i += 4;
+            } else {
+                w += this.drawWidth[str.charCodeAt(i)];
+            }
+        }
+
+        return w;
+    }
+
     drawString(x: number, y: number, str: string | null, color: number): void {
         if (!str) {
             return;
@@ -137,6 +173,28 @@ export default class PixFont extends DoublyLinkable {
 
             if (c !== 94) {
                 this.plotLetter(this.charMask[c], x + this.charOffsetX[c], y + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color);
+            }
+
+            x += this.charAdvance[c];
+        }
+    }
+
+    centerStringWave(x: number, y: number, str: string | null, color: number, phase: number): void {
+        if (!str) {
+            return;
+        }
+
+        x |= 0;
+        y |= 0;
+
+        x -= (this.stringWid(str) / 2) | 0;
+        const offY: number = y - this.height2d;
+
+        for (let i: number = 0; i < str.length; i++) {
+            const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
+
+            if (c != 94) {
+                this.plotLetter(this.charMask[c], x + this.charOffsetX[c], offY + this.charOffsetY[c] + ((Math.sin(i / 2.0 + phase / 5.0) * 5.0) | 0), this.charMaskWidth[c], this.charMaskHeight[c], color);
             }
 
             x += this.charAdvance[c];
@@ -178,42 +236,6 @@ export default class PixFont extends DoublyLinkable {
         }
     }
 
-    stringWid(str: string | null): number {
-        if (!str) {
-            return 0;
-        }
-
-        const length: number = str.length;
-        let w: number = 0;
-        for (let i: number = 0; i < length; i++) {
-            if (str.charAt(i) === '@' && i + 4 < length && str.charAt(i + 4) === '@') {
-                i += 4;
-            } else {
-                w += this.drawWidth[str.charCodeAt(i)];
-            }
-        }
-
-        return w;
-    }
-
-    centreStringTag(x: number, y: number, str: string, color: number, shadowed: boolean): void {
-        x |= 0;
-        y |= 0;
-
-        this.drawStringTag(x - ((this.stringWid(str) / 2) | 0), y, str, color, shadowed);
-    }
-
-    centreString(x: number, y: number, str: string | null, color: number): void {
-        if (!str) {
-            return;
-        }
-
-        x |= 0;
-        y |= 0;
-
-        this.drawString(x - ((this.stringWid(str) / 2) | 0), y, str, color);
-    }
-
     drawStringAntiMacro(x: number, y: number, str: string, color: number, shadowed: boolean, seed: number): void {
         x |= 0;
         y |= 0;
@@ -247,6 +269,50 @@ export default class PixFont extends DoublyLinkable {
         }
     }
 
+    evaluateTag(tag: string): number {
+        if (tag === 'red') {
+            return Colors.RED;
+        } else if (tag === 'gre') {
+            return Colors.GREEN;
+        } else if (tag === 'blu') {
+            return Colors.BLUE;
+        } else if (tag === 'yel') {
+            return Colors.YELLOW;
+        } else if (tag === 'cya') {
+            return Colors.CYAN;
+        } else if (tag === 'mag') {
+            return Colors.MAGENTA;
+        } else if (tag === 'whi') {
+            return Colors.WHITE;
+        } else if (tag === 'bla') {
+            return Colors.BLACK;
+        } else if (tag === 'lre') {
+            return Colors.LIGHTRED;
+        } else if (tag === 'dre') {
+            return Colors.DARKRED;
+        } else if (tag === 'dbl') {
+            return Colors.DARKBLUE;
+        } else if (tag === 'or1') {
+            return Colors.ORANGE1;
+        } else if (tag === 'or2') {
+            return Colors.ORANGE2;
+        } else if (tag === 'or3') {
+            return Colors.ORANGE3;
+        } else if (tag === 'gr1') {
+            return Colors.GREEN1;
+        } else if (tag === 'gr2') {
+            return Colors.GREEN2;
+        } else if (tag === 'gr3') {
+            return Colors.GREEN3;
+        } else {
+            if (tag === 'str') {
+                this.strikeout = true;
+            }
+
+            return -1;
+        }
+    }
+
     drawStringRight(x: number, y: number, str: string, color: number, shadowed: boolean = true): void {
         x |= 0;
         y |= 0;
@@ -255,28 +321,6 @@ export default class PixFont extends DoublyLinkable {
             this.drawString(x - this.stringWid(str) + 1, y + 1, str, Colors.BLACK);
         }
         this.drawString(x - this.stringWid(str), y, str, color);
-    }
-
-    centerStringWave(x: number, y: number, str: string | null, color: number, phase: number): void {
-        if (!str) {
-            return;
-        }
-
-        x |= 0;
-        y |= 0;
-
-        x -= (this.stringWid(str) / 2) | 0;
-        const offY: number = y - this.height2d;
-
-        for (let i: number = 0; i < str.length; i++) {
-            const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
-
-            if (c != 94) {
-                this.plotLetter(this.charMask[c], x + this.charOffsetX[c], offY + this.charOffsetY[c] + ((Math.sin(i / 2.0 + phase / 5.0) * 5.0) | 0), this.charMaskWidth[c], this.charMaskHeight[c], color);
-            }
-
-            x += this.charAdvance[c];
-        }
     }
 
     plotLetter(data: Int8Array, x: number, y: number, w: number, h: number, color: number): void {
@@ -438,89 +482,5 @@ export default class PixFont extends DoublyLinkable {
             dstOff += dstStep;
             maskOff += maskStep;
         }
-    }
-
-    evaluateTag(tag: string): number {
-        if (tag === 'red') {
-            return Colors.RED;
-        } else if (tag === 'gre') {
-            return Colors.GREEN;
-        } else if (tag === 'blu') {
-            return Colors.BLUE;
-        } else if (tag === 'yel') {
-            return Colors.YELLOW;
-        } else if (tag === 'cya') {
-            return Colors.CYAN;
-        } else if (tag === 'mag') {
-            return Colors.MAGENTA;
-        } else if (tag === 'whi') {
-            return Colors.WHITE;
-        } else if (tag === 'bla') {
-            return Colors.BLACK;
-        } else if (tag === 'lre') {
-            return Colors.LIGHTRED;
-        } else if (tag === 'dre') {
-            return Colors.DARKRED;
-        } else if (tag === 'dbl') {
-            return Colors.DARKBLUE;
-        } else if (tag === 'or1') {
-            return Colors.ORANGE1;
-        } else if (tag === 'or2') {
-            return Colors.ORANGE2;
-        } else if (tag === 'or3') {
-            return Colors.ORANGE3;
-        } else if (tag === 'gr1') {
-            return Colors.GREEN1;
-        } else if (tag === 'gr2') {
-            return Colors.GREEN2;
-        } else if (tag === 'gr3') {
-            return Colors.GREEN3;
-        } else {
-            if (tag === 'str') {
-                this.strikeout = true;
-            }
-
-            return -1;
-        }
-    }
-
-    split(str: string, maxWidth: number): string[] {
-        if (str.length === 0) {
-            // special case for empty string
-            return [str];
-        }
-
-        const lines: string[] = [];
-        while (str.length > 0) {
-            // check if the string even needs to be broken up
-            const width: number = this.stringWid(str);
-            if (width <= maxWidth && str.indexOf('|') === -1) {
-                lines.push(str);
-                break;
-            }
-
-            // we need to split on the next word boundary
-            let splitIndex: number = str.length;
-
-            // check the width at every space to see where we can cut the line
-            for (let i: number = 0; i < str.length; i++) {
-                if (str[i] === ' ') {
-                    const w: number = this.stringWid(str.substring(0, i));
-                    if (w > maxWidth) {
-                        break;
-                    }
-
-                    splitIndex = i;
-                } else if (str[i] === '|') {
-                    splitIndex = i;
-                    break;
-                }
-            }
-
-            lines.push(str.substring(0, splitIndex));
-            str = str.substring(splitIndex + 1);
-        }
-
-        return lines;
     }
 }

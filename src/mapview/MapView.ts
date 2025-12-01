@@ -18,7 +18,7 @@ export class MapView extends GameShell {
     // overworld
     readonly startX: number = 3200;
     readonly startZ: number = 3200;
-    readonly sizeX: number = 20 << 6;
+    readonly sizeX: number = 22 << 6;
     readonly sizeZ: number = 19 << 6;
     readonly originX: number = 36 << 6;
     readonly originZ: number = 44 << 6;
@@ -26,12 +26,12 @@ export class MapView extends GameShell {
     // underground
     // readonly startX: number = 3200;
     // readonly startZ: number = 9600;
-    // readonly sizeX: number = 20 << 6;
-    // readonly sizeZ: number = 21 << 6;
-    // readonly originX: number = 35 << 6;
-    // readonly originZ: number = 143 << 6;
+    // readonly sizeX: number = 22 << 6;
+    // readonly sizeZ: number = 19 << 6;
+    // readonly originX: number = 36 << 6;
+    // readonly originZ: number = 144 << 6;
 
-	// misc. areas (around Z 75)
+    // misc. areas (around Z 75)
     // readonly startX: number = 2496;
     // readonly startZ: number = 4736;
     // readonly sizeX: number = 21 << 6;
@@ -213,26 +213,28 @@ export class MapView extends GameShell {
 
         const underlayData: Packet = new Packet(worldmap.read('underlay.dat'));
         this.underlayTiles = new TypedArray2d(this.sizeX, this.sizeZ, 0);
-        this.readUnderlayData(underlayData);
+        this.loadUnderlays(underlayData);
 
         const overlayData: Packet = new Packet(worldmap.read('overlay.dat'));
         this.overlayTiles = new TypedArray2d(this.sizeX, this.sizeZ, 0);
         this.overlayInfo = new TypedArray2d(this.sizeX, this.sizeZ, 0);
-        this.readOverlayData(overlayData);
+        this.loadOverlays(overlayData);
 
         const locData: Packet = new Packet(worldmap.read('loc.dat'));
         this.locWalls = new TypedArray2d(this.sizeX, this.sizeZ, 0);
         this.locMapscenes = new TypedArray2d(this.sizeX, this.sizeZ, 0);
         this.locMapfunction = new TypedArray2d(this.sizeX, this.sizeZ, 0);
-        this.readLocData(locData);
+        this.loadLocations(locData);
 
+        // custom:
         const objData: Packet = new Packet(worldmap.read('obj.dat'));
         this.objTiles = new TypedArray2d(this.sizeX, this.sizeZ, false);
-        this.readObjData(objData);
+        this.loadObjects(objData);
 
+        // custom:
         const npcData: Packet = new Packet(worldmap.read('npc.dat'));
         this.npcTiles = new TypedArray2d(this.sizeX, this.sizeZ, false);
-        this.readNpcData(npcData);
+        this.loadNpcs(npcData);
 
         try {
             for (let i: number = 0; i < 50; i++) {
@@ -267,11 +269,10 @@ export class MapView extends GameShell {
 
         this.floormapColors = new TypedArray2d(this.sizeX, this.sizeZ, 0);
         this.averageUnderlayColors();
-        if (this.shouldClearEmptyTiles) this.clearEmptyTiles();
 
         this.imageOverview = new Pix32(this.imageOverviewWidth, this.imageOverviewHeight);
         this.imageOverview.setPixels();
-        this.drawMap(0, 0, this.sizeX, this.sizeZ, 0, 0, this.imageOverviewWidth, this.imageOverviewHeight);
+        this.renderMap(0, 0, this.sizeX, this.sizeZ, 0, 0, this.imageOverviewWidth, this.imageOverviewHeight);
         Pix2D.drawRect(0, 0, this.imageOverviewWidth, this.imageOverviewHeight, 0);
         Pix2D.drawRect(1, 1, this.imageOverviewWidth - 2, this.imageOverviewHeight - 2, this.colorInactiveBorderTL);
 
@@ -291,7 +292,7 @@ export class MapView extends GameShell {
             const top: number = this.offsetZ - ((this.height / this.zoom) | 0);
             const right: number = this.offsetX + ((this.width / this.zoom) | 0);
             const bottom: number = this.offsetZ + ((this.height / this.zoom) | 0);
-            this.drawMap(left, top, right, bottom, 0, 0, this.width, this.height);
+            this.renderMap(left, top, right, bottom, 0, 0, this.width, this.height);
 
             if (this.showOverview) {
                 this.imageOverview?.quickPlotSprite(this.overviewX, this.overviewY);
@@ -598,6 +599,7 @@ export class MapView extends GameShell {
     }
 
     // ----
+
     async loadWorldmap(): Promise<Jagfile> {
         // todo: SHA check and redownload
         let data: Uint8Array | undefined = undefined; // await this.db?.cacheload('worldmap.dat');
@@ -652,16 +654,6 @@ export class MapView extends GameShell {
         this.b12?.centreString(xPad + widthPad / 2, yPad + heightPad / 2 + 4, str, 0xffffff);
     }
 
-    clearEmptyTiles(): void {
-        for (let x: number = 0; x < this.sizeX; x++) {
-            for (let z: number = 0; z < this.sizeZ; z++) {
-                if (this.underlayTiles[x][z] == 0 && this.overlayTiles[x][z] == 0) {
-                    this.floormapColors[x][z] = 0;
-                }
-            }
-        }
-    }
-
     averageUnderlayColors(): void {
         const maxX: number = this.sizeX;
         const maxZ: number = this.sizeZ;
@@ -687,7 +679,7 @@ export class MapView extends GameShell {
                     b += (tileNorth & 0x3ff) - (tileSouth & 0x3ff);
 
                     if (b > 0) {
-                        this.floormapColors[x][z] = this.convertHsl(r / 8533.0, g / 8533.0, b / 8533.0);
+                        this.floormapColors[x][z] = this.getRgb(r / 8533.0, g / 8533.0, b / 8533.0);
                     }
                 }
             }
@@ -695,7 +687,8 @@ export class MapView extends GameShell {
     }
 
     // ----
-    readUnderlayData(data: Packet): void {
+
+    loadUnderlays(data: Packet): void {
         while (data.available > 0) {
             const mx: number = data.g1() * 64 - this.originX;
             const mz: number = data.g1() * 64 - this.originZ;
@@ -714,7 +707,7 @@ export class MapView extends GameShell {
         }
     }
 
-    readOverlayData(data: Packet): void {
+    loadOverlays(data: Packet): void {
         while (data.available > 0) {
             const mx: number = data.g1() * 64 - this.originX;
             const mz: number = data.g1() * 64 - this.originZ;
@@ -744,7 +737,7 @@ export class MapView extends GameShell {
         }
     }
 
-    readLocData(data: Packet): void {
+    loadLocations(data: Packet): void {
         while (data.available > 0) {
             const mx: number = data.g1() * 64 - this.originX;
             const mz: number = data.g1() * 64 - this.originZ;
@@ -790,7 +783,7 @@ export class MapView extends GameShell {
         }
     }
 
-    readObjData(data: Packet): void {
+    loadObjects(data: Packet): void {
         while (data.available > 0) {
             const mx: number = data.g1() * 64 - this.originX;
             const mz: number = data.g1() * 64 - this.originZ;
@@ -809,7 +802,7 @@ export class MapView extends GameShell {
         }
     }
 
-    readNpcData(data: Packet): void {
+    loadNpcs(data: Packet): void {
         while (data.available > 0) {
             const mx: number = data.g1() * 64 - this.originX;
             const mz: number = data.g1() * 64 - this.originZ;
@@ -829,7 +822,8 @@ export class MapView extends GameShell {
     }
 
     // ----
-    convertHsl(hue: number, saturation: number, lightness: number): number {
+
+    getRgb(hue: number, saturation: number, lightness: number): number {
         let r: number = lightness;
         let g: number = lightness;
         let b: number = lightness;
@@ -890,12 +884,12 @@ export class MapView extends GameShell {
         return (intR << 16) + (intG << 8) + intB;
     }
 
-    drawMap(left: number, top: number, right: number, bottom: number, widthOffset: number, heightOffset: number, width: number, height: number): void {
+    renderMap(left: number, top: number, right: number, bottom: number, widthOffset: number, heightOffset: number, width: number, height: number): void {
         const visibleX: number = right - left;
         const visibleY: number = bottom - top;
         const widthRatio: number = (((width - widthOffset) << 16) / visibleX) | 0;
         const heightRatio: number = (((height - heightOffset) << 16) / visibleY) | 0;
-        
+
         for (let x: number = 0; x < visibleX; x++) {
             let startX: number = (widthRatio * x) >> 16;
             let endX: number = (widthRatio * (x + 1)) >> 16;
@@ -931,7 +925,7 @@ export class MapView extends GameShell {
                     if (shape == 0 || lengthX <= 1 || lengthY <= 1) {
                         Pix2D.fillRect(startX, startY, lengthX, lengthY, overlay);
                     } else {
-                        this.drawSmoothEdges(Pix2D.pixels, startY * Pix2D.width + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
+                        this.drawOverlayShape(Pix2D.pixels, startY * Pix2D.width + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
                     }
                 }
             }
@@ -1221,7 +1215,7 @@ export class MapView extends GameShell {
         }
     }
 
-    drawSmoothEdges(data: Int32Array, off: number, color: number, overlay: number, width: number, height: number, shape: number, rotation: number): void {
+    drawOverlayShape(data: Int32Array, off: number, color: number, overlay: number, width: number, height: number, shape: number, rotation: number): void {
         const step: number = Pix2D.width - width;
         if (shape == 9) {
             shape = 1;
@@ -1606,6 +1600,7 @@ export class MapView extends GameShell {
     }
 
     // ----
+
     getTitleScreenState(): number {
         return -1;
     }
