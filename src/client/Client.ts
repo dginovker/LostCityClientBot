@@ -1,9 +1,11 @@
 import { playWave, setWaveVolume } from '#3rdparty/audio.js';
 import { stopMidi, setMidiVolume, playMidi } from '#3rdparty/tinymidipcm.js';
 
+import { ClientCode } from '#/client/ClientCode.js';
 import GameShell from '#/client/GameShell.js';
 import InputTracking from '#/client/InputTracking.js';
-import { ClientCode } from '#/client/ClientCode.js';
+import MobileKeyboard from '#/client/MobileKeyboard.js';
+import MouseTracking from '#/client/MouseTracking.js';
 
 import FloType from '#/config/FloType.js';
 import SeqType, { PostanimMove, PreanimMove, RestartMode } from '#/config/SeqType.js';
@@ -17,25 +19,23 @@ import VarBitType from '#/config/VarBitType.js';
 import Component from '#/config/Component.js';
 import { ComponentType, ButtonType } from '#/config/Component.js';
 
+import ClientBuild from '#/dash3d/ClientBuild.js';
+import ClientEntity from '#/dash3d/ClientEntity.js';
+import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
+import ClientNpc, { NpcUpdate } from '#/dash3d/ClientNpc.js';
+import ClientObj from '#/dash3d/ClientObj.js';
+import ClientPlayer, { PlayerUpdate } from '#/dash3d/ClientPlayer.js';
+import ClientProj from '#/dash3d/ClientProj.js';
 import CollisionMap, { CollisionConstants } from '#/dash3d/CollisionMap.js';
 import { CollisionFlag } from '#/dash3d/CollisionFlag.js';
 import { DirectionFlag } from '#/dash3d/DirectionFlag.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
+import LocChange from '#/dash3d/LocChange.js';
 import { LocLayer } from '#/dash3d/LocLayer.js';
 import LocShape from '#/dash3d/LocShape.js';
-import ClientBuild from '#/dash3d/ClientBuild.js';
-import World from '#/dash3d/World.js';
-
-import ClientNpc, { NpcUpdate } from '#/dash3d/ClientNpc.js';
-import ClientPlayer, { PlayerUpdate } from '#/dash3d/ClientPlayer.js';
-
-import LocChange from '#/dash3d/LocChange.js';
-
-import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
-import ClientObj from '#/dash3d/ClientObj.js';
-import ClientEntity from '#/dash3d/ClientEntity.js';
-import ClientProj from '#/dash3d/ClientProj.js';
+import { MapFlag } from '#/dash3d/MapFlag.js';
 import MapSpotAnim from '#/dash3d/MapSpotAnim.js';
+import World from '#/dash3d/World.js';
 
 import JString from '#/datastruct/JString.js';
 import LinkList from '#/datastruct/LinkList.js';
@@ -60,15 +60,13 @@ import Database from '#/io/Database.js';
 import Isaac from '#/io/Isaac.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
+import OnDemand from '#/io/OnDemand.js';
 import { ServerProt, ServerProtSizes } from '#/io/ServerProt.js';
 
 import WordFilter from '#/wordenc/WordFilter.js';
 import WordPack from '#/wordenc/WordPack.js';
 
 import Wave from '#/sound/Wave.js';
-import OnDemand from '#/io/OnDemand.js';
-import MobileKeyboard from '#/client/MobileKeyboard.js';
-import { MapFlag } from '#/dash3d/MapFlag.js';
 
 const enum Constants {
     CLIENT_VERSION = 254,
@@ -506,12 +504,17 @@ export class Client extends GameShell {
     warnMembersInNonMembers: number = 0;
     membersAccount: number = 0;
     flameCycle: number = 0;
-    prevMousePressTime: number = 0;
+    prevMouseClickTime: number = 0;
     sendCameraDelay: number = 0;
     sendCamera: boolean = false;
     focused: boolean = false;
     playerOptions: (string | null)[] = new TypedArray1d(5, null);
     playerOptionsPushDown: boolean[] = new TypedArray1d(5, false);
+    mouseTracking: MouseTracking = new MouseTracking(this);
+    mouseTracked: boolean = false;
+    mouseTrackedX: number = 0;
+    mouseTrackedY: number = 0;
+    mouseTrackedDelta: number = 0;
 
     // ----
 
@@ -991,6 +994,10 @@ export class Client extends GameShell {
 
             World.init(512, 334, 500, 800, distance);
             WordFilter.unpack(jagWordenc);
+
+            setInterval(() => {
+                this.mouseTracking.cycle();
+            }, 50);
 
             this.initializeLevelExperience();
         } catch (err) {
@@ -1484,12 +1491,12 @@ export class Client extends GameShell {
                 await this.login(username, password, reconnect);
             } else if (reply === 2) {
                 this.staffmodlevel = await this.stream.read();
-                await this.stream.read(); // tracked
+                this.mouseTracked = await this.stream.read() === 1;
 
                 InputTracking.setDisabled();
-                this.prevMousePressTime = 0;
-                // this.lastWriteDuplicates = 0;
-                // this.mouseTracking.length = 0;
+                this.prevMouseClickTime = 0;
+                this.mouseTrackedDelta = 0;
+                this.mouseTracking.length = 0;
                 this.hasFocus = true;
                 this.focused = true;
                 this.ingame = true;
@@ -1758,13 +1765,84 @@ export class Client extends GameShell {
         const now = performance.now();
 
         if (this.ingame) {
+            if (this.mouseTracking.active) {
+                if (!this.mouseTracked) {
+                    this.mouseTracking.length = 0;
+                } else if (this.mouseClickButton !== 0 || this.mouseTracking.length >= 40) {
+                    this.out.pIsaac(ClientProt.EVENT_MOUSE_MOVE);
+                    this.out.p1(0);
+                    const start = this.out.pos;
+                    let count = 0;
+
+                    for (let i = 0; i < this.mouseTracking.length; i++) {
+                        count++;
+
+                        let y = this.mouseTracking.y[i];
+                        if (y < 0) {
+                            y = 0;
+                        } else if (y > 502) {
+                            y = 502;
+                        }
+
+                        let x = this.mouseTracking.x[i];
+                        if (x < 0) {
+                            x = 0;
+                        } else if (x > 764) {
+                            x = 764;
+                        }
+
+                        let pos = y * 765 + x;
+                        if (this.mouseTracking.y[i] === -1 && this.mouseTracking.x[i] === -1) {
+                            x = -1;
+                            y = -1;
+                            pos = 0x7FFFF;
+                        }
+
+                        if (x !== this.mouseTrackedX || y !== this.mouseTrackedY) {
+                            let dx = x - this.mouseTrackedX;
+                            this.mouseTrackedX = x;
+                            let dy = y - this.mouseTrackedY;
+                            this.mouseTrackedY = y;
+
+                            if (this.mouseTrackedDelta < 8 && dx >= -32 && dx <= 31 && dy >= -32 && dy <= 31) {
+                                dx += 32;
+                                dy += 32;
+                                this.out.p2((this.mouseTrackedDelta << 12) + (dx << 6) + dy);
+                                this.mouseTrackedDelta = 0;
+                            } else if (this.mouseTrackedDelta < 8) {
+                                this.out.p3(0x800000 + (this.mouseTrackedDelta << 19) + pos);
+                                this.mouseTrackedDelta = 0;
+                            } else {
+                                this.out.p4(0xC00000 + (this.mouseTrackedDelta << 19) + pos);
+                                this.mouseTrackedDelta = 0;
+                            }
+                        } else if (this.mouseTrackedDelta < 2047) {
+                            this.mouseTrackedDelta++;
+                        }
+                    }
+
+                    this.out.psize1(this.out.pos - start);
+
+                    if (count >= this.mouseTracking.length) {
+                        this.mouseTracking.length = 0;
+                    } else {
+                        this.mouseTracking.length -= count;
+
+                        for (let i = 0; i < this.mouseTracking.length; i++) {
+                            this.mouseTracking.x[i] = this.mouseTracking.x[i + count];
+                            this.mouseTracking.y[i] = this.mouseTracking.y[i + count];
+                        }
+                    }
+                }
+            }
+
             if (this.mouseClickButton !== 0) {
-                let delta = (this.mouseClickTime - this.prevMousePressTime) / 50;
+                let delta = ((this.mouseClickTime - this.prevMouseClickTime) / 50) | 0;
                 if (delta > 4095) {
                     delta = 4095;
                 }
 
-                this.prevMousePressTime = this.mouseClickTime;
+                this.prevMouseClickTime = this.mouseClickTime;
 
                 let y = this.mouseClickY;
                 if (y < 0) {
@@ -1780,15 +1858,15 @@ export class Client extends GameShell {
                     x = 764;
                 }
 
-                const pos = y * 764 + x;
+                const pos = y * 765 + x;
 
                 let button = 0;
                 if (this.mouseClickButton === 2) {
                     button = 1;
                 }
 
-                this.out.p1isaac(ClientProt.EVENT_MOUSE_CLICK);
-                this.out.p4(((delta | 0) << 20) + (button << 19) + pos);
+                this.out.pIsaac(ClientProt.EVENT_MOUSE_CLICK);
+                this.out.p4((delta << 20) + (button << 19) + pos);
             }
 
             if (this.sendCameraDelay > 0) {
@@ -1802,18 +1880,18 @@ export class Client extends GameShell {
             if (this.sendCamera && this.sendCameraDelay <= 0) {
                 this.sendCameraDelay = 20;
                 this.sendCamera = false;
-                this.out.p1isaac(ClientProt.EVENT_CAMERA_POSITION);
+                this.out.pIsaac(ClientProt.EVENT_CAMERA_POSITION);
                 this.out.p2(this.orbitCameraPitch);
                 this.out.p2(this.orbitCameraYaw);
             }
 
             if (this.hasFocus && !this.focused) {
                 this.focused = true;
-                this.out.p1isaac(ClientProt.EVENT_APPLET_FOCUS);
+                this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
                 this.out.p1(0);
             } else if (!this.hasFocus && this.focused) {
                 this.focused = false;
-                this.out.p1isaac(ClientProt.EVENT_APPLET_FOCUS);
+                this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
                 this.out.p1(0);
             }
 
@@ -1823,7 +1901,7 @@ export class Client extends GameShell {
 
             const tracking: Packet | null = InputTracking.flush();
             if (tracking) {
-                this.out.p1isaac(ClientProt.EVENT_TRACKING);
+                this.out.pIsaac(ClientProt.EVENT_TRACKING);
                 this.out.p2(tracking.pos);
                 this.out.pdata(tracking.data, tracking.pos, 0);
                 tracking.release();
@@ -1918,7 +1996,7 @@ export class Client extends GameShell {
                                 com.swapObj(this.objDragSlot, this.hoveredSlot);
                             }
 
-                            this.out.p1isaac(ClientProt.INV_BUTTOND);
+                            this.out.pIsaac(ClientProt.INV_BUTTOND);
                             this.out.p2(this.objDragLayerId);
                             this.out.p2(this.objDragSlot);
                             this.out.p2(this.hoveredSlot);
@@ -1989,7 +2067,7 @@ export class Client extends GameShell {
                 this.pendingLogout = 250;
                 this.idleCycle += 10_000; // 10s backoff
 
-                this.out.p1isaac(ClientProt.IDLE_TIMER);
+                this.out.pIsaac(ClientProt.IDLE_TIMER);
             }
 
             this.macroCameraCycle++;
@@ -2053,7 +2131,7 @@ export class Client extends GameShell {
 
             if (now - this.noTimeoutCycle > 1_000) {
                 // nothing sent in the last 1s, keep the client connected
-                this.out.p1isaac(ClientProt.NO_TIMEOUT);
+                this.out.pIsaac(ClientProt.NO_TIMEOUT);
             }
 
             try {
@@ -2155,7 +2233,7 @@ export class Client extends GameShell {
         this.sceneState = 2;
         ClientBuild.minusedlevel = this.minusedlevel;
         this.mapBuild();
-        this.out.p1isaac(ClientProt.MAP_BUILD_COMPLETE);
+        this.out.pIsaac(ClientProt.MAP_BUILD_COMPLETE);
         return 0;
     }
 
@@ -2198,7 +2276,7 @@ export class Client extends GameShell {
             }
 
             if (this.mapBuildIndex && this.mapBuildGroundData) {
-                this.out.p1isaac(ClientProt.NO_TIMEOUT);
+                this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
                 for (let i: number = 0; i < maps; i++) {
                     const x: number = (this.mapBuildIndex[i] >> 8) * 64 - this.sceneBaseTileX;
@@ -2222,7 +2300,7 @@ export class Client extends GameShell {
             }
 
             if (this.mapBuildIndex && this.mapBuildLocationData) {
-                this.out.p1isaac(ClientProt.NO_TIMEOUT);
+                this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
                 for (let i: number = 0; i < maps; i++) {
                     const data: Uint8Array | null = this.mapBuildLocationData[i];
@@ -2235,12 +2313,12 @@ export class Client extends GameShell {
                 }
             }
 
-            this.out.p1isaac(ClientProt.NO_TIMEOUT);
+            this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
             build.finishBuild(this.world, this.levelCollisionMap);
             this.areaViewport?.bind();
 
-            this.out.p1isaac(ClientProt.NO_TIMEOUT);
+            this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
             for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
                 for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
@@ -3143,7 +3221,7 @@ export class Client extends GameShell {
             this.redrawPrivacySettings = true;
             this.redrawChatback = true;
 
-            this.out.p1isaac(ClientProt.CHAT_SETMODE);
+            this.out.pIsaac(ClientProt.CHAT_SETMODE);
             this.out.p1(this.chatPublicMode);
             this.out.p1(this.chatPrivateMode);
             this.out.p1(this.chatTradeMode);
@@ -3152,7 +3230,7 @@ export class Client extends GameShell {
             this.redrawPrivacySettings = true;
             this.redrawChatback = true;
 
-            this.out.p1isaac(ClientProt.CHAT_SETMODE);
+            this.out.pIsaac(ClientProt.CHAT_SETMODE);
             this.out.p1(this.chatPublicMode);
             this.out.p1(this.chatPrivateMode);
             this.out.p1(this.chatTradeMode);
@@ -3161,7 +3239,7 @@ export class Client extends GameShell {
             this.redrawPrivacySettings = true;
             this.redrawChatback = true;
 
-            this.out.p1isaac(ClientProt.CHAT_SETMODE);
+            this.out.pIsaac(ClientProt.CHAT_SETMODE);
             this.out.p1(this.chatPublicMode);
             this.out.p1(this.chatPrivateMode);
             this.out.p1(this.chatTradeMode);
@@ -3186,7 +3264,7 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::CloseModal
     private closeModal(): void {
-        this.out.p1isaac(ClientProt.CLOSE_MODAL);
+        this.out.pIsaac(ClientProt.CLOSE_MODAL);
 
         if (this.sideLayerId !== -1) {
             this.sideLayerId = -1;
@@ -3477,7 +3555,7 @@ export class Client extends GameShell {
                             }
 
                             if (this.socialInputType === 3 && this.socialInput.length > 0 && this.socialName37) {
-                                this.out.p1isaac(ClientProt.MESSAGE_PRIVATE);
+                                this.out.pIsaac(ClientProt.MESSAGE_PRIVATE);
                                 this.out.p1(0);
                                 const start: number = this.out.pos;
 
@@ -3493,7 +3571,7 @@ export class Client extends GameShell {
                                     this.chatPrivateMode = 1;
                                     this.redrawPrivacySettings = true;
 
-                                    this.out.p1isaac(ClientProt.CHAT_SETMODE);
+                                    this.out.pIsaac(ClientProt.CHAT_SETMODE);
                                     this.out.p1(this.chatPublicMode);
                                     this.out.p1(this.chatPrivateMode);
                                     this.out.p1(this.chatTradeMode);
@@ -3529,7 +3607,7 @@ export class Client extends GameShell {
                                 } catch (e) {
                                 }
 
-                                this.out.p1isaac(ClientProt.RESUME_P_COUNTDIALOG);
+                                this.out.pIsaac(ClientProt.RESUME_P_COUNTDIALOG);
                                 this.out.p4(value);
                             }
 
@@ -3577,7 +3655,7 @@ export class Client extends GameShell {
                                     this.setTargetedFramerate(desiredFps);
                                 } catch (e) { }
                             } else if (this.chatTyped.startsWith('::')) {
-                                this.out.p1isaac(ClientProt.CLIENT_CHEAT);
+                                this.out.pIsaac(ClientProt.CLIENT_CHEAT);
                                 this.out.p1(this.chatTyped.length - 1);
                                 this.out.pjstr(this.chatTyped.substring(2));
                             } else {
@@ -3630,7 +3708,7 @@ export class Client extends GameShell {
                                     this.chatTyped = this.chatTyped.substring(7);
                                 }
 
-                                this.out.p1isaac(ClientProt.MESSAGE_PUBLIC);
+                                this.out.pIsaac(ClientProt.MESSAGE_PUBLIC);
                                 this.out.p1(0);
                                 const start: number = this.out.pos;
 
@@ -3661,7 +3739,7 @@ export class Client extends GameShell {
                                     this.chatPublicMode = 3;
                                     this.redrawPrivacySettings = true;
 
-                                    this.out.p1isaac(ClientProt.CHAT_SETMODE);
+                                    this.out.pIsaac(ClientProt.CHAT_SETMODE);
                                     this.out.p1(this.chatPublicMode);
                                     this.out.p1(this.chatPrivateMode);
                                     this.out.p1(this.chatTradeMode);
@@ -4486,7 +4564,7 @@ export class Client extends GameShell {
         if (this.redrawSideicons) {
             if (this.flashingTab !== -1 && this.flashingTab === this.sideTab) {
                 this.flashingTab = -1;
-                this.out.p1isaac(ClientProt.TUTORIAL_CLICKSIDE);
+                this.out.pIsaac(ClientProt.TUTORIAL_CLICKSIDE);
                 this.out.p1(this.sideTab);
             }
 
@@ -5759,7 +5837,7 @@ export class Client extends GameShell {
         this.crossMode = 2;
         this.crossCycle = 0;
 
-        this.out.p1isaac(opcode);
+        this.out.pIsaac(opcode);
         this.out.p2(x + this.sceneBaseTileX);
         this.out.p2(z + this.sceneBaseTileZ);
         this.out.p2(locId);
@@ -5995,13 +6073,13 @@ export class Client extends GameShell {
             const startZ: number = this.bfsStepZ[length];
 
             if (type === 0) {
-                this.out.p1isaac(ClientProt.MOVE_GAMECLICK);
+                this.out.pIsaac(ClientProt.MOVE_GAMECLICK);
                 this.out.p1(bufferSize + bufferSize + 3);
             } else if (type === 1) {
-                this.out.p1isaac(ClientProt.MOVE_MINIMAPCLICK);
+                this.out.pIsaac(ClientProt.MOVE_MINIMAPCLICK);
                 this.out.p1(bufferSize + bufferSize + 3 + 14);
             } else if (type === 2) {
-                this.out.p1isaac(ClientProt.MOVE_OPCLICK);
+                this.out.pIsaac(ClientProt.MOVE_OPCLICK);
                 this.out.p1(bufferSize + bufferSize + 3);
             }
 
@@ -6568,7 +6646,7 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.FINISH_TRACKING) {
                 const tracking: Packet | null = InputTracking.stop();
                 if (tracking) {
-                    this.out.p1isaac(ClientProt.EVENT_TRACKING);
+                    this.out.pIsaac(ClientProt.EVENT_TRACKING);
                     this.out.p2(tracking.pos);
                     this.out.pdata(tracking.data, tracking.pos, 0);
                     tracking.release();
@@ -8495,23 +8573,23 @@ export class Client extends GameShell {
                 this.crossCycle = 0;
 
                 if (action === 224) {
-                    this.out.p1isaac(ClientProt.OPOBJ1);
+                    this.out.pIsaac(ClientProt.OPOBJ1);
                 }
 
                 if (action === 993) {
-                    this.out.p1isaac(ClientProt.OPOBJ2);
+                    this.out.pIsaac(ClientProt.OPOBJ2);
                 }
 
                 if (action === 99) {
-                    this.out.p1isaac(ClientProt.OPOBJ3);
+                    this.out.pIsaac(ClientProt.OPOBJ3);
                 }
 
                 if (action === 746) {
-                    this.out.p1isaac(ClientProt.OPOBJ4);
+                    this.out.pIsaac(ClientProt.OPOBJ4);
                 }
 
                 if (action === 877) {
-                    this.out.p1isaac(ClientProt.OPOBJ5);
+                    this.out.pIsaac(ClientProt.OPOBJ5);
                 }
 
                 this.out.p2(b + this.sceneBaseTileX);
@@ -8546,7 +8624,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPOBJT);
+                this.out.pIsaac(ClientProt.OPOBJT);
                 this.out.p2(b + this.sceneBaseTileX);
                 this.out.p2(c + this.sceneBaseTileZ);
                 this.out.p2(a);
@@ -8566,7 +8644,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPOBJU);
+                this.out.pIsaac(ClientProt.OPOBJU);
                 this.out.p2(b + this.sceneBaseTileX);
                 this.out.p2(c + this.sceneBaseTileZ);
                 this.out.p2(a);
@@ -8587,23 +8665,23 @@ export class Client extends GameShell {
                 this.crossCycle = 0;
 
                 if (action === 728) {
-                    this.out.p1isaac(ClientProt.OPNPC1);
+                    this.out.pIsaac(ClientProt.OPNPC1);
                 }
 
                 if (action === 542) {
-                    this.out.p1isaac(ClientProt.OPNPC2);
+                    this.out.pIsaac(ClientProt.OPNPC2);
                 }
 
                 if (action === 6) {
-                    this.out.p1isaac(ClientProt.OPNPC3);
+                    this.out.pIsaac(ClientProt.OPNPC3);
                 }
 
                 if (action === 963) {
-                    this.out.p1isaac(ClientProt.OPNPC4);
+                    this.out.pIsaac(ClientProt.OPNPC4);
                 }
 
                 if (action === 245) {
-                    this.out.p1isaac(ClientProt.OPNPC5);
+                    this.out.pIsaac(ClientProt.OPNPC5);
                 }
 
                 this.out.p2(a);
@@ -8636,7 +8714,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPNPCT);
+                this.out.pIsaac(ClientProt.OPNPCT);
                 this.out.p2(a);
                 this.out.p2(this.activeSpellId);
             }
@@ -8653,7 +8731,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPNPCU);
+                this.out.pIsaac(ClientProt.OPNPCU);
                 this.out.p2(a);
                 this.out.p2(this.objLayerId);
                 this.out.p2(this.objSelectedSlot);
@@ -8721,23 +8799,23 @@ export class Client extends GameShell {
                 this.crossCycle = 0;
 
                 if (action === 639) {
-                    this.out.p1isaac(ClientProt.OPPLAYER1);
+                    this.out.pIsaac(ClientProt.OPPLAYER1);
                 }
 
                 if (action === 499) {
-                    this.out.p1isaac(ClientProt.OPPLAYER2);
+                    this.out.pIsaac(ClientProt.OPPLAYER2);
                 }
 
                 if (action === 27) {
-                    this.out.p1isaac(ClientProt.OPPLAYER3);
+                    this.out.pIsaac(ClientProt.OPPLAYER3);
                 }
 
                 if (action === 387) {
-                    this.out.p1isaac(ClientProt.OPPLAYER4);
+                    this.out.pIsaac(ClientProt.OPPLAYER4);
                 }
 
                 if (action === 185) {
-                    this.out.p1isaac(ClientProt.OPPLAYER5);
+                    this.out.pIsaac(ClientProt.OPPLAYER5);
                 }
 
                 this.out.p2(a);
@@ -8760,11 +8838,11 @@ export class Client extends GameShell {
                         this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
 
                         if (action === 363) {
-                            this.out.p1isaac(ClientProt.OPPLAYER1);
+                            this.out.pIsaac(ClientProt.OPPLAYER1);
                         }
 
                         if (action === 903) {
-                            this.out.p1isaac(ClientProt.OPPLAYER4);
+                            this.out.pIsaac(ClientProt.OPPLAYER4);
                         }
 
                         this.out.p2(this.playerIds[i]);
@@ -8790,7 +8868,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPPLAYERT);
+                this.out.pIsaac(ClientProt.OPPLAYERT);
                 this.out.p2(a);
                 this.out.p2(this.activeSpellId);
             }
@@ -8806,7 +8884,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                this.out.p1isaac(ClientProt.OPPLAYERU);
+                this.out.pIsaac(ClientProt.OPPLAYERU);
                 this.out.p2(a);
                 this.out.p2(this.objLayerId);
                 this.out.p2(this.objSelectedSlot);
@@ -8816,23 +8894,23 @@ export class Client extends GameShell {
 
         if (action === 405 || action === 38 || action === 422 || action === 478 || action === 347) {
             if (action === 405) {
-                this.out.p1isaac(ClientProt.OPHELD1);
+                this.out.pIsaac(ClientProt.OPHELD1);
             }
 
             if (action === 38) {
-                this.out.p1isaac(ClientProt.OPHELD2);
+                this.out.pIsaac(ClientProt.OPHELD2);
             }
 
             if (action === 422) {
-                this.out.p1isaac(ClientProt.OPHELD3);
+                this.out.pIsaac(ClientProt.OPHELD3);
             }
 
             if (action === 478) {
-                this.out.p1isaac(ClientProt.OPHELD4);
+                this.out.pIsaac(ClientProt.OPHELD4);
             }
 
             if (action === 347) {
-                this.out.p1isaac(ClientProt.OPHELD5);
+                this.out.pIsaac(ClientProt.OPHELD5);
             }
 
             this.out.p2(a);
@@ -8911,7 +8989,7 @@ export class Client extends GameShell {
         }
 
         if (action === 391) {
-            this.out.p1isaac(ClientProt.OPHELDT);
+            this.out.pIsaac(ClientProt.OPHELDT);
             this.out.p2(a);
             this.out.p2(b);
             this.out.p2(c);
@@ -8932,7 +9010,7 @@ export class Client extends GameShell {
         }
 
         if (action === 881) {
-            this.out.p1isaac(ClientProt.OPHELDU);
+            this.out.pIsaac(ClientProt.OPHELDU);
             this.out.p2(a);
             this.out.p2(b);
             this.out.p2(c);
@@ -8956,23 +9034,23 @@ export class Client extends GameShell {
 
         if (action === 602 || action === 596 || action === 22 || action === 892 || action === 415) {
             if (action === 602) {
-                this.out.p1isaac(ClientProt.INV_BUTTON1);
+                this.out.pIsaac(ClientProt.INV_BUTTON1);
             }
 
             if (action === 596) {
-                this.out.p1isaac(ClientProt.INV_BUTTON2);
+                this.out.pIsaac(ClientProt.INV_BUTTON2);
             }
 
             if (action === 22) {
-                this.out.p1isaac(ClientProt.INV_BUTTON3);
+                this.out.pIsaac(ClientProt.INV_BUTTON3);
             }
 
             if (action === 892) {
-                this.out.p1isaac(ClientProt.INV_BUTTON4);
+                this.out.pIsaac(ClientProt.INV_BUTTON4);
             }
 
             if (action === 415) {
-                this.out.p1isaac(ClientProt.INV_BUTTON5);
+                this.out.pIsaac(ClientProt.INV_BUTTON5);
             }
 
             this.out.p2(a);
@@ -8994,7 +9072,7 @@ export class Client extends GameShell {
         }
 
         if (action === 465) {
-            this.out.p1isaac(ClientProt.IF_BUTTON);
+            this.out.pIsaac(ClientProt.IF_BUTTON);
             this.out.p2(c);
 
             const com: Component = Component.list[c];
@@ -9015,13 +9093,13 @@ export class Client extends GameShell {
             }
 
             if (notify) {
-                this.out.p1isaac(ClientProt.IF_BUTTON);
+                this.out.pIsaac(ClientProt.IF_BUTTON);
                 this.out.p2(c);
             }
         }
 
         if (action === 960) {
-            this.out.p1isaac(ClientProt.IF_BUTTON);
+            this.out.pIsaac(ClientProt.IF_BUTTON);
             this.out.p2(c);
 
             const com: Component = Component.list[c];
@@ -9037,7 +9115,7 @@ export class Client extends GameShell {
 
         if (action === 44) {
             if (!this.pressedContinueOption) {
-                this.out.p1isaac(ClientProt.RESUME_PAUSEBUTTON);
+                this.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
                 this.out.p2(c);
                 this.pressedContinueOption = true;
             }
@@ -10625,7 +10703,7 @@ export class Client extends GameShell {
             this.designGender = false;
             this.validateCharacterDesign();
         } else if (clientCode === ClientCode.CC_ACCEPT_DESIGN) {
-            this.out.p1isaac(ClientProt.IDK_SAVEDESIGN);
+            this.out.pIsaac(ClientProt.IDK_SAVEDESIGN);
             this.out.p1(this.designGender ? 0 : 1);
 
             for (let i: number = 0; i < 7; i++) {
@@ -10643,7 +10721,7 @@ export class Client extends GameShell {
             this.closeModal();
 
             if (this.reportAbuseInput.length > 0) {
-                this.out.p1isaac(ClientProt.REPORT_ABUSE);
+                this.out.pIsaac(ClientProt.REPORT_ABUSE);
                 this.out.p8(JString.toBase37(this.reportAbuseInput));
                 this.out.p1(clientCode - 601);
                 this.out.p1(this.reportAbuseMuteOption ? 1 : 0);
@@ -11086,7 +11164,7 @@ export class Client extends GameShell {
 
             this.redrawSidebar = true;
 
-            this.out.p1isaac(ClientProt.FRIENDLIST_ADD);
+            this.out.pIsaac(ClientProt.FRIENDLIST_ADD);
             this.out.p8(username);
         }
     }
@@ -11108,7 +11186,7 @@ export class Client extends GameShell {
                     this.friendName37[j] = this.friendName37[j + 1];
                 }
 
-                this.out.p1isaac(ClientProt.FRIENDLIST_DEL);
+                this.out.pIsaac(ClientProt.FRIENDLIST_DEL);
                 this.out.p8(username);
                 return;
             }
@@ -11144,7 +11222,7 @@ export class Client extends GameShell {
         this.ignoreName37[this.ignoreCount++] = username;
         this.redrawSidebar = true;
 
-        this.out.p1isaac(ClientProt.IGNORELIST_ADD);
+        this.out.pIsaac(ClientProt.IGNORELIST_ADD);
         this.out.p8(username);
     }
 
@@ -11163,7 +11241,7 @@ export class Client extends GameShell {
                     this.ignoreName37[j] = this.ignoreName37[j + 1];
                 }
 
-                this.out.p1isaac(ClientProt.IGNORELIST_DEL);
+                this.out.pIsaac(ClientProt.IGNORELIST_DEL);
                 this.out.p8(username);
                 return;
             }

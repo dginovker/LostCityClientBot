@@ -190,7 +190,7 @@ export default class Packet extends DoublyLinkable {
         this.pos += length;
     }
 
-    p1isaac(opcode: number): void {
+    pIsaac(opcode: number): void {
         this.view.setUint8(this.pos++, (opcode + (this.random?.nextInt ?? 0)) & 0xff);
     }
 
