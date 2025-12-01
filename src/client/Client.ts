@@ -1888,7 +1888,7 @@ export class Client extends GameShell {
             if (this.hasFocus && !this.focused) {
                 this.focused = true;
                 this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
-                this.out.p1(0);
+                this.out.p1(1);
             } else if (!this.hasFocus && this.focused) {
                 this.focused = false;
                 this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
