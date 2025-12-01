@@ -7481,8 +7481,8 @@ export class Client extends GameShell {
             let dz: number = z + buf.g1b();
             const target: number = buf.g2b();
             const spotanim: number = buf.g2();
-            const srcHeight: number = buf.g1();
-            const dstHeight: number = buf.g1();
+            const srcHeight: number = buf.g1() * 4;
+            const dstHeight: number = buf.g1() * 4;
             const startDelay: number = buf.g2();
             const endDelay: number = buf.g2();
             const peak: number = buf.g1();
