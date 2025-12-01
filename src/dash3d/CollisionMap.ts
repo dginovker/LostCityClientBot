@@ -11,15 +11,13 @@ export const enum CollisionConstants {
 export default class CollisionMap {
     static index = (x: number, z: number): number => x * CollisionConstants.SIZE + z;
 
-    readonly startX: number;
-    readonly startZ: number;
+    readonly startX: number = 0;
+    readonly startZ: number = 0;
     readonly sizeX: number;
     readonly sizeZ: number;
     readonly flags: Int32Array;
 
     constructor() {
-        this.startX = 0;
-        this.startZ = 0;
         this.sizeX = CollisionConstants.SIZE;
         this.sizeZ = CollisionConstants.SIZE;
         this.flags = new Int32Array(this.sizeX * this.sizeZ);

@@ -34,8 +34,8 @@ export const enum ButtonType {
     BUTTON_CONTINUE = 6,
 };
 
-export default class Component {
-    static list: Component[] = []; // jag::oldscape::rs2lib::IfType::m_list
+export default class IfType {
+    static list: IfType[] = []; // jag::oldscape::rs2lib::IfType::m_list
     linkObjType: Int32Array | null = null;
     linkObjCount: Int32Array | null = null;
     seqFrame: number = 0;
@@ -61,7 +61,7 @@ export default class Component {
     model2Type: number = 0;
     model2Id: number = 0;
     modelAnim: number = -1;
-    modelAnim2: number = -1;
+    model2Anim: number = -1;
     modelZoom: number = 0;
     modelXAn: number = 0;
     modelYAn: number = 0;
@@ -114,7 +114,7 @@ export default class Component {
                 id = data.g2();
             }
 
-            const com: Component = (this.list[id] = new Component());
+            const com: IfType = (this.list[id] = new IfType());
             com.id = id;
             com.layerId = layer;
             com.type = data.g1();
@@ -276,11 +276,11 @@ export default class Component {
                     com.modelAnim = ((com.modelAnim - 1) << 8) + data.g1();
                 }
 
-                com.modelAnim2 = data.g1();
-                if (com.modelAnim2 === 0) {
-                    com.modelAnim2 = -1;
+                com.model2Anim = data.g1();
+                if (com.model2Anim === 0) {
+                    com.model2Anim = -1;
                 } else {
-                    com.modelAnim2 = ((com.modelAnim2 - 1) << 8) + data.g1();
+                    com.model2Anim = ((com.model2Anim - 1) << 8) + data.g1();
                 }
 
                 com.modelZoom = data.g2();
@@ -387,7 +387,7 @@ export default class Component {
     }
 
     loadModel(type: number, id: number, localPlayer: ClientPlayer | null): Model | null {
-        let model = Component.modelCache.get(BigInt((type << 16) + id)) as Model | null;
+        let model = IfType.modelCache.get(BigInt((type << 16) + id)) as Model | null;
         if (model) {
             return model;
         }
@@ -407,48 +407,18 @@ export default class Component {
         }
 
         if (model) {
-            Component.modelCache.put(BigInt((type << 16) + id), model);
+            IfType.modelCache.put(BigInt((type << 16) + id), model);
         }
 
         return model;
     }
 
     static cacheModel(model: Model, type: number, id: number) {
-        Component.modelCache.clear();
+        IfType.modelCache.clear();
 
         if (model && type != 4) {
-            Component.modelCache.put(BigInt((type << 16) + id), model);
+            IfType.modelCache.put(BigInt((type << 16) + id), model);
         }
-    }
-
-    getAbsoluteX(): number {
-        if (this.layerId === this.id) {
-            return this.x;
-        }
-
-        let parent: Component = Component.list[this.layerId];
-        if (!parent.children || !parent.childX || !parent.childY) {
-            return this.x;
-        }
-
-        let childIndex: number = parent.children.indexOf(this.id);
-        if (childIndex === -1) {
-            return this.x;
-        }
-
-        let x: number = parent.childX[childIndex];
-        while (parent.layerId !== parent.id) {
-            const grandParent: Component = Component.list[parent.layerId];
-            if (grandParent.children && grandParent.childX && grandParent.childY) {
-                childIndex = grandParent.children.indexOf(parent.id);
-                if (childIndex !== -1) {
-                    x += grandParent.childX[childIndex];
-                }
-            }
-            parent = grandParent;
-        }
-
-        return x;
     }
 
     private static getImage(media: Jagfile, name: string, spriteIndex: number): Pix32 | null {

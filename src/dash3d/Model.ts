@@ -1316,12 +1316,12 @@ export default class Model extends ModelSource {
         Model.oZ = 0;
 
         for (let i: number = 0; i < transform.size; i++) {
-            if (!transform.tempTi || !transform.tempTx || !transform.tempTy || !transform.tempTz || !skeleton || !skeleton.labels || !skeleton.type) {
+            if (!transform.ti || !transform.tx || !transform.ty || !transform.tz || !skeleton || !skeleton.labels || !skeleton.type) {
                 continue;
             }
 
-            const base: number = transform.tempTi[i];
-            this.animate2(transform.tempTx[i], transform.tempTy[i], transform.tempTz[i], skeleton.labels[base], skeleton.type[base]);
+            const base: number = transform.ti[i];
+            this.animate2(transform.tx[i], transform.ty[i], transform.tz[i], skeleton.labels[base], skeleton.type[base]);
         }
     }
 
@@ -1357,17 +1357,17 @@ export default class Model extends ModelSource {
         let maskBase: number = mask[counter++];
 
         for (let i: number = 0; i < primary.size; i++) {
-            if (!primary.tempTi) {
+            if (!primary.ti) {
                 continue;
             }
 
-            const base: number = primary.tempTi[i];
+            const base: number = primary.ti[i];
             while (base > maskBase) {
                 maskBase = mask[counter++];
             }
 
-            if (skeleton && skeleton.type && primary.tempTx && primary.tempTy && primary.tempTz && skeleton.labels && (base !== maskBase || skeleton.type[base] === 0)) {
-                this.animate2(primary.tempTx[i], primary.tempTy[i], primary.tempTz[i], skeleton.labels[base], skeleton.type[base]);
+            if (skeleton && skeleton.type && primary.tx && primary.ty && primary.tz && skeleton.labels && (base !== maskBase || skeleton.type[base] === 0)) {
+                this.animate2(primary.tx[i], primary.ty[i], primary.tz[i], skeleton.labels[base], skeleton.type[base]);
             }
         }
 
@@ -1379,17 +1379,17 @@ export default class Model extends ModelSource {
         maskBase = mask[counter++];
 
         for (let i: number = 0; i < secondary.size; i++) {
-            if (!secondary.tempTi) {
+            if (!secondary.ti) {
                 continue;
             }
 
-            const base: number = secondary.tempTi[i];
+            const base: number = secondary.ti[i];
             while (base > maskBase) {
                 maskBase = mask[counter++];
             }
 
-            if (skeleton && skeleton.type && secondary.tempTx && secondary.tempTy && secondary.tempTz && skeleton.labels && (base === maskBase || skeleton.type[base] === 0)) {
-                this.animate2(secondary.tempTx[i], secondary.tempTy[i], secondary.tempTz[i], skeleton.labels[base], skeleton.type[base]);
+            if (skeleton && skeleton.type && secondary.tx && secondary.ty && secondary.tz && skeleton.labels && (base === maskBase || skeleton.type[base] === 0)) {
+                this.animate2(secondary.tx[i], secondary.ty[i], secondary.tz[i], skeleton.labels[base], skeleton.type[base]);
             }
         }
     }

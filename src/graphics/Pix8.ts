@@ -1,12 +1,10 @@
-import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
-
 import Pix2D from '#/graphics/Pix2D.js';
 
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
 // jag::oldscape::graphics::Pix8
-export default class Pix8 extends DoublyLinkable {
+export default class Pix8 extends Pix2D {
     pixels: Int8Array;
     wi: number; // jag::oldscape::graphics::pixloader::m_wi
     hi: number; // jag::oldscape::graphics::pixloader::m_hi

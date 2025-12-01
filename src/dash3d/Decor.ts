@@ -4,8 +4,8 @@ export default class Decor {
     readonly y: number;
     x: number;
     z: number;
-    readonly angle1: number;
-    readonly angle2: number;
+    readonly wshape: number;
+    readonly angle: number;
     model: ModelSource;
     readonly typecode: number;
     readonly typecode2: number;
@@ -14,8 +14,8 @@ export default class Decor {
         this.y = y;
         this.x = x;
         this.z = z;
-        this.angle1 = type;
-        this.angle2 = angle;
+        this.wshape = type;
+        this.angle = angle;
         this.model = model;
         this.typecode = typecode;
         this.typecode2 = info;

@@ -144,10 +144,10 @@ export default class FloType extends ConfigType {
             lightness = 255;
         }
 
-        this.hsl = FloType.hsl24to16(hue, saturation, lightness);
+        this.hsl = FloType.getTable(hue, saturation, lightness);
     }
 
-    static hsl24to16(hue: number, saturation: number, lightness: number): number {
+    static getTable(hue: number, saturation: number, lightness: number): number {
         if (lightness > 179) {
             saturation = (saturation / 2) | 0;
         }

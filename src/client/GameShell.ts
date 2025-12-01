@@ -338,7 +338,7 @@ export default abstract class GameShell {
             this.mouseButton = 1;
         }
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.mousePressed(x, y, e.button, 'mouse');
         }
     }
@@ -383,7 +383,7 @@ export default abstract class GameShell {
         this.idleCycle = performance.now();
         this.mouseButton = 0;
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.mouseReleased(e.button, 'mouse');
         }
 
@@ -416,7 +416,7 @@ export default abstract class GameShell {
                 this.nextMouseClickButton = 0;
                 this.mouseButton = 0;
 
-                if (InputTracking.enabled) {
+                if (InputTracking.active) {
                     InputTracking.mouseReleased(0, e.pointerType);
                 }
             } else if (this.panning) {
@@ -453,7 +453,7 @@ export default abstract class GameShell {
                     this.mouseButton = 1;
                 }
 
-                if (InputTracking.enabled) {
+                if (InputTracking.active) {
                     InputTracking.mousePressed(x, y, longPress ? 2 : 0, e.pointerType);
                 }
 
@@ -461,7 +461,7 @@ export default abstract class GameShell {
                 setTimeout(() => {
                     this.mouseButton = 0;
 
-                    if (InputTracking.enabled) {
+                    if (InputTracking.active) {
                         InputTracking.mouseReleased(longPress ? 2 : 0, e.pointerType);
                     }
                 }, 40);
@@ -480,7 +480,7 @@ export default abstract class GameShell {
             this.mouseX = x;
             this.mouseY = y;
 
-            if (InputTracking.enabled) {
+            if (InputTracking.active) {
                 InputTracking.mouseEntered();
             }
         } else {
@@ -509,7 +509,7 @@ export default abstract class GameShell {
             this.mouseX = -1;
             this.mouseY = -1;
 
-            if (InputTracking.enabled) {
+            if (InputTracking.active) {
                 InputTracking.mouseExited();
             }
 
@@ -542,7 +542,7 @@ export default abstract class GameShell {
             this.mouseX = x;
             this.mouseY = y;
 
-            if (InputTracking.enabled) {
+            if (InputTracking.active) {
                 InputTracking.mouseMoved(x, y, e.pointerType);
             }
         } else {
@@ -634,7 +634,7 @@ export default abstract class GameShell {
             this.keyQueueWritePos = (this.keyQueueWritePos + 1) & 0x7f;
         }
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.keyPressed(ch);
         }
 
@@ -671,7 +671,7 @@ export default abstract class GameShell {
             this.keyHeld[ch] = 0;
         }
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.keyReleased(ch);
         }
 
@@ -694,7 +694,7 @@ export default abstract class GameShell {
         this.redrawScreen = true;
         this.refresh();
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.focusGained();
         }
     }
@@ -707,7 +707,7 @@ export default abstract class GameShell {
             this.keyHeld[i] = 0;
         }
 
-        if (InputTracking.enabled) {
+        if (InputTracking.active) {
             InputTracking.focusLost();
         }
     }

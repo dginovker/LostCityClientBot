@@ -627,28 +627,4 @@ export default class Pix32 extends Pix2D {
             srcOff += srcStep;
         }
     }
-
-    // jag::oldscape::graphics::NXTPix2D::PlotScale
-    private plotScale(w: number, h: number, src: Int32Array, offW: number, offH: number, dst: Int32Array, dstStep: number, dstOff: number, currentW: number, scaleCropWidth: number, scaleCropHeight: number): void {
-        try {
-            const lastOffW: number = offW;
-            for (let y: number = -h; y < 0; y++) {
-                const offY: number = (offH >> 16) * currentW;
-                for (let x: number = -w; x < 0; x++) {
-                    const rgb: number = src[(offW >> 16) + offY];
-                    if (rgb === 0) {
-                        dstOff++;
-                    } else {
-                        dst[dstOff++] = rgb;
-                    }
-                    offW += scaleCropWidth;
-                }
-                offH += scaleCropHeight;
-                offW = lastOffW;
-                dstOff += dstStep;
-            }
-        } catch (e) {
-            console.error('error in plot_scale');
-        }
-    }
 }

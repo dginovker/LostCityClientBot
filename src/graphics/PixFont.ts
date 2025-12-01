@@ -135,7 +135,7 @@ export default class PixFont extends DoublyLinkable {
             const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
 
             if (c !== 94) {
-                this.drawChar(this.charMask[c], x + this.charOffsetX[c], y + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color);
+                this.plotLetter(this.charMask[c], x + this.charOffsetX[c], y + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color);
             }
 
             x += this.charAdvance[c];
@@ -157,9 +157,9 @@ export default class PixFont extends DoublyLinkable {
 
                 if (c !== 94) {
                     if (shadowed) {
-                        this.drawChar(this.charMask[c], x + this.charOffsetX[c] + 1, y + this.charOffsetY[c] + 1, this.charMaskWidth[c], this.charMaskHeight[c], Colors.BLACK);
+                        this.plotLetter(this.charMask[c], x + this.charOffsetX[c] + 1, y + this.charOffsetY[c] + 1, this.charMaskWidth[c], this.charMaskHeight[c], Colors.BLACK);
                     }
-                    this.drawChar(this.charMask[c], x + this.charOffsetX[c], y + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color);
+                    this.plotLetter(this.charMask[c], x + this.charOffsetX[c], y + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color);
                 }
 
                 x += this.charAdvance[c];
@@ -219,10 +219,10 @@ export default class PixFont extends DoublyLinkable {
                 const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
                 if (c !== 94) {
                     if (shadowed) {
-                        this.drawCharAlpha(x + this.charOffsetX[c] + 1, offY + this.charOffsetY[c] + 1, this.charMaskWidth[c], this.charMaskHeight[c], Colors.BLACK, 192, this.charMask[c]);
+                        this.plotLetterTrans(x + this.charOffsetX[c] + 1, offY + this.charOffsetY[c] + 1, this.charMaskWidth[c], this.charMaskHeight[c], Colors.BLACK, 192, this.charMask[c]);
                     }
 
-                    this.drawCharAlpha(x + this.charOffsetX[c], offY + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color, rand, this.charMask[c]);
+                    this.plotLetterTrans(x + this.charOffsetX[c], offY + this.charOffsetY[c], this.charMaskWidth[c], this.charMaskHeight[c], color, rand, this.charMask[c]);
                 }
 
                 x += this.charAdvance[c];
@@ -258,14 +258,14 @@ export default class PixFont extends DoublyLinkable {
             const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
 
             if (c != 94) {
-                this.drawChar(this.charMask[c], x + this.charOffsetX[c], offY + this.charOffsetY[c] + ((Math.sin(i / 2.0 + phase / 5.0) * 5.0) | 0), this.charMaskWidth[c], this.charMaskHeight[c], color);
+                this.plotLetter(this.charMask[c], x + this.charOffsetX[c], offY + this.charOffsetY[c] + ((Math.sin(i / 2.0 + phase / 5.0) * 5.0) | 0), this.charMaskWidth[c], this.charMaskHeight[c], color);
             }
 
             x += this.charAdvance[c];
         }
     }
 
-    drawChar(data: Int8Array, x: number, y: number, w: number, h: number, color: number): void {
+    plotLetter(data: Int8Array, x: number, y: number, w: number, h: number, color: number): void {
         x |= 0;
         y |= 0;
         w |= 0;
@@ -307,57 +307,11 @@ export default class PixFont extends DoublyLinkable {
         }
 
         if (w > 0 && h > 0) {
-            this.drawMask(w, h, data, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep, color);
+            this.plot(w, h, data, srcOff, srcStep, Pix2D.pixels, dstOff, dstStep, color);
         }
     }
 
-    drawCharAlpha(x: number, y: number, w: number, h: number, color: number, alpha: number, mask: Int8Array): void {
-        x |= 0;
-        y |= 0;
-        w |= 0;
-        h |= 0;
-
-        let dstOff: number = x + y * Pix2D.width;
-        let dstStep: number = Pix2D.width - w;
-
-        let srcStep: number = 0;
-        let srcOff: number = 0;
-
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
-            h -= cutoff;
-            y = Pix2D.boundTop;
-            srcOff += cutoff * w;
-            dstOff += cutoff * Pix2D.width;
-        }
-
-        if (y + h >= Pix2D.boundBottom) {
-            h -= y + h + 1 - Pix2D.boundBottom;
-        }
-
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
-            w -= cutoff;
-            x = Pix2D.boundLeft;
-            srcOff += cutoff;
-            dstOff += cutoff;
-            srcStep += cutoff;
-            dstStep += cutoff;
-        }
-
-        if (x + w >= Pix2D.boundRight) {
-            const cutoff: number = x + w + 1 - Pix2D.boundRight;
-            w -= cutoff;
-            srcStep += cutoff;
-            dstStep += cutoff;
-        }
-
-        if (w > 0 && h > 0) {
-            this.drawMaskAlpha(w, h, Pix2D.pixels, dstOff, dstStep, mask, srcOff, srcStep, color, alpha);
-        }
-    }
-
-    private drawMask(w: number, h: number, src: Int8Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number, rgb: number): void {
+    private plot(w: number, h: number, src: Int8Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number, rgb: number): void {
         w |= 0;
         h |= 0;
 
@@ -404,7 +358,53 @@ export default class PixFont extends DoublyLinkable {
         }
     }
 
-    private drawMaskAlpha(w: number, h: number, dst: Int32Array, dstOff: number, dstStep: number, mask: Int8Array, maskOff: number, maskStep: number, color: number, alpha: number): void {
+    plotLetterTrans(x: number, y: number, w: number, h: number, color: number, alpha: number, mask: Int8Array): void {
+        x |= 0;
+        y |= 0;
+        w |= 0;
+        h |= 0;
+
+        let dstOff: number = x + y * Pix2D.width;
+        let dstStep: number = Pix2D.width - w;
+
+        let srcStep: number = 0;
+        let srcOff: number = 0;
+
+        if (y < Pix2D.boundTop) {
+            const cutoff: number = Pix2D.boundTop - y;
+            h -= cutoff;
+            y = Pix2D.boundTop;
+            srcOff += cutoff * w;
+            dstOff += cutoff * Pix2D.width;
+        }
+
+        if (y + h >= Pix2D.boundBottom) {
+            h -= y + h + 1 - Pix2D.boundBottom;
+        }
+
+        if (x < Pix2D.boundLeft) {
+            const cutoff: number = Pix2D.boundLeft - x;
+            w -= cutoff;
+            x = Pix2D.boundLeft;
+            srcOff += cutoff;
+            dstOff += cutoff;
+            srcStep += cutoff;
+            dstStep += cutoff;
+        }
+
+        if (x + w >= Pix2D.boundRight) {
+            const cutoff: number = x + w + 1 - Pix2D.boundRight;
+            w -= cutoff;
+            srcStep += cutoff;
+            dstStep += cutoff;
+        }
+
+        if (w > 0 && h > 0) {
+            this.plotTrans(w, h, Pix2D.pixels, dstOff, dstStep, mask, srcOff, srcStep, color, alpha);
+        }
+    }
+
+    private plotTrans(w: number, h: number, dst: Int32Array, dstOff: number, dstStep: number, mask: Int8Array, maskOff: number, maskStep: number, color: number, alpha: number): void {
         w |= 0;
         h |= 0;
 

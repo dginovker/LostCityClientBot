@@ -59,8 +59,8 @@ export default class Ground {
     readonly flat: boolean;
     readonly shape: number;
     readonly shapeAngle: number;
-    readonly backgroundRgb: number;
-    readonly foregroundRgb: number;
+    readonly underlayColour: number;
+    readonly overlayColour: number;
 
     constructor(
         tileX: number,
@@ -86,8 +86,8 @@ export default class Ground {
         this.flat = !(southwestY !== southeastY || southwestY !== northeastY || southwestY !== northwestY);
         this.shape = shape;
         this.shapeAngle = angle;
-        this.backgroundRgb = backgroundRgb;
-        this.foregroundRgb = foregroundRgb;
+        this.underlayColour = backgroundRgb;
+        this.overlayColour = foregroundRgb;
 
         const points: Int8Array = Ground.defShapeP[shape];
         const vertexCount: number = points.length;
