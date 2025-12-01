@@ -4729,8 +4729,9 @@ export class Client extends GameShell {
     private gameDrawMain(): void {
         this.sceneCycle++;
 
+        this.addPlayers(true);
         this.addNpcs(true);
-        this.addPlayers();
+        this.addPlayers(false);
         this.addNpcs(false);
         this.addProjectiles();
         this.addMapAnim();
@@ -4813,7 +4814,7 @@ export class Client extends GameShell {
     }
 
     // jag::oldscape::Client::GdmAddPlayerToWorld
-    private addPlayers(): void {
+    private addPlayers(self: boolean): void {
         if (!this.localPlayer) {
             return;
         }
@@ -4822,10 +4823,15 @@ export class Client extends GameShell {
             this.flagSceneTileX = 0;
         }
 
-        for (let i: number = -1; i < this.playerCount; i++) {
+        let count = this.playerCount;
+        if (self) {
+            count = 1;
+        }
+
+        for (let i: number = 0; i < count; i++) {
             let player: ClientPlayer | null;
             let id: number;
-            if (i === -1) {
+            if (self) {
                 player = this.localPlayer;
                 id = Constants.LOCAL_PLAYER_INDEX << 14;
             } else {
@@ -4838,7 +4844,7 @@ export class Client extends GameShell {
             }
 
             player.lowMemory = false;
-            if ((Client.lowMem && this.playerCount > 50 || this.playerCount > 200) && i != -1 && player.secondarySeqId == player.readyanim) {
+            if ((Client.lowMem && this.playerCount > 50 || this.playerCount > 200) && !self && player.secondarySeqId == player.readyanim) {
                 player.lowMemory = true;
             }
 
