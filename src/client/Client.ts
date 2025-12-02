@@ -2012,6 +2012,13 @@ export class Client extends GameShell {
                 }
             }
 
+            Client.cyclelogic7++;
+            if (Client.cyclelogic7 > 62) {
+                Client.cyclelogic7 = 0;
+
+                this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC7);
+            }
+
             if (World.groundX !== -1) {
                 if (this.localPlayer) {
                     const x: number = World.groundX;
@@ -2488,6 +2495,14 @@ export class Client extends GameShell {
                 this.activeMapFunctionZ[this.activeMapFunctionCount] = stz;
                 this.activeMapFunctionCount++;
             }
+        }
+
+        Client.cyclelogic3++;
+        if (Client.cyclelogic3 > 112) {
+            Client.cyclelogic3 = 0;
+
+            this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC3);
+            this.out.p1(50);
         }
     }
 
@@ -3510,6 +3525,14 @@ export class Client extends GameShell {
     }
 
     private async handleInputKey(): Promise<void> {
+        Client.cyclelogic4++;
+        if (Client.cyclelogic4 > 192) {
+            Client.cyclelogic4 = 0;
+
+            this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC4);
+            this.out.p1(232);
+        }
+
         // eslint-disable-next-line no-constant-condition
         while (true) {
             let key: number;
@@ -4822,6 +4845,14 @@ export class Client extends GameShell {
 
         if (this.localPlayer.x >> 7 === this.flagSceneTileX && this.localPlayer.z >> 7 === this.flagSceneTileZ) {
             this.flagSceneTileX = 0;
+
+            Client.cyclelogic6++;
+            if (Client.cyclelogic6 > 122) {
+                Client.cyclelogic6 = 0;
+
+                this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC6);
+                this.out.p1(62);
+            }
         }
 
         let count = this.playerCount;
@@ -4934,6 +4965,34 @@ export class Client extends GameShell {
                 proj.move(this.sceneDelta);
                 this.world?.addDynamic(this.minusedlevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
             }
+        }
+
+        Client.cyclelogic1++;
+        if (Client.cyclelogic1 > 1174) {
+            Client.cyclelogic1 = 0;
+
+            this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC1);
+            this.out.p1(0);
+            const start = this.out.pos;
+            if (((Math.random() * 2.0) | 0) === 0) {
+                this.out.p2(11499);
+            }
+            this.out.p2(10548);
+            if (((Math.random() * 2.0) | 0) == 0) {
+                this.out.p1(139);
+            }
+            if (((Math.random() * 2.0) | 0) == 0) {
+                this.out.p1(94);
+            }
+            this.out.p2(51693);
+            this.out.p1(16);
+            this.out.p2(15036);
+            if (((Math.random() * 2.0) | 0) == 0) {
+                this.out.p1(65);
+            }
+            this.out.p1((Math.random() * 256.0) | 0);
+            this.out.p2(22990);
+            this.out.psize1(this.out.pos - start);
         }
     }
 
@@ -5437,6 +5496,13 @@ export class Client extends GameShell {
             this.imageCrosses[(this.crossCycle / 100) | 0]?.plotSprite(this.crossX - 8 - 4, this.crossY - 8 - 4);
         } else if (this.crossMode === 2) {
             this.imageCrosses[((this.crossCycle / 100) | 0) + 4]?.plotSprite(this.crossX - 8 - 4, this.crossY - 8 - 4);
+
+            Client.cyclelogic5++;
+            if (Client.cyclelogic5 > 57) {
+                Client.cyclelogic5 = 0;
+
+                this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC5);
+            }
         }
 
         if (this.mainOverlayLayerId !== -1) {
@@ -5815,6 +5881,31 @@ export class Client extends GameShell {
 
         const shape: number = info & 0x1f;
         const angle: number = (info >> 6) & 0x3;
+
+        Client.cyclelogic2++;
+        if (Client.cyclelogic2 > 1086) {
+            Client.cyclelogic2 = 0;
+
+            this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC2);
+            this.out.p1(0);
+            const start = this.out.pos;
+            if (((Math.random() * 2.0) | 0) == 0) {
+                this.out.p2(16791);
+            }
+            this.out.p1(254);
+            this.out.p2((Math.random() * 65536.0) | 0);
+            this.out.p2(16128);
+            this.out.p2(52610);
+            this.out.p2((Math.random() * 65536.0) | 0);
+            this.out.p2(55420);
+            if (((Math.random() * 2.0) | 0) == 0) {
+                this.out.p2(35025);
+            }
+            this.out.p2(46628);
+            this.out.p1((Math.random() * 256.0) | 0);
+            this.out.psize1(this.out.pos - start);
+        }
+
         if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id || shape === LocShape.GROUND_DECOR.id) {
             const loc: LocType = LocType.get(locId);
 
@@ -8587,6 +8678,14 @@ export class Client extends GameShell {
                 this.crossCycle = 0;
 
                 if (action === 224) {
+                    if ((b & 0x3) == 0) {
+                        Client.oplogic7++;
+                    }
+                    if (Client.oplogic7 >= 123) {
+                        this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC7);
+                        this.out.p4(0);
+                    }
+
                     this.out.pIsaac(ClientProt.OPOBJ1);
                 }
 
@@ -8599,10 +8698,22 @@ export class Client extends GameShell {
                 }
 
                 if (action === 746) {
+                    Client.oplogic8 += c;
+                    if (Client.oplogic8 >= 75) {
+                        this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC8);
+                        this.out.p1(19);
+                    }
+
                     this.out.pIsaac(ClientProt.OPOBJ4);
                 }
 
                 if (action === 877) {
+                    Client.oplogic3 += this.sceneBaseTileZ;
+                    if (Client.oplogic3 >= 118) {
+                        this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC3);
+                        this.out.p4(0);
+                    }
+
                     this.out.pIsaac(ClientProt.OPOBJ5);
                 }
 
@@ -8758,10 +8869,22 @@ export class Client extends GameShell {
         }
 
         if (action === 504) {
+            Client.oplogic1 += c;
+            if (Client.oplogic1 >= 139) {
+                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC1);
+                this.out.p4(0);
+            }
+
             this.interactWithLoc(ClientProt.OPLOC2, b, c, a);
         }
 
         if (action === 364) {
+            Client.oplogic2++;
+            if (Client.oplogic2 >= 124) {
+                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC2);
+                this.out.p2(37954);
+            }
+
             this.interactWithLoc(ClientProt.OPLOC3, b, c, a);
         }
 
@@ -8813,6 +8936,12 @@ export class Client extends GameShell {
                 this.crossCycle = 0;
 
                 if (action === 639) {
+                    Client.oplogic4++;
+                    if (Client.oplogic4 >= 52) {
+                        this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC4);
+                        this.out.p1(131);
+                    }
+
                     this.out.pIsaac(ClientProt.OPPLAYER1);
                 }
 
@@ -8825,6 +8954,12 @@ export class Client extends GameShell {
                 }
 
                 if (action === 387) {
+                    Client.oplogic5 += a;
+                    if (Client.oplogic5 >= 66) {
+                        this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC5);
+                        this.out.p1(154);
+                    }
+
                     this.out.pIsaac(ClientProt.OPPLAYER4);
                 }
 
@@ -8852,10 +8987,22 @@ export class Client extends GameShell {
                         this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
 
                         if (action === 363) {
+                            Client.oplogic4++;
+                            if (Client.oplogic4 >= 52) {
+                                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC4);
+                                this.out.p1(131);
+                            }
+
                             this.out.pIsaac(ClientProt.OPPLAYER1);
                         }
 
                         if (action === 903) {
+                            Client.oplogic5 += a;
+                            if (Client.oplogic5 >= 66) {
+                                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC5);
+                                this.out.p1(154);
+                            }
+
                             this.out.pIsaac(ClientProt.OPPLAYER4);
                         }
 
@@ -8920,6 +9067,12 @@ export class Client extends GameShell {
             }
 
             if (action === 478) {
+                Client.oplogic9++;
+                if (Client.oplogic9 >= 116) {
+                    this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC9);
+                    this.out.p3(13018169);
+                }
+
                 this.out.pIsaac(ClientProt.OPHELD4);
             }
 
@@ -9048,6 +9201,14 @@ export class Client extends GameShell {
 
         if (action === 602 || action === 596 || action === 22 || action === 892 || action === 415) {
             if (action === 602) {
+                if ((a & 0x3) == 0) {
+                    Client.oplogic6++;
+                }
+                if (Client.oplogic6 >= 133) {
+                    this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC6);
+                    this.out.p2(6118);
+                }
+
                 this.out.pIsaac(ClientProt.INV_BUTTON1);
             }
 
