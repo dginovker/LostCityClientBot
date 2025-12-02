@@ -3015,7 +3015,7 @@ export class Client extends GameShell {
                 if (
                     action == MenuAction.INV_BUTTON1 || action == MenuAction.INV_BUTTON2 || action == MenuAction.INV_BUTTON3 || action == MenuAction.INV_BUTTON4 || action == MenuAction.INV_BUTTON5 ||
                     action == MenuAction.OPHELD1 || action == MenuAction.OPHELD2 || action == MenuAction.OPHELD3 || action == MenuAction.OPHELD4 || action == MenuAction.OPHELD5 ||
-                    action == MenuAction.OPHELDT_START
+                    action == MenuAction.OPHELDT_START || action === MenuAction.OPHELD6
                 ) {
                     const slot: number = this.menuParamB[this.menuSize - 1];
                     const comId: number = this.menuParamC[this.menuSize - 1];
@@ -9146,7 +9146,7 @@ export class Client extends GameShell {
 
             this.spellCaption = prefix + ' ' + com.targetText + ' ' + suffix;
 
-            if (this.activeSpellFlags === 16) {
+            if (this.activeSpellFlags === 0x10) {
                 this.redrawSidebar = true;
                 this.sideTab = 3;
                 this.redrawSideicons = true;
