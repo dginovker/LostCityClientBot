@@ -1963,7 +1963,7 @@ export class Client extends GameShell {
                             const com: IfType = IfType.list[this.objDragLayerId];
 
                             let mode = 0;
-                            if (this.bankArrangeMode == 1 && com.clientCode == 206) {
+                            if (this.bankArrangeMode == 1 && com.clientCode == ClientCode.CC_BANKMODE) {
                                 mode = 1;
                             }
                             if (com.linkObjType && com.linkObjType[this.hoveredSlot] <= 0) {
@@ -3250,7 +3250,7 @@ export class Client extends GameShell {
             this.reportAbuseMuteOption = false;
 
             for (let i: number = 0; i < IfType.list.length; i++) {
-                if (IfType.list[i] && IfType.list[i].clientCode === 600) {
+                if (IfType.list[i] && IfType.list[i].clientCode === ClientCode.CC_REPORT_INPUT) {
                     this.reportAbuseLayerId = this.mainLayerId = IfType.list[i].layerId;
                     break;
                 }
@@ -10405,7 +10405,7 @@ export class Client extends GameShell {
     private updateInterfaceContent(com: IfType): void {
         let clientCode: number = com.clientCode;
 
-        if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_END) || (clientCode >= 701 && clientCode <= 800)) {
+        if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_END) || (clientCode >= ClientCode.CC_FRIENDS2_START && clientCode <= ClientCode.CC_FRIENDS2_END)) {
             if (clientCode === ClientCode.CC_FRIENDS_START && this.friendListStatus === 0) {
                 com.text = 'Loading friend list';
                 com.buttonType = 0;
@@ -10424,7 +10424,7 @@ export class Client extends GameShell {
                 if (clientCode > 700) {
                     clientCode -= 601;
                 } else {
-                    clientCode--;
+                    clientCode -= 1;
                 }
 
                 if (clientCode >= count) {
@@ -10435,7 +10435,7 @@ export class Client extends GameShell {
                     com.buttonType = 1;
                 }
             }
-        } else if ((clientCode >= ClientCode.CC_FRIENDS_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS_UPDATE_END) || (clientCode >= 801 && clientCode <= 900)) {
+        } else if ((clientCode >= ClientCode.CC_FRIENDS_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS_UPDATE_END) || (clientCode >= ClientCode.CC_FRIENDS2_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS2_UPDATE_END)) {
             let count = this.friendCount;
             if (this.friendListStatus != 2) {
                 count = 0;
