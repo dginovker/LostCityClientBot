@@ -1,0 +1,77 @@
+export const enum MenuAction {
+    _PRIORITY = 2000,
+
+    CANCEL = 1252,
+
+    OPOBJ1 = 224,
+    OPOBJ2 = 993,
+    OPOBJ3 = 99,
+    OPOBJ4 = 746,
+    OPOBJ5 = 877,
+    OPOBJ6 = 1102,
+    OPOBJT = 965,
+    OPOBJU = 217,
+
+    OPNPC1 = 728,
+    OPNPC2 = 542,
+    OPNPC3 = 6,
+    OPNPC4 = 963,
+    OPNPC5 = 245,
+    OPNPC6 = 1607,
+    OPNPCT = 265,
+    OPNPCU = 900,
+
+    OPLOC1 = 286,
+    OPLOC2 = 504,
+    OPLOC3 = 364,
+    OPLOC4 = 581,
+    OPLOC5 = 1501,
+    OPLOC6 = 1175,
+    OPLOCT = 55,
+    OPLOCU = 450,
+    
+    OPPLAYER1 = 639,
+    OPPLAYER2 = 499,
+    OPPLAYER3 = 27,
+    OPPLAYER4 = 387,
+    OPPLAYER5 = 185,
+    OPPLAYER_DUELREQ = 363,
+    OPPLAYER_TRADEREQ = 903,
+    OPPLAYERT = 651,
+    OPPLAYERU = 367,
+
+    OPHELD1 = 405,
+    OPHELD2 = 38,
+    OPHELD3 = 422,
+    OPHELD4 = 478,
+    OPHELD5 = 347,
+    OPHELD6 = 1773,
+    OPHELDT_START = 188,
+    OPHELDT_SELECT = 930,
+    OPHELDT = 391,
+    OPHELDU = 881,
+
+    INV_BUTTON1 = 602,
+    INV_BUTTON2 = 596,
+    INV_BUTTON3 = 22,
+    INV_BUTTON4 = 892,
+    INV_BUTTON5 = 415,
+
+    IF_BUTTON = 951,
+    IF_BUTTON_TOGGLE = 465,
+    IF_BUTTON_SELECT = 960,
+
+    RESUME_PAUSEBUTTON = 44,
+    CLOSE_MODAL = 947,
+
+    REPORT_ABUSE = 34,
+
+    WALK = 660,
+
+    FRIENDLIST_ADD = 406,
+    IGNORELIST_ADD = 436,
+    FRIENDLIST_DEL = 557,
+    IGNORELIST_DEL = 556,
+
+    MESSAGE_PRIVATE = 679,
+}

@@ -4,6 +4,7 @@ import { stopMidi, setMidiVolume, playMidi } from '#3rdparty/tinymidipcm.js';
 import { ClientCode } from '#/client/ClientCode.js';
 import GameShell from '#/client/GameShell.js';
 import InputTracking from '#/client/InputTracking.js';
+import { MenuAction } from '#/client/MenuAction.js';
 import MobileKeyboard from '#/client/MobileKeyboard.js';
 import MouseTracking from '#/client/MouseTracking.js';
 
@@ -508,8 +509,8 @@ export class Client extends GameShell {
     sendCameraDelay: number = 0;
     sendCamera: boolean = false;
     focused: boolean = false;
-    playerOptions: (string | null)[] = new TypedArray1d(5, null);
-    playerOptionsPushDown: boolean[] = new TypedArray1d(5, false);
+    playerOp: (string | null)[] = new TypedArray1d(5, null);
+    playerOpPriority: boolean[] = new TypedArray1d(5, false);
     mouseTracking: MouseTracking = new MouseTracking(this);
     mouseTracked: boolean = false;
     mouseTrackedX: number = 0;
@@ -1585,8 +1586,8 @@ export class Client extends GameShell {
                 }
 
                 for (let i = 0; i < 5; i++) {
-                    this.playerOptions[i] = null;
-                    this.playerOptionsPushDown[i] = false;
+                    this.playerOp[i] = null;
+                    this.playerOpPriority[i] = false;
                 }
 
                 Client.oplogic1 = 0;
@@ -2592,7 +2593,7 @@ export class Client extends GameShell {
         }
 
         this.menuOption[0] = 'Cancel';
-        this.menuAction[0] = 1252;
+        this.menuAction[0] = MenuAction.CANCEL;
         this.menuSize = 1;
 
         this.handlePrivateChatInput();
@@ -2705,16 +2706,16 @@ export class Client extends GameShell {
                     if (this.mouseX > 4 && this.mouseX < 516 && this.mouseY - 4 > y - 10 && this.mouseY - 4 <= y + 3) {
                         if (this.staffmodlevel) {
                             this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                            this.menuAction[this.menuSize] = 2034;
+                            this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.REPORT_ABUSE;
                             this.menuSize++;
                         }
 
                         this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                        this.menuAction[this.menuSize] = 2436;
+                        this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.IGNORELIST_ADD;
                         this.menuSize++;
 
                         this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                        this.menuAction[this.menuSize] = 2406;
+                        this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.FRIENDLIST_ADD;
                         this.menuSize++;
                     }
 
@@ -2761,16 +2762,16 @@ export class Client extends GameShell {
                 if (mouseY > y - 14 && mouseY <= y && this.localPlayer && sender !== this.localPlayer.name) {
                     if (this.staffmodlevel >= 1) {
                         this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                        this.menuAction[this.menuSize] = 34;
+                        this.menuAction[this.menuSize] = MenuAction.REPORT_ABUSE;
                         this.menuSize++;
                     }
 
                     this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                    this.menuAction[this.menuSize] = 436;
+                    this.menuAction[this.menuSize] = MenuAction.IGNORELIST_ADD;
                     this.menuSize++;
 
                     this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                    this.menuAction[this.menuSize] = 406;
+                    this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_ADD;
                     this.menuSize++;
                 }
 
@@ -2779,16 +2780,16 @@ export class Client extends GameShell {
                 if (mouseY > y - 14 && mouseY <= y) {
                     if (this.staffmodlevel >= 1) {
                         this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                        this.menuAction[this.menuSize] = 34;
+                        this.menuAction[this.menuSize] = MenuAction.REPORT_ABUSE;
                         this.menuSize++;
                     }
 
                     this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                    this.menuAction[this.menuSize] = 436;
+                    this.menuAction[this.menuSize] = MenuAction.IGNORELIST_ADD;
                     this.menuSize++;
 
                     this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                    this.menuAction[this.menuSize] = 406;
+                    this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_ADD;
                     this.menuSize++;
                 }
 
@@ -2796,7 +2797,7 @@ export class Client extends GameShell {
             } else if (type === 4 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                 if (mouseY > y - 14 && mouseY <= y) {
                     this.menuOption[this.menuSize] = 'Accept trade @whi@' + sender;
-                    this.menuAction[this.menuSize] = 903;
+                    this.menuAction[this.menuSize] = MenuAction.OPPLAYER_TRADEREQ;
                     this.menuSize++;
                 }
 
@@ -2806,7 +2807,7 @@ export class Client extends GameShell {
             } else if (type === 8 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                 if (mouseY > y - 14 && mouseY <= y) {
                     this.menuOption[this.menuSize] = 'Accept duel @whi@' + sender;
-                    this.menuAction[this.menuSize] = 363;
+                    this.menuAction[this.menuSize] = MenuAction.OPPLAYER_DUELREQ;
                     this.menuSize++;
                 }
 
@@ -2818,7 +2819,7 @@ export class Client extends GameShell {
     private handleViewportOptions(): void {
         if (this.objSelected === 0 && this.spellSelected === 0) {
             this.menuOption[this.menuSize] = 'Walk here';
-            this.menuAction[this.menuSize] = 660;
+            this.menuAction[this.menuSize] = MenuAction.WALK;
             this.menuParamB[this.menuSize] = this.mouseX;
             this.menuParamC[this.menuSize] = this.mouseY;
             this.menuSize++;
@@ -2843,7 +2844,7 @@ export class Client extends GameShell {
 
                 if (this.objSelected === 1) {
                     this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = 450;
+                    this.menuAction[this.menuSize] = MenuAction.OPLOCU;
                     this.menuParamA[this.menuSize] = typecode;
                     this.menuParamB[this.menuSize] = x;
                     this.menuParamC[this.menuSize] = z;
@@ -2855,15 +2856,15 @@ export class Client extends GameShell {
                                 this.menuOption[this.menuSize] = loc.op[i] + ' @cya@' + loc.name;
 
                                 if (i === 0) {
-                                    this.menuAction[this.menuSize] = 285;
+                                    this.menuAction[this.menuSize] = MenuAction.OPLOC1;
                                 } else if (i === 1) {
-                                    this.menuAction[this.menuSize] = 504;
+                                    this.menuAction[this.menuSize] = MenuAction.OPLOC2;
                                 } else if (i === 2) {
-                                    this.menuAction[this.menuSize] = 364;
+                                    this.menuAction[this.menuSize] = MenuAction.OPLOC3;
                                 } else if (i === 3) {
-                                    this.menuAction[this.menuSize] = 581;
+                                    this.menuAction[this.menuSize] = MenuAction.OPLOC4;
                                 } else if (i === 4) {
-                                    this.menuAction[this.menuSize] = 1501;
+                                    this.menuAction[this.menuSize] = MenuAction.OPLOC5;
                                 }
 
                                 this.menuParamA[this.menuSize] = typecode;
@@ -2875,14 +2876,14 @@ export class Client extends GameShell {
                     }
 
                     this.menuOption[this.menuSize] = 'Examine @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = 1175;
+                    this.menuAction[this.menuSize] = MenuAction.OPLOC6;
                     this.menuParamA[this.menuSize] = typecode;
                     this.menuParamB[this.menuSize] = x;
                     this.menuParamC[this.menuSize] = z;
                     this.menuSize++;
                 } else if ((this.activeSpellFlags & 0x4) === 4) {
                     this.menuOption[this.menuSize] = this.spellCaption + ' @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = 55;
+                    this.menuAction[this.menuSize] = MenuAction.OPLOCT;
                     this.menuParamA[this.menuSize] = typecode;
                     this.menuParamB[this.menuSize] = x;
                     this.menuParamC[this.menuSize] = z;
@@ -2938,7 +2939,7 @@ export class Client extends GameShell {
                     const type: ObjType = ObjType.get(obj.index);
                     if (this.objSelected === 1) {
                         this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + type.name;
-                        this.menuAction[this.menuSize] = 217;
+                        this.menuAction[this.menuSize] = MenuAction.OPOBJU;
                         this.menuParamA[this.menuSize] = obj.index;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
@@ -2949,15 +2950,15 @@ export class Client extends GameShell {
                                 this.menuOption[this.menuSize] = type.op[op] + ' @lre@' + type.name;
 
                                 if (op === 0) {
-                                    this.menuAction[this.menuSize] = 224;
+                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ1;
                                 } else if (op === 1) {
-                                    this.menuAction[this.menuSize] = 993;
+                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ2;
                                 } else if (op === 2) {
-                                    this.menuAction[this.menuSize] = 99;
+                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ3;
                                 } else if (op === 3) {
-                                    this.menuAction[this.menuSize] = 746;
+                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ4;
                                 } else if (op === 4) {
-                                    this.menuAction[this.menuSize] = 877;
+                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ5;
                                 }
 
                                 this.menuParamA[this.menuSize] = obj.index;
@@ -2966,7 +2967,7 @@ export class Client extends GameShell {
                                 this.menuSize++;
                             } else if (op === 2) {
                                 this.menuOption[this.menuSize] = 'Take @lre@' + type.name;
-                                this.menuAction[this.menuSize] = 99;
+                                this.menuAction[this.menuSize] = MenuAction.OPOBJ3;
                                 this.menuParamA[this.menuSize] = obj.index;
                                 this.menuParamB[this.menuSize] = x;
                                 this.menuParamC[this.menuSize] = z;
@@ -2975,14 +2976,14 @@ export class Client extends GameShell {
                         }
 
                         this.menuOption[this.menuSize] = 'Examine @lre@' + type.name;
-                        this.menuAction[this.menuSize] = 1102;
+                        this.menuAction[this.menuSize] = MenuAction.OPOBJ6;
                         this.menuParamA[this.menuSize] = obj.index;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
                         this.menuSize++;
                     } else if ((this.activeSpellFlags & 0x1) === 1) {
                         this.menuOption[this.menuSize] = this.spellCaption + ' @lre@' + type.name;
-                        this.menuAction[this.menuSize] = 965;
+                        this.menuAction[this.menuSize] = MenuAction.OPOBJT;
                         this.menuParamA[this.menuSize] = obj.index;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
@@ -3011,7 +3012,11 @@ export class Client extends GameShell {
             if (button === 1 && this.menuSize > 0) {
                 const action: number = this.menuAction[this.menuSize - 1];
 
-                if (action == 602 || action == 596 || action == 22 || action == 892 || action == 415 || action == 405 || action == 38 || action == 422 || action == 478 || action == 347 || action == 188) {
+                if (
+                    action == MenuAction.INV_BUTTON1 || action == MenuAction.INV_BUTTON2 || action == MenuAction.INV_BUTTON3 || action == MenuAction.INV_BUTTON4 || action == MenuAction.INV_BUTTON5 ||
+                    action == MenuAction.OPHELD1 || action == MenuAction.OPHELD2 || action == MenuAction.OPHELD3 || action == MenuAction.OPHELD4 || action == MenuAction.OPHELD5 ||
+                    action == MenuAction.OPHELDT_START
+                ) {
                     const slot: number = this.menuParamB[this.menuSize - 1];
                     const comId: number = this.menuParamC[this.menuSize - 1];
                     const com: IfType = IfType.list[comId];
@@ -7129,8 +7134,8 @@ export class Client extends GameShell {
                         op = null;
                     }
 
-                    this.playerOptions[index - 1] = op;
-                    this.playerOptionsPushDown[index - 1] = priority === 0;
+                    this.playerOp[index - 1] = op;
+                    this.playerOpPriority[index - 1] = priority === 0;
                 }
 
                 this.ptype = -1;
@@ -8639,11 +8644,11 @@ export class Client extends GameShell {
         }
 
         let action: number = this.menuAction[option];
-        if (action >= 2000) {
-            action -= 2000;
+        if (action >= MenuAction._PRIORITY) {
+            action -= MenuAction._PRIORITY;
         }
 
-        return action === 406;
+        return action === MenuAction.FRIENDLIST_ADD;
     }
 
     private useMenuOption(optionId: number): void {
@@ -8661,11 +8666,11 @@ export class Client extends GameShell {
         const b: number = this.menuParamB[optionId];
         const c: number = this.menuParamC[optionId];
 
-        if (action >= 2000) {
-            action -= 2000;
+        if (action >= MenuAction._PRIORITY) {
+            action -= MenuAction._PRIORITY;
         }
 
-        if (action === 224 || action === 993 || action === 99 || action === 746 || action === 877) {
+        if (action === MenuAction.OPOBJ1 || action === MenuAction.OPOBJ2 || action === MenuAction.OPOBJ3 || action === MenuAction.OPOBJ4 || action === MenuAction.OPOBJ5) {
             if (this.localPlayer) {
                 const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], b, c, 2, 0, 0, 0, 0, 0, false);
                 if (!success) {
@@ -8677,7 +8682,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                if (action === 224) {
+                if (action === MenuAction.OPOBJ1) {
                     if ((b & 0x3) == 0) {
                         Client.oplogic7++;
                     }
@@ -8689,15 +8694,15 @@ export class Client extends GameShell {
                     this.out.pIsaac(ClientProt.OPOBJ1);
                 }
 
-                if (action === 993) {
+                if (action === MenuAction.OPOBJ2) {
                     this.out.pIsaac(ClientProt.OPOBJ2);
                 }
 
-                if (action === 99) {
+                if (action === MenuAction.OPOBJ3) {
                     this.out.pIsaac(ClientProt.OPOBJ3);
                 }
 
-                if (action === 746) {
+                if (action === MenuAction.OPOBJ4) {
                     Client.oplogic8 += c;
                     if (Client.oplogic8 >= 75) {
                         this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC8);
@@ -8707,7 +8712,7 @@ export class Client extends GameShell {
                     this.out.pIsaac(ClientProt.OPOBJ4);
                 }
 
-                if (action === 877) {
+                if (action === MenuAction.OPOBJ5) {
                     Client.oplogic3 += this.sceneBaseTileZ;
                     if (Client.oplogic3 >= 118) {
                         this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC3);
@@ -8723,8 +8728,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 1102) {
-            // obj examine
+        if (action === MenuAction.OPOBJ6) {
             const obj: ObjType = ObjType.get(a);
             let examine: string;
 
@@ -8737,7 +8741,7 @@ export class Client extends GameShell {
             this.addChat(0, examine, '');
         }
 
-        if (action === 965) {
+        if (action === MenuAction.OPOBJT) {
             if (this.localPlayer) {
                 const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], b, c, 2, 0, 0, 0, 0, 0, false);
                 if (!success) {
@@ -8757,7 +8761,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 217) {
+        if (action === MenuAction.OPOBJU) {
             if (this.localPlayer) {
                 const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], b, c, 2, 0, 0, 0, 0, 0, false);
                 if (!success) {
@@ -8779,7 +8783,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 728 || action === 542 || action === 6 || action === 963 || action === 245) {
+        if (action === MenuAction.OPNPC1 || action === MenuAction.OPNPC2 || action === MenuAction.OPNPC3 || action === MenuAction.OPNPC4 || action === MenuAction.OPNPC5) {
             const npc: ClientNpc | null = this.npcs[a];
             if (npc && this.localPlayer) {
                 this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], npc.routeTileX[0], npc.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
@@ -8789,23 +8793,23 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                if (action === 728) {
+                if (action === MenuAction.OPNPC1) {
                     this.out.pIsaac(ClientProt.OPNPC1);
                 }
 
-                if (action === 542) {
+                if (action === MenuAction.OPNPC2) {
                     this.out.pIsaac(ClientProt.OPNPC2);
                 }
 
-                if (action === 6) {
+                if (action === MenuAction.OPNPC3) {
                     this.out.pIsaac(ClientProt.OPNPC3);
                 }
 
-                if (action === 963) {
+                if (action === MenuAction.OPNPC4) {
                     this.out.pIsaac(ClientProt.OPNPC4);
                 }
 
-                if (action === 245) {
+                if (action === MenuAction.OPNPC5) {
                     this.out.pIsaac(ClientProt.OPNPC5);
                 }
 
@@ -8813,8 +8817,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 1607) {
-            // npc examine
+        if (action === MenuAction.OPNPC6) {
             const npc: ClientNpc | null = this.npcs[a];
             if (npc && npc.type) {
                 let examine: string;
@@ -8829,7 +8832,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 265) {
+        if (action === MenuAction.OPNPCT) {
             const npc: ClientNpc | null = this.npcs[a];
             if (npc && this.localPlayer) {
                 this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], npc.routeTileX[0], npc.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
@@ -8845,7 +8848,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 900) {
+        if (action === MenuAction.OPNPCU) {
             const npc: ClientNpc | null = this.npcs[a];
 
             if (npc && this.localPlayer) {
@@ -8864,11 +8867,11 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 285) {
+        if (action === MenuAction.OPLOC1) {
             this.interactWithLoc(ClientProt.OPLOC1, b, c, a);
         }
 
-        if (action === 504) {
+        if (action === MenuAction.OPLOC2) {
             Client.oplogic1 += c;
             if (Client.oplogic1 >= 139) {
                 this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC1);
@@ -8878,7 +8881,7 @@ export class Client extends GameShell {
             this.interactWithLoc(ClientProt.OPLOC2, b, c, a);
         }
 
-        if (action === 364) {
+        if (action === MenuAction.OPLOC3) {
             Client.oplogic2++;
             if (Client.oplogic2 >= 124) {
                 this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC2);
@@ -8888,16 +8891,15 @@ export class Client extends GameShell {
             this.interactWithLoc(ClientProt.OPLOC3, b, c, a);
         }
 
-        if (action === 581) {
+        if (action === MenuAction.OPLOC4) {
             this.interactWithLoc(ClientProt.OPLOC4, b, c, a);
         }
 
-        if (action === 1501) {
+        if (action === MenuAction.OPLOC5) {
             this.interactWithLoc(ClientProt.OPLOC5, b, c, a);
         }
 
-        if (action === 1175) {
-            // loc examine
+        if (action === MenuAction.OPLOC6) {
             const locId: number = (a >> 14) & 0x7fff;
             const loc: LocType = LocType.get(locId);
 
@@ -8911,13 +8913,13 @@ export class Client extends GameShell {
             this.addChat(0, examine, '');
         }
 
-        if (action === 55) {
+        if (action === MenuAction.OPLOCT) {
             if (this.interactWithLoc(ClientProt.OPLOCT, b, c, a)) {
                 this.out.p2(this.activeSpellId);
             }
         }
 
-        if (action === 450) {
+        if (action === MenuAction.OPLOCU) {
             if (this.interactWithLoc(ClientProt.OPLOCU, b, c, a)) {
                 this.out.p2(this.objLayerId);
                 this.out.p2(this.objSelectedSlot);
@@ -8925,7 +8927,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 639 || action === 499 || action === 27 || action === 387 || action === 185) {
+        if (action === MenuAction.OPPLAYER1 || action === MenuAction.OPPLAYER2 || action === MenuAction.OPPLAYER3 || action === MenuAction.OPPLAYER4 || action === MenuAction.OPPLAYER5) {
             const player: ClientPlayer | null = this.players[a];
             if (player && this.localPlayer) {
                 this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
@@ -8935,7 +8937,7 @@ export class Client extends GameShell {
                 this.crossMode = 2;
                 this.crossCycle = 0;
 
-                if (action === 639) {
+                if (action === MenuAction.OPPLAYER1) {
                     Client.oplogic4++;
                     if (Client.oplogic4 >= 52) {
                         this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC4);
@@ -8945,15 +8947,15 @@ export class Client extends GameShell {
                     this.out.pIsaac(ClientProt.OPPLAYER1);
                 }
 
-                if (action === 499) {
+                if (action === MenuAction.OPPLAYER2) {
                     this.out.pIsaac(ClientProt.OPPLAYER2);
                 }
 
-                if (action === 27) {
+                if (action === MenuAction.OPPLAYER3) {
                     this.out.pIsaac(ClientProt.OPPLAYER3);
                 }
 
-                if (action === 387) {
+                if (action === MenuAction.OPPLAYER4) {
                     Client.oplogic5 += a;
                     if (Client.oplogic5 >= 66) {
                         this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC5);
@@ -8963,7 +8965,7 @@ export class Client extends GameShell {
                     this.out.pIsaac(ClientProt.OPPLAYER4);
                 }
 
-                if (action === 185) {
+                if (action === MenuAction.OPPLAYER5) {
                     this.out.pIsaac(ClientProt.OPPLAYER5);
                 }
 
@@ -8971,7 +8973,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 903 || action === 363) {
+        if (action === MenuAction.OPPLAYER_TRADEREQ || action === MenuAction.OPPLAYER_DUELREQ) {
             let option: string = this.menuOption[optionId];
             const tag: number = option.indexOf('@whi@');
 
@@ -8986,17 +8988,7 @@ export class Client extends GameShell {
                     if (player && player.name && player.name.toLowerCase() === name.toLowerCase() && this.localPlayer) {
                         this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
 
-                        if (action === 363) {
-                            Client.oplogic4++;
-                            if (Client.oplogic4 >= 52) {
-                                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC4);
-                                this.out.p1(131);
-                            }
-
-                            this.out.pIsaac(ClientProt.OPPLAYER1);
-                        }
-
-                        if (action === 903) {
+                        if (action === MenuAction.OPPLAYER_TRADEREQ) {
                             Client.oplogic5 += a;
                             if (Client.oplogic5 >= 66) {
                                 this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC5);
@@ -9004,6 +8996,16 @@ export class Client extends GameShell {
                             }
 
                             this.out.pIsaac(ClientProt.OPPLAYER4);
+                        }
+
+                        if (action === MenuAction.OPPLAYER_DUELREQ) {
+                            Client.oplogic4++;
+                            if (Client.oplogic4 >= 52) {
+                                this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC4);
+                                this.out.p1(131);
+                            }
+
+                            this.out.pIsaac(ClientProt.OPPLAYER1);
                         }
 
                         this.out.p2(this.playerIds[i]);
@@ -9018,7 +9020,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 651) {
+        if (action === MenuAction.OPPLAYERT) {
             const player: ClientPlayer | null = this.players[a];
 
             if (player && this.localPlayer) {
@@ -9035,7 +9037,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 367) {
+        if (action === MenuAction.OPPLAYERU) {
             const player: ClientPlayer | null = this.players[a];
             if (player && this.localPlayer) {
                 this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], player.routeTileX[0], player.routeTileZ[0], 2, 1, 1, 0, 0, 0, false);
@@ -9053,20 +9055,20 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 405 || action === 38 || action === 422 || action === 478 || action === 347) {
-            if (action === 405) {
+        if (action === MenuAction.OPHELD1 || action === MenuAction.OPHELD2 || action === MenuAction.OPHELD3 || action === MenuAction.OPHELD4 || action === MenuAction.OPHELD5) {
+            if (action === MenuAction.OPHELD1) {
                 this.out.pIsaac(ClientProt.OPHELD1);
             }
 
-            if (action === 38) {
+            if (action === MenuAction.OPHELD2) {
                 this.out.pIsaac(ClientProt.OPHELD2);
             }
 
-            if (action === 422) {
+            if (action === MenuAction.OPHELD3) {
                 this.out.pIsaac(ClientProt.OPHELD3);
             }
 
-            if (action === 478) {
+            if (action === MenuAction.OPHELD4) {
                 Client.oplogic9++;
                 if (Client.oplogic9 >= 116) {
                     this.out.pIsaac(ClientProt.ANTICHEAT_OPLOGIC9);
@@ -9076,7 +9078,7 @@ export class Client extends GameShell {
                 this.out.pIsaac(ClientProt.OPHELD4);
             }
 
-            if (action === 347) {
+            if (action === MenuAction.OPHELD5) {
                 this.out.pIsaac(ClientProt.OPHELD5);
             }
 
@@ -9098,8 +9100,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 1773) {
-            // inv obj examine
+        if (action === MenuAction.OPHELD6) {
             const obj: ObjType = ObjType.get(a);
             let examine: string;
 
@@ -9114,8 +9115,7 @@ export class Client extends GameShell {
             this.addChat(0, examine, '');
         }
 
-        if (action === 188) {
-            // select obj interface
+        if (action === MenuAction.OPHELDT_START) {
             this.objSelected = 1;
             this.objSelectedSlot = b;
             this.objSelectedLayerId = c;
@@ -9126,7 +9126,7 @@ export class Client extends GameShell {
             return;
         }
 
-        if (action === 930) {
+        if (action === MenuAction.OPHELDT_SELECT) {
             const com: IfType = IfType.list[c];
             this.spellSelected = 1;
             this.activeSpellId = c;
@@ -9155,7 +9155,7 @@ export class Client extends GameShell {
             return;
         }
 
-        if (action === 391) {
+        if (action === MenuAction.OPHELDT) {
             this.out.pIsaac(ClientProt.OPHELDT);
             this.out.p2(a);
             this.out.p2(b);
@@ -9176,7 +9176,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 881) {
+        if (action === MenuAction.OPHELDU) {
             this.out.pIsaac(ClientProt.OPHELDU);
             this.out.p2(a);
             this.out.p2(b);
@@ -9199,8 +9199,8 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 602 || action === 596 || action === 22 || action === 892 || action === 415) {
-            if (action === 602) {
+        if (action === MenuAction.INV_BUTTON1 || action === MenuAction.INV_BUTTON2 || action === MenuAction.INV_BUTTON3 || action === MenuAction.INV_BUTTON4 || action === MenuAction.INV_BUTTON5) {
+            if (action === MenuAction.INV_BUTTON1) {
                 if ((a & 0x3) == 0) {
                     Client.oplogic6++;
                 }
@@ -9212,19 +9212,19 @@ export class Client extends GameShell {
                 this.out.pIsaac(ClientProt.INV_BUTTON1);
             }
 
-            if (action === 596) {
+            if (action === MenuAction.INV_BUTTON2) {
                 this.out.pIsaac(ClientProt.INV_BUTTON2);
             }
 
-            if (action === 22) {
+            if (action === MenuAction.INV_BUTTON3) {
                 this.out.pIsaac(ClientProt.INV_BUTTON3);
             }
 
-            if (action === 892) {
+            if (action === MenuAction.INV_BUTTON4) {
                 this.out.pIsaac(ClientProt.INV_BUTTON4);
             }
 
-            if (action === 415) {
+            if (action === MenuAction.INV_BUTTON5) {
                 this.out.pIsaac(ClientProt.INV_BUTTON5);
             }
 
@@ -9246,20 +9246,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 465) {
-            this.out.pIsaac(ClientProt.IF_BUTTON);
-            this.out.p2(c);
-
-            const com: IfType = IfType.list[c];
-            if (com.scripts && com.scripts[0] && com.scripts[0][0] === 5) {
-                const varp: number = com.scripts[0][1];
-                this.varps[varp] = 1 - this.varps[varp];
-                this.updateVarp(varp);
-                this.redrawSidebar = true;
-            }
-        }
-
-        if (action === 951) {
+        if (action === MenuAction.IF_BUTTON) {
             const com: IfType = IfType.list[c];
             let notify: boolean = true;
 
@@ -9273,7 +9260,20 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 960) {
+        if (action === MenuAction.IF_BUTTON_TOGGLE) {
+            this.out.pIsaac(ClientProt.IF_BUTTON);
+            this.out.p2(c);
+
+            const com: IfType = IfType.list[c];
+            if (com.scripts && com.scripts[0] && com.scripts[0][0] === 5) {
+                const varp: number = com.scripts[0][1];
+                this.varps[varp] = 1 - this.varps[varp];
+                this.updateVarp(varp);
+                this.redrawSidebar = true;
+            }
+        }
+
+        if (action === MenuAction.IF_BUTTON_SELECT) {
             this.out.pIsaac(ClientProt.IF_BUTTON);
             this.out.p2(c);
 
@@ -9288,7 +9288,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 44) {
+        if (action === MenuAction.RESUME_PAUSEBUTTON) {
             if (!this.pressedContinueOption) {
                 this.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
                 this.out.p2(c);
@@ -9296,12 +9296,11 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 947) {
+        if (action === MenuAction.CLOSE_MODAL) {
             this.closeModal();
         }
 
-        if (action === 34) {
-            // reportabuse input
+        if (action === MenuAction.REPORT_ABUSE) {
             const option: string = this.menuOption[optionId];
             const tag: number = option.indexOf('@whi@');
 
@@ -9320,7 +9319,7 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 660) {
+        if (action === MenuAction.WALK) {
             if (this.menuVisible) {
                 this.world?.updateMousePicking(b - 8, c - 11);
             } else {
@@ -9328,25 +9327,25 @@ export class Client extends GameShell {
             }
         }
 
-        if (action === 406 || action === 436 || action === 557 || action === 556) {
+        if (action === MenuAction.FRIENDLIST_ADD || action === MenuAction.IGNORELIST_ADD || action === MenuAction.FRIENDLIST_DEL || action === MenuAction.IGNORELIST_DEL) {
             const option: string = this.menuOption[optionId];
             const tag: number = option.indexOf('@whi@');
 
             if (tag !== -1) {
                 const username: bigint = JString.toBase37(option.substring(tag + 5).trim());
-                if (action === 406) {
+                if (action === MenuAction.FRIENDLIST_ADD) {
                     this.addFriend(username);
-                } else if (action === 436) {
+                } else if (action === MenuAction.IGNORELIST_ADD) {
                     this.addIgnore(username);
-                } else if (action === 557) {
+                } else if (action === MenuAction.FRIENDLIST_DEL) {
                     this.delFriend(username);
-                } else if (action === 556) {
+                } else if (action === MenuAction.IGNORELIST_DEL) {
                     this.delIgnore(username);
                 }
             }
         }
 
-        if (action === 679) {
+        if (action === MenuAction.MESSAGE_PRIVATE) {
             const option: string = this.menuOption[optionId];
             const tag: number = option.indexOf('@whi@');
 
@@ -9390,7 +9389,7 @@ export class Client extends GameShell {
 
         if (this.objSelected === 1) {
             this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @yel@' + tooltip;
-            this.menuAction[this.menuSize] = 900;
+            this.menuAction[this.menuSize] = MenuAction.OPNPCU;
             this.menuParamA[this.menuSize] = a;
             this.menuParamB[this.menuSize] = b;
             this.menuParamC[this.menuSize] = c;
@@ -9403,15 +9402,15 @@ export class Client extends GameShell {
                         this.menuOption[this.menuSize] = npc.op[type] + ' @yel@' + tooltip;
 
                         if (type === 0) {
-                            this.menuAction[this.menuSize] = 728;
+                            this.menuAction[this.menuSize] = MenuAction.OPNPC1;
                         } else if (type === 1) {
-                            this.menuAction[this.menuSize] = 542;
+                            this.menuAction[this.menuSize] = MenuAction.OPNPC2;
                         } else if (type === 2) {
-                            this.menuAction[this.menuSize] = 6;
+                            this.menuAction[this.menuSize] = MenuAction.OPNPC3;
                         } else if (type === 3) {
-                            this.menuAction[this.menuSize] = 963;
+                            this.menuAction[this.menuSize] = MenuAction.OPNPC4;
                         } else if (type === 4) {
-                            this.menuAction[this.menuSize] = 245;
+                            this.menuAction[this.menuSize] = MenuAction.OPNPC5;
                         }
 
                         this.menuParamA[this.menuSize] = a;
@@ -9425,23 +9424,23 @@ export class Client extends GameShell {
             if (npc.op) {
                 for (type = 4; type >= 0; type--) {
                     if (npc.op[type] && npc.op[type]?.toLowerCase() === 'attack') {
-                        let action: number = 0;
+                        let priority: number = 0;
                         if (this.localPlayer && npc.vislevel > this.localPlayer.combatLevel) {
-                            action = 2000;
+                            priority = MenuAction._PRIORITY;
                         }
 
                         this.menuOption[this.menuSize] = npc.op[type] + ' @yel@' + tooltip;
 
                         if (type === 0) {
-                            this.menuAction[this.menuSize] = action + 728;
+                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC1;
                         } else if (type === 1) {
-                            this.menuAction[this.menuSize] = action + 542;
+                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC2;
                         } else if (type === 2) {
-                            this.menuAction[this.menuSize] = action + 6;
+                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC3;
                         } else if (type === 3) {
-                            this.menuAction[this.menuSize] = action + 963;
+                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC4;
                         } else if (type === 4) {
-                            this.menuAction[this.menuSize] = action + 245;
+                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC5;
                         }
 
                         this.menuParamA[this.menuSize] = a;
@@ -9453,14 +9452,14 @@ export class Client extends GameShell {
             }
 
             this.menuOption[this.menuSize] = 'Examine @yel@' + tooltip;
-            this.menuAction[this.menuSize] = 1607;
+            this.menuAction[this.menuSize] = MenuAction.OPNPC6;
             this.menuParamA[this.menuSize] = a;
             this.menuParamB[this.menuSize] = b;
             this.menuParamC[this.menuSize] = c;
             this.menuSize++;
         } else if ((this.activeSpellFlags & 0x2) === 2) {
             this.menuOption[this.menuSize] = this.spellCaption + ' @yel@' + tooltip;
-            this.menuAction[this.menuSize] = 265;
+            this.menuAction[this.menuSize] = MenuAction.OPNPCT;
             this.menuParamA[this.menuSize] = a;
             this.menuParamB[this.menuSize] = b;
             this.menuParamC[this.menuSize] = c;
@@ -9480,7 +9479,7 @@ export class Client extends GameShell {
 
         if (this.objSelected === 1) {
             this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @whi@' + tooltip;
-            this.menuAction[this.menuSize] = 367;
+            this.menuAction[this.menuSize] = MenuAction.OPPLAYERU;
             this.menuParamA[this.menuSize] = a;
             this.menuParamB[this.menuSize] = b;
             this.menuParamC[this.menuSize] = c;
@@ -9488,7 +9487,7 @@ export class Client extends GameShell {
         } else if (this.spellSelected === 1) {
             if ((this.activeSpellFlags & 0x8) === 8) {
                 this.menuOption[this.menuSize] = this.spellCaption + ' @whi@' + tooltip;
-                this.menuAction[this.menuSize] = 651;
+                this.menuAction[this.menuSize] = MenuAction.OPPLAYERT;
                 this.menuParamA[this.menuSize] = a;
                 this.menuParamB[this.menuSize] = b;
                 this.menuParamC[this.menuSize] = c;
@@ -9496,32 +9495,32 @@ export class Client extends GameShell {
             }
         } else {
             for (let i = 4; i >= 0; i--) {
-                const op = this.playerOptions[i];
+                const op = this.playerOp[i];
                 if (op === null || !this.localPlayer) {
                     continue;
                 }
 
                 this.menuOption[this.menuSize] = op + ' @whi@' + tooltip;
 
-                let action = 0;
+                let priority = 0;
                 if (op.toLowerCase() === 'attack') {
                     if (player.combatLevel > this.localPlayer.combatLevel) {
-                        action = 2000;
+                        priority = 2000;
                     }
-                } else if (this.playerOptionsPushDown[i]) {
-                    action = 2000;
+                } else if (this.playerOpPriority[i]) {
+                    priority = 2000;
                 }
 
                 if (i === 0) {
-                    this.menuAction[this.menuSize] = action + 639;
+                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER1;
                 } else if (i === 1) {
-                    this.menuAction[this.menuSize] = action + 499;
+                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER2;
                 } else if (i === 2) {
-                    this.menuAction[this.menuSize] = action + 27;
+                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER3;
                 } else if (i === 3) {
-                    this.menuAction[this.menuSize] = action + 387;
+                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER4;
                 } else if (i === 4) {
-                    this.menuAction[this.menuSize] = action + 185;
+                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER5;
                 }
 
                 this.menuParamA[this.menuSize] = a;
@@ -9532,7 +9531,7 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < this.menuSize; i++) {
-            if (this.menuAction[i] === 660) {
+            if (this.menuAction[i] === MenuAction.WALK) {
                 this.menuOption[i] = 'Walk here @whi@' + tooltip;
                 break;
             }
@@ -10220,7 +10219,7 @@ export class Client extends GameShell {
                         if (this.objSelected === 1 && child.interactable) {
                             if (child.id !== this.objSelectedLayerId || slot !== this.objSelectedSlot) {
                                 this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = 881;
+                                this.menuAction[this.menuSize] = MenuAction.OPHELDU;
                                 this.menuParamA[this.menuSize] = obj.id;
                                 this.menuParamB[this.menuSize] = slot;
                                 this.menuParamC[this.menuSize] = child.id;
@@ -10229,7 +10228,7 @@ export class Client extends GameShell {
                         } else if (this.spellSelected === 1 && child.interactable) {
                             if ((this.activeSpellFlags & 0x10) === 16) {
                                 this.menuOption[this.menuSize] = this.spellCaption + ' @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = 391;
+                                this.menuAction[this.menuSize] = MenuAction.OPHELDT;
                                 this.menuParamA[this.menuSize] = obj.id;
                                 this.menuParamB[this.menuSize] = slot;
                                 this.menuParamC[this.menuSize] = child.id;
@@ -10242,9 +10241,9 @@ export class Client extends GameShell {
                                         this.menuOption[this.menuSize] = obj.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 3) {
-                                            this.menuAction[this.menuSize] = 478;
+                                            this.menuAction[this.menuSize] = MenuAction.OPHELD4;
                                         } else if (op === 4) {
-                                            this.menuAction[this.menuSize] = 347;
+                                            this.menuAction[this.menuSize] = MenuAction.OPHELD5;
                                         }
 
                                         this.menuParamA[this.menuSize] = obj.id;
@@ -10253,7 +10252,7 @@ export class Client extends GameShell {
                                         this.menuSize++;
                                     } else if (op === 4) {
                                         this.menuOption[this.menuSize] = 'Drop @lre@' + obj.name;
-                                        this.menuAction[this.menuSize] = 347;
+                                        this.menuAction[this.menuSize] = MenuAction.OPHELD5;
                                         this.menuParamA[this.menuSize] = obj.id;
                                         this.menuParamB[this.menuSize] = slot;
                                         this.menuParamC[this.menuSize] = child.id;
@@ -10264,7 +10263,7 @@ export class Client extends GameShell {
 
                             if (child.usable) {
                                 this.menuOption[this.menuSize] = 'Use @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = 188;
+                                this.menuAction[this.menuSize] = MenuAction.OPHELDT_START;
                                 this.menuParamA[this.menuSize] = obj.id;
                                 this.menuParamB[this.menuSize] = slot;
                                 this.menuParamC[this.menuSize] = child.id;
@@ -10277,11 +10276,11 @@ export class Client extends GameShell {
                                         this.menuOption[this.menuSize] = obj.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 0) {
-                                            this.menuAction[this.menuSize] = 405;
+                                            this.menuAction[this.menuSize] = MenuAction.OPHELD1;
                                         } else if (op === 1) {
-                                            this.menuAction[this.menuSize] = 38;
+                                            this.menuAction[this.menuSize] = MenuAction.OPHELD2;
                                         } else if (op === 2) {
-                                            this.menuAction[this.menuSize] = 422;
+                                            this.menuAction[this.menuSize] = MenuAction.OPHELD3;
                                         }
 
                                         this.menuParamA[this.menuSize] = obj.id;
@@ -10298,15 +10297,15 @@ export class Client extends GameShell {
                                         this.menuOption[this.menuSize] = child.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 0) {
-                                            this.menuAction[this.menuSize] = 602;
+                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON1;
                                         } else if (op === 1) {
-                                            this.menuAction[this.menuSize] = 596;
+                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON2;
                                         } else if (op === 2) {
-                                            this.menuAction[this.menuSize] = 22;
+                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON3;
                                         } else if (op === 3) {
-                                            this.menuAction[this.menuSize] = 892;
+                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON4;
                                         } else if (op === 4) {
-                                            this.menuAction[this.menuSize] = 415;
+                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON5;
                                         }
 
                                         this.menuParamA[this.menuSize] = obj.id;
@@ -10318,7 +10317,7 @@ export class Client extends GameShell {
                             }
 
                             this.menuOption[this.menuSize] = 'Examine @lre@' + obj.name;
-                            this.menuAction[this.menuSize] = 1773;
+                            this.menuAction[this.menuSize] = MenuAction.OPHELD6;
                             this.menuParamA[this.menuSize] = obj.id;
                             if (child.linkObjCount) {
                                 this.menuParamC[this.menuSize] = child.linkObjCount[slot];
@@ -10338,7 +10337,7 @@ export class Client extends GameShell {
 
                     if (!override && child.option) {
                         this.menuOption[this.menuSize] = child.option;
-                        this.menuAction[this.menuSize] = 951;
+                        this.menuAction[this.menuSize] = MenuAction.IF_BUTTON;
                         this.menuParamC[this.menuSize] = child.id;
                         this.menuSize++;
                     }
@@ -10349,27 +10348,27 @@ export class Client extends GameShell {
                     }
 
                     this.menuOption[this.menuSize] = prefix + ' @gre@' + child.targetText;
-                    this.menuAction[this.menuSize] = 930;
+                    this.menuAction[this.menuSize] = MenuAction.OPHELDT_SELECT;
                     this.menuParamC[this.menuSize] = child.id;
                     this.menuSize++;
                 } else if (child.buttonType === ButtonType.BUTTON_CLOSE) {
                     this.menuOption[this.menuSize] = 'Close';
-                    this.menuAction[this.menuSize] = 947;
+                    this.menuAction[this.menuSize] = MenuAction.CLOSE_MODAL;
                     this.menuParamC[this.menuSize] = child.id;
                     this.menuSize++;
                 } else if (child.buttonType === ButtonType.BUTTON_TOGGLE && child.option) {
                     this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = 465;
+                    this.menuAction[this.menuSize] = MenuAction.IF_BUTTON_TOGGLE;
                     this.menuParamC[this.menuSize] = child.id;
                     this.menuSize++;
                 } else if (child.buttonType === ButtonType.BUTTON_SELECT && child.option) {
                     this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = 960;
+                    this.menuAction[this.menuSize] = MenuAction.IF_BUTTON_SELECT;
                     this.menuParamC[this.menuSize] = child.id;
                     this.menuSize++;
                 } else if (child.buttonType === ButtonType.BUTTON_CONTINUE && !this.pressedContinueOption && child.option) {
                     this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = 44;
+                    this.menuAction[this.menuSize] = MenuAction.RESUME_PAUSEBUTTON;
                     this.menuParamC[this.menuSize] = child.id;
                     this.menuSize++;
                 }
@@ -10392,16 +10391,16 @@ export class Client extends GameShell {
             }
 
             this.menuOption[this.menuSize] = 'Remove @whi@' + this.friendName[clientCode];
-            this.menuAction[this.menuSize] = 557;
+            this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_DEL;
             this.menuSize++;
 
             this.menuOption[this.menuSize] = 'Message @whi@' + this.friendName[clientCode];
-            this.menuAction[this.menuSize] = 679;
+            this.menuAction[this.menuSize] = MenuAction.MESSAGE_PRIVATE;
             this.menuSize++;
             return true;
         } else if (clientCode >= ClientCode.CC_IGNORES_START && clientCode <= ClientCode.CC_IGNORES_END) {
             this.menuOption[this.menuSize] = 'Remove @whi@' + component.text;
-            this.menuAction[this.menuSize] = 556;
+            this.menuAction[this.menuSize] = MenuAction.IGNORELIST_DEL;
             this.menuSize++;
             return true;
         }
