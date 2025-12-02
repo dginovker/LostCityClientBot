@@ -8565,7 +8565,7 @@ export class Client extends GameShell {
 
         // the main viewport area
         if (this.mouseClickX > 4 && this.mouseClickY > 4 && this.mouseClickX < 516 && this.mouseClickY < 338) {
-            x = this.mouseClickX - ((width / 2) | 0) - 8;
+            x = this.mouseClickX - ((width / 2) | 0) - 4;
             if (x + width > 512) {
                 x = 512 - width;
             }
@@ -8573,7 +8573,7 @@ export class Client extends GameShell {
                 x = 0;
             }
 
-            y = this.mouseClickY - 11;
+            y = this.mouseClickY - 4;
             if (y + height > 334) {
                 y = 334 - height;
             }
@@ -9321,9 +9321,9 @@ export class Client extends GameShell {
 
         if (action === MenuAction.WALK) {
             if (this.menuVisible) {
-                this.world?.updateMousePicking(b - 8, c - 11);
+                this.world?.updateMousePicking(b - 4, c - 4);
             } else {
-                this.world?.updateMousePicking(this.mouseClickX - 8, this.mouseClickY - 11);
+                this.world?.updateMousePicking(this.mouseClickX - 4, this.mouseClickY - 4);
             }
         }
 
