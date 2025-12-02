@@ -44,7 +44,7 @@ export default class SpotAnimType {
     // jag::oldscape::configdecoder::SpotType::Decode
     decode(dat: Packet): void {
         while (true) {
-            const code = 0;
+            const code = dat.g1();
             if (code === 0) {
                 break;
             }
