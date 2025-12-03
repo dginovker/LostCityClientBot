@@ -8479,7 +8479,7 @@ export class Client extends GameShell {
                     } else if (restartMode == RestartMode.RESETLOOP) {
                         npc.primarySeqLoop = 0;
                     }
-                } else if (seqId === -1 || npc.primarySeqId === -1 || SeqType.list[seqId].priority > SeqType.list[npc.primarySeqId].priority || SeqType.list[npc.primarySeqId].priority === 0) {
+                } else if (seqId === -1 || npc.primarySeqId === -1 || SeqType.list[seqId].priority >= SeqType.list[npc.primarySeqId].priority) {
                     npc.primarySeqId = seqId;
                     npc.primarySeqFrame = 0;
                     npc.primarySeqCycle = 0;
