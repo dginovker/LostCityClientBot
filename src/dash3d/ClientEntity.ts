@@ -27,9 +27,9 @@ export default abstract class ClientEntity extends ModelSource {
     damageCycles: Int32Array = new Int32Array(4);
     health: number = 0;
     totalHealth: number = 0;
-    targetId: number = -1;
-    targetTileX: number = 0;
-    targetTileZ: number = 0;
+    faceEntity: number = -1;
+    faceSquareX: number = 0;
+    faceSquareZ: number = 0;
     secondarySeqId: number = -1;
     secondarySeqFrame: number = 0;
     secondarySeqCycle: number = 0;
@@ -49,7 +49,7 @@ export default abstract class ClientEntity extends ModelSource {
     exactMoveEndSceneTileZ: number = 0;
     exactMoveEndCycle: number = 0;
     exactMoveStartCycle: number = 0;
-    exactMoveFaceDirection: number = 0;
+    exactMoveFacing: number = 0;
     cycle: number = 0;
     height: number = 0;
     dstYaw: number = 0;

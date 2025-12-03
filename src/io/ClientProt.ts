@@ -76,7 +76,7 @@ export const enum ClientProt {
     RESUME_PAUSEBUTTON = 146, // index: 201 - NXT naming
     CLOSE_MODAL = 58, // index: 202 - NXT naming
     RESUME_P_COUNTDIALOG = 161, // index: 203 - NXT naming
-    TUTORIAL_CLICKSIDE = 201, // index: 204
+    TUT_CLICKSIDE = 201, // index: 204
 
     MAP_BUILD_COMPLETE = 134, // index: 241 - NXT naming
     MOVE_OPCLICK = 127, // index: 242 - comes with OP packets, name based on other MOVE packets

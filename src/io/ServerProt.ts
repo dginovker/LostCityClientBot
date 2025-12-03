@@ -73,7 +73,7 @@ export const enum ServerProt {
     // vars
     VARP_SMALL = 186,
     VARP_LARGE = 196,
-    RESET_CLIENT_VARCACHE = 140,
+    VARP_SYNC = 140,
 
     // audio
     SYNTH_SOUND = 25,
@@ -86,7 +86,7 @@ export const enum ServerProt {
     UPDATE_ZONE_PARTIAL_ENCLOSED = 61,
 
     // zone protocol
-    LOC_MERGE = 218,
+    P_LOCMERGE = 218,
     LOC_ANIM = 30,
     OBJ_DEL = 115,
     OBJ_REVEAL = 8,

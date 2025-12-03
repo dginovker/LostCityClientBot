@@ -8,10 +8,10 @@ export default class ClientLocAnim extends ModelSource {
     readonly index: number;
     readonly shape: number;
     readonly angle: number;
-    readonly heightmapSW: number;
-    readonly heightmapSE: number;
-    readonly heightmapNE: number;
-    readonly heightmapNW: number;
+    readonly hmapSW: number;
+    readonly hmapSE: number;
+    readonly hmapNE: number;
+    readonly hmapNW: number;
     seq: SeqType | null;
     seqFrame: number;
     seqCycle: number;
@@ -22,10 +22,11 @@ export default class ClientLocAnim extends ModelSource {
         this.index = index;
         this.shape = shape;
         this.angle = angle;
-        this.heightmapSW = heightmapSW;
-        this.heightmapSE = heightmapSE;
-        this.heightmapNE = heightmapNE;
-        this.heightmapNW = heightmapNW;
+
+        this.hmapSW = heightmapSW;
+        this.hmapSE = heightmapSE;
+        this.hmapNE = heightmapNE;
+        this.hmapNW = heightmapNW;
 
         this.seq = SeqType.list[seq];
         this.seqFrame = 0;
@@ -64,12 +65,12 @@ export default class ClientLocAnim extends ModelSource {
             this.seqCycle = loopCycle - delta;
         }
 
-        let transformId = -1;
+        let frame = -1;
         if (this.seq && this.seq.frames && typeof this.seq.frames[this.seqFrame] !== 'undefined') {
-            transformId = this.seq.frames[this.seqFrame];
+            frame = this.seq.frames[this.seqFrame];
         }
 
         const loc = LocType.get(this.index);
-        return loc.getModel(this.shape, this.angle, this.heightmapSW, this.heightmapSE, this.heightmapNE, this.heightmapNW, transformId);
+        return loc.getModel(this.shape, this.angle, this.hmapSW, this.hmapSE, this.hmapNE, this.hmapNW, frame);
     }
 }

@@ -18,15 +18,15 @@ import { TypedArray1d } from '#/util/Arrays.js';
 export const enum PlayerUpdate {
     APPEARANCE = 0x1,
     ANIM = 0x2,
-    FACE_ENTITY = 0x4,
+    FACEENTITY = 0x4,
     SAY = 0x8,
-    DAMAGE = 0x10,
-    FACE_COORD = 0x20,
+    HITMARK = 0x10,
+    FACESQUARE = 0x20,
     CHAT = 0x40,
     BIG_UPDATE = 0x80,
     SPOTANIM = 0x100,
-    EXACT_MOVE = 0x200,
-    DAMAGE2 = 0x400,
+    EXACTMOVE = 0x200,
+    HITMARK2 = 0x400,
 }
 
 const enum HairColor {
