@@ -8,10 +8,10 @@ export default class AnimFrame {
     delay: number = -1;
     base: AnimBase | null = null;
     size: number = 0;
-    ti: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTi
-    tx: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTx
-    ty: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTy
-    tz: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTz
+    ti: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTi (transform index)
+    tx: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTx (transform x)
+    ty: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTy (transform y)
+    tz: Int32Array | null = null; // jag::oldscape::dash3d::AnimFrame::m_tempTz (transform z)
     static opaque: boolean[] = [];
 
     static init(total: number) {

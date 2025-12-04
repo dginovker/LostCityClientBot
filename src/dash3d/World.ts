@@ -968,18 +968,18 @@ export default class World {
             return;
         }
 
-        if (modelA.faceInfo) {
+        if (modelA.faceRenderInfo) {
             for (let i: number = 0; i < modelA.faceCount; i++) {
                 if (this.mergeIndexA[modelA.faceVertexA![i]] === this.tmpMergeIndex && this.mergeIndexA[modelA.faceVertexB![i]] === this.tmpMergeIndex && this.mergeIndexA[modelA.faceVertexC![i]] === this.tmpMergeIndex) {
-                    modelA.faceInfo[i] = -1;
+                    modelA.faceRenderInfo[i] = -1;
                 }
             }
         }
 
-        if (modelB.faceInfo) {
+        if (modelB.faceRenderInfo) {
             for (let i: number = 0; i < modelB.faceCount; i++) {
                 if (this.mergeIndexB[modelB.faceVertexA![i]] === this.tmpMergeIndex && this.mergeIndexB[modelB.faceVertexB![i]] === this.tmpMergeIndex && this.mergeIndexB[modelB.faceVertexC![i]] === this.tmpMergeIndex) {
-                    modelB.faceInfo[i] = -1;
+                    modelB.faceRenderInfo[i] = -1;
                 }
             }
         }

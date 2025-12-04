@@ -31,7 +31,6 @@ export default class ClientBuild {
 
     static lowMem: boolean = true;
     static minusedlevel: number = 0; // jag::oldscape::ClientBuild::minusedlevel
-    static fullbright: boolean = false;
 
     // jag::oldscape::ClientBuild::PerlinNoise
     static perlinNoise(x: number, z: number): number {
@@ -617,9 +616,7 @@ export default class ClientBuild {
             }
         }
 
-        if (!ClientBuild.fullbright) {
-            scene?.shareLight(64, 768, -50, -10, -50);
-        }
+        scene?.shareLight(64, 768, -50, -10, -50);
 
         for (let x: number = 0; x < this.maxTileX; x++) {
             for (let z: number = 0; z < this.maxTileZ; z++) {
@@ -629,156 +626,154 @@ export default class ClientBuild {
             }
         }
 
-        if (!ClientBuild.fullbright) {
-            let wall0: number = 0x1; // this flag is set by walls with rotation 0 or 2
-            let wall1: number = 0x2; // this flag is set by walls with rotation 1 or 3
-            let floor: number = 0x4; // this flag is set by floors which are flat
+        let wall0: number = 0x1; // this flag is set by walls with rotation 0 or 2
+        let wall1: number = 0x2; // this flag is set by walls with rotation 1 or 3
+        let floor: number = 0x4; // this flag is set by floors which are flat
 
-            for (let topLevel: number = 0; topLevel < CollisionConstants.LEVELS; topLevel++) {
-                if (topLevel > 0) {
-                    wall0 <<= 0x3;
-                    wall1 <<= 0x3;
-                    floor <<= 0x3;
-                }
+        for (let topLevel: number = 0; topLevel < CollisionConstants.LEVELS; topLevel++) {
+            if (topLevel > 0) {
+                wall0 <<= 0x3;
+                wall1 <<= 0x3;
+                floor <<= 0x3;
+            }
 
-                for (let level: number = 0; level <= topLevel; level++) {
-                    for (let tileZ: number = 0; tileZ <= this.maxTileZ; tileZ++) {
-                        for (let tileX: number = 0; tileX <= this.maxTileX; tileX++) {
-                            if ((this.mapo[level][tileX][tileZ] & wall0) !== 0) {
-                                let minTileZ: number = tileZ;
-                                let maxTileZ: number = tileZ;
-                                let minLevel: number = level;
-                                let maxLevel: number = level;
+            for (let level: number = 0; level <= topLevel; level++) {
+                for (let tileZ: number = 0; tileZ <= this.maxTileZ; tileZ++) {
+                    for (let tileX: number = 0; tileX <= this.maxTileX; tileX++) {
+                        if ((this.mapo[level][tileX][tileZ] & wall0) !== 0) {
+                            let minTileZ: number = tileZ;
+                            let maxTileZ: number = tileZ;
+                            let minLevel: number = level;
+                            let maxLevel: number = level;
 
-                                while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & wall0) !== 0) {
-                                    minTileZ--;
-                                }
+                            while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & wall0) !== 0) {
+                                minTileZ--;
+                            }
 
-                                while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & wall0) !== 0) {
-                                    maxTileZ++;
-                                }
+                            while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & wall0) !== 0) {
+                                maxTileZ++;
+                            }
 
-                                find_min_level: while (minLevel > 0) {
-                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.mapo[minLevel - 1][tileX][z] & wall0) === 0) {
-                                            break find_min_level;
-                                        }
+                            find_min_level: while (minLevel > 0) {
+                                for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                    if ((this.mapo[minLevel - 1][tileX][z] & wall0) === 0) {
+                                        break find_min_level;
                                     }
-                                    minLevel--;
                                 }
+                                minLevel--;
+                            }
 
-                                find_max_level: while (maxLevel < topLevel) {
-                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.mapo[maxLevel + 1][tileX][z] & wall0) === 0) {
-                                            break find_max_level;
-                                        }
+                            find_max_level: while (maxLevel < topLevel) {
+                                for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                    if ((this.mapo[maxLevel + 1][tileX][z] & wall0) === 0) {
+                                        break find_max_level;
                                     }
-                                    maxLevel++;
                                 }
+                                maxLevel++;
+                            }
 
-                                const area: number = (maxLevel + 1 - minLevel) * (maxTileZ + 1 - minTileZ);
-                                if (area >= 8) {
-                                    const minY: number = this.groundh[maxLevel][tileX][minTileZ] - 240;
-                                    const maxX: number = this.groundh[minLevel][tileX][minTileZ];
+                            const area: number = (maxLevel + 1 - minLevel) * (maxTileZ + 1 - minTileZ);
+                            if (area >= 8) {
+                                const minY: number = this.groundh[maxLevel][tileX][minTileZ] - 240;
+                                const maxX: number = this.groundh[minLevel][tileX][minTileZ];
 
-                                    World.setOcclude(topLevel, 1, tileX * 128, minY, minTileZ * 128, tileX * 128, maxX, maxTileZ * 128 + 128);
+                                World.setOcclude(topLevel, 1, tileX * 128, minY, minTileZ * 128, tileX * 128, maxX, maxTileZ * 128 + 128);
 
-                                    for (let l: number = minLevel; l <= maxLevel; l++) {
-                                        for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                            this.mapo[l][tileX][z] &= ~wall0;
-                                        }
+                                for (let l: number = minLevel; l <= maxLevel; l++) {
+                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                        this.mapo[l][tileX][z] &= ~wall0;
                                     }
                                 }
                             }
+                        }
 
-                            if ((this.mapo[level][tileX][tileZ] & wall1) !== 0) {
-                                let minTileX: number = tileX;
-                                let maxTileX: number = tileX;
-                                let minLevel: number = level;
-                                let maxLevel: number = level;
+                        if ((this.mapo[level][tileX][tileZ] & wall1) !== 0) {
+                            let minTileX: number = tileX;
+                            let maxTileX: number = tileX;
+                            let minLevel: number = level;
+                            let maxLevel: number = level;
 
-                                while (minTileX > 0 && (this.mapo[level][minTileX - 1][tileZ] & wall1) !== 0) {
-                                    minTileX--;
-                                }
+                            while (minTileX > 0 && (this.mapo[level][minTileX - 1][tileZ] & wall1) !== 0) {
+                                minTileX--;
+                            }
 
-                                while (maxTileX < this.maxTileX && (this.mapo[level][maxTileX + 1][tileZ] & wall1) !== 0) {
-                                    maxTileX++;
-                                }
+                            while (maxTileX < this.maxTileX && (this.mapo[level][maxTileX + 1][tileZ] & wall1) !== 0) {
+                                maxTileX++;
+                            }
 
-                                find_min_level2: while (minLevel > 0) {
-                                    for (let x: number = minTileX; x <= maxTileX; x++) {
-                                        if ((this.mapo[minLevel - 1][x][tileZ] & wall1) === 0) {
-                                            break find_min_level2;
-                                        }
+                            find_min_level2: while (minLevel > 0) {
+                                for (let x: number = minTileX; x <= maxTileX; x++) {
+                                    if ((this.mapo[minLevel - 1][x][tileZ] & wall1) === 0) {
+                                        break find_min_level2;
                                     }
-                                    minLevel--;
                                 }
+                                minLevel--;
+                            }
 
-                                find_max_level2: while (maxLevel < topLevel) {
-                                    for (let x: number = minTileX; x <= maxTileX; x++) {
-                                        if ((this.mapo[maxLevel + 1][x][tileZ] & wall1) === 0) {
-                                            break find_max_level2;
-                                        }
+                            find_max_level2: while (maxLevel < topLevel) {
+                                for (let x: number = minTileX; x <= maxTileX; x++) {
+                                    if ((this.mapo[maxLevel + 1][x][tileZ] & wall1) === 0) {
+                                        break find_max_level2;
                                     }
-                                    maxLevel++;
                                 }
+                                maxLevel++;
+                            }
 
-                                const area: number = (maxLevel + 1 - minLevel) * (maxTileX + 1 - minTileX);
+                            const area: number = (maxLevel + 1 - minLevel) * (maxTileX + 1 - minTileX);
 
-                                if (area >= 8) {
-                                    const minY: number = this.groundh[maxLevel][minTileX][tileZ] - 240;
-                                    const maxY: number = this.groundh[minLevel][minTileX][tileZ];
+                            if (area >= 8) {
+                                const minY: number = this.groundh[maxLevel][minTileX][tileZ] - 240;
+                                const maxY: number = this.groundh[minLevel][minTileX][tileZ];
 
-                                    World.setOcclude(topLevel, 2, minTileX * 128, minY, tileZ * 128, maxTileX * 128 + 128, maxY, tileZ * 128);
+                                World.setOcclude(topLevel, 2, minTileX * 128, minY, tileZ * 128, maxTileX * 128 + 128, maxY, tileZ * 128);
 
-                                    for (let l: number = minLevel; l <= maxLevel; l++) {
-                                        for (let x: number = minTileX; x <= maxTileX; x++) {
-                                            this.mapo[l][x][tileZ] &= ~wall1;
-                                        }
+                                for (let l: number = minLevel; l <= maxLevel; l++) {
+                                    for (let x: number = minTileX; x <= maxTileX; x++) {
+                                        this.mapo[l][x][tileZ] &= ~wall1;
                                     }
                                 }
                             }
-                            if ((this.mapo[level][tileX][tileZ] & floor) !== 0) {
-                                let minTileX: number = tileX;
-                                let maxTileX: number = tileX;
-                                let minTileZ: number = tileZ;
-                                let maxTileZ: number = tileZ;
+                        }
+                        if ((this.mapo[level][tileX][tileZ] & floor) !== 0) {
+                            let minTileX: number = tileX;
+                            let maxTileX: number = tileX;
+                            let minTileZ: number = tileZ;
+                            let maxTileZ: number = tileZ;
 
-                                while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & floor) !== 0) {
-                                    minTileZ--;
-                                }
+                            while (minTileZ > 0 && (this.mapo[level][tileX][minTileZ - 1] & floor) !== 0) {
+                                minTileZ--;
+                            }
 
-                                while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & floor) !== 0) {
-                                    maxTileZ++;
-                                }
+                            while (maxTileZ < this.maxTileZ && (this.mapo[level][tileX][maxTileZ + 1] & floor) !== 0) {
+                                maxTileZ++;
+                            }
 
-                                find_min_tile_xz: while (minTileX > 0) {
-                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.mapo[level][minTileX - 1][z] & floor) === 0) {
-                                            break find_min_tile_xz;
-                                        }
+                            find_min_tile_xz: while (minTileX > 0) {
+                                for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                    if ((this.mapo[level][minTileX - 1][z] & floor) === 0) {
+                                        break find_min_tile_xz;
                                     }
-                                    minTileX--;
                                 }
+                                minTileX--;
+                            }
 
-                                find_max_tile_xz: while (maxTileX < this.maxTileX) {
-                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                        if ((this.mapo[level][maxTileX + 1][z] & floor) === 0) {
-                                            break find_max_tile_xz;
-                                        }
+                            find_max_tile_xz: while (maxTileX < this.maxTileX) {
+                                for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                    if ((this.mapo[level][maxTileX + 1][z] & floor) === 0) {
+                                        break find_max_tile_xz;
                                     }
-                                    maxTileX++;
                                 }
+                                maxTileX++;
+                            }
 
-                                if ((maxTileX + 1 - minTileX) * (maxTileZ + 1 - minTileZ) >= 4) {
-                                    const y: number = this.groundh[level][minTileX][minTileZ];
+                            if ((maxTileX + 1 - minTileX) * (maxTileZ + 1 - minTileZ) >= 4) {
+                                const y: number = this.groundh[level][minTileX][minTileZ];
 
-                                    World.setOcclude(topLevel, 4, minTileX * 128, y, minTileZ * 128, maxTileX * 128 + 128, y, maxTileZ * 128 + 128);
+                                World.setOcclude(topLevel, 4, minTileX * 128, y, minTileZ * 128, maxTileX * 128 + 128, y, maxTileZ * 128 + 128);
 
-                                    for (let x: number = minTileX; x <= maxTileX; x++) {
-                                        for (let z: number = minTileZ; z <= maxTileZ; z++) {
-                                            this.mapo[level][x][z] &= ~floor;
-                                        }
+                                for (let x: number = minTileX; x <= maxTileX; x++) {
+                                    for (let z: number = minTileZ; z <= maxTileZ; z++) {
+                                        this.mapo[level][x][z] &= ~floor;
                                     }
                                 }
                             }
