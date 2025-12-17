@@ -3835,8 +3835,8 @@ export class Client extends GameShell {
         if (e.x < 128 || e.z < 128 || e.x >= 13184 || e.z >= 13184) {
             e.primarySeqId = -1;
             e.spotanimId = -1;
-            e.exactMoveEndCycle = 0;
-            e.exactMoveStartCycle = 0;
+            e.exactMoveEnd = 0;
+            e.exactMoveStart = 0;
             e.x = e.routeTileX[0] * 128 + e.size * 64;
             e.z = e.routeTileZ[0] * 128 + e.size * 64;
             e.abortRoute();
@@ -3845,16 +3845,16 @@ export class Client extends GameShell {
         if (e === this.localPlayer && (e.x < 1536 || e.z < 1536 || e.x >= 11776 || e.z >= 11776)) {
             e.primarySeqId = -1;
             e.spotanimId = -1;
-            e.exactMoveEndCycle = 0;
-            e.exactMoveStartCycle = 0;
+            e.exactMoveEnd = 0;
+            e.exactMoveStart = 0;
             e.x = e.routeTileX[0] * 128 + e.size * 64;
             e.z = e.routeTileZ[0] * 128 + e.size * 64;
             e.abortRoute();
         }
 
-        if (e.exactMoveEndCycle > this.loopCycle) {
+        if (e.exactMoveEnd > this.loopCycle) {
             this.exactMove1(e);
-        } else if (e.exactMoveStartCycle >= this.loopCycle) {
+        } else if (e.exactMoveStart >= this.loopCycle) {
             this.exactMove2(e);
         } else {
             this.routeMove(e);
@@ -3866,9 +3866,9 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::GlExactMove1
     private exactMove1(e: ClientEntity): void {
-        const delta: number = e.exactMoveEndCycle - this.loopCycle;
-        const dstX: number = e.exactMoveStartSceneTileX * 128 + e.size * 64;
-        const dstZ: number = e.exactMoveStartSceneTileZ * 128 + e.size * 64;
+        const delta: number = e.exactMoveEnd - this.loopCycle;
+        const dstX: number = e.exactStartX * 128 + e.size * 64;
+        const dstZ: number = e.exactStartZ * 128 + e.size * 64;
 
         e.x += ((dstX - e.x) / delta) | 0;
         e.z += ((dstZ - e.z) / delta) | 0;
@@ -3888,13 +3888,13 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::GlExactMove2
     private exactMove2(e: ClientEntity): void {
-        if (e.exactMoveStartCycle === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getDuration(e.primarySeqFrame)) {
-            const duration: number = e.exactMoveStartCycle - e.exactMoveEndCycle;
-            const delta: number = this.loopCycle - e.exactMoveEndCycle;
-            const dx0: number = e.exactMoveStartSceneTileX * 128 + e.size * 64;
-            const dz0: number = e.exactMoveStartSceneTileZ * 128 + e.size * 64;
-            const dx1: number = e.exactMoveEndSceneTileX * 128 + e.size * 64;
-            const dz1: number = e.exactMoveEndSceneTileZ * 128 + e.size * 64;
+        if (e.exactMoveStart === this.loopCycle || e.primarySeqId === -1 || e.primarySeqDelay !== 0 || e.primarySeqCycle + 1 > SeqType.list[e.primarySeqId].getDuration(e.primarySeqFrame)) {
+            const duration: number = e.exactMoveStart - e.exactMoveEnd;
+            const delta: number = this.loopCycle - e.exactMoveEnd;
+            const dx0: number = e.exactStartX * 128 + e.size * 64;
+            const dz0: number = e.exactStartZ * 128 + e.size * 64;
+            const dx1: number = e.exactEndX * 128 + e.size * 64;
+            const dz1: number = e.exactEndZ * 128 + e.size * 64;
             e.x = ((dx0 * (duration - delta) + dx1 * delta) / duration) | 0;
             e.z = ((dz0 * (duration - delta) + dz1 * delta) / duration) | 0;
         }
@@ -4153,7 +4153,7 @@ export class Client extends GameShell {
 
         if (e.primarySeqId != -1 && e.primarySeqDelay <= 1) {
             seq = SeqType.list[e.primarySeqId];
-            if (seq.preanim_move === PreanimMove.DELAYANIM && e.preanimRouteLength > 0 && this.loopCycle >= e.exactMoveStartCycle && this.loopCycle > e.exactMoveEndCycle) {
+            if (seq.preanim_move === PreanimMove.DELAYANIM && e.preanimRouteLength > 0 && this.loopCycle >= e.exactMoveStart && this.loopCycle > e.exactMoveEnd) {
                 e.primarySeqDelay = 1;
                 return;
             }
@@ -8259,12 +8259,12 @@ export class Client extends GameShell {
         }
 
         if ((mask & PlayerUpdate.EXACTMOVE) !== 0) {
-            player.exactMoveStartSceneTileX = buf.g1();
-            player.exactMoveStartSceneTileZ = buf.g1();
-            player.exactMoveEndSceneTileX = buf.g1();
-            player.exactMoveEndSceneTileZ = buf.g1();
-            player.exactMoveEndCycle = buf.g2() + this.loopCycle;
-            player.exactMoveStartCycle = buf.g2() + this.loopCycle;
+            player.exactStartX = buf.g1();
+            player.exactStartZ = buf.g1();
+            player.exactEndX = buf.g1();
+            player.exactEndZ = buf.g1();
+            player.exactMoveEnd = buf.g2() + this.loopCycle;
+            player.exactMoveStart = buf.g2() + this.loopCycle;
             player.exactMoveFacing = buf.g1();
 
             player.abortRoute();
