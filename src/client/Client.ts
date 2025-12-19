@@ -518,6 +518,16 @@ export class Client extends GameShell {
     mouseTrackedDelta: number = 0;
     friendListStatus: number = 0;
 
+    static readbit = new Int32Array(32);
+
+    static {
+		let n = 2;
+		for (let bit = 0; bit < 32; bit++) {
+			Client.readbit[bit] = n - 1;
+			n += n;
+		}
+    }
+
     // ----
 
     private initializeLevelExperience(): void {
@@ -10079,27 +10089,31 @@ export class Client extends GameShell {
                 return -1;
             }
 
-            let register: number = 0;
+            let acc = 0;
             let pc: number = 0;
+            let arithmetic = 0;
 
             // eslint-disable-next-line no-constant-condition
             while (true) {
+                let register: number = 0;
+                let nextArithmetic: number = 0;
+
                 const opcode: number = script[pc++];
                 if (opcode === 0) {
-                    return register;
+                    return acc;
                 }
 
                 if (opcode === 1) {
-                    // load_skill_level {skill}
+                    // stat_level {skill}
                     register += this.statEffectiveLevel[script[pc++]];
                 } else if (opcode === 2) {
-                    // load_skill_base_level {skill}
+                    // stat_base_level {skill}
                     register += this.statBaseLevel[script[pc++]];
                 } else if (opcode === 3) {
-                    // load_skill_exp {skill}
+                    // stat_xp {skill}
                     register += this.statXP[script[pc++]];
                 } else if (opcode === 4) {
-                    // load_inv_count {interface id} {obj id}
+                    // inv_count {interface id} {obj id}
                     const com: IfType = IfType.list[script[pc++]];
                     const obj: number = script[pc++] + 1;
 
@@ -10113,18 +10127,18 @@ export class Client extends GameShell {
                         register += 0; // TODO this is custom bcos idk if it can fall 'out of sync' if u dont add to register...
                     }
                 } else if (opcode === 5) {
-                    // load_var {id}
+                    // pushvar {id}
                     register += this.var[script[pc++]];
                 } else if (opcode === 6) {
-                    // load_next_level_xp {skill}
+                    // stat_xp_remaining {skill}
                     register += this.levelExperience[this.statBaseLevel[script[pc++]] - 1];
                 } else if (opcode === 7) {
                     register += ((this.var[script[pc++]] * 100) / 46875) | 0;
                 } else if (opcode === 8) {
-                    // load_combat_level
+                    // combat level
                     register += this.localPlayer?.combatLevel || 0;
                 } else if (opcode === 9) {
-                    // load_total_level
+                    // total level
                     for (let i: number = 0; i < 19; i++) {
                         if (i === 18) {
                             // runecrafting
@@ -10134,7 +10148,7 @@ export class Client extends GameShell {
                         register += this.statBaseLevel[i];
                     }
                 } else if (opcode === 10) {
-                    // load_inv_contains {interface id} {obj id}
+                    // inv_contains {interface id} {obj id}
                     const com: IfType = IfType.list[script[pc++]];
                     const obj: number = script[pc++] + 1;
 
@@ -10147,17 +10161,62 @@ export class Client extends GameShell {
                         }
                     }
                 } else if (opcode === 11) {
-                    // load_energy
+                    // runenergy
                     register += this.runenergy;
                 } else if (opcode === 12) {
-                    // load_weight
+                    // runweight
                     register += this.runweight;
                 } else if (opcode === 13) {
-                    // load_bool {varp} {bit: 0..31}
+                    // testbit {varp} {bit: 0..31}
                     const varp: number = this.var[script[pc++]];
                     const lsb: number = script[pc++];
 
                     register += (varp & (0x1 << lsb)) === 0 ? 0 : 1;
+                } else if (opcode === 14) {
+                    // push_varbit {varbit}
+                    const varbit: VarBitType = VarBitType.list[script[pc++]];
+                    const { basevar, startbit, endbit } = varbit;
+
+                    const mask = Client.readbit[endbit - startbit];
+                    register = (this.var[basevar] >> startbit) & mask;
+                } else if (opcode === 15) {
+                    // subtract
+                    nextArithmetic = 1;
+                } else if (opcode === 16) {
+                    // divide
+                    nextArithmetic = 2;
+                } else if (opcode === 17) {
+                    // multiply
+                    nextArithmetic = 3;
+                } else if (opcode === 18) {
+                    // coordx
+                    if (this.localPlayer) {
+                        register = (this.localPlayer.x >> 7) + this.mapBuildBaseX;
+                    }
+                } else if (opcode === 19) {
+                    // coordz
+                    if (this.localPlayer) {
+                        register = (this.localPlayer.z >> 7) + this.mapBuildBaseZ;
+                    }
+                } else if (opcode === 20) {
+                    // push_constant
+                    register = script[pc++];
+                }
+
+                if (nextArithmetic === 0) {
+                    if (arithmetic === 0) {
+                        acc += register;
+                    } else if (arithmetic === 1) {
+                        acc -= register;
+                    } else if (arithmetic === 2 && register !== 0) {
+                        acc = (acc / register) | 0;
+                    } else if (arithmetic === 3) {
+                        acc = (acc * register) | 0;
+                    }
+
+                    arithmetic = 0;
+                } else {
+                    arithmetic = nextArithmetic;
                 }
             }
         } catch (e) {
