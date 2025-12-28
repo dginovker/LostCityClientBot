@@ -1671,6 +1671,16 @@ export class Client extends GameShell {
             } else if (reply === 20) {
                 this.loginMes1 = 'Invalid loginserver requested';
                 this.loginMes2 = 'Please try using a different world.';
+            } else if (reply === 21) {
+                for (let remaining = await this.stream.read(); remaining >= 0; remaining--) {
+                    this.loginMes1 = 'You have only just left another world';
+                    this.loginMes2 = 'Your profile will be transferred in: ' + remaining + ' seconds.';
+                    await this.titleScreenDraw();
+
+                    await sleep(1000);
+                }
+
+                await this.login(username, password, reconnect);
             } else {
                 this.loginMes1 = 'Unexpected server response';
                 this.loginMes2 = 'Please try using a different world.';
