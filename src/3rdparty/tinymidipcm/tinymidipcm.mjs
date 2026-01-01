@@ -77,138 +77,78 @@ var loadTinyMidiPCM = (() => {
             // Hooks that are implemented differently in different runtime environments.
             var readAsync, readBinary;
 
-            if (ENVIRONMENT_IS_NODE) {
-                if (typeof process == 'undefined' || !process.release || process.release.name !== 'node') throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
-
-                var nodeVersion = process.versions.node;
-                var numericVersion = nodeVersion.split('.').slice(0, 3);
-                numericVersion = (numericVersion[0] * 10000) + (numericVersion[1] * 100) + (numericVersion[2].split('-')[0] * 1);
-                var minVersion = 160000;
-                if (numericVersion < 160000) {
-                    throw new Error('This emscripten-generated code requires node v16.0.0 (detected v' + nodeVersion + ')');
+            // Note that this includes Node.js workers when relevant (pthreads is enabled).
+            // Node.js workers are detected as a combination of ENVIRONMENT_IS_WORKER and
+            // ENVIRONMENT_IS_NODE.
+            if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
+                if (ENVIRONMENT_IS_WORKER) { // Check worker, not web, since window could be polyfilled
+                    scriptDirectory = self.location.href;
+                } else if (typeof document != 'undefined' && document.currentScript) { // web
+                    scriptDirectory = document.currentScript.src;
+                }
+                // When MODULARIZE, this JS may be executed later, after document.currentScript
+                // is gone, so we saved it, and we use it here instead of any other info.
+                if (_scriptName) {
+                    scriptDirectory = _scriptName;
+                }
+                // blob urls look like blob:http://site.com/etc/etc and we cannot infer anything from them.
+                // otherwise, slice off the final part of the url to find the script directory.
+                // if scriptDirectory does not contain a slash, lastIndexOf will return -1,
+                // and scriptDirectory will correctly be replaced with an empty string.
+                // If scriptDirectory contains a query (starting with ?) or a fragment (starting with #),
+                // they are removed because they could contain a slash.
+                if (scriptDirectory.startsWith('blob:')) {
+                    scriptDirectory = '';
+                } else {
+                    scriptDirectory = scriptDirectory.substr(0, scriptDirectory.replace(/[?#].*/, '').lastIndexOf('/') + 1);
                 }
 
-                // These modules will usually be used on Node.js. Load them eagerly to avoid
-                // the complexity of lazy-loading.
-                var fs = require('fs');
-                var nodePath = require('path');
+                if (!(typeof window == 'object' || typeof WorkerGlobalScope != 'undefined')) throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
 
-                // EXPORT_ES6 + ENVIRONMENT_IS_NODE always requires use of import.meta.url,
-                // since there's no way getting the current absolute path of the module when
-                // support for that is not available.
-                if (!import.meta.url.startsWith('data:')) {
-                    scriptDirectory = nodePath.dirname(require('url').fileURLToPath(import.meta.url)) + '/';
-                }
-
-                // include: node_shell_read.js
-                readBinary = (filename) => {
-                    // We need to re-wrap `file://` strings to URLs.
-                    filename = isFileURI(filename) ? new URL(filename) : filename;
-                    var ret = fs.readFileSync(filename);
-                    assert(Buffer.isBuffer(ret));
-                    return ret;
-                };
-
-                readAsync = async (filename, binary = true) => {
-                    // See the comment in the `readBinary` function.
-                    filename = isFileURI(filename) ? new URL(filename) : filename;
-                    var ret = fs.readFileSync(filename, binary ? undefined : 'utf8');
-                    assert(binary ? Buffer.isBuffer(ret) : typeof ret == 'string');
-                    return ret;
-                };
-                // end include: node_shell_read.js
-                if (!Module['thisProgram'] && process.argv.length > 1) {
-                    thisProgram = process.argv[1].replace(/\\/g, '/');
-                }
-
-                arguments_ = process.argv.slice(2);
-
-                // MODULARIZE will export the module in the proper place outside, we don't need to export here
-
-                quit_ = (status, toThrow) => {
-                    process.exitCode = status;
-                    throw toThrow;
-                };
-
-            } else
-                if (ENVIRONMENT_IS_SHELL) {
-
-                    if ((typeof process == 'object' && typeof require === 'function') || typeof window == 'object' || typeof WorkerGlobalScope != 'undefined') throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
-
-                } else
-
-                    // Note that this includes Node.js workers when relevant (pthreads is enabled).
-                    // Node.js workers are detected as a combination of ENVIRONMENT_IS_WORKER and
-                    // ENVIRONMENT_IS_NODE.
-                    if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
-                        if (ENVIRONMENT_IS_WORKER) { // Check worker, not web, since window could be polyfilled
-                            scriptDirectory = self.location.href;
-                        } else if (typeof document != 'undefined' && document.currentScript) { // web
-                            scriptDirectory = document.currentScript.src;
-                        }
-                        // When MODULARIZE, this JS may be executed later, after document.currentScript
-                        // is gone, so we saved it, and we use it here instead of any other info.
-                        if (_scriptName) {
-                            scriptDirectory = _scriptName;
-                        }
-                        // blob urls look like blob:http://site.com/etc/etc and we cannot infer anything from them.
-                        // otherwise, slice off the final part of the url to find the script directory.
-                        // if scriptDirectory does not contain a slash, lastIndexOf will return -1,
-                        // and scriptDirectory will correctly be replaced with an empty string.
-                        // If scriptDirectory contains a query (starting with ?) or a fragment (starting with #),
-                        // they are removed because they could contain a slash.
-                        if (scriptDirectory.startsWith('blob:')) {
-                            scriptDirectory = '';
-                        } else {
-                            scriptDirectory = scriptDirectory.substr(0, scriptDirectory.replace(/[?#].*/, '').lastIndexOf('/') + 1);
-                        }
-
-                        if (!(typeof window == 'object' || typeof WorkerGlobalScope != 'undefined')) throw new Error('not compiled for this environment (did you build to HTML and try to run it not on the web, or set ENVIRONMENT to something - like node - and run it someplace else - like on the web?)');
-
-                        {
-                            // include: web_or_worker_shell_read.js
-                            if (ENVIRONMENT_IS_WORKER) {
-                                readBinary = (url) => {
-                                    var xhr = new XMLHttpRequest();
-                                    xhr.open('GET', url, false);
-                                    xhr.responseType = 'arraybuffer';
-                                    xhr.send(null);
-                                    return new Uint8Array(/** @type{!ArrayBuffer} */(xhr.response));
-                                };
-                            }
-
-                            readAsync = async (url) => {
-                                // Fetch has some additional restrictions over XHR, like it can't be used on a file:// url.
-                                // See https://github.com/github/fetch/pull/92#issuecomment-140665932
-                                // Cordova or Electron apps are typically loaded from a file:// url.
-                                // So use XHR on webview if URL is a file URL.
-                                if (isFileURI(url)) {
-                                    return new Promise((resolve, reject) => {
-                                        var xhr = new XMLHttpRequest();
-                                        xhr.open('GET', url, true);
-                                        xhr.responseType = 'arraybuffer';
-                                        xhr.onload = () => {
-                                            if (xhr.status == 200 || (xhr.status == 0 && xhr.response)) { // file URLs can return 0
-                                                resolve(xhr.response);
-                                                return;
-                                            }
-                                            reject(xhr.status);
-                                        };
-                                        xhr.onerror = reject;
-                                        xhr.send(null);
-                                    });
-                                }
-                                var response = await fetch(url, { credentials: 'same-origin' });
-                                if (response.ok) {
-                                    return response.arrayBuffer();
-                                }
-                                throw new Error(response.status + ' : ' + response.url);
-                            };
-                            // end include: web_or_worker_shell_read.js
-                        }
-                    } else {
-                        throw new Error('environment detection error');
+                {
+                    // include: web_or_worker_shell_read.js
+                    if (ENVIRONMENT_IS_WORKER) {
+                        readBinary = (url) => {
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('GET', url, false);
+                            xhr.responseType = 'arraybuffer';
+                            xhr.send(null);
+                            return new Uint8Array(/** @type{!ArrayBuffer} */(xhr.response));
+                        };
                     }
+
+                    readAsync = async (url) => {
+                        // Fetch has some additional restrictions over XHR, like it can't be used on a file:// url.
+                        // See https://github.com/github/fetch/pull/92#issuecomment-140665932
+                        // Cordova or Electron apps are typically loaded from a file:// url.
+                        // So use XHR on webview if URL is a file URL.
+                        if (isFileURI(url)) {
+                            return new Promise((resolve, reject) => {
+                                var xhr = new XMLHttpRequest();
+                                xhr.open('GET', url, true);
+                                xhr.responseType = 'arraybuffer';
+                                xhr.onload = () => {
+                                    if (xhr.status == 200 || (xhr.status == 0 && xhr.response)) { // file URLs can return 0
+                                        resolve(xhr.response);
+                                        return;
+                                    }
+                                    reject(xhr.status);
+                                };
+                                xhr.onerror = reject;
+                                xhr.send(null);
+                            });
+                        }
+                        var response = await fetch(url, { credentials: 'same-origin' });
+                        if (response.ok) {
+                            return response.arrayBuffer();
+                        }
+                        throw new Error(response.status + ' : ' + response.url);
+                    };
+                    // end include: web_or_worker_shell_read.js
+                }
+            } else {
+                throw new Error('environment detection error');
+            }
 
             var out = Module['print'] || console.log.bind(console);
             var err = Module['printErr'] || console.error.bind(console);
