@@ -541,7 +541,7 @@ export default class ClientPlayer extends ClientEntity {
         }
 
         const tmp = Model.empty;
-        tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) || AnimFrame.shareAlpha(secondaryTransformId));
+        tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) && AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
             tmp.maskAnimate(primaryTransformId, secondaryTransformId, SeqType.list[this.primarySeqId].walkmerge);
