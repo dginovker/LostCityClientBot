@@ -2280,9 +2280,9 @@ export class Client extends GameShell {
             }
 
             const build: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.groundh!, this.mapl!);
-            ClientBuild.lowMem = World.lowMem;
-
             const maps: number = this.mapBuildGroundData?.length ?? 0;
+
+            ClientBuild.lowMem = World.lowMem;
 
             if (this.mapBuildIndex) {
                 for (let index: number = 0; index < maps; index++) {
@@ -2297,7 +2297,7 @@ export class Client extends GameShell {
                 }
             }
 
-            if (Client.lowMem) {
+            if (ClientBuild.lowMem) {
                 this.world?.fillBaseLevel(this.minusedlevel);
             } else {
                 this.world?.fillBaseLevel(0);
