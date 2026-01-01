@@ -486,7 +486,7 @@ export default class ObjType {
                     }
                 }
             }
-        } else {
+        } else if (outlineRgb === 0) {
             // add shadow
             for (let x: number = 31; x >= 0; x--) {
                 for (let y: number = 31; y >= 0; y--) {
