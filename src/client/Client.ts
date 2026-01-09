@@ -1836,7 +1836,7 @@ export class Client extends GameShell {
                             this.out.p3(0x800000 + (this.mouseTrackedDelta << 19) + pos);
                             this.mouseTrackedDelta = 0;
                         } else {
-                            this.out.p4(0xC00000 + (this.mouseTrackedDelta << 19) + pos);
+                            this.out.p4(0xC0000000 + (this.mouseTrackedDelta << 19) + pos);
                             this.mouseTrackedDelta = 0;
                         }
                     } else if (this.mouseTrackedDelta < 2047) {
@@ -3680,7 +3680,6 @@ export class Client extends GameShell {
                             if (this.staffmodlevel === 2) {
                                 if (this.chatTyped === '::clientdrop') {
                                     await this.tryReconnect();
-                                    await sleep(10000);
                                 } else if (this.chatTyped === '::prefetchmusic') {
                                     if (this.onDemand) {
                                         for (let i = 0; i < this.onDemand.getFileCount(2); i++) {
