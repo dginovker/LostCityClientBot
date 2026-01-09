@@ -1795,7 +1795,9 @@ export class Client extends GameShell {
                 const start = this.out.pos;
                 let count = 0;
 
-                for (let i = 0; i < this.mouseTracking.length; i++) {
+                // custom: Java client checks `start - this.out.pos < 240` but this is obviously wrong
+                //   and will lead to an invalid packet if the user is buffering a lot of mouse movements (i.e. while disconnected)
+                for (let i = 0; i < this.mouseTracking.length && this.out.pos - start < 240; i++) {
                     count++;
 
                     let y = this.mouseTracking.y[i];
@@ -3678,6 +3680,7 @@ export class Client extends GameShell {
                             if (this.staffmodlevel === 2) {
                                 if (this.chatTyped === '::clientdrop') {
                                     await this.tryReconnect();
+                                    await sleep(10000);
                                 } else if (this.chatTyped === '::prefetchmusic') {
                                     if (this.onDemand) {
                                         for (let i = 0; i < this.onDemand.getFileCount(2); i++) {
@@ -3704,7 +3707,7 @@ export class Client extends GameShell {
                                 } catch (e) { }
                             } else if (this.chatTyped.startsWith('::')) {
                                 this.out.pIsaac(ClientProt.CLIENT_CHEAT);
-                                this.out.p1(this.chatTyped.length - 1);
+                                this.out.p1(this.chatTyped.length - 2 + 1);
                                 this.out.pjstr(this.chatTyped.substring(2));
                             } else {
                                 let color: number = 0;
