@@ -114,7 +114,7 @@ export default class World {
     static levelOccluderCount: Int32Array = new Int32Array(CollisionConstants.LEVELS);
     private static levelOccluders: (Occlude | null)[][] = new TypedArray2d(CollisionConstants.LEVELS, 500, null);
 
-    private static locBuffer: (Sprite | null)[] = new TypedArray1d(100, null);
+    private static spriteBuffer: (Sprite | null)[] = new TypedArray1d(100, null);
 
     private static viewportLeft: number = 0;
     private static viewportTop: number = 0;
@@ -220,12 +220,12 @@ export default class World {
     private readonly maxTileZ: number;
     private readonly groundHeight: Int32Array[][];
     private readonly levelTiles: (Square | null)[][][];
-    private readonly changedLocs: (Sprite | null)[];
+    private readonly dynamicSprites: (Sprite | null)[];
     private readonly occlusionCycle: Int32Array[][];
     private readonly mergeIndexA: Int32Array;
     private readonly mergeIndexB: Int32Array;
 
-    private changedLocCount: number = 0;
+    private dynamicCount: number = 0;
     private minLevel: number = 0;
     private tmpMergeIndex: number = 0;
 
@@ -237,7 +237,7 @@ export default class World {
         this.occlusionCycle = new Int32Array3d(maxLevel, maxTileX + 1, maxTileZ + 1);
         this.groundHeight = levelHeightmaps;
 
-        this.changedLocs = new TypedArray1d(5000, null);
+        this.dynamicSprites = new TypedArray1d(5000, null);
         this.mergeIndexA = new Int32Array(10000);
         this.mergeIndexB = new Int32Array(10000);
 
@@ -262,13 +262,13 @@ export default class World {
             World.levelOccluderCount[l] = 0;
         }
 
-        for (let i: number = 0; i < this.changedLocCount; i++) {
-            this.changedLocs[i] = null;
+        for (let i: number = 0; i < this.dynamicCount; i++) {
+            this.dynamicSprites[i] = null;
         }
 
-        this.changedLocCount = 0;
+        this.dynamicCount = 0;
 
-        World.locBuffer.fill(null);
+        World.spriteBuffer.fill(null);
     }
 
     // jag::oldscape::dash3d::world::FillBaseLevel
@@ -424,13 +424,13 @@ export default class World {
 
         const tile: Square | null = this.levelTiles[level][stx][stz];
         if (tile) {
-            for (let l: number = 0; l < tile.primaryCount; l++) {
-                const loc: Sprite | null = tile.locs[l];
-                if (!loc || !loc.model || !(loc.model instanceof Model)) {
+            for (let l: number = 0; l < tile.spriteCount; l++) {
+                const sprite: Sprite | null = tile.sprites[l];
+                if (!sprite || !sprite.model || !(sprite.model instanceof Model)) {
                     continue;
                 }
 
-                const height: number = loc.model.objRaise;
+                const height: number = sprite.model.objRaise;
                 if (height > stackOffset) {
                     stackOffset = height;
                 }
@@ -658,8 +658,8 @@ export default class World {
             return;
         }
 
-        for (let l: number = 0; l < tile.primaryCount; l++) {
-            const loc: Sprite | null = tile.locs[l];
+        for (let l: number = 0; l < tile.spriteCount; l++) {
+            const loc: Sprite | null = tile.sprites[l];
             if (loc && ((loc.typecode >> 29) & 0x3) === 2 && loc.minTileX === x && loc.minTileZ === z) {
                 this.delSprite(loc);
                 return;
@@ -669,16 +669,16 @@ export default class World {
 
     // jag::oldscape::dash3d::world::RemoveSprites
     removeSprites(): void {
-        for (let i: number = 0; i < this.changedLocCount; i++) {
-            const loc: Sprite | null = this.changedLocs[i];
-            if (loc) {
-                this.delSprite(loc);
+        for (let i: number = 0; i < this.dynamicCount; i++) {
+            const sprite: Sprite | null = this.dynamicSprites[i];
+            if (sprite) {
+                this.delSprite(sprite);
             }
 
-            this.changedLocs[i] = null;
+            this.dynamicSprites[i] = null;
         }
 
-        this.changedLocCount = 0;
+        this.dynamicCount = 0;
     }
 
     // jag::oldscape::dash3d::world::WallType
@@ -700,10 +700,10 @@ export default class World {
             return 0;
         }
 
-        for (let l: number = 0; l < tile.primaryCount; l++) {
-            const loc: Sprite | null = tile.locs[l];
-            if (loc && ((loc.typecode >> 29) & 0x3) === 2 && loc.minTileX === x && loc.minTileZ === z) {
-                return loc.typecode;
+        for (let l: number = 0; l < tile.spriteCount; l++) {
+            const sprite: Sprite | null = tile.sprites[l];
+            if (sprite && ((sprite.typecode >> 29) & 0x3) === 2 && sprite.minTileX === x && sprite.minTileZ === z) {
+                return sprite.typecode;
             }
         }
 
@@ -735,10 +735,10 @@ export default class World {
             return null;
         }
 
-        for (let l: number = 0; l < tile.primaryCount; l++) {
-            const loc: Sprite | null = tile.locs[l];
-            if (loc && ((loc.typecode >> 29) & 0x3) === 2 && loc.minTileX === x && loc.minTileZ === z) {
-                return loc;
+        for (let l: number = 0; l < tile.spriteCount; l++) {
+            const sprite: Sprite | null = tile.sprites[l];
+            if (sprite && ((sprite.typecode >> 29) & 0x3) === 2 && sprite.minTileX === x && sprite.minTileZ === z) {
+                return sprite;
             }
         }
 
@@ -763,10 +763,10 @@ export default class World {
         } else if (tile.groundDecor && tile.groundDecor.typecode === typecode) {
             return tile.groundDecor.typecode2 & 0xff;
         } else {
-            for (let i: number = 0; i < tile.primaryCount; i++) {
-                const loc: Sprite | null = tile.locs[i];
-                if (loc && loc.typecode === typecode) {
-                    return loc.typecode2 & 0xff;
+            for (let i: number = 0; i < tile.spriteCount; i++) {
+                const sprite: Sprite | null = tile.sprites[i];
+                if (sprite && sprite.typecode === typecode) {
+                    return sprite.typecode2 & 0xff;
                 }
             }
             return -1;
@@ -797,11 +797,11 @@ export default class World {
                         (wall.model1 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
 
-                    for (let i: number = 0; i < tile.primaryCount; i++) {
-                        const loc: Sprite | null = tile.locs[i];
-                        if (loc && loc.model && loc.model.vertexNormal) {
-                            this.shareLightLoc(level, tileX, tileZ, loc.maxTileX + 1 - loc.minTileX, loc.maxTileZ - loc.minTileZ + 1, (loc.model as Model));
-                            (loc.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                    for (let i: number = 0; i < tile.spriteCount; i++) {
+                        const sprite: Sprite | null = tile.sprites[i];
+                        if (sprite && sprite.model && sprite.model.vertexNormal) {
+                            this.shareLightLoc(level, tileX, tileZ, sprite.maxTileX + 1 - sprite.minTileX, sprite.maxTileZ - sprite.minTileZ + 1, (sprite.model as Model));
+                            (sprite.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
                     }
 
@@ -890,15 +890,15 @@ export default class World {
                         this.modelShareLight(model, wall.model2 as Model, offsetX, offsetY, offsetZ, allowFaceRemoval);
                     }
 
-                    for (let i: number = 0; i < tile.primaryCount; i++) {
-                        const loc: Sprite | null = tile.locs[i];
-                        if (!loc || !loc.model || !loc.model.vertexNormal) {
+                    for (let i: number = 0; i < tile.spriteCount; i++) {
+                        const sprite: Sprite | null = tile.sprites[i];
+                        if (!sprite || !sprite.model || !sprite.model.vertexNormal) {
                             continue;
                         }
 
-                        const locTileSizeX: number = loc.maxTileX + 1 - loc.minTileX;
-                        const locTileSizeZ: number = loc.maxTileZ + 1 - loc.minTileZ;
-                        this.modelShareLight(model, loc.model as Model, (loc.minTileX - tileX) * 128 + (locTileSizeX - tileSizeX) * 64, offsetY, (loc.minTileZ - tileZ) * 128 + (locTileSizeZ - tileSizeZ) * 64, allowFaceRemoval);
+                        const tileSizeX: number = sprite.maxTileX + 1 - sprite.minTileX;
+                        const tileSizeZ: number = sprite.maxTileZ + 1 - sprite.minTileZ;
+                        this.modelShareLight(model, sprite.model as Model, (sprite.minTileX - tileX) * 128 + (tileSizeX - tileSizeX) * 64, offsetY, (sprite.minTileZ - tileZ) * 128 + (tileSizeZ - tileSizeZ) * 64, allowFaceRemoval);
                     }
                 }
             }
@@ -1118,7 +1118,7 @@ export default class World {
                     if (tile.drawLevel <= topLevel && (World.visibilityMap[x + 25 - World.gx][z + 25 - World.gz] || this.groundHeight[level][x][z] - eyeY >= 2000)) {
                         tile.drawFront = true;
                         tile.drawBack = true;
-                        tile.drawPrimaries = tile.primaryCount > 0;
+                        tile.drawSprites = tile.spriteCount > 0;
                         World.fillLeft++;
                     } else {
                         tile.drawFront = false;
@@ -1251,7 +1251,7 @@ export default class World {
         typecode: number,
         info: number,
         yaw: number,
-        changed: boolean
+        dynamic: boolean
     ): boolean {
         if (!model) {
             return false;
@@ -1264,13 +1264,13 @@ export default class World {
                 }
 
                 const tile: Square | null = this.levelTiles[level][tx][tz];
-                if (tile && tile.primaryCount >= 5) {
+                if (tile && tile.spriteCount >= 5) {
                     return false;
                 }
             }
         }
 
-        const loc: Sprite = new Sprite(level, y, x, z, model, yaw, tileX, tileX + tileSizeX - 1, tileZ, tileZ + tileSizeZ - 1, typecode, info);
+        const sprite: Sprite = new Sprite(level, y, x, z, model, yaw, tileX, tileX + tileSizeX - 1, tileZ, tileZ + tileSizeZ - 1, typecode, info);
         for (let tx: number = tileX; tx < tileX + tileSizeX; tx++) {
             for (let tz: number = tileZ; tz < tileZ + tileSizeZ; tz++) {
                 let spans: number = 0;
@@ -1295,46 +1295,46 @@ export default class World {
 
                 const tile: Square | null = this.levelTiles[level][tx][tz];
                 if (tile) {
-                    tile.locs[tile.primaryCount] = loc;
-                    tile.primaryExtendDirections[tile.primaryCount] = spans;
-                    tile.combinedPrimaryExtendDirections |= spans;
-                    tile.primaryCount++;
+                    tile.sprites[tile.spriteCount] = sprite;
+                    tile.spriteExtendDirections[tile.spriteCount] = spans;
+                    tile.combinedSpriteExtendDirections |= spans;
+                    tile.spriteCount++;
                 }
             }
         }
 
-        if (changed) {
-            this.changedLocs[this.changedLocCount++] = loc;
+        if (dynamic) {
+            this.dynamicSprites[this.dynamicCount++] = sprite;
         }
 
         return true;
     }
 
     // jag::oldscape::dash3d::world::DelSprite
-    private delSprite(loc: Sprite): void {
-        for (let tx: number = loc.minTileX; tx <= loc.maxTileX; tx++) {
-            for (let tz: number = loc.minTileZ; tz <= loc.maxTileZ; tz++) {
-                const tile: Square | null = this.levelTiles[loc.level][tx][tz];
+    private delSprite(sprite: Sprite): void {
+        for (let tx: number = sprite.minTileX; tx <= sprite.maxTileX; tx++) {
+            for (let tz: number = sprite.minTileZ; tz <= sprite.maxTileZ; tz++) {
+                const tile: Square | null = this.levelTiles[sprite.level][tx][tz];
                 if (!tile) {
                     continue;
                 }
 
-                for (let i: number = 0; i < tile.primaryCount; i++) {
-                    if (tile.locs[i] === loc) {
-                        tile.primaryCount--;
-                        for (let j: number = i; j < tile.primaryCount; j++) {
-                            tile.locs[j] = tile.locs[j + 1];
-                            tile.primaryExtendDirections[j] = tile.primaryExtendDirections[j + 1];
+                for (let i: number = 0; i < tile.spriteCount; i++) {
+                    if (tile.sprites[i] === sprite) {
+                        tile.spriteCount--;
+                        for (let j: number = i; j < tile.spriteCount; j++) {
+                            tile.sprites[j] = tile.sprites[j + 1];
+                            tile.spriteExtendDirections[j] = tile.spriteExtendDirections[j + 1];
                         }
-                        tile.locs[tile.primaryCount] = null;
+                        tile.sprites[tile.spriteCount] = null;
                         break;
                     }
                 }
 
-                tile.combinedPrimaryExtendDirections = 0;
+                tile.combinedSpriteExtendDirections = 0;
 
-                for (let i: number = 0; i < tile.primaryCount; i++) {
-                    tile.combinedPrimaryExtendDirections |= tile.primaryExtendDirections[i];
+                for (let i: number = 0; i < tile.spriteCount; i++) {
+                    tile.combinedSpriteExtendDirections |= tile.spriteExtendDirections[i];
                 }
             }
         }
@@ -1525,7 +1525,7 @@ export default class World {
                     if (tileX <= World.gx && tileX > World.minX) {
                         const adjacent: Square | null = tiles[tileX - 1][tileZ];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x1) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x1) === 0)) {
                             continue;
                         }
                     }
@@ -1533,7 +1533,7 @@ export default class World {
                     if (tileX >= World.gx && tileX < World.maxX - 1) {
                         const adjacent: Square | null = tiles[tileX + 1][tileZ];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x4) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x4) === 0)) {
                             continue;
                         }
                     }
@@ -1541,7 +1541,7 @@ export default class World {
                     if (tileZ <= World.gz && tileZ > World.minZ) {
                         const adjacent: Square | null = tiles[tileX][tileZ - 1];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x8) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x8) === 0)) {
                             continue;
                         }
                     }
@@ -1549,7 +1549,7 @@ export default class World {
                     if (tileZ >= World.gz && tileZ < World.maxZ - 1) {
                         const adjacent: Square | null = tiles[tileX][tileZ + 1];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedPrimaryExtendDirections & 0x2) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x2) === 0)) {
                             continue;
                         }
                     }
@@ -1575,11 +1575,11 @@ export default class World {
                         wall.model1?.worldRender(loopCycle, 0, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, wall.x - World.cx, wall.y - World.cy, wall.z - World.cz, wall.typecode);
                     }
 
-                    for (let i: number = 0; i < linkedSquare.primaryCount; i++) {
-                        const loc: Sprite | null = linkedSquare.locs[i];
+                    for (let i: number = 0; i < linkedSquare.spriteCount; i++) {
+                        const sprite: Sprite | null = linkedSquare.sprites[i];
 
-                        if (loc) {
-                            loc.model?.worldRender(loopCycle, loc.yaw, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, loc.x - World.cx, loc.y - World.cy, loc.z - World.cz, loc.typecode);
+                        if (sprite) {
+                            sprite.model?.worldRender(loopCycle, sprite.yaw, World.cameraSinX, World.cameraCosX, World.cameraSinY, World.cameraCosY, sprite.x - World.cx, sprite.y - World.cy, sprite.z - World.cz, sprite.typecode);
                         }
                     }
                 }
@@ -1707,7 +1707,7 @@ export default class World {
                     }
                 }
 
-                const spans: number = tile.combinedPrimaryExtendDirections;
+                const spans: number = tile.combinedSpriteExtendDirections;
 
                 if (spans !== 0) {
                     if (tileX < World.gx && (spans & 0x4) !== 0) {
@@ -1742,13 +1742,13 @@ export default class World {
 
             if (tile.cornerSides !== 0) {
                 let draw: boolean = true;
-                for (let i: number = 0; i < tile.primaryCount; i++) {
-                    const loc: Sprite | null = tile.locs[i];
-                    if (!loc) {
+                for (let i: number = 0; i < tile.spriteCount; i++) {
+                    const sprite: Sprite | null = tile.sprites[i];
+                    if (!sprite) {
                         continue;
                     }
 
-                    if (loc.cycle !== World.cycleNo && (tile.primaryExtendDirections[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
+                    if (sprite.cycle !== World.cycleNo && (tile.spriteExtendDirections[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
                         draw = false;
                         break;
                     }
@@ -1765,20 +1765,20 @@ export default class World {
                 }
             }
 
-            if (tile.drawPrimaries) {
-                const locCount: number = tile.primaryCount;
-                tile.drawPrimaries = false;
-                let locBufferSize: number = 0;
+            if (tile.drawSprites) {
+                const spriteCount: number = tile.spriteCount;
+                tile.drawSprites = false;
+                let spriteBufferSize: number = 0;
 
-                iterate_locs: for (let i: number = 0; i < locCount; i++) {
-                    const loc: Sprite | null = tile.locs[i];
+                iterate_sprites: for (let i: number = 0; i < spriteCount; i++) {
+                    const sprite: Sprite | null = tile.sprites[i];
 
-                    if (!loc || loc.cycle === World.cycleNo) {
+                    if (!sprite || sprite.cycle === World.cycleNo) {
                         continue;
                     }
 
-                    for (let x: number = loc.minTileX; x <= loc.maxTileX; x++) {
-                        for (let z: number = loc.minTileZ; z <= loc.maxTileZ; z++) {
+                    for (let x: number = sprite.minTileX; x <= sprite.maxTileX; x++) {
+                        for (let z: number = sprite.minTileZ; z <= sprite.maxTileZ; z++) {
                             const other: Square | null = tiles[x][z];
 
                             if (!other) {
@@ -1786,8 +1786,8 @@ export default class World {
                             }
 
                             if (other.drawFront) {
-                                tile.drawPrimaries = true;
-                                continue iterate_locs;
+                                tile.drawSprites = true;
+                                continue iterate_sprites;
                             }
 
                             if (other.cornerSides === 0) {
@@ -1796,19 +1796,19 @@ export default class World {
 
                             let spans: number = 0;
 
-                            if (x > loc.minTileX) {
+                            if (x > sprite.minTileX) {
                                 spans += 1;
                             }
 
-                            if (x < loc.maxTileX) {
+                            if (x < sprite.maxTileX) {
                                 spans += 4;
                             }
 
-                            if (z > loc.minTileZ) {
+                            if (z > sprite.minTileZ) {
                                 spans += 8;
                             }
 
-                            if (z < loc.maxTileZ) {
+                            if (z < sprite.maxTileZ) {
                                 spans += 2;
                             }
 
@@ -1818,38 +1818,38 @@ export default class World {
                         }
                     }
 
-                    World.locBuffer[locBufferSize++] = loc;
+                    World.spriteBuffer[spriteBufferSize++] = sprite;
 
-                    let minTileDistanceX: number = World.gx - loc.minTileX;
-                    const maxTileDistanceX: number = loc.maxTileX - World.gx;
+                    let minTileDistanceX: number = World.gx - sprite.minTileX;
+                    const maxTileDistanceX: number = sprite.maxTileX - World.gx;
 
                     if (maxTileDistanceX > minTileDistanceX) {
                         minTileDistanceX = maxTileDistanceX;
                     }
 
-                    const minTileDistanceZ: number = World.gz - loc.minTileZ;
-                    const maxTileDistanceZ: number = loc.maxTileZ - World.gz;
+                    const minTileDistanceZ: number = World.gz - sprite.minTileZ;
+                    const maxTileDistanceZ: number = sprite.maxTileZ - World.gz;
 
                     if (maxTileDistanceZ > minTileDistanceZ) {
-                        loc.distance = minTileDistanceX + maxTileDistanceZ;
+                        sprite.distance = minTileDistanceX + maxTileDistanceZ;
                     } else {
-                        loc.distance = minTileDistanceX + minTileDistanceZ;
+                        sprite.distance = minTileDistanceX + minTileDistanceZ;
                     }
                 }
 
                 // eslint-disable-next-line no-constant-condition
-                while (locBufferSize > 0) {
+                while (spriteBufferSize > 0) {
                     let farthestDistance: number = -50;
                     let farthestIndex: number = -1;
 
-                    for (let index: number = 0; index < locBufferSize; index++) {
-                        const loc: Sprite | null = World.locBuffer[index];
-                        if (!loc) {
+                    for (let index: number = 0; index < spriteBufferSize; index++) {
+                        const sprite: Sprite | null = World.spriteBuffer[index];
+                        if (!sprite) {
                             continue;
                         }
 
-                        if (loc.distance > farthestDistance && loc.cycle !== World.cycleNo) {
-                            farthestDistance = loc.distance;
+                        if (sprite.distance > farthestDistance && sprite.cycle !== World.cycleNo) {
+                            farthestDistance = sprite.distance;
                             farthestIndex = index;
                         }
                     }
@@ -1858,7 +1858,7 @@ export default class World {
                         break;
                     }
 
-                    const farthest: Sprite | null = World.locBuffer[farthestIndex];
+                    const farthest: Sprite | null = World.spriteBuffer[farthestIndex];
                     if (farthest) {
                         farthest.cycle = World.cycleNo;
 
@@ -1883,7 +1883,7 @@ export default class World {
                     }
                 }
 
-                if (tile.drawPrimaries) {
+                if (tile.drawSprites) {
                     continue;
                 }
             }
