@@ -277,7 +277,7 @@ export class Client extends GameShell {
     private statXP: number[] = [];
     private statEffectiveLevel: number[] = [];
     private statBaseLevel: number[] = [];
-    private levelExperience: number[] = [];
+    static levelExperience: number[] = [];
     private modalMessage: string | null = null;
     private flashingTab: number = -1;
     private sideTab: number = 3;
@@ -526,19 +526,17 @@ export class Client extends GameShell {
 			Client.readbit[bit] = n - 1;
 			n += n;
 		}
-    }
 
-    // ----
-
-    private initializeLevelExperience(): void {
         let acc: number = 0;
         for (let i: number = 0; i < 99; i++) {
             const level: number = i + 1;
             const delta: number = (level + Math.pow(2.0, level / 7.0) * 300.0) | 0;
             acc += delta;
-            this.levelExperience[i] = (acc / 4) | 0;
+            Client.levelExperience[i] = (acc / 4) | 0;
         }
     }
+
+    // ----
 
     constructor(nodeid: number, lowmem: boolean, members: boolean) {
         super();
@@ -1010,8 +1008,6 @@ export class Client extends GameShell {
             setInterval(() => {
                 this.mouseTracking.cycle();
             }, 50);
-
-            this.initializeLevelExperience();
         } catch (err) {
             console.error(err);
 
@@ -7038,7 +7034,7 @@ export class Client extends GameShell {
                 this.statBaseLevel[stat] = 1;
 
                 for (let i: number = 0; i < 98; i++) {
-                    if (xp >= this.levelExperience[i]) {
+                    if (xp >= Client.levelExperience[i]) {
                         this.statBaseLevel[stat] = i + 2;
                     }
                 }
@@ -10147,7 +10143,7 @@ export class Client extends GameShell {
                     register += this.var[script[pc++]];
                 } else if (opcode === 6) {
                     // stat_xp_remaining {skill}
-                    register += this.levelExperience[this.statBaseLevel[script[pc++]] - 1];
+                    register += Client.levelExperience[this.statBaseLevel[script[pc++]] - 1];
                 } else if (opcode === 7) {
                     register += ((this.var[script[pc++]] * 100) / 46875) | 0;
                 } else if (opcode === 8) {
@@ -10413,7 +10409,7 @@ export class Client extends GameShell {
                 if (child.buttonType === ButtonType.BUTTON_OK) {
                     let override: boolean = false;
                     if (child.clientCode !== 0) {
-                        override = this.handleSocialMenuOption(child);
+                        override = this.addSocialListOptions(child);
                     }
 
                     if (!override && child.option) {
@@ -10457,7 +10453,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handleSocialMenuOption(component: IfType): boolean {
+    private addSocialListOptions(component: IfType): boolean {
         let clientCode: number = component.clientCode;
 
         if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_UPDATE_END) || (clientCode >= 701 && clientCode <= 900)) {
