@@ -398,11 +398,11 @@ export class Client extends GameShell {
     private projectX: number = 0;
     private projectY: number = 0;
     private cinemaCam: boolean = false;
-    private cinemaX: number = 0;
-    private cinemaY: number = 0;
-    private cinemaZ: number = 0;
-    private cinemaPitch: number = 0;
-    private cinemaYaw: number = 0;
+    private camX: number = 0;
+    private camY: number = 0;
+    private camZ: number = 0;
+    private camPitch: number = 0;
+    private camYaw: number = 0;
     private camShakeCycle: Int32Array = new Int32Array(5);
     private camShake: boolean[] = new TypedArray1d(5, false);
     private camShakeAxis: Int32Array = new Int32Array(5);
@@ -3445,45 +3445,45 @@ export class Client extends GameShell {
         let z: number = this.camMoveToLz * 128 + 64;
         let y: number = this.getAvH(this.minusedlevel, x, z) - this.camMoveToHei;
 
-        if (this.cinemaX < x) {
-            this.cinemaX += this.camMoveToRate + ((((x - this.cinemaX) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaX > x) {
-                this.cinemaX = x;
+        if (this.camX < x) {
+            this.camX += this.camMoveToRate + ((((x - this.camX) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camX > x) {
+                this.camX = x;
             }
         }
 
-        if (this.cinemaX > x) {
-            this.cinemaX -= this.camMoveToRate + ((((this.cinemaX - x) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaX < x) {
-                this.cinemaX = x;
+        if (this.camX > x) {
+            this.camX -= this.camMoveToRate + ((((this.camX - x) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camX < x) {
+                this.camX = x;
             }
         }
 
-        if (this.cinemaY < y) {
-            this.cinemaY += this.camMoveToRate + ((((y - this.cinemaY) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaY > y) {
-                this.cinemaY = y;
+        if (this.camY < y) {
+            this.camY += this.camMoveToRate + ((((y - this.camY) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camY > y) {
+                this.camY = y;
             }
         }
 
-        if (this.cinemaY > y) {
-            this.cinemaY -= this.camMoveToRate + ((((this.cinemaY - y) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaY < y) {
-                this.cinemaY = y;
+        if (this.camY > y) {
+            this.camY -= this.camMoveToRate + ((((this.camY - y) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camY < y) {
+                this.camY = y;
             }
         }
 
-        if (this.cinemaZ < z) {
-            this.cinemaZ += this.camMoveToRate + ((((z - this.cinemaZ) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaZ > z) {
-                this.cinemaZ = z;
+        if (this.camZ < z) {
+            this.camZ += this.camMoveToRate + ((((z - this.camZ) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camZ > z) {
+                this.camZ = z;
             }
         }
 
-        if (this.cinemaZ > z) {
-            this.cinemaZ -= this.camMoveToRate + ((((this.cinemaZ - z) * this.camMoveToRate2) / 1000) | 0);
-            if (this.cinemaZ < z) {
-                this.cinemaZ = z;
+        if (this.camZ > z) {
+            this.camZ -= this.camMoveToRate + ((((this.camZ - z) * this.camMoveToRate2) / 1000) | 0);
+            if (this.camZ < z) {
+                this.camZ = z;
             }
         }
 
@@ -3491,9 +3491,9 @@ export class Client extends GameShell {
         z = this.camLookAtLz * 128 + 64;
         y = this.getAvH(this.minusedlevel, x, z) - this.camLookAtHei;
 
-        const dx: number = x - this.cinemaX;
-        const dy: number = y - this.cinemaY;
-        const dz: number = z - this.cinemaZ;
+        const dx: number = x - this.camX;
+        const dy: number = y - this.camY;
+        const dz: number = z - this.camZ;
 
         const distance: number = Math.sqrt(dx * dx + dz * dz) | 0;
         let pitch: number = ((Math.atan2(dy, distance) * 325.949) | 0) & 0x7ff;
@@ -3505,21 +3505,21 @@ export class Client extends GameShell {
             pitch = 383;
         }
 
-        if (this.cinemaPitch < pitch) {
-            this.cinemaPitch += this.camLookAtRate + ((((pitch - this.cinemaPitch) * this.camLookAtRate2) / 1000) | 0);
-            if (this.cinemaPitch > pitch) {
-                this.cinemaPitch = pitch;
+        if (this.camPitch < pitch) {
+            this.camPitch += this.camLookAtRate + ((((pitch - this.camPitch) * this.camLookAtRate2) / 1000) | 0);
+            if (this.camPitch > pitch) {
+                this.camPitch = pitch;
             }
         }
 
-        if (this.cinemaPitch > pitch) {
-            this.cinemaPitch -= this.camLookAtRate + ((((this.cinemaPitch - pitch) * this.camLookAtRate2) / 1000) | 0);
-            if (this.cinemaPitch < pitch) {
-                this.cinemaPitch = pitch;
+        if (this.camPitch > pitch) {
+            this.camPitch -= this.camLookAtRate + ((((this.camPitch - pitch) * this.camLookAtRate2) / 1000) | 0);
+            if (this.camPitch < pitch) {
+                this.camPitch = pitch;
             }
         }
 
-        let deltaYaw: number = yaw - this.cinemaYaw;
+        let deltaYaw: number = yaw - this.camYaw;
         if (deltaYaw > 1024) {
             deltaYaw -= 2048;
         } else if (deltaYaw < -1024) {
@@ -3527,16 +3527,16 @@ export class Client extends GameShell {
         }
 
         if (deltaYaw > 0) {
-            this.cinemaYaw += this.camLookAtRate + (((deltaYaw * this.camLookAtRate2) / 1000) | 0);
-            this.cinemaYaw &= 0x7ff;
+            this.camYaw += this.camLookAtRate + (((deltaYaw * this.camLookAtRate2) / 1000) | 0);
+            this.camYaw &= 0x7ff;
         }
 
         if (deltaYaw < 0) {
-            this.cinemaYaw -= this.camLookAtRate + (((-deltaYaw * this.camLookAtRate2) / 1000) | 0);
-            this.cinemaYaw &= 0x7ff;
+            this.camYaw -= this.camLookAtRate + (((-deltaYaw * this.camLookAtRate2) / 1000) | 0);
+            this.camYaw &= 0x7ff;
         }
 
-        let tmp: number = yaw - this.cinemaYaw;
+        let tmp: number = yaw - this.camYaw;
         if (tmp > 1024) {
             tmp -= 2048;
         } else if (tmp < -1024) {
@@ -3544,7 +3544,7 @@ export class Client extends GameShell {
         }
 
         if ((tmp < 0 && deltaYaw > 0) || (tmp > 0 && deltaYaw < 0)) {
-            this.cinemaYaw = yaw;
+            this.camYaw = yaw;
         }
     }
 
@@ -4807,33 +4807,33 @@ export class Client extends GameShell {
             level = this.roofCheck();
         }
 
-        const cinemaX: number = this.cinemaX;
-        const cinemaY: number = this.cinemaY;
-        const cinemaZ: number = this.cinemaZ;
-        const cinemaPitch: number = this.cinemaPitch;
-        const cinemaYaw: number = this.cinemaYaw;
+        const camX: number = this.camX;
+        const camY: number = this.camY;
+        const camZ: number = this.camZ;
+        const camPitch: number = this.camPitch;
+        const camYaw: number = this.camYaw;
 
         for (let axis: number = 0; axis < 5; axis++) {
             if (this.camShake[axis]) {
                 const jitter = (Math.random() * (this.camShakeAxis[axis] * 2 + 1) - this.camShakeAxis[axis] + Math.sin(this.camShakeCycle[axis] * (this.camShakeAmp[axis] / 100.0)) * this.camShakeRan[axis]) | 0;
 
                 if (axis === 0) {
-                    this.cinemaX += jitter;
+                    this.camX += jitter;
                 } else if (axis === 1) {
-                    this.cinemaY += jitter;
+                    this.camY += jitter;
                 } else if (axis === 2) {
-                    this.cinemaZ += jitter;
+                    this.camZ += jitter;
                 } else if (axis === 3) {
-                    this.cinemaYaw = (this.cinemaYaw + jitter) & 0x7ff;
+                    this.camYaw = (this.camYaw + jitter) & 0x7ff;
                 } else if (axis === 4) {
-                    this.cinemaPitch += jitter;
+                    this.camPitch += jitter;
 
-                    if (this.cinemaPitch < 128) {
-                        this.cinemaPitch = 128;
+                    if (this.camPitch < 128) {
+                        this.camPitch = 128;
                     }
 
-                    if (this.cinemaPitch > 383) {
-                        this.cinemaPitch = 383;
+                    if (this.camPitch > 383) {
+                        this.camPitch = 383;
                     }
                 }
             }
@@ -4846,7 +4846,7 @@ export class Client extends GameShell {
         Model.mouseY = this.mouseY - 4;
 
         Pix2D.cls();
-        this.world?.renderAll(this.cinemaX, this.cinemaY, this.cinemaZ, level, this.cinemaYaw, this.cinemaPitch, this.loopCycle);
+        this.world?.renderAll(this.camX, this.camY, this.camZ, level, this.camYaw, this.camPitch, this.loopCycle);
         this.world?.removeSprites();
         this.entityOverlays();
         this.coordArrow();
@@ -4854,11 +4854,11 @@ export class Client extends GameShell {
         this.otherOverlays();
         this.areaViewport?.draw(4, 4);
 
-        this.cinemaX = cinemaX;
-        this.cinemaY = cinemaY;
-        this.cinemaZ = cinemaZ;
-        this.cinemaPitch = cinemaPitch;
-        this.cinemaYaw = cinemaYaw;
+        this.camX = camX;
+        this.camY = camY;
+        this.camZ = camZ;
+        this.camPitch = camPitch;
+        this.camYaw = camYaw;
     }
 
     // jag::oldscape::Client::GdmAddPlayerToWorld
@@ -5066,11 +5066,11 @@ export class Client extends GameShell {
             x = tmp;
         }
 
-        this.cinemaX = targetX - x;
-        this.cinemaY = targetY - y;
-        this.cinemaZ = targetZ - z;
-        this.cinemaPitch = pitch;
-        this.cinemaYaw = yaw;
+        this.camX = targetX - x;
+        this.camY = targetY - y;
+        this.camZ = targetZ - z;
+        this.camPitch = pitch;
+        this.camYaw = yaw;
     }
 
     // jag::oldscape::Client::GdmRoofCheck2
@@ -5079,17 +5079,17 @@ export class Client extends GameShell {
             return 0; // custom
         }
 
-        const y: number = this.getAvH(this.minusedlevel, this.cinemaX, this.cinemaZ);
-        return y - this.cinemaY >= 800 || (this.mapl[this.minusedlevel][this.cinemaX >> 7][this.cinemaZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
+        const y: number = this.getAvH(this.minusedlevel, this.camX, this.camZ);
+        return y - this.camY >= 800 || (this.mapl[this.minusedlevel][this.camX >> 7][this.camZ >> 7] & MapFlag.RemoveRoof) === 0 ? 3 : this.minusedlevel;
     }
 
     // jag::oldscape::Client::GdmRoofCheck
     private roofCheck(): number {
         let top: number = 3;
 
-        if (this.cinemaPitch < 310 && this.localPlayer) {
-            let cameraLocalTileX: number = this.cinemaX >> 7;
-            let cameraLocalTileZ: number = this.cinemaZ >> 7;
+        if (this.camPitch < 310 && this.localPlayer) {
+            let cameraLocalTileX: number = this.camX >> 7;
+            let cameraLocalTileZ: number = this.camZ >> 7;
             const playerLocalTileX: number = this.localPlayer.x >> 7;
             const playerLocalTileZ: number = this.localPlayer.z >> 7;
 
@@ -5417,14 +5417,14 @@ export class Client extends GameShell {
 
         const y: number = this.getAvH(this.minusedlevel, x, z) - height;
 
-        let dx: number = x - this.cinemaX;
-        let dy: number = y - this.cinemaY;
-        let dz: number = z - this.cinemaZ;
+        let dx: number = x - this.camX;
+        let dy: number = y - this.camY;
+        let dz: number = z - this.camZ;
 
-        const sinPitch: number = Pix3D.sinTable[this.cinemaPitch];
-        const cosPitch: number = Pix3D.cosTable[this.cinemaPitch];
-        const sinYaw: number = Pix3D.sinTable[this.cinemaYaw];
-        const cosYaw: number = Pix3D.cosTable[this.cinemaYaw];
+        const sinPitch: number = Pix3D.sinTable[this.camPitch];
+        const cosPitch: number = Pix3D.cosTable[this.camPitch];
+        const sinYaw: number = Pix3D.sinTable[this.camYaw];
+        const cosYaw: number = Pix3D.cosTable[this.camYaw];
 
         let tmp: number = (dz * sinYaw + dx * cosYaw) >> 16;
         dz = (dz * cosYaw - dx * sinYaw) >> 16;
@@ -6683,19 +6683,19 @@ export class Client extends GameShell {
                     const sceneZ: number = this.camLookAtLz * 128 + 64;
                     const sceneY: number = this.getAvH(this.minusedlevel, sceneX, sceneZ) - this.camLookAtHei;
 
-                    const deltaX: number = sceneX - this.cinemaX;
-                    const deltaY: number = sceneY - this.cinemaY;
-                    const deltaZ: number = sceneZ - this.cinemaZ;
+                    const deltaX: number = sceneX - this.camX;
+                    const deltaY: number = sceneY - this.camY;
+                    const deltaZ: number = sceneZ - this.camZ;
 
                     const distance: number = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) | 0;
 
-                    this.cinemaPitch = ((Math.atan2(deltaY, distance) * 325.949) | 0) & 0x7ff;
-                    this.cinemaYaw = ((Math.atan2(deltaX, deltaZ) * -325.949) | 0) & 0x7ff;
+                    this.camPitch = ((Math.atan2(deltaY, distance) * 325.949) | 0) & 0x7ff;
+                    this.camYaw = ((Math.atan2(deltaX, deltaZ) * -325.949) | 0) & 0x7ff;
 
-                    if (this.cinemaPitch < 128) {
-                        this.cinemaPitch = 128;
-                    } else if (this.cinemaPitch > 383) {
-                        this.cinemaPitch = 383;
+                    if (this.camPitch < 128) {
+                        this.camPitch = 128;
+                    } else if (this.camPitch > 383) {
+                        this.camPitch = 383;
                     }
                 }
 
@@ -6729,9 +6729,9 @@ export class Client extends GameShell {
                 this.camMoveToRate2 = this.in.g1();
 
                 if (this.camMoveToRate2 >= 100) {
-                    this.cinemaX = this.camMoveToLx * 128 + 64;
-                    this.cinemaZ = this.camMoveToLz * 128 + 64;
-                    this.cinemaY = this.getAvH(this.minusedlevel, this.cinemaX, this.cinemaZ) - this.camMoveToHei;
+                    this.camX = this.camMoveToLx * 128 + 64;
+                    this.camZ = this.camMoveToLz * 128 + 64;
+                    this.camY = this.getAvH(this.minusedlevel, this.camX, this.camZ) - this.camMoveToHei;
                 }
 
                 this.ptype = -1;

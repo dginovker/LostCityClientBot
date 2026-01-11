@@ -1143,6 +1143,7 @@ export default class World {
                     const forwardTileZ: number = World.gz + dz;
                     const backwardTileZ: number = World.gz - dz;
                     let tile: Square | null;
+
                     if (rightTileX >= World.minX) {
                         if (forwardTileZ >= World.minZ) {
                             tile = tiles[rightTileX][forwardTileZ];
@@ -1188,6 +1189,7 @@ export default class World {
             for (let dx: number = -25; dx <= 0; dx++) {
                 const rightTileX: number = World.gx + dx;
                 const leftTileX: number = World.gx - dx;
+
                 if (rightTileX < World.minX && leftTileX >= World.maxX) {
                     continue;
                 }
@@ -1196,6 +1198,7 @@ export default class World {
                     const forwardTileZ: number = World.gz + dz;
                     const backgroundTileZ: number = World.gz - dz;
                     let tile: Square | null;
+
                     if (rightTileX >= World.minX) {
                         if (forwardTileZ >= World.minZ) {
                             tile = tiles[rightTileX][forwardTileZ];
@@ -2442,7 +2445,11 @@ export default class World {
             const z1: number = (maxZ << 7) - 1;
             if (!this.occluded(z, y0, z1)) {
                 return false;
-            } else return this.occluded(x1, y0, z1);
+            } else if (this.occluded(x1, y0, z1)) {
+                return true;
+            } else {
+                return false;
+            }
         } else if (this.groundOccluded(level, minX, minZ)) {
             x = minX << 7;
             z = minZ << 7;
