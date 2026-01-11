@@ -4009,23 +4009,19 @@ export class Client extends GameShell {
         e.secondarySeqId = seqId;
 
         let moveSpeed: number = 4;
-        if (e.yaw !== e.dstYaw && e.faceEntity === -1) {
+        if (e.yaw !== e.dstYaw && e.faceEntity === -1 && e.turnspeed !== 0) {
             moveSpeed = 2;
         }
-
         if (e.routeLength > 2) {
             moveSpeed = 6;
         }
-
         if (e.routeLength > 3) {
             moveSpeed = 8;
         }
-
         if (e.seqDelayMove > 0 && e.routeLength > 1) {
             moveSpeed = 8;
             e.seqDelayMove--;
         }
-
         if (e.routeRun[e.routeLength - 1]) {
             moveSpeed <<= 0x1;
         }
@@ -4067,6 +4063,10 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::GlEntityFace
     private entityFace(e: ClientEntity): void {
+        if (e.turnspeed === 0) {
+            return;
+        }
+
         if (e.faceEntity !== -1 && e.faceEntity < 32768) {
             const npc: ClientNpc | null = this.npc[e.faceEntity];
             if (npc) {
@@ -4110,12 +4110,12 @@ export class Client extends GameShell {
 
         const remainingYaw: number = (e.dstYaw - e.yaw) & 0x7ff;
         if (remainingYaw !== 0) {
-            if (remainingYaw < 32 || remainingYaw > 2016) {
+            if (remainingYaw < e.turnspeed || remainingYaw > 2048 - e.turnspeed) {
                 e.yaw = e.dstYaw;
             } else if (remainingYaw > 1024) {
-                e.yaw -= 32;
+                e.yaw -= e.turnspeed;
             } else {
-                e.yaw += 32;
+                e.yaw += e.turnspeed;
             }
 
             e.yaw &= 0x7ff;
@@ -8426,6 +8426,7 @@ export class Client extends GameShell {
                 npc.cycle = this.loopCycle;
                 npc.type = NpcType.get(buf.gBit(11));
                 npc.size = npc.type.size;
+                npc.turnspeed = npc.type.turnspeed;
                 npc.walkanim = npc.type.walkanim;
                 npc.walkanim_b = npc.type.walkanim_b;
                 npc.walkanim_l = npc.type.walkanim_r;
@@ -8535,7 +8536,8 @@ export class Client extends GameShell {
 
             if ((mask & NpcUpdate.CHANGETYPE) !== 0) {
                 npc.type = NpcType.get(buf.g2());
-
+                npc.size = npc.type.size;
+                npc.turnspeed = npc.type.turnspeed;
                 npc.walkanim = npc.type.walkanim;
                 npc.walkanim_b = npc.type.walkanim_b;
                 npc.walkanim_l = npc.type.walkanim_r;
