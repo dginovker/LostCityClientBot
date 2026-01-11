@@ -19,7 +19,7 @@ export default class PixFont extends DoublyLinkable {
     readonly charOffsetY: Int32Array = new Int32Array(94);
     readonly charAdvance: Int32Array = new Int32Array(95);
     readonly drawWidth: Int32Array = new Int32Array(256);
-    private readonly rand: JavaRandom = new JavaRandom(BigInt(Date.now())); // jag::oldscape::jstring::PixfontGeneric::m_rand
+    private readonly rand: JavaRandom = new JavaRandom(Date.now()); // jag::oldscape::jstring::PixfontGeneric::m_rand
     strikeout: boolean = false;
     height2d: number = 0;
 
@@ -240,7 +240,7 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
-        this.rand.setSeed(BigInt(seed));
+        this.rand.setSeed(seed);
 
         const rand: number = (this.rand.nextInt() & 0x1f) + 192;
         const offY: number = y - this.height2d;
