@@ -11,22 +11,22 @@ import ModelSource from '#/dash3d/ModelSource.js';
 import type OnDemandProvider from '#/io/OnDemandProvider.js';
 
 class Metadata {
-    data: Uint8Array | null = null;
+    src: Uint8Array | null = null;
     vertexCount: number = 0;
     faceCount: number = 0;
-    texturedFaceCount: number = 0;
-    vertexFlagsOffset: number = -1;
+    faceTextureCount: number = 0;
+    vertexOrderOffset: number = -1;
     vertexXOffset: number = -1;
     vertexYOffset: number = -1;
     vertexZOffset: number = -1;
-    vertexLabelsOffset: number = -1;
-    faceVerticesOffset: number = -1;
-    faceOrientationsOffset: number = -1;
-    faceColoursOffset: number = -1;
-    faceInfosOffset: number = -1;
-    facePrioritiesOffset: number = 0;
-    faceAlphasOffset: number = -1;
-    faceLabelsOffset: number = -1;
+    vertexLabelOffset: number = -1;
+    faceIndexOffset: number = -1;
+    faceIndexOrderOffset: number = -1;
+    faceColourOffset: number = -1;
+    faceInfoOffset: number = -1;
+    facePriorityOffset: number = 0;
+    faceAlphaOffset: number = -1;
+    faceLabelOffset: number = -1;
     faceTextureAxisOffset: number = -1;
 }
 
@@ -39,18 +39,18 @@ type ModelType = {
     faceVertexA: Int32Array;
     faceVertexB: Int32Array;
     faceVertexC: Int32Array;
-    faceColorA: Int32Array | null;
-    faceColorB: Int32Array | null;
-    faceColorC: Int32Array | null;
-    faceRenderInfo: Int32Array | null;
-    faceRenderPriority: Int32Array | null;
+    faceColourA: Int32Array | null;
+    faceColourB: Int32Array | null;
+    faceColourC: Int32Array | null;
+    faceInfo: Int32Array | null;
+    facePriority: Int32Array | null;
     faceAlpha: Int32Array | null;
-    faceColor: Int32Array | null;
-    renderPriority: number;
-    texturedFaceCount: number;
-    texturedVertexA: Int32Array;
-    texturedVertexB: Int32Array;
-    texturedVertexC: Int32Array;
+    faceColour: Int32Array | null;
+    priority: number;
+    faceTextureCount: number;
+    faceTextureP: Int32Array;
+    faceTextureM: Int32Array;
+    faceTextureN: Int32Array;
     minX?: number;
     maxX?: number;
     minZ?: number;
@@ -84,7 +84,7 @@ export default class Model extends ModelSource {
     labelFaces: (Int32Array | null)[] | null = null;
     useAABBMouseCheck: boolean = false; // jag::oldscape::dash3d::ModelLit::m_useAABBMouseCheck
     vertexNormalOriginal: (VertexNormal | null)[] | null = null;
-    static meta: (Metadata | null)[] | null = null;
+    static meta: (Metadata | null)[] = [];
     static provider: OnDemandProvider;
     static faceClippedX: boolean[] | null = new TypedArray1d(4096, false);
     static faceNearClipped: boolean[] | null = new TypedArray1d(4096, false);
@@ -103,19 +103,19 @@ export default class Model extends ModelSource {
     static tmpPriorityDepthSum: Int32Array | null = new Int32Array(12);
     vertexCount: number = 0;
     faceCount: number = 0;
-    texturedFaceCount: number = 0;
+    faceTextureCount: number = 0;
     vertexX: Int32Array | null = null;
     vertexY: Int32Array | null = null;
     vertexZ: Int32Array | null = null;
     faceVertexA: Int32Array | null = null;
     faceVertexB: Int32Array | null = null;
     faceVertexC: Int32Array | null = null;
-    texturedVertexA: Int32Array | null = null;
-    texturedVertexB: Int32Array | null = null;
-    texturedVertexC: Int32Array | null = null;
-    faceRenderInfo: Int32Array | null = null;
-    faceRenderPriority: Int32Array | null = null;
-    renderPriority: number = 0;
+    faceTextureP: Int32Array | null = null;
+    faceTextureM: Int32Array | null = null;
+    faceTextureN: Int32Array | null = null;
+    faceInfo: Int32Array | null = null;
+    facePriority: Int32Array | null = null;
+    priority: number = 0;
     faceAlpha: Int32Array | null = null;
     faceColour: Int32Array | null = null;
     faceColourA: Int32Array | null = null;
@@ -144,98 +144,96 @@ export default class Model extends ModelSource {
         Model.provider = provider;
     }
 
-    static unpack(id: number, data: Uint8Array | null) {
-        if (!Model.meta) {
+    static unpack(id: number, src: Uint8Array | null) {
+        if (!src) {
+            const meta = (Model.meta[id] = new Metadata());
+            meta.vertexCount = 0;
+            meta.faceCount = 0;
+            meta.faceTextureCount = 0;
             return;
         }
 
-        if (!data) {
-            const info = (Model.meta[id] = new Metadata());
-            info.vertexCount = 0;
-            info.faceCount = 0;
-            info.texturedFaceCount = 0;
-            return;
+        const buf = new Packet(src);
+        buf.pos = src.length - 18;
+
+        const meta = (Model.meta[id] = new Metadata());
+        meta.src = src;
+        meta.vertexCount = buf.g2();
+        meta.faceCount = buf.g2();
+        meta.faceTextureCount = buf.g1();
+
+        let hasFaceInfo = buf.g1();
+
+        let priority = buf.g1();
+        let hasFaceAlpha = buf.g1();
+        let hasFaceLabels = buf.g1();
+        let hasVertexLabels = buf.g1();
+
+        let dataLengthX = buf.g2();
+        let dataLengthY = buf.g2();
+        let dataLengthZ = buf.g2();
+        let dataLengthFaceIndex = buf.g2();
+
+        let pos = 0;
+
+        meta.vertexOrderOffset = pos;
+        pos += meta.vertexCount;
+
+        meta.faceIndexOrderOffset = pos;
+        pos += meta.faceCount;
+
+        meta.facePriorityOffset = pos;
+        if (priority == 255) {
+            pos += meta.faceCount;
+        } else {
+            meta.facePriorityOffset = -priority - 1;
         }
 
-        const buf = new Packet(data);
-        buf.pos = data.length - 18;
+        meta.faceLabelOffset = pos;
+        if (hasFaceLabels == 1) {
+            pos += meta.faceCount;
+        } else {
+            meta.faceLabelOffset = -1;
+        }
 
-        const info = (Model.meta[id] = new Metadata());
-        info.data = data;
-        info.vertexCount = buf.g2();
-        info.faceCount = buf.g2();
-        info.texturedFaceCount = buf.g1();
+        meta.faceInfoOffset = pos;
+        if (hasFaceInfo == 1) {
+            pos += meta.faceCount;
+        } else {
+            meta.faceInfoOffset = -1;
+        }
 
-		let hasInfo = buf.g1();
-		let priority = buf.g1();
-		let hasAlpha = buf.g1();
-		let hasFaceLabels = buf.g1();
-		let hasVertexLabels = buf.g1();
-		let dataLengthX = buf.g2();
-		let dataLengthY = buf.g2();
-		let dataLengthZ = buf.g2();
-		let dataLengthFaceOrientations = buf.g2();
+        meta.vertexLabelOffset = pos;
+        if (hasVertexLabels == 1) {
+            pos += meta.vertexCount;
+        } else {
+            meta.vertexLabelOffset = -1;
+        }
 
-		let pos = 0;
-		info.vertexFlagsOffset = pos;
+        meta.faceAlphaOffset = pos;
+        if (hasFaceAlpha == 1) {
+            pos += meta.faceCount;
+        } else {
+            meta.faceAlphaOffset = -1;
+        }
 
-		pos += info.vertexCount;
-		info.faceOrientationsOffset = pos;
+        meta.faceIndexOffset = pos;
+        pos += dataLengthFaceIndex;
 
-		pos += info.faceCount;
+        meta.faceColourOffset = pos;
+        pos += meta.faceCount * 2;
 
-		info.facePrioritiesOffset = pos;
-		if (priority == 255) {
-			pos += info.faceCount;
-		} else {
-			info.facePrioritiesOffset = -priority - 1;
-		}
+        meta.faceTextureAxisOffset = pos;
+        pos += meta.faceTextureCount * 6;
 
-		info.faceLabelsOffset = pos;
-		if (hasFaceLabels == 1) {
-			pos += info.faceCount;
-		} else {
-			info.faceLabelsOffset = -1;
-		}
+        meta.vertexXOffset = pos;
+        pos += dataLengthX;
 
-		info.faceInfosOffset = pos;
-		if (hasInfo == 1) {
-			pos += info.faceCount;
-		} else {
-			info.faceInfosOffset = -1;
-		}
+        meta.vertexYOffset = pos;
+        pos += dataLengthY;
 
-		info.vertexLabelsOffset = pos;
-		if (hasVertexLabels == 1) {
-			pos += info.vertexCount;
-		} else {
-			info.vertexLabelsOffset = -1;
-		}
-
-		info.faceAlphasOffset = pos;
-		if (hasAlpha == 1) {
-			pos += info.faceCount;
-		} else {
-			info.faceAlphasOffset = -1;
-		}
-
-		info.faceVerticesOffset = pos;
-		pos += dataLengthFaceOrientations;
-
-		info.faceColoursOffset = pos;
-		pos += info.faceCount * 2;
-
-		info.faceTextureAxisOffset = pos;
-		pos += info.texturedFaceCount * 6;
-
-		info.vertexXOffset = pos;
-		pos += dataLengthX;
-
-		info.vertexYOffset = pos;
-		pos += dataLengthY;
-
-		info.vertexZOffset = pos;
-		pos += dataLengthZ;
+        meta.vertexZOffset = pos;
+        pos += dataLengthZ;
     }
 
     static unload(id: number) {
@@ -246,10 +244,6 @@ export default class Model extends ModelSource {
 
     // jag::oldscape::dash3d::ModelUnlit::Load
     static load(id: number): Model | null {
-        if (!Model.meta) {
-            return null;
-        }
-
         const meta = Model.meta[id];
         if (!meta) {
             Model.provider.requestModel(id);
@@ -258,187 +252,188 @@ export default class Model extends ModelSource {
 
         Model.loaded++;
 
-        const info = Model.meta[id]!;
         const model = new Model();
-		model.vertexCount = info.vertexCount;
-		model.faceCount = info.faceCount;
-		model.texturedFaceCount = info.texturedFaceCount;
-		model.vertexX = new Int32Array(model.vertexCount);
-		model.vertexY = new Int32Array(model.vertexCount);
-		model.vertexZ = new Int32Array(model.vertexCount);
-		model.faceVertexA = new Int32Array(model.faceCount);
-		model.faceVertexB = new Int32Array(model.faceCount);
-		model.faceVertexC = new Int32Array(model.faceCount);
-		model.texturedVertexA = new Int32Array(model.texturedFaceCount);
-		model.texturedVertexB = new Int32Array(model.texturedFaceCount);
-		model.texturedVertexC = new Int32Array(model.texturedFaceCount);
 
-		if (info.vertexLabelsOffset >= 0) {
-			model.vertexLabel = new Int32Array(model.vertexCount);
-		}
+        model.vertexCount = meta.vertexCount;
+        model.faceCount = meta.faceCount;
+        model.faceTextureCount = meta.faceTextureCount;
 
-		if (info.faceInfosOffset >= 0) {
-			model.faceRenderInfo = new Int32Array(model.faceCount);
-		}
+        model.vertexX = new Int32Array(model.vertexCount);
+        model.vertexY = new Int32Array(model.vertexCount);
+        model.vertexZ = new Int32Array(model.vertexCount);
 
-		if (info.facePrioritiesOffset >= 0) {
-			model.faceRenderPriority = new Int32Array(model.faceCount);
-		} else {
-			model.renderPriority = -info.facePrioritiesOffset - 1;
-		}
+        model.faceVertexA = new Int32Array(model.faceCount);
+        model.faceVertexB = new Int32Array(model.faceCount);
+        model.faceVertexC = new Int32Array(model.faceCount);
 
-		if (info.faceAlphasOffset >= 0) {
-			model.faceAlpha = new Int32Array(model.faceCount);
-		}
+        model.faceTextureP = new Int32Array(model.faceTextureCount);
+        model.faceTextureM = new Int32Array(model.faceTextureCount);
+        model.faceTextureN = new Int32Array(model.faceTextureCount);
 
-		if (info.faceLabelsOffset >= 0) {
-			model.faceLabel = new Int32Array(model.faceCount);
-		}
+        if (meta.vertexLabelOffset >= 0) {
+            model.vertexLabel = new Int32Array(model.vertexCount);
+        }
+
+        if (meta.faceInfoOffset >= 0) {
+            model.faceInfo = new Int32Array(model.faceCount);
+        }
+
+        if (meta.facePriorityOffset >= 0) {
+            model.facePriority = new Int32Array(model.faceCount);
+        } else {
+            model.priority = -meta.facePriorityOffset - 1;
+        }
+
+        if (meta.faceAlphaOffset >= 0) {
+            model.faceAlpha = new Int32Array(model.faceCount);
+        }
+
+        if (meta.faceLabelOffset >= 0) {
+            model.faceLabel = new Int32Array(model.faceCount);
+        }
 
         model.faceColour = new Int32Array(model.faceCount);
 
-		const point1 = new Packet(info.data);
-		point1.pos = info.vertexFlagsOffset;
+        const point1 = new Packet(meta.src);
+        point1.pos = meta.vertexOrderOffset;
 
-		const point2 = new Packet(info.data);
-		point2.pos = info.vertexXOffset;
+        const point2 = new Packet(meta.src);
+        point2.pos = meta.vertexXOffset;
 
-		const point3 = new Packet(info.data);
-		point3.pos = info.vertexYOffset;
+        const point3 = new Packet(meta.src);
+        point3.pos = meta.vertexYOffset;
 
-		const point4 = new Packet(info.data);
-		point4.pos = info.vertexZOffset;
+        const point4 = new Packet(meta.src);
+        point4.pos = meta.vertexZOffset;
 
-		const point5 = new Packet(info.data);
-		point5.pos = info.vertexLabelsOffset;
+        const point5 = new Packet(meta.src);
+        point5.pos = meta.vertexLabelOffset;
 
-		let dx = 0;
-		let dy = 0;
-		let dz = 0;
-		for (let v = 0; v < model.vertexCount; v++) {
-			let flags = point1.g1();
+        let dx = 0;
+        let dy = 0;
+        let dz = 0;
+        for (let v = 0; v < model.vertexCount; v++) {
+            let order = point1.g1();
 
-			let a = 0;
-			if ((flags & 0x1) != 0) {
-				a = point2.gsmart();
-			}
+            let x = 0;
+            if ((order & 0x1) != 0) {
+                x = point2.gsmart();
+            }
 
-			let b = 0;
-			if ((flags & 0x2) != 0) {
-				b = point3.gsmart();
-			}
+            let y = 0;
+            if ((order & 0x2) != 0) {
+                y = point3.gsmart();
+            }
 
-			let c = 0;
-			if ((flags & 0x4) != 0) {
-				c = point4.gsmart();
-			}
+            let z = 0;
+            if ((order & 0x4) != 0) {
+                z = point4.gsmart();
+            }
 
-			model.vertexX[v] = dx + a;
-			model.vertexY[v] = dy + b;
-			model.vertexZ[v] = dz + c;
-			dx = model.vertexX[v];
-			dy = model.vertexY[v];
-			dz = model.vertexZ[v];
+            model.vertexX[v] = dx + x;
+            model.vertexY[v] = dy + y;
+            model.vertexZ[v] = dz + z;
 
-			if (model.vertexLabel != null) {
-				model.vertexLabel[v] = point5.g1();
-			}
-		}
+            dx = model.vertexX[v];
+            dy = model.vertexY[v];
+            dz = model.vertexZ[v];
 
-		const face1 = new Packet(info.data);
-		face1.pos = info.faceColoursOffset;
+            if (model.vertexLabel != null) {
+                model.vertexLabel[v] = point5.g1();
+            }
+        }
 
-		const face2 = new Packet(info.data);
-		face2.pos = info.faceInfosOffset;
+        const face1 = new Packet(meta.src);
+        face1.pos = meta.faceColourOffset;
 
-		const face3 = new Packet(info.data);
-		face3.pos = info.facePrioritiesOffset;
+        const face2 = new Packet(meta.src);
+        face2.pos = meta.faceInfoOffset;
 
-		const face4 = new Packet(info.data);
-		face4.pos = info.faceAlphasOffset;
+        const face3 = new Packet(meta.src);
+        face3.pos = meta.facePriorityOffset;
 
-		const face5 = new Packet(info.data);
-		face5.pos = info.faceLabelsOffset;
+        const face4 = new Packet(meta.src);
+        face4.pos = meta.faceAlphaOffset;
 
-		for (let f = 0; f < model.faceCount; f++) {
-			model.faceColour[f] = face1.g2();
+        const face5 = new Packet(meta.src);
+        face5.pos = meta.faceLabelOffset;
 
-			if (model.faceRenderInfo != null) {
-				model.faceRenderInfo[f] = face2.g1();
-			}
+        for (let f = 0; f < model.faceCount; f++) {
+            model.faceColour[f] = face1.g2();
 
-			if (model.faceRenderPriority != null) {
-				model.faceRenderPriority[f] = face3.g1();
-			}
+            if (model.faceInfo != null) {
+                model.faceInfo[f] = face2.g1();
+            }
 
-			if (model.faceAlpha != null) {
-				model.faceAlpha[f] = face4.g1();
-			}
+            if (model.facePriority != null) {
+                model.facePriority[f] = face3.g1();
+            }
 
-			if (model.faceLabel != null) {
-				model.faceLabel[f] = face5.g1();
-			}
-		}
+            if (model.faceAlpha != null) {
+                model.faceAlpha[f] = face4.g1();
+            }
 
-		const vertex1 = new Packet(info.data);
-		vertex1.pos = info.faceVerticesOffset;
+            if (model.faceLabel != null) {
+                model.faceLabel[f] = face5.g1();
+            }
+        }
 
-		const vertex2 = new Packet(info.data);
-		vertex2.pos = info.faceOrientationsOffset;
+        const vertex1 = new Packet(meta.src);
+        vertex1.pos = meta.faceIndexOffset;
 
-		let a = 0;
-		let b = 0;
-		let c = 0;
-		let last = 0;
+        const vertex2 = new Packet(meta.src);
+        vertex2.pos = meta.faceIndexOrderOffset;
 
-		for (let f = 0; f < model.faceCount; f++) {
-			const orientation = vertex2.g1();
-			if (orientation == 1) {
-				a = vertex1.gsmart() + last;
-				b = vertex1.gsmart() + a;
-				c = vertex1.gsmart() + b;
-				last = c;
-			} else if (orientation == 2) {
-				a = a;
-				b = c;
-				c = vertex1.gsmart() + last;
-				last = c;
-			} else if (orientation == 3) {
-				a = c;
-				b = b;
-				c = vertex1.gsmart() + last;
-				last = c;
-			} else if (orientation == 4) {
-				let tmp = a;
-				a = b;
-				b = tmp;
-				c = vertex1.gsmart() + last;
-				last = c;
-			}
+        let a = 0;
+        let b = 0;
+        let c = 0;
+        let last = 0;
 
-			model.faceVertexA[f] = a;
-			model.faceVertexB[f] = b;
-			model.faceVertexC[f] = c;
-		}
+        for (let f = 0; f < model.faceCount; f++) {
+            const order = vertex2.g1();
 
-		const axis = new Packet(info.data);
-		axis.pos = info.faceTextureAxisOffset;
+            if (order === 1) {
+                a = vertex1.gsmart() + last;
+                b = vertex1.gsmart() + a;
+                c = vertex1.gsmart() + b;
+                last = c;
+            } else if (order === 2) {
+                a = a;
+                b = c;
+                c = vertex1.gsmart() + last;
+                last = c;
+            } else if (order === 3) {
+                a = c;
+                b = b;
+                c = vertex1.gsmart() + last;
+                last = c;
+            } else if (order === 4) {
+                let tmp = a;
+                a = b;
+                b = tmp;
+                c = vertex1.gsmart() + last;
+                last = c;
+            }
 
-		for (let f = 0; f < model.texturedFaceCount; f++) {
-			model.texturedVertexA[f] = axis.g2();
-			model.texturedVertexB[f] = axis.g2();
-			model.texturedVertexC[f] = axis.g2();
-		}
+            model.faceVertexA[f] = a;
+            model.faceVertexB[f] = b;
+            model.faceVertexC[f] = c;
+        }
+
+        const axis = new Packet(meta.src);
+        axis.pos = meta.faceTextureAxisOffset;
+
+        for (let f = 0; f < model.faceTextureCount; f++) {
+            model.faceTextureP[f] = axis.g2();
+            model.faceTextureM[f] = axis.g2();
+            model.faceTextureN[f] = axis.g2();
+        }
 
         return model;
     }
 
     // jag::oldscape::jagex3::Js5::RequestDownload
     static requestDownload(id: number): boolean {
-        if (!Model.meta) {
-            return false;
-        }
-
         const meta = Model.meta[id];
         if (!meta) {
             Model.provider.requestModel(id);
@@ -460,18 +455,18 @@ export default class Model extends ModelSource {
             this.faceVertexA = type.faceVertexA;
             this.faceVertexB = type.faceVertexB;
             this.faceVertexC = type.faceVertexC;
-            this.faceColourA = type.faceColorA;
-            this.faceColourB = type.faceColorB;
-            this.faceColourC = type.faceColorC;
-            this.faceRenderInfo = type.faceRenderInfo;
-            this.faceRenderPriority = type.faceRenderPriority;
+            this.faceColourA = type.faceColourA;
+            this.faceColourB = type.faceColourB;
+            this.faceColourC = type.faceColourC;
+            this.faceInfo = type.faceInfo;
+            this.facePriority = type.facePriority;
             this.faceAlpha = type.faceAlpha;
-            this.faceColour = type.faceColor;
-            this.renderPriority = type.renderPriority;
-            this.texturedFaceCount = type.texturedFaceCount;
-            this.texturedVertexA = type.texturedVertexA;
-            this.texturedVertexB = type.texturedVertexB;
-            this.texturedVertexC = type.texturedVertexC;
+            this.faceColour = type.faceColour;
+            this.priority = type.priority;
+            this.faceTextureCount = type.faceTextureCount;
+            this.faceTextureP = type.faceTextureP;
+            this.faceTextureM = type.faceTextureM;
+            this.faceTextureN = type.faceTextureN;
             this.minX = type.minX ?? 0;
             this.maxX = type.maxX ?? 0;
             this.minZ = type.minZ ?? 0;
@@ -494,7 +489,7 @@ export default class Model extends ModelSource {
     static hillSkewCopy(src: Model, copyVertexY: boolean, copyFaces: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
-        const texturedFaceCount: number = src.texturedFaceCount;
+        const faceTextureCount: number = src.faceTextureCount;
 
         let vertexY: Int32Array;
         if (copyVertexY) {
@@ -506,36 +501,36 @@ export default class Model extends ModelSource {
             vertexY = src.vertexY!;
         }
 
-        let faceColorA: Int32Array | null;
-        let faceColorB: Int32Array | null;
-        let faceColorC: Int32Array | null;
+        let faceColourA: Int32Array | null;
+        let faceColourB: Int32Array | null;
+        let faceColourC: Int32Array | null;
         let faceInfo: Int32Array | null;
         let vertexNormal: (VertexNormal | null)[] | null = null;
         let vertexNormalOriginal: (VertexNormal | null)[] | null = null;
         if (copyFaces) {
-            faceColorA = new Int32Array(faceCount);
-            faceColorB = new Int32Array(faceCount);
-            faceColorC = new Int32Array(faceCount);
+            faceColourA = new Int32Array(faceCount);
+            faceColourB = new Int32Array(faceCount);
+            faceColourC = new Int32Array(faceCount);
             for (let f: number = 0; f < faceCount; f++) {
                 if (src.faceColourA) {
-                    faceColorA[f] = src.faceColourA[f];
+                    faceColourA[f] = src.faceColourA[f];
                 }
                 if (src.faceColourB) {
-                    faceColorB[f] = src.faceColourB[f];
+                    faceColourB[f] = src.faceColourB[f];
                 }
                 if (src.faceColourC) {
-                    faceColorC[f] = src.faceColourC[f];
+                    faceColourC[f] = src.faceColourC[f];
                 }
             }
 
             faceInfo = new Int32Array(faceCount);
-            if (!src.faceRenderInfo) {
+            if (!src.faceInfo) {
                 for (let f: number = 0; f < faceCount; f++) {
                     faceInfo[f] = 0;
                 }
             } else {
                 for (let f: number = 0; f < faceCount; f++) {
-                    faceInfo[f] = src.faceRenderInfo[f];
+                    faceInfo[f] = src.faceInfo[f];
                 }
             }
 
@@ -555,10 +550,10 @@ export default class Model extends ModelSource {
 
             vertexNormalOriginal = src.vertexNormalOriginal;
         } else {
-            faceColorA = src.faceColourA;
-            faceColorB = src.faceColourB;
-            faceColorC = src.faceColourC;
-            faceInfo = src.faceRenderInfo;
+            faceColourA = src.faceColourA;
+            faceColourB = src.faceColourB;
+            faceColourC = src.faceColourC;
+            faceInfo = src.faceInfo;
         }
         return new Model({
             vertexCount: vertexCount,
@@ -569,18 +564,18 @@ export default class Model extends ModelSource {
             faceVertexA: src.faceVertexA!,
             faceVertexB: src.faceVertexB!,
             faceVertexC: src.faceVertexC!,
-            faceColorA: faceColorA,
-            faceColorB: faceColorB,
-            faceColorC: faceColorC,
-            faceRenderInfo: faceInfo,
-            faceRenderPriority: src.faceRenderPriority,
+            faceColourA: faceColourA,
+            faceColourB: faceColourB,
+            faceColourC: faceColourC,
+            faceInfo: faceInfo,
+            facePriority: src.facePriority,
             faceAlpha: src.faceAlpha,
-            faceColor: src.faceColour,
-            renderPriority: src.renderPriority,
-            texturedFaceCount: texturedFaceCount,
-            texturedVertexA: src.texturedVertexA!,
-            texturedVertexB: src.texturedVertexB!,
-            texturedVertexC: src.texturedVertexC!,
+            faceColour: src.faceColour,
+            priority: src.priority,
+            faceTextureCount: faceTextureCount,
+            faceTextureP: src.faceTextureP!,
+            faceTextureM: src.faceTextureM!,
+            faceTextureN: src.faceTextureN!,
             minX: src.minX,
             maxX: src.maxX,
             minZ: src.minZ,
@@ -596,10 +591,10 @@ export default class Model extends ModelSource {
     }
 
     // jag::oldscape::dash3d::ModelLitImpl::CopyForAnim
-    static copyForAnim(src: Model, shareColors: boolean, shareAlpha: boolean, shareVertices: boolean): Model {
+    static copyForAnim(src: Model, shareColours: boolean, shareAlpha: boolean, shareVertices: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
-        const texturedFaceCount: number = src.texturedFaceCount;
+        const faceTextureCount: number = src.faceTextureCount;
 
         let vertexX: Int32Array;
         let vertexY: Int32Array;
@@ -621,14 +616,14 @@ export default class Model extends ModelSource {
             }
         }
 
-        let faceColor: Int32Array | null;
-        if (shareColors) {
-            faceColor = src.faceColour;
+        let faceColour: Int32Array | null;
+        if (shareColours) {
+            faceColour = src.faceColour;
         } else {
-            faceColor = new Int32Array(faceCount);
+            faceColour = new Int32Array(faceCount);
             for (let f: number = 0; f < faceCount; f++) {
                 if (src.faceColour) {
-                    faceColor[f] = src.faceColour[f];
+                    faceColour[f] = src.faceColour[f];
                 }
             }
         }
@@ -657,18 +652,18 @@ export default class Model extends ModelSource {
             faceVertexA: src.faceVertexA!,
             faceVertexB: src.faceVertexB!,
             faceVertexC: src.faceVertexC!,
-            faceColorA: null,
-            faceColorB: null,
-            faceColorC: null,
-            faceRenderInfo: src.faceRenderInfo,
-            faceRenderPriority: src.faceRenderPriority,
+            faceColourA: null,
+            faceColourB: null,
+            faceColourC: null,
+            faceInfo: src.faceInfo,
+            facePriority: src.facePriority,
             faceAlpha: faceAlpha,
-            faceColor: faceColor,
-            renderPriority: src.renderPriority,
-            texturedFaceCount: texturedFaceCount,
-            texturedVertexA: src.texturedVertexA!,
-            texturedVertexB: src.texturedVertexB!,
-            texturedVertexC: src.texturedVertexC!,
+            faceColour: faceColour,
+            priority: src.priority,
+            faceTextureCount: faceTextureCount,
+            faceTextureP: src.faceTextureP!,
+            faceTextureM: src.faceTextureM!,
+            faceTextureN: src.faceTextureN!,
             vertexLabel: src.vertexLabel,
             faceLabel: src.faceLabel
         });
@@ -678,11 +673,11 @@ export default class Model extends ModelSource {
         let copyInfo: boolean = false;
         let copyPriority: boolean = false;
         let copyAlpha: boolean = false;
-        let copyColor: boolean = false;
+        let copyColour: boolean = false;
 
         let vertexCount: number = 0;
         let faceCount: number = 0;
-        let texturedFaceCount: number = 0;
+        let faceTextureCount: number = 0;
         let priority: number = -1;
 
         for (let i: number = 0; i < count; i++) {
@@ -690,15 +685,15 @@ export default class Model extends ModelSource {
             if (model) {
                 vertexCount += model.vertexCount;
                 faceCount += model.faceCount;
-                texturedFaceCount += model.texturedFaceCount;
+                faceTextureCount += model.faceTextureCount;
 
-                copyInfo ||= model.faceRenderInfo !== null;
+                copyInfo ||= model.faceInfo !== null;
 
-                if (!model.faceRenderPriority) {
+                if (!model.facePriority) {
                     if (priority === -1) {
-                        priority = model.renderPriority;
+                        priority = model.priority;
                     }
-                    if (priority !== model.renderPriority) {
+                    if (priority !== model.priority) {
                         copyPriority = true;
                     }
                 } else {
@@ -706,7 +701,7 @@ export default class Model extends ModelSource {
                 }
 
                 copyAlpha ||= model.faceAlpha !== null;
-                copyColor ||= model.faceColour !== null;
+                copyColour ||= model.faceColour !== null;
             }
         }
 
@@ -718,13 +713,13 @@ export default class Model extends ModelSource {
         const faceVertexB: Int32Array = new Int32Array(faceCount);
         const faceVertexC: Int32Array = new Int32Array(faceCount);
 
-        const faceColorA: Int32Array = new Int32Array(faceCount);
-        const faceColorB: Int32Array = new Int32Array(faceCount);
-        const faceColorC: Int32Array = new Int32Array(faceCount);
+        const faceColourA: Int32Array = new Int32Array(faceCount);
+        const faceColourB: Int32Array = new Int32Array(faceCount);
+        const faceColourC: Int32Array = new Int32Array(faceCount);
 
-        const texturedVertexA: Int32Array = new Int32Array(texturedFaceCount);
-        const texturedVertexB: Int32Array = new Int32Array(texturedFaceCount);
-        const texturedVertexC: Int32Array = new Int32Array(texturedFaceCount);
+        const texturedVertexA: Int32Array = new Int32Array(faceTextureCount);
+        const texturedVertexB: Int32Array = new Int32Array(faceTextureCount);
+        const texturedVertexC: Int32Array = new Int32Array(faceTextureCount);
 
         let faceInfo: Int32Array | null = null;
         if (copyInfo) {
@@ -741,14 +736,14 @@ export default class Model extends ModelSource {
             faceAlpha = new Int32Array(faceCount);
         }
 
-        let faceColor: Int32Array | null = null;
-        if (copyColor) {
-            faceColor = new Int32Array(faceCount);
+        let faceColour: Int32Array | null = null;
+        if (copyColour) {
+            faceColour = new Int32Array(faceCount);
         }
 
         vertexCount = 0;
         faceCount = 0;
-        texturedFaceCount = 0;
+        faceTextureCount = 0;
 
         for (let i: number = 0; i < count; i++) {
             const model: Model = models[i];
@@ -767,35 +762,35 @@ export default class Model extends ModelSource {
                     faceVertexB[faceCount] = model.faceVertexB![f] + vertexCount2;
                     faceVertexC[faceCount] = model.faceVertexC![f] + vertexCount2;
                     if (model.faceColourA) {
-                        faceColorA[faceCount] = model.faceColourA[f];
+                        faceColourA[faceCount] = model.faceColourA[f];
                     }
                     if (model.faceColourB) {
-                        faceColorB[faceCount] = model.faceColourB[f];
+                        faceColourB[faceCount] = model.faceColourB[f];
                     }
                     if (model.faceColourC) {
-                        faceColorC[faceCount] = model.faceColourC[f];
+                        faceColourC[faceCount] = model.faceColourC[f];
                     }
 
                     if (copyInfo) {
-                        if (!model.faceRenderInfo) {
+                        if (!model.faceInfo) {
                             if (faceInfo) {
                                 faceInfo[faceCount] = 0;
                             }
                         } else {
                             if (faceInfo) {
-                                faceInfo[faceCount] = model.faceRenderInfo[f];
+                                faceInfo[faceCount] = model.faceInfo[f];
                             }
                         }
                     }
 
                     if (copyPriority) {
-                        if (!model.faceRenderPriority) {
+                        if (!model.facePriority) {
                             if (facePriority) {
-                                facePriority[faceCount] = model.renderPriority;
+                                facePriority[faceCount] = model.priority;
                             }
                         } else {
                             if (facePriority) {
-                                facePriority[faceCount] = model.faceRenderPriority[f];
+                                facePriority[faceCount] = model.facePriority[f];
                             }
                         }
                     }
@@ -812,20 +807,20 @@ export default class Model extends ModelSource {
                         }
                     }
 
-                    if (copyColor && model.faceColour) {
-                        if (faceColor) {
-                            faceColor[faceCount] = model.faceColour[f];
+                    if (copyColour && model.faceColour) {
+                        if (faceColour) {
+                            faceColour[faceCount] = model.faceColour[f];
                         }
                     }
 
                     faceCount++;
                 }
 
-                for (let f: number = 0; f < model.texturedFaceCount; f++) {
-                    texturedVertexA[texturedFaceCount] = model.texturedVertexA![f] + vertexCount2;
-                    texturedVertexB[texturedFaceCount] = model.texturedVertexB![f] + vertexCount2;
-                    texturedVertexC[texturedFaceCount] = model.texturedVertexC![f] + vertexCount2;
-                    texturedFaceCount++;
+                for (let f: number = 0; f < model.faceTextureCount; f++) {
+                    texturedVertexA[faceTextureCount] = model.faceTextureP![f] + vertexCount2;
+                    texturedVertexB[faceTextureCount] = model.faceTextureM![f] + vertexCount2;
+                    texturedVertexC[faceTextureCount] = model.faceTextureN![f] + vertexCount2;
+                    faceTextureCount++;
                 }
             }
         }
@@ -838,18 +833,18 @@ export default class Model extends ModelSource {
             faceVertexA: faceVertexA,
             faceVertexB: faceVertexB,
             faceVertexC: faceVertexC,
-            faceColorA: faceColorA,
-            faceColorB: faceColorB,
-            faceColorC: faceColorC,
-            faceRenderInfo: faceInfo,
-            faceRenderPriority: facePriority,
+            faceColourA: faceColourA,
+            faceColourB: faceColourB,
+            faceColourC: faceColourC,
+            faceInfo: faceInfo,
+            facePriority: facePriority,
             faceAlpha: faceAlpha,
-            faceColor: faceColor,
-            renderPriority: priority,
-            texturedFaceCount: texturedFaceCount,
-            texturedVertexA: texturedVertexA,
-            texturedVertexB: texturedVertexB,
-            texturedVertexC: texturedVertexC
+            faceColour: faceColour,
+            priority: priority,
+            faceTextureCount: faceTextureCount,
+            faceTextureP: texturedVertexA,
+            faceTextureM: texturedVertexB,
+            faceTextureN: texturedVertexC
         });
         model.calcBoundingCylinder();
         return model;
@@ -864,7 +859,7 @@ export default class Model extends ModelSource {
 
         let vertexCount: number = 0;
         let faceCount: number = 0;
-        let texturedFaceCount: number = 0;
+        let faceTextureCount: number = 0;
         let priority: number = -1;
 
         for (let i: number = 0; i < count; i++) {
@@ -872,15 +867,15 @@ export default class Model extends ModelSource {
             if (model) {
                 vertexCount += model.vertexCount;
                 faceCount += model.faceCount;
-                texturedFaceCount += model.texturedFaceCount;
-                copyInfo ||= model.faceRenderInfo !== null;
+                faceTextureCount += model.faceTextureCount;
+                copyInfo ||= model.faceInfo !== null;
 
-                if (!model.faceRenderPriority) {
+                if (!model.facePriority) {
                     if (priority === -1) {
-                        priority = model.renderPriority;
+                        priority = model.priority;
                     }
 
-                    if (priority !== model.renderPriority) {
+                    if (priority !== model.priority) {
                         copyPriorities = true;
                     }
                 } else {
@@ -902,9 +897,9 @@ export default class Model extends ModelSource {
         const faceVertexB: Int32Array = new Int32Array(faceCount);
         const faceVertexC: Int32Array = new Int32Array(faceCount);
 
-        const texturedVertexA: Int32Array = new Int32Array(texturedFaceCount);
-        const texturedVertexB: Int32Array = new Int32Array(texturedFaceCount);
-        const texturedVertexC: Int32Array = new Int32Array(texturedFaceCount);
+        const texturedVertexA: Int32Array = new Int32Array(faceTextureCount);
+        const texturedVertexB: Int32Array = new Int32Array(faceTextureCount);
+        const texturedVertexC: Int32Array = new Int32Array(faceTextureCount);
 
         let faceInfo: Int32Array | null = null;
         if (copyInfo) {
@@ -926,10 +921,10 @@ export default class Model extends ModelSource {
             faceLabel = new Int32Array(faceCount);
         }
 
-        const faceColor: Int32Array = new Int32Array(faceCount);
+        const faceColour: Int32Array = new Int32Array(faceCount);
         vertexCount = 0;
         faceCount = 0;
-        texturedFaceCount = 0;
+        faceTextureCount = 0;
 
         for (let i: number = 0; i < count; i++) {
             const model: Model | null = models[i];
@@ -937,25 +932,25 @@ export default class Model extends ModelSource {
             if (model) {
                 for (let face: number = 0; face < model.faceCount; face++) {
                     if (copyInfo) {
-                        if (!model.faceRenderInfo) {
+                        if (!model.faceInfo) {
                             if (faceInfo) {
                                 faceInfo[faceCount] = 0;
                             }
                         } else {
                             if (faceInfo) {
-                                faceInfo[faceCount] = model.faceRenderInfo[face];
+                                faceInfo[faceCount] = model.faceInfo[face];
                             }
                         }
                     }
 
                     if (copyPriorities) {
-                        if (!model.faceRenderPriority) {
+                        if (!model.facePriority) {
                             if (facePriority) {
-                                facePriority[faceCount] = model.renderPriority;
+                                facePriority[faceCount] = model.priority;
                             }
                         } else {
                             if (facePriority) {
-                                facePriority[faceCount] = model.faceRenderPriority[face];
+                                facePriority[faceCount] = model.facePriority[face];
                             }
                         }
                     }
@@ -979,7 +974,7 @@ export default class Model extends ModelSource {
                     }
 
                     if (model.faceColour) {
-                        faceColor[faceCount] = model.faceColour[face];
+                        faceColour[faceCount] = model.faceColour[face];
                     }
                     const a: { vertex: number; vertexCount: number } = Model.addVertex(model, model.faceVertexA![face], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
                     vertexCount = a.vertexCount;
@@ -993,17 +988,17 @@ export default class Model extends ModelSource {
                     faceCount++;
                 }
 
-                for (let f: number = 0; f < model.texturedFaceCount; f++) {
-                    const a: { vertex: number; vertexCount: number } = Model.addVertex(model, model.texturedVertexA![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
+                for (let f: number = 0; f < model.faceTextureCount; f++) {
+                    const a: { vertex: number; vertexCount: number } = Model.addVertex(model, model.faceTextureP![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
                     vertexCount = a.vertexCount;
-                    const b: { vertex: number; vertexCount: number } = Model.addVertex(model, model.texturedVertexB![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
+                    const b: { vertex: number; vertexCount: number } = Model.addVertex(model, model.faceTextureM![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
                     vertexCount = b.vertexCount;
-                    const c: { vertex: number; vertexCount: number } = Model.addVertex(model, model.texturedVertexC![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
+                    const c: { vertex: number; vertexCount: number } = Model.addVertex(model, model.faceTextureN![f], vertexX, vertexY, vertexZ, vertexLabel, vertexCount);
                     vertexCount = c.vertexCount;
-                    texturedVertexA[texturedFaceCount] = a.vertex;
-                    texturedVertexB[texturedFaceCount] = b.vertex;
-                    texturedVertexC[texturedFaceCount] = c.vertex;
-                    texturedFaceCount++;
+                    texturedVertexA[faceTextureCount] = a.vertex;
+                    texturedVertexB[faceTextureCount] = b.vertex;
+                    texturedVertexC[faceTextureCount] = c.vertex;
+                    faceTextureCount++;
                 }
             }
         }
@@ -1016,18 +1011,18 @@ export default class Model extends ModelSource {
             faceVertexA: faceVertexA,
             faceVertexB: faceVertexB,
             faceVertexC: faceVertexC,
-            faceColorA: null,
-            faceColorB: null,
-            faceColorC: null,
-            faceRenderInfo: faceInfo,
-            faceRenderPriority: facePriority,
+            faceColourA: null,
+            faceColourB: null,
+            faceColourC: null,
+            faceInfo: faceInfo,
+            facePriority: facePriority,
             faceAlpha: faceAlpha,
-            faceColor: faceColor,
-            renderPriority: priority,
-            texturedFaceCount: texturedFaceCount,
-            texturedVertexA: texturedVertexA,
-            texturedVertexB: texturedVertexB,
-            texturedVertexC: texturedVertexC,
+            faceColour: faceColour,
+            priority: priority,
+            faceTextureCount: faceTextureCount,
+            faceTextureP: texturedVertexA,
+            faceTextureM: texturedVertexB,
+            faceTextureN: texturedVertexC,
             vertexLabel: vertexLabel,
             faceLabel: faceLabel
         });
@@ -1036,13 +1031,13 @@ export default class Model extends ModelSource {
     set(src: Model, shareAlpha: boolean): void {
         this.vertexCount = src.vertexCount;
         this.faceCount = src.faceCount;
-        this.texturedFaceCount = src.texturedFaceCount;
+        this.faceTextureCount = src.faceTextureCount;
 
         if (Model.tmpVertexX.length < this.vertexCount) {
-			Model.tmpVertexX = new Int32Array(this.vertexCount + 100);
-			Model.tmpVertexY = new Int32Array(this.vertexCount + 100);
-			Model.tmpVertexZ = new Int32Array(this.vertexCount + 100);
-		}
+            Model.tmpVertexX = new Int32Array(this.vertexCount + 100);
+            Model.tmpVertexY = new Int32Array(this.vertexCount + 100);
+            Model.tmpVertexZ = new Int32Array(this.vertexCount + 100);
+        }
 
         this.vertexX = Model.tmpVertexX;
         this.vertexY = Model.tmpVertexY;
@@ -1057,9 +1052,9 @@ export default class Model extends ModelSource {
         if (shareAlpha) {
             this.faceAlpha = src.faceAlpha;
         } else {
-			if (Model.tmpFaceAlpha.length < this.faceCount) {
-				Model.tmpFaceAlpha = new Int32Array(this.faceCount + 100);
-			}
+            if (Model.tmpFaceAlpha.length < this.faceCount) {
+                Model.tmpFaceAlpha = new Int32Array(this.faceCount + 100);
+            }
 
             this.faceAlpha = Model.tmpFaceAlpha;
 
@@ -1074,21 +1069,21 @@ export default class Model extends ModelSource {
             }
         }
 
-		this.faceRenderInfo = src.faceRenderInfo;
-		this.faceColour = src.faceColour;
-		this.faceRenderPriority = src.faceRenderPriority;
-		this.renderPriority = src.renderPriority;
-		this.labelFaces = src.labelFaces;
-		this.labelVertices = src.labelVertices;
-		this.faceVertexA = src.faceVertexA;
-		this.faceVertexB = src.faceVertexB;
-		this.faceVertexC = src.faceVertexC;
-		this.faceColourA = src.faceColourA;
-		this.faceColourB = src.faceColourB;
-		this.faceColourC = src.faceColourC;
-		this.texturedVertexA = src.texturedVertexA;
-		this.texturedVertexB = src.texturedVertexB;
-		this.texturedVertexC = src.texturedVertexC;
+        this.faceInfo = src.faceInfo;
+        this.faceColour = src.faceColour;
+        this.facePriority = src.facePriority;
+        this.priority = src.priority;
+        this.labelFaces = src.labelFaces;
+        this.labelVertices = src.labelVertices;
+        this.faceVertexA = src.faceVertexA;
+        this.faceVertexB = src.faceVertexB;
+        this.faceVertexC = src.faceVertexC;
+        this.faceColourA = src.faceColourA;
+        this.faceColourB = src.faceColourB;
+        this.faceColourC = src.faceColourC;
+        this.faceTextureP = src.faceTextureP;
+        this.faceTextureM = src.faceTextureM;
+        this.faceTextureN = src.faceTextureN;
     }
 
     static addVertex = (
@@ -1673,7 +1668,7 @@ export default class Model extends ModelSource {
             ny = ((ny * 256) / length) | 0;
             nz = ((nz * 256) / length) | 0;
 
-            if (!this.faceRenderInfo || (this.faceRenderInfo[f] & 0x1) === 0) {
+            if (!this.faceInfo || (this.faceInfo[f] & 0x1) === 0) {
                 let n: VertexNormal | null = this.vertexNormal[a];
                 if (n) {
                     n.x += nx;
@@ -1700,7 +1695,7 @@ export default class Model extends ModelSource {
             } else {
                 const lightness: number = lightAmbient + (((lightSrcX * nx + lightSrcY * ny + lightSrcZ * nz) / (attenuation + ((attenuation / 2) | 0))) | 0);
                 if (this.faceColour) {
-                    this.faceColourA[f] = Model.mulColourLightness(this.faceColour[f], lightness, this.faceRenderInfo[f]);
+                    this.faceColourA[f] = Model.mulColourLightness(this.faceColour[f], lightness, this.faceInfo[f]);
                 }
             }
         }
@@ -1738,7 +1733,7 @@ export default class Model extends ModelSource {
             const b: number = this.faceVertexB![f];
             const c: number = this.faceVertexC![f];
 
-            if (!this.faceRenderInfo && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
+            if (!this.faceInfo && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
                 const colour: number = this.faceColour[f];
 
                 const va: VertexNormal | null = this.vertexNormal[a];
@@ -1755,9 +1750,9 @@ export default class Model extends ModelSource {
                 if (vc) {
                     this.faceColourC[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vc.x + lightSrcY * vc.y + lightSrcZ * vc.z) / (lightAttenuation * vc.w)) | 0), 0);
                 }
-            } else if (this.faceRenderInfo && (this.faceRenderInfo[f] & 0x1) === 0 && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
+            } else if (this.faceInfo && (this.faceInfo[f] & 0x1) === 0 && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
                 const colour: number = this.faceColour[f];
-                const info: number = this.faceRenderInfo[f];
+                const info: number = this.faceInfo[f];
 
                 const va: VertexNormal | null = this.vertexNormal[a];
                 if (va) {
@@ -1781,9 +1776,9 @@ export default class Model extends ModelSource {
         this.vertexLabel = null;
         this.faceLabel = null;
 
-        if (this.faceRenderInfo) {
+        if (this.faceInfo) {
             for (let f: number = 0; f < this.faceCount; f++) {
-                if ((this.faceRenderInfo[f] & 0x2) === 2) {
+                if ((this.faceInfo[f] & 0x2) === 2) {
                     return;
                 }
             }
@@ -1868,7 +1863,7 @@ export default class Model extends ModelSource {
                 Model.vertexScreenY[v] = Pix3D.projectionY + (((y << 9) / z) | 0);
             }
 
-            if (this.texturedFaceCount > 0 && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+            if (this.faceTextureCount > 0 && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
                 Model.vertexViewSpaceX[v] = x;
                 Model.vertexViewSpaceY[v] = y;
                 Model.vertexViewSpaceZ[v] = z;
@@ -2003,7 +1998,7 @@ export default class Model extends ModelSource {
                 clipped = true;
             }
 
-            if ((clipped || this.texturedFaceCount > 0) && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+            if ((clipped || this.faceTextureCount > 0) && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
                 Model.vertexViewSpaceX[v] = x;
                 Model.vertexViewSpaceY[v] = y;
                 Model.vertexViewSpaceZ[v] = z;
@@ -2027,7 +2022,7 @@ export default class Model extends ModelSource {
         }
 
         for (let f: number = 0; f < this.faceCount; f++) {
-            if (this.faceRenderInfo && this.faceRenderInfo[f] === -1) {
+            if (this.faceInfo && this.faceInfo[f] === -1) {
                 continue;
             }
 
@@ -2087,7 +2082,7 @@ export default class Model extends ModelSource {
             }
         }
 
-        if (!this.faceRenderPriority && Model.tmpDepthFaceCount) {
+        if (!this.facePriority && Model.tmpDepthFaceCount) {
             for (let depth: number = this.maxDepth - 1; depth >= 0; depth--) {
                 const count: number = Model.tmpDepthFaceCount[depth];
                 if (count <= 0) {
@@ -2124,9 +2119,9 @@ export default class Model extends ModelSource {
                     const faces: Int32Array = Model.tmpDepthFaces[depth];
 
                     for (let i: number = 0; i < faceCount; i++) {
-                        if (this.faceRenderPriority && Model.tmpPriorityFaceCount && Model.tmpPriorityFaces) {
+                        if (this.facePriority && Model.tmpPriorityFaceCount && Model.tmpPriorityFaces) {
                             const priorityDepth: number = faces[i];
-                            const priorityFace: number = this.faceRenderPriority[priorityDepth];
+                            const priorityFace: number = this.facePriority[priorityDepth];
                             const priorityFaceCount: number = Model.tmpPriorityFaceCount[priorityFace]++;
 
                             Model.tmpPriorityFaces[priorityFace][priorityFaceCount] = priorityDepth;
@@ -2300,10 +2295,10 @@ export default class Model extends ModelSource {
         }
 
         let type: number;
-        if (!this.faceRenderInfo) {
+        if (!this.faceInfo) {
             type = 0;
         } else {
-            type = this.faceRenderInfo[face] & 0x3;
+            type = this.faceInfo[face] & 0x3;
         }
 
         if (type === 0 && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY) {
@@ -2320,11 +2315,11 @@ export default class Model extends ModelSource {
             );
         } else if (type === 1 && this.faceColourA && Model.vertexScreenX && Model.vertexScreenY) {
             Pix3D.flatTriangle(Model.vertexScreenX[a], Model.vertexScreenX[b], Model.vertexScreenX[c], Model.vertexScreenY[a], Model.vertexScreenY[b], Model.vertexScreenY[c], Pix3D.colourTable[this.faceColourA[face]]);
-        } else if (type === 2 && this.faceRenderInfo && this.faceColour && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-            const texturedFace: number = this.faceRenderInfo[face] >> 2;
-            const tA: number = this.texturedVertexA![texturedFace];
-            const tB: number = this.texturedVertexB![texturedFace];
-            const tC: number = this.texturedVertexC![texturedFace];
+        } else if (type === 2 && this.faceInfo && this.faceColour && this.faceColourA && this.faceColourB && this.faceColourC && Model.vertexScreenX && Model.vertexScreenY && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+            const texturedFace: number = this.faceInfo[face] >> 2;
+            const tA: number = this.faceTextureP![texturedFace];
+            const tB: number = this.faceTextureM![texturedFace];
+            const tC: number = this.faceTextureN![texturedFace];
             Pix3D.textureTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
@@ -2346,11 +2341,11 @@ export default class Model extends ModelSource {
                 Model.vertexViewSpaceZ[tC],
                 this.faceColour[face]
             );
-        } else if (type === 3 && this.faceRenderInfo && this.faceColour && this.faceColourA && Model.vertexScreenX && Model.vertexScreenY && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-            const texturedFace: number = this.faceRenderInfo[face] >> 2;
-            const tA: number = this.texturedVertexA![texturedFace];
-            const tB: number = this.texturedVertexB![texturedFace];
-            const tC: number = this.texturedVertexC![texturedFace];
+        } else if (type === 3 && this.faceInfo && this.faceColour && this.faceColourA && Model.vertexScreenX && Model.vertexScreenY && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+            const texturedFace: number = this.faceInfo[face] >> 2;
+            const tA: number = this.faceTextureP![texturedFace];
+            const tB: number = this.faceTextureM![texturedFace];
+            const tC: number = this.faceTextureN![texturedFace];
             Pix3D.textureTriangle(
                 Model.vertexScreenX[a],
                 Model.vertexScreenX[b],
@@ -2398,20 +2393,20 @@ export default class Model extends ModelSource {
             } else if (Model.vertexViewSpaceX && Model.vertexViewSpaceY && this.faceColourA) {
                 const xA: number = Model.vertexViewSpaceX[a];
                 const yA: number = Model.vertexViewSpaceY[a];
-                const colorA: number = this.faceColourA[face];
+                const colourA: number = this.faceColourA[face];
 
                 if (zC >= 50 && this.faceColourC) {
                     const scalar: number = (50 - zA) * Pix3D.divTable2[zC - zA];
                     Model.clippedX[elements] = centerX + ((((xA + (((Model.vertexViewSpaceX[c] - xA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yA + (((Model.vertexViewSpaceY[c] - yA) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorA + (((this.faceColourC[face] - colorA) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourA + (((this.faceColourC[face] - colourA) * scalar) >> 16);
                 }
 
                 if (zB >= 50 && this.faceColourB) {
                     const scalar: number = (50 - zA) * Pix3D.divTable2[zB - zA];
                     Model.clippedX[elements] = centerX + ((((xA + (((Model.vertexViewSpaceX[b] - xA) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yA + (((Model.vertexViewSpaceY[b] - yA) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorA + (((this.faceColourB[face] - colorA) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourA + (((this.faceColourB[face] - colourA) * scalar) >> 16);
                 }
             }
 
@@ -2422,20 +2417,20 @@ export default class Model extends ModelSource {
             } else if (Model.vertexViewSpaceX && Model.vertexViewSpaceY && this.faceColourB) {
                 const xB: number = Model.vertexViewSpaceX[b];
                 const yB: number = Model.vertexViewSpaceY[b];
-                const colorB: number = this.faceColourB[face];
+                const colourB: number = this.faceColourB[face];
 
                 if (zA >= 50 && this.faceColourA) {
                     const scalar: number = (50 - zB) * Pix3D.divTable2[zA - zB];
                     Model.clippedX[elements] = centerX + ((((xB + (((Model.vertexViewSpaceX[a] - xB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yB + (((Model.vertexViewSpaceY[a] - yB) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorB + (((this.faceColourA[face] - colorB) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourB + (((this.faceColourA[face] - colourB) * scalar) >> 16);
                 }
 
                 if (zC >= 50 && this.faceColourC) {
                     const scalar: number = (50 - zB) * Pix3D.divTable2[zC - zB];
                     Model.clippedX[elements] = centerX + ((((xB + (((Model.vertexViewSpaceX[c] - xB) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yB + (((Model.vertexViewSpaceY[c] - yB) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorB + (((this.faceColourC[face] - colorB) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourB + (((this.faceColourC[face] - colourB) * scalar) >> 16);
                 }
             }
 
@@ -2446,20 +2441,20 @@ export default class Model extends ModelSource {
             } else if (Model.vertexViewSpaceX && Model.vertexViewSpaceY && this.faceColourC) {
                 const xC: number = Model.vertexViewSpaceX[c];
                 const yC: number = Model.vertexViewSpaceY[c];
-                const colorC: number = this.faceColourC[face];
+                const colourC: number = this.faceColourC[face];
 
                 if (zB >= 50 && this.faceColourB) {
                     const scalar: number = (50 - zC) * Pix3D.divTable2[zB - zC];
                     Model.clippedX[elements] = centerX + ((((xC + (((Model.vertexViewSpaceX[b] - xC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yC + (((Model.vertexViewSpaceY[b] - yC) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorC + (((this.faceColourB[face] - colorC) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourC + (((this.faceColourB[face] - colourC) * scalar) >> 16);
                 }
 
                 if (zA >= 50 && this.faceColourA) {
                     const scalar: number = (50 - zC) * Pix3D.divTable2[zA - zC];
                     Model.clippedX[elements] = centerX + ((((xC + (((Model.vertexViewSpaceX[a] - xC) * scalar) >> 16)) << 9) / 50) | 0);
                     Model.clippedY[elements] = centerY + ((((yC + (((Model.vertexViewSpaceY[a] - yC) * scalar) >> 16)) << 9) / 50) | 0);
-                    Model.clippedColour[elements++] = colorC + (((this.faceColourA[face] - colorC) * scalar) >> 16);
+                    Model.clippedColour[elements++] = colourC + (((this.faceColourA[face] - colourC) * scalar) >> 16);
                 }
             }
         }
@@ -2483,21 +2478,21 @@ export default class Model extends ModelSource {
             }
 
             let type: number;
-            if (!this.faceRenderInfo) {
+            if (!this.faceInfo) {
                 type = 0;
             } else {
-                type = this.faceRenderInfo[face] & 0x3;
+                type = this.faceInfo[face] & 0x3;
             }
 
             if (type === 0) {
                 Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, Model.clippedColour[0], Model.clippedColour[1], Model.clippedColour[2]);
             } else if (type === 1 && this.faceColourA) {
                 Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, Pix3D.colourTable[this.faceColourA[face]]);
-            } else if (type === 2 && this.faceRenderInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-                const texturedFace: number = this.faceRenderInfo[face] >> 2;
-                const tA: number = this.texturedVertexA![texturedFace];
-                const tB: number = this.texturedVertexB![texturedFace];
-                const tC: number = this.texturedVertexC![texturedFace];
+            } else if (type === 2 && this.faceInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+                const texturedFace: number = this.faceInfo[face] >> 2;
+                const tA: number = this.faceTextureP![texturedFace];
+                const tB: number = this.faceTextureM![texturedFace];
+                const tC: number = this.faceTextureN![texturedFace];
                 Pix3D.textureTriangle(
                     x0,
                     x1,
@@ -2519,11 +2514,11 @@ export default class Model extends ModelSource {
                     Model.vertexViewSpaceZ[tC],
                     this.faceColour[face]
                 );
-            } else if (type === 3 && this.faceRenderInfo && this.faceColour && this.faceColourA && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-                const texturedFace: number = this.faceRenderInfo[face] >> 2;
-                const tA: number = this.texturedVertexA![texturedFace];
-                const tB: number = this.texturedVertexB![texturedFace];
-                const tC: number = this.texturedVertexC![texturedFace];
+            } else if (type === 3 && this.faceInfo && this.faceColour && this.faceColourA && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+                const texturedFace: number = this.faceInfo[face] >> 2;
+                const tA: number = this.faceTextureP![texturedFace];
+                const tB: number = this.faceTextureM![texturedFace];
+                const tC: number = this.faceTextureN![texturedFace];
                 Pix3D.textureTriangle(
                     x0,
                     x1,
@@ -2552,10 +2547,10 @@ export default class Model extends ModelSource {
             }
 
             let type: number;
-            if (!this.faceRenderInfo) {
+            if (!this.faceInfo) {
                 type = 0;
             } else {
-                type = this.faceRenderInfo[face] & 0x3;
+                type = this.faceInfo[face] & 0x3;
             }
 
             if (type === 0) {
@@ -2563,15 +2558,15 @@ export default class Model extends ModelSource {
                 Pix3D.gouraudTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], Model.clippedColour[0], Model.clippedColour[2], Model.clippedColour[3]);
             } else if (type === 1) {
                 if (this.faceColourA) {
-                    const colorA: number = Pix3D.colourTable[this.faceColourA[face]];
-                    Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, colorA);
-                    Pix3D.flatTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], colorA);
+                    const colourA: number = Pix3D.colourTable[this.faceColourA[face]];
+                    Pix3D.flatTriangle(x0, x1, x2, y0, y1, y2, colourA);
+                    Pix3D.flatTriangle(x0, x2, Model.clippedX[3], y0, y2, Model.clippedY[3], colourA);
                 }
-            } else if (type === 2 && this.faceRenderInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-                const texturedFace: number = this.faceRenderInfo[face] >> 2;
-                const tA: number = this.texturedVertexA![texturedFace];
-                const tB: number = this.texturedVertexB![texturedFace];
-                const tC: number = this.texturedVertexC![texturedFace];
+            } else if (type === 2 && this.faceInfo && this.faceColour && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+                const texturedFace: number = this.faceInfo[face] >> 2;
+                const tA: number = this.faceTextureP![texturedFace];
+                const tB: number = this.faceTextureM![texturedFace];
+                const tC: number = this.faceTextureN![texturedFace];
                 Pix3D.textureTriangle(
                     x0,
                     x1,
@@ -2614,11 +2609,11 @@ export default class Model extends ModelSource {
                     Model.vertexViewSpaceZ[tC],
                     this.faceColour[face]
                 );
-            } else if (type === 3 && this.faceRenderInfo && this.faceColour && this.faceColourA && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
-                const texturedFace: number = this.faceRenderInfo[face] >> 2;
-                const tA: number = this.texturedVertexA![texturedFace];
-                const tB: number = this.texturedVertexB![texturedFace];
-                const tC: number = this.texturedVertexC![texturedFace];
+            } else if (type === 3 && this.faceInfo && this.faceColour && this.faceColourA && Model.vertexViewSpaceX && Model.vertexViewSpaceY && Model.vertexViewSpaceZ) {
+                const texturedFace: number = this.faceInfo[face] >> 2;
+                const tA: number = this.faceTextureP![texturedFace];
+                const tB: number = this.faceTextureM![texturedFace];
+                const tC: number = this.faceTextureN![texturedFace];
                 Pix3D.textureTriangle(
                     x0,
                     x1,
