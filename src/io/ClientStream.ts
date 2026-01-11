@@ -37,20 +37,24 @@ export default class ClientStream {
         return parseInt(this.socket.url.split(':')[2], 10);
     }
 
+    // todo: Java throws IOException on failure
     get available(): number {
         return this.closed ? 0 : this.wsin.available;
     }
 
+    // todo: Java throws IOException on failure
     write(src: Uint8Array, len: number): void {
         if (!this.closed) {
             this.wsout.write(src, len);
         }
     }
 
+    // todo: Java throws IOException on failure
     async read(): Promise<number> {
         return this.closed ? 0 : await this.wsin.read();
     }
 
+    // todo: Java throws IOException on failure
     async readBytes(dst: Uint8Array, off: number, len: number): Promise<void> {
         if (this.closed) {
             return;

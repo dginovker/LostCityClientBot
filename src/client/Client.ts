@@ -1958,7 +1958,8 @@ export class Client extends GameShell {
             if (this.selectedCycle >= 15) {
                 if (this.selectedArea === 2) {
                     this.redrawSidebar = true;
-                } else if (this.selectedArea === 3) {
+                }
+                if (this.selectedArea === 3) {
                     this.redrawChatback = true;
                 }
 
@@ -1976,7 +1977,8 @@ export class Client extends GameShell {
             if (this.mouseButton === 0) {
                 if (this.objDragArea === 2) {
                     this.redrawSidebar = true;
-                } else if (this.objDragArea === 3) {
+                }
+                if (this.objDragArea === 3) {
                     this.redrawChatback = true;
                 }
 
@@ -2121,19 +2123,22 @@ export class Client extends GameShell {
 
         if (this.macroCameraX < -50) {
             this.macroCameraXModifier = 2;
-        } else if (this.macroCameraX > 50) {
+        }
+        if (this.macroCameraX > 50) {
             this.macroCameraXModifier = -2;
         }
 
         if (this.macroCameraZ < -55) {
             this.macroCameraZModifier = 2;
-        } else if (this.macroCameraZ > 55) {
+        }
+        if (this.macroCameraZ > 55) {
             this.macroCameraZModifier = -2;
         }
 
         if (this.macroCameraAngle < -40) {
             this.macroCameraAngleModifier = 1;
-        } else if (this.macroCameraAngle > 40) {
+        }
+        if (this.macroCameraAngle > 40) {
             this.macroCameraAngleModifier = -1;
         }
 
@@ -2152,13 +2157,15 @@ export class Client extends GameShell {
 
         if (this.macroMinimapAngle < -60) {
             this.macroMinimapAngleModifier = 2;
-        } else if (this.macroMinimapAngle > 60) {
+        }
+        if (this.macroMinimapAngle > 60) {
             this.macroMinimapAngleModifier = -2;
         }
 
         if (this.macroMinimapZoom < -20) {
             this.macroMinimapZoomModifier = 1;
-        } else if (this.macroMinimapZoom > 10) {
+        }
+        if (this.macroMinimapZoom > 10) {
             this.macroMinimapZoomModifier = -1;
         }
 
@@ -2965,11 +2972,11 @@ export class Client extends GameShell {
                 }
 
                 for (let obj: ClientObj | null = objs.tail() as ClientObj | null; obj; obj = objs.prev() as ClientObj | null) {
-                    const type: ObjType = ObjType.get(obj.index);
+                    const type: ObjType = ObjType.get(obj.id);
                     if (this.objSelected === 1) {
                         this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + type.name;
                         this.menuAction[this.menuSize] = MenuAction.OPOBJU;
-                        this.menuParamA[this.menuSize] = obj.index;
+                        this.menuParamA[this.menuSize] = obj.id;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
                         this.menuSize++;
@@ -2990,14 +2997,14 @@ export class Client extends GameShell {
                                     this.menuAction[this.menuSize] = MenuAction.OPOBJ5;
                                 }
 
-                                this.menuParamA[this.menuSize] = obj.index;
+                                this.menuParamA[this.menuSize] = obj.id;
                                 this.menuParamB[this.menuSize] = x;
                                 this.menuParamC[this.menuSize] = z;
                                 this.menuSize++;
                             } else if (op === 2) {
                                 this.menuOption[this.menuSize] = 'Take @lre@' + type.name;
                                 this.menuAction[this.menuSize] = MenuAction.OPOBJ3;
-                                this.menuParamA[this.menuSize] = obj.index;
+                                this.menuParamA[this.menuSize] = obj.id;
                                 this.menuParamB[this.menuSize] = x;
                                 this.menuParamC[this.menuSize] = z;
                                 this.menuSize++;
@@ -3006,14 +3013,14 @@ export class Client extends GameShell {
 
                         this.menuOption[this.menuSize] = 'Examine @lre@' + type.name;
                         this.menuAction[this.menuSize] = MenuAction.OPOBJ6;
-                        this.menuParamA[this.menuSize] = obj.index;
+                        this.menuParamA[this.menuSize] = obj.id;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
                         this.menuSize++;
                     } else if ((this.activeSpellFlags & 0x1) === 1) {
                         this.menuOption[this.menuSize] = this.spellCaption + ' @lre@' + type.name;
                         this.menuAction[this.menuSize] = MenuAction.OPOBJT;
-                        this.menuParamA[this.menuSize] = obj.index;
+                        this.menuParamA[this.menuSize] = obj.id;
                         this.menuParamB[this.menuSize] = x;
                         this.menuParamC[this.menuSize] = z;
                         this.menuSize++;
@@ -7611,7 +7618,7 @@ export class Client extends GameShell {
                 const list: LinkList | null = this.objStacks[this.minusedlevel][x][z];
                 if (list) {
                     for (let obj: ClientObj | null = list.head() as ClientObj | null; obj; obj = list.next() as ClientObj | null) {
-                        if (obj.index === (type & 0x7fff)) {
+                        if (obj.id === (type & 0x7fff)) {
                             obj.unlink();
                             break;
                         }
@@ -7749,7 +7756,7 @@ export class Client extends GameShell {
                 const list: LinkList | null = this.objStacks[this.minusedlevel][x][z];
                 if (list) {
                     for (let obj: ClientObj | null = list.head() as ClientObj | null; obj; obj = list.next() as ClientObj | null) {
-                        if (obj.index === (type & 0x7fff) && obj.count === ocount) {
+                        if (obj.id === (type & 0x7fff) && obj.count === ocount) {
                             obj.count = count;
                             break;
                         }
@@ -7906,7 +7913,7 @@ export class Client extends GameShell {
         let topObj: ClientObj | null = null;
 
         for (let obj: ClientObj | null = objStacks.head() as ClientObj | null; obj; obj = objStacks.next() as ClientObj | null) {
-            const type: ObjType = ObjType.get(obj.index);
+            const type: ObjType = ObjType.get(obj.id);
             let cost: number = type.cost;
 
             if (type.stackable) {
@@ -7928,11 +7935,11 @@ export class Client extends GameShell {
         let bottomObj: ClientObj | null = null;
         let middleObj: ClientObj | null = null;
         for (let obj: ClientObj | null = objStacks.head() as ClientObj | null; obj; obj = objStacks.next() as ClientObj | null) {
-            if (obj.index !== topObj.index && bottomObj === null) {
+            if (obj.id !== topObj.id && bottomObj === null) {
                 bottomObj = obj;
             }
 
-            if (obj.index !== topObj.index && bottomObj && obj.index !== bottomObj.index && middleObj === null) {
+            if (obj.id !== topObj.id && bottomObj && obj.id !== bottomObj.id && middleObj === null) {
                 middleObj = obj;
             }
         }
