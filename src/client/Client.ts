@@ -352,8 +352,8 @@ export class Client extends GameShell {
     private sceneState: number = 0;
     private sceneDelta: number = 0;
     private sceneCycle: number = 0;
-    private flagTileX: number = 0;
-    private flagTileZ: number = 0;
+    private minimapFlagX: number = 0; // jag::oldscape::Client::GetMinimapFlagCoord
+    private minimapFlagZ: number = 0;
     private macroCameraCycle: number = 0;
     private macroCameraX: number = 0;
     private macroCameraZ: number = 0;
@@ -436,11 +436,11 @@ export class Client extends GameShell {
     private objStacks: (LinkList | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
     private locChanges: LinkList = new LinkList();
 
-    // bfs pathfinder
-    private bfsStepX: Int32Array = new Int32Array(4000);
-    private bfsStepZ: Int32Array = new Int32Array(4000);
-    private bfsDirection: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE);
-    private bfsCost: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE);
+    // bfs routefinder
+    private routeX: Int32Array = new Int32Array(4000); // jag::oldscape::movement::RouteFinding::m_routeX
+    private routeZ: Int32Array = new Int32Array(4000); // jag::oldscape::movement::RouteFinding::m_routeZ
+    private dirMap: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE); // jag::oldscape::movement::RouteFinding::m_dirMap
+    private distMap: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE); // jag::oldscape::movement::RouteFinding::m_distMap
     private tryMoveNearest: number = 0;
 
     // player
@@ -508,7 +508,7 @@ export class Client extends GameShell {
     prevMouseClickTime: number = 0;
     sendCameraDelay: number = 0;
     sendCamera: boolean = false;
-    focused: boolean = false;
+    focusIn: boolean = false; // jag::oldscape::javapal::GameShell::m_focusIn
     playerOp: (string | null)[] = new TypedArray1d(5, null);
     playerOpPriority: boolean[] = new TypedArray1d(5, false);
     mouseTracking: MouseTracking = new MouseTracking(this);
@@ -1113,7 +1113,7 @@ export class Client extends GameShell {
 
     private drawError(): void {
         canvas2d.fillStyle = 'black';
-        canvas2d.fillRect(0, 0, this.width, this.height);
+        canvas2d.fillRect(0, 0, this.sWid, this.sHei);
 
         this.setFramerate(1);
 
@@ -1320,8 +1320,8 @@ export class Client extends GameShell {
     // jag::oldscape::TitleScreen::Loop
     private async titleScreenLoop(): Promise<void> {
         if (this.loginscreen === 0) {
-            let x: number = ((this.width / 2) | 0) - 80;
-            let y: number = ((this.height / 2) | 0) + 20;
+            let x: number = ((this.sWid / 2) | 0) - 80;
+            let y: number = ((this.sHei / 2) | 0) + 20;
 
             y += 20;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
@@ -1329,7 +1329,7 @@ export class Client extends GameShell {
                 this.loginSelect = 0;
             }
 
-            x = ((this.width / 2) | 0) + 80;
+            x = ((this.sWid / 2) | 0) + 80;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
                 this.loginMes1 = '';
                 this.loginMes2 = 'Enter your username & password.';
@@ -1337,7 +1337,7 @@ export class Client extends GameShell {
                 this.loginSelect = 0;
             }
         } else if (this.loginscreen === 2) {
-            let y: number = ((this.height / 2) | 0) - 40;
+            let y: number = ((this.sHei / 2) | 0) - 40;
             y += 30;
 
             y += 25;
@@ -1351,8 +1351,8 @@ export class Client extends GameShell {
             }
             // y += 15; dead code
 
-            let x = ((this.width / 2) | 0) - 80;
-            y = ((this.height / 2) | 0) + 50;
+            let x = ((this.sWid / 2) | 0) - 80;
+            y = ((this.sHei / 2) | 0) + 50;
             y += 20;
 
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
@@ -1363,7 +1363,7 @@ export class Client extends GameShell {
                 }
             }
 
-            x = ((this.width / 2) | 0) + 80;
+            x = ((this.sWid / 2) | 0) + 80;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
                 this.loginscreen = 0;
                 this.loginUser = '';
@@ -1420,8 +1420,8 @@ export class Client extends GameShell {
                 }
             }
         } else if (this.loginscreen === 3) {
-            const x: number = (this.width / 2) | 0;
-            let y: number = ((this.height / 2) | 0) + 50;
+            const x: number = (this.sWid / 2) | 0;
+            let y: number = ((this.sHei / 2) | 0) + 50;
 
             y += 20;
             if (this.mouseClickButton === 1 && this.mouseClickX >= x - 75 && this.mouseClickX <= x + 75 && this.mouseClickY >= y - 20 && this.mouseClickY <= y + 20) {
@@ -1509,8 +1509,8 @@ export class Client extends GameShell {
                 this.prevMouseClickTime = 0;
                 this.mouseTrackedDelta = 0;
                 this.mouseTracking.length = 0;
-                this.hasFocus = true;
-                this.focused = true;
+                this.focus = true;
+                this.focusIn = true;
                 this.ingame = true;
                 this.out.pos = 0;
                 this.in.pos = 0;
@@ -1544,8 +1544,8 @@ export class Client extends GameShell {
                 this.orbitCameraYaw = (((Math.random() * 20.0) | 0) - 10) & 0x7ff;
 
                 this.minimapLevel = -1;
-                this.flagTileX = 0;
-                this.flagTileZ = 0;
+                this.minimapFlagX = 0;
+                this.minimapFlagZ = 0;
 
                 this.playerCount = 0;
                 this.npcCount = 0;
@@ -1907,12 +1907,12 @@ export class Client extends GameShell {
                 this.out.p2(this.orbitCameraYaw);
             }
 
-            if (this.hasFocus && !this.focused) {
-                this.focused = true;
+            if (this.focus && !this.focusIn) {
+                this.focusIn = true;
                 this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
                 this.out.p1(1);
-            } else if (!this.hasFocus && this.focused) {
-                this.focused = false;
+            } else if (!this.focus && this.focusIn) {
+                this.focusIn = false;
                 this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
                 this.out.p1(0);
             }
@@ -1980,7 +1980,7 @@ export class Client extends GameShell {
 
                     if (this.objGrabThreshold && this.objDragCycles >= 5) {
                         this.hoveredSlotParentId = -1;
-                        this.handleInput();
+                        this.buildMinimenu();
 
                         if (this.hoveredSlotParentId === this.objDragLayerId && this.hoveredSlot !== this.objDragSlot) {
                             const com: IfType = IfType.list[this.objDragLayerId];
@@ -2191,7 +2191,7 @@ export class Client extends GameShell {
         this.fontPlain12?.centreString(256, 158, 'Please wait - attempting to reestablish', Colors.WHITE);
         this.areaViewport?.draw(4, 4);
 
-        this.flagTileX = 0;
+        this.minimapFlagX = 0;
 
         this.stream?.close();
 
@@ -2609,7 +2609,8 @@ export class Client extends GameShell {
         }
     }
 
-    private handleInput(): void {
+    // jag::oldscape::minimenu::Minimenu::Build
+    private buildMinimenu(): void {
         if (this.objDragArea !== 0) {
             return;
         }
@@ -2618,15 +2619,15 @@ export class Client extends GameShell {
         this.menuAction[0] = MenuAction.CANCEL;
         this.menuSize = 1;
 
-        this.handlePrivateChatInput();
+        this.addPrivateChatOptions();
         this.lastOverLayerId = 0;
 
         // the main viewport area
         if (this.mouseX > 4 && this.mouseY > 4 && this.mouseX < 516 && this.mouseY < 338) {
             if (this.mainLayerId === -1) {
-                this.handleViewportOptions();
+                this.addViewportOptions();
             } else {
-                this.handleComponentInput(IfType.list[this.mainLayerId], this.mouseX, this.mouseY, 4, 4, 0);
+                this.addComponentOptions(IfType.list[this.mainLayerId], this.mouseX, this.mouseY, 4, 4, 0);
             }
         }
 
@@ -2639,9 +2640,9 @@ export class Client extends GameShell {
         // the sidebar/tabs area
         if (this.mouseX > 553 && this.mouseY > 205 && this.mouseX < 743 && this.mouseY < 466) {
             if (this.sideLayerId !== -1) {
-                this.handleComponentInput(IfType.list[this.sideLayerId], this.mouseX, this.mouseY, 553, 205, 0);
+                this.addComponentOptions(IfType.list[this.sideLayerId], this.mouseX, this.mouseY, 553, 205, 0);
             } else if (this.sideTabLayerId[this.sideTab] !== -1) {
-                this.handleComponentInput(IfType.list[this.sideTabLayerId[this.sideTab]], this.mouseX, this.mouseY, 553, 205, 0);
+                this.addComponentOptions(IfType.list[this.sideTabLayerId[this.sideTab]], this.mouseX, this.mouseY, 553, 205, 0);
             }
         }
 
@@ -2655,9 +2656,9 @@ export class Client extends GameShell {
         // the chatbox area
         if (this.mouseX > 17 && this.mouseY > 357 && this.mouseX < 426 && this.mouseY < 453) {
             if (this.chatLayerId !== -1) {
-                this.handleComponentInput(IfType.list[this.chatLayerId], this.mouseX, this.mouseY, 17, 357, 0);
+                this.addComponentOptions(IfType.list[this.chatLayerId], this.mouseX, this.mouseY, 17, 357, 0);
             } else if (this.mouseY < 434) {
-                this.handleChatMouseInput(this.mouseX - 17, this.mouseY - 357);
+                this.addChatOptions(this.mouseX - 17, this.mouseY - 357);
             }
         }
 
@@ -2698,7 +2699,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handlePrivateChatInput(): void {
+    private addPrivateChatOptions(): void {
         if (this.splitPrivateChat === 0) {
             return;
         }
@@ -2755,7 +2756,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handleChatMouseInput(_mouseX: number, mouseY: number): void {
+    private addChatOptions(_mouseX: number, mouseY: number): void {
         let line: number = 0;
         for (let i: number = 0; i < 100; i++) {
             if (!this.messageText[i]) {
@@ -2838,7 +2839,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handleViewportOptions(): void {
+    private addViewportOptions(): void {
         if (this.objSelected === 0 && this.spellSelected === 0) {
             this.menuOption[this.menuSize] = 'Walk here';
             this.menuAction[this.menuSize] = MenuAction.WALK;
@@ -4326,7 +4327,7 @@ export class Client extends GameShell {
 
         const logo: Pix32 = Pix32.load(this.jagTitle, 'logo');
         this.imageTitle2?.bind();
-        logo.plotSprite(((this.width / 2) | 0) - ((logo.wi / 2) | 0) - 128, 18);
+        logo.plotSprite(((this.sWid / 2) | 0) - ((logo.wi / 2) | 0) - 128, 18);
     }
 
     private loadTitleImages(): void {
@@ -4870,8 +4871,8 @@ export class Client extends GameShell {
             return;
         }
 
-        if (this.localPlayer.x >> 7 === this.flagTileX && this.localPlayer.z >> 7 === this.flagTileZ) {
-            this.flagTileX = 0;
+        if (this.localPlayer.x >> 7 === this.minimapFlagX && this.localPlayer.z >> 7 === this.minimapFlagZ) {
+            this.minimapFlagX = 0;
 
             Client.cyclelogic6++;
             if (Client.cyclelogic6 > 122) {
@@ -5545,10 +5546,10 @@ export class Client extends GameShell {
         this.getSpecialArea();
 
         if (!this.menuVisible) {
-            this.handleInput();
+            this.buildMinimenu();
             this.drawTooltip();
         } else if (this.menuArea === 0) {
-            this.drawMenu();
+            this.drawMinimenu();
         }
 
         if (this.inMultizone === 1) {
@@ -5710,7 +5711,7 @@ export class Client extends GameShell {
         this.fontBold12?.drawStringAntiMacro(4, 15, tooltip, Colors.WHITE, true, (this.loopCycle / 1000) | 0);
     }
 
-    private drawMenu(): void {
+    private drawMinimenu(): void {
         const x: number = this.menuX;
         const y: number = this.menuY;
         const w: number = this.menuWidth;
@@ -5980,8 +5981,8 @@ export class Client extends GameShell {
         for (let x: number = 0; x < sceneWidth; x++) {
             for (let z: number = 0; z < sceneLength; z++) {
                 const index: number = CollisionMap.index(x, z);
-                this.bfsDirection[index] = 0;
-                this.bfsCost[index] = 99999999;
+                this.dirMap[index] = 0;
+                this.distMap[index] = 99999999;
             }
         }
 
@@ -5989,22 +5990,22 @@ export class Client extends GameShell {
         let z: number = srcZ;
 
         const srcIndex: number = CollisionMap.index(srcX, srcZ);
-        this.bfsDirection[srcIndex] = 99;
-        this.bfsCost[srcIndex] = 0;
+        this.dirMap[srcIndex] = 99;
+        this.distMap[srcIndex] = 0;
 
         let steps: number = 0;
         let length: number = 0;
 
-        this.bfsStepX[steps] = srcX;
-        this.bfsStepZ[steps++] = srcZ;
+        this.routeX[steps] = srcX;
+        this.routeZ[steps++] = srcZ;
 
         let arrived: boolean = false;
-        let bufferSize: number = this.bfsStepX.length;
+        let bufferSize: number = this.routeX.length;
         const flags: Int32Array = collisionMap.flags;
 
         while (length !== steps) {
-            x = this.bfsStepX[length];
-            z = this.bfsStepZ[length];
+            x = this.routeX[length];
+            z = this.routeZ[length];
             length = (length + 1) % bufferSize;
 
             if (x === dx && z === dz) {
@@ -6029,105 +6030,105 @@ export class Client extends GameShell {
                 break;
             }
 
-            const nextCost: number = this.bfsCost[CollisionMap.index(x, z)] + 1;
+            const nextCost: number = this.distMap[CollisionMap.index(x, z)] + 1;
             let index: number = CollisionMap.index(x - 1, z);
-            if (x > 0 && this.bfsDirection[index] === 0 && (flags[index] & CollisionFlag.BLOCK_WEST) === CollisionFlag.OPEN) {
-                this.bfsStepX[steps] = x - 1;
-                this.bfsStepZ[steps] = z;
+            if (x > 0 && this.dirMap[index] === 0 && (flags[index] & CollisionFlag.BLOCK_WEST) === CollisionFlag.OPEN) {
+                this.routeX[steps] = x - 1;
+                this.routeZ[steps] = z;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 2;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 2;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x + 1, z);
-            if (x < sceneWidth - 1 && this.bfsDirection[index] === 0 && (flags[index] & CollisionFlag.BLOCK_EAST) === CollisionFlag.OPEN) {
-                this.bfsStepX[steps] = x + 1;
-                this.bfsStepZ[steps] = z;
+            if (x < sceneWidth - 1 && this.dirMap[index] === 0 && (flags[index] & CollisionFlag.BLOCK_EAST) === CollisionFlag.OPEN) {
+                this.routeX[steps] = x + 1;
+                this.routeZ[steps] = z;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 8;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 8;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x, z - 1);
-            if (z > 0 && this.bfsDirection[index] === 0 && (flags[index] & CollisionFlag.BLOCK_SOUTH) === CollisionFlag.OPEN) {
-                this.bfsStepX[steps] = x;
-                this.bfsStepZ[steps] = z - 1;
+            if (z > 0 && this.dirMap[index] === 0 && (flags[index] & CollisionFlag.BLOCK_SOUTH) === CollisionFlag.OPEN) {
+                this.routeX[steps] = x;
+                this.routeZ[steps] = z - 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 1;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 1;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x, z + 1);
-            if (z < sceneLength - 1 && this.bfsDirection[index] === 0 && (flags[index] & CollisionFlag.BLOCK_NORTH) === CollisionFlag.OPEN) {
-                this.bfsStepX[steps] = x;
-                this.bfsStepZ[steps] = z + 1;
+            if (z < sceneLength - 1 && this.dirMap[index] === 0 && (flags[index] & CollisionFlag.BLOCK_NORTH) === CollisionFlag.OPEN) {
+                this.routeX[steps] = x;
+                this.routeZ[steps] = z + 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 4;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 4;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x - 1, z - 1);
             if (
                 x > 0 &&
                 z > 0 &&
-                this.bfsDirection[index] === 0 &&
+                this.dirMap[index] === 0 &&
                 (flags[index] & CollisionFlag.BLOCK_SOUTH_WEST) === 0 &&
                 (flags[CollisionMap.index(x - 1, z)] & CollisionFlag.BLOCK_WEST) === CollisionFlag.OPEN &&
                 (flags[CollisionMap.index(x, z - 1)] & CollisionFlag.BLOCK_SOUTH) === CollisionFlag.OPEN
             ) {
-                this.bfsStepX[steps] = x - 1;
-                this.bfsStepZ[steps] = z - 1;
+                this.routeX[steps] = x - 1;
+                this.routeZ[steps] = z - 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 3;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 3;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x + 1, z - 1);
             if (
                 x < sceneWidth - 1 &&
                 z > 0 &&
-                this.bfsDirection[index] === 0 &&
+                this.dirMap[index] === 0 &&
                 (flags[index] & CollisionFlag.BLOCK_SOUTH_EAST) === 0 &&
                 (flags[CollisionMap.index(x + 1, z)] & CollisionFlag.BLOCK_EAST) === CollisionFlag.OPEN &&
                 (flags[CollisionMap.index(x, z - 1)] & CollisionFlag.BLOCK_SOUTH) === CollisionFlag.OPEN
             ) {
-                this.bfsStepX[steps] = x + 1;
-                this.bfsStepZ[steps] = z - 1;
+                this.routeX[steps] = x + 1;
+                this.routeZ[steps] = z - 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 9;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 9;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x - 1, z + 1);
             if (
                 x > 0 &&
                 z < sceneLength - 1 &&
-                this.bfsDirection[index] === 0 &&
+                this.dirMap[index] === 0 &&
                 (flags[index] & CollisionFlag.BLOCK_NORTH_WEST) === 0 &&
                 (flags[CollisionMap.index(x - 1, z)] & CollisionFlag.BLOCK_WEST) === CollisionFlag.OPEN &&
                 (flags[CollisionMap.index(x, z + 1)] & CollisionFlag.BLOCK_NORTH) === CollisionFlag.OPEN
             ) {
-                this.bfsStepX[steps] = x - 1;
-                this.bfsStepZ[steps] = z + 1;
+                this.routeX[steps] = x - 1;
+                this.routeZ[steps] = z + 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 6;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 6;
+                this.distMap[index] = nextCost;
             }
 
             index = CollisionMap.index(x + 1, z + 1);
             if (
                 x < sceneWidth - 1 &&
                 z < sceneLength - 1 &&
-                this.bfsDirection[index] === 0 &&
+                this.dirMap[index] === 0 &&
                 (flags[index] & CollisionFlag.BLOCK_NORTH_EAST) === 0 &&
                 (flags[CollisionMap.index(x + 1, z)] & CollisionFlag.BLOCK_EAST) === CollisionFlag.OPEN &&
                 (flags[CollisionMap.index(x, z + 1)] & CollisionFlag.BLOCK_NORTH) === CollisionFlag.OPEN
             ) {
-                this.bfsStepX[steps] = x + 1;
-                this.bfsStepZ[steps] = z + 1;
+                this.routeX[steps] = x + 1;
+                this.routeZ[steps] = z + 1;
                 steps = (steps + 1) % bufferSize;
-                this.bfsDirection[index] = 12;
-                this.bfsCost[index] = nextCost;
+                this.dirMap[index] = 12;
+                this.distMap[index] = nextCost;
             }
         }
 
@@ -6140,8 +6141,8 @@ export class Client extends GameShell {
                     for (let px: number = dx - padding; px <= dx + padding; px++) {
                         for (let pz: number = dz - padding; pz <= dz + padding; pz++) {
                             const index: number = CollisionMap.index(px, pz);
-                            if (px >= 0 && pz >= 0 && px < CollisionConstants.SIZE && pz < CollisionConstants.SIZE && this.bfsCost[index] < min) {
-                                min = this.bfsCost[index];
+                            if (px >= 0 && pz >= 0 && px < CollisionConstants.SIZE && pz < CollisionConstants.SIZE && this.distMap[index] < min) {
+                                min = this.distMap[index];
                                 x = px;
                                 z = pz;
                                 this.tryMoveNearest = 1;
@@ -6162,16 +6163,16 @@ export class Client extends GameShell {
         }
 
         length = 0;
-        this.bfsStepX[length] = x;
-        this.bfsStepZ[length++] = z;
+        this.routeX[length] = x;
+        this.routeZ[length++] = z;
 
-        let dir: number = this.bfsDirection[CollisionMap.index(x, z)];
+        let dir: number = this.dirMap[CollisionMap.index(x, z)];
         let next: number = dir;
         while (x !== srcX || z !== srcZ) {
             if (next !== dir) {
                 dir = next;
-                this.bfsStepX[length] = x;
-                this.bfsStepZ[length++] = z;
+                this.routeX[length] = x;
+                this.routeZ[length++] = z;
             }
 
             if ((next & DirectionFlag.EAST) !== 0) {
@@ -6186,15 +6187,15 @@ export class Client extends GameShell {
                 z--;
             }
 
-            next = this.bfsDirection[CollisionMap.index(x, z)];
+            next = this.dirMap[CollisionMap.index(x, z)];
         }
 
         if (length > 0) {
             bufferSize = Math.min(length, 25); // max number of turns in a single pf request
             length--;
 
-            const startX: number = this.bfsStepX[length];
-            const startZ: number = this.bfsStepZ[length];
+            const startX: number = this.routeX[length];
+            const startZ: number = this.routeZ[length];
 
             if (type === 0) {
                 this.out.pIsaac(ClientProt.MOVE_GAMECLICK);
@@ -6216,13 +6217,13 @@ export class Client extends GameShell {
             this.out.p2(startX + this.mapBuildBaseX);
             this.out.p2(startZ + this.mapBuildBaseZ);
 
-            this.flagTileX = this.bfsStepX[0];
-            this.flagTileZ = this.bfsStepZ[0];
+            this.minimapFlagX = this.routeX[0];
+            this.minimapFlagZ = this.routeZ[0];
 
             for (let i: number = 1; i < bufferSize; i++) {
                 length--;
-                this.out.p1(this.bfsStepX[length] - startX);
-                this.out.p1(this.bfsStepZ[length] - startZ);
+                this.out.p1(this.routeX[length] - startX);
+                this.out.p1(this.routeZ[length] - startZ);
             }
 
             return true;
@@ -6962,7 +6963,7 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.UNSET_MAP_FLAG) {
-                this.flagTileX = 0;
+                this.minimapFlagX = 0;
 
                 this.ptype = -1;
                 return true;
@@ -7306,9 +7307,9 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (this.flagTileX !== 0) {
-                    this.flagTileX -= dx;
-                    this.flagTileZ -= dz;
+                if (this.minimapFlagX !== 0) {
+                    this.minimapFlagX -= dx;
+                    this.minimapFlagZ -= dz;
                 }
 
                 this.cinemaCam = false;
@@ -9404,6 +9405,7 @@ export class Client extends GameShell {
         this.redrawSidebar = true;
     }
 
+    // jag::oldscape::minimenu::Minimenu::AddNpcOptions
     private addNpcOptions(npc: NpcType, a: number, b: number, c: number): void {
         if (this.menuSize >= 400) {
             return;
@@ -9411,7 +9413,7 @@ export class Client extends GameShell {
 
         let tooltip: string | null = npc.name;
         if (npc.vislevel !== 0 && this.localPlayer) {
-            tooltip = tooltip + this.getCombatLevelTag(this.localPlayer.combatLevel, npc.vislevel) + ' (level-' + npc.vislevel + ')';
+            tooltip = tooltip + this.combatColourCode(this.localPlayer.combatLevel, npc.vislevel) + ' (level-' + npc.vislevel + ')';
         }
 
         if (this.objSelected === 1) {
@@ -9494,6 +9496,7 @@ export class Client extends GameShell {
         }
     }
 
+    // jag::oldscape::minimenu::Minimenu::AddPlayerOptions
     private addPlayerOptions(player: ClientPlayer, a: number, b: number, c: number): void {
         if (player === this.localPlayer || this.menuSize >= 400) {
             return;
@@ -9501,7 +9504,7 @@ export class Client extends GameShell {
 
         let tooltip: string | null = null;
         if (this.localPlayer) {
-            tooltip = player.name + this.getCombatLevelTag(this.localPlayer.combatLevel, player.combatLevel) + ' (level-' + player.combatLevel + ')';
+            tooltip = player.name + this.combatColourCode(this.localPlayer.combatLevel, player.combatLevel) + ' (level-' + player.combatLevel + ')';
         }
 
         if (this.objSelected === 1) {
@@ -9565,7 +9568,8 @@ export class Client extends GameShell {
         }
     }
 
-    private getCombatLevelTag(viewerLevel: number, otherLevel: number): string {
+    // jag::oldscape::minimenu::Minimenu::CombatColourCode
+    private combatColourCode(viewerLevel: number, otherLevel: number): string {
         const diff: number = viewerLevel - otherLevel;
         if (diff < -9) {
             return '@red@';
@@ -10236,7 +10240,8 @@ export class Client extends GameShell {
         }
     }
 
-    private handleComponentInput(com: IfType, mouseX: number, mouseY: number, x: number, y: number, scrollPosition: number): void {
+    // jag::oldscape::minimenu::Minimenu::AddComponent
+    private addComponentOptions(com: IfType, mouseX: number, mouseY: number, x: number, y: number, scrollPosition: number): void {
         if (com.type !== 0 || !com.children || com.hidden || mouseX < x || mouseY < y || mouseX > x + com.width || mouseY > y + com.height || !com.childX || !com.childY) {
             return;
         }
@@ -10259,7 +10264,7 @@ export class Client extends GameShell {
             }
 
             if (child.type === 0) {
-                this.handleComponentInput(child, mouseX, mouseY, childX, childY, child.scrollPos);
+                this.addComponentOptions(child, mouseX, mouseY, childX, childY, child.scrollPos);
 
                 if (child.scrollSize > child.height) {
                     this.doScrollbar(mouseX, mouseY, child.scrollSize, child.height, true, childX + child.width, childY, child);
@@ -11041,7 +11046,7 @@ export class Client extends GameShell {
         }
 
         if (this.menuVisible && this.menuArea === 1) {
-            this.drawMenu();
+            this.drawMinimenu();
         }
 
         this.areaSidebar?.draw(553, 205);
@@ -11195,7 +11200,7 @@ export class Client extends GameShell {
         }
 
         if (this.menuVisible && this.menuArea === 2) {
-            this.drawMenu();
+            this.drawMinimenu();
         }
 
         this.areaChatback?.draw(17, 357);
@@ -11293,9 +11298,9 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.flagTileX !== 0) {
-            anchorX = ((this.flagTileX * 4) + 2) - ((this.localPlayer.x / 32) | 0);
-            anchorY = ((this.flagTileZ * 4) + 2) - ((this.localPlayer.z / 32) | 0);
+        if (this.minimapFlagX !== 0) {
+            anchorX = ((this.minimapFlagX * 4) + 2) - ((this.localPlayer.x / 32) | 0);
+            anchorY = ((this.minimapFlagZ * 4) + 2) - ((this.localPlayer.z / 32) | 0);
             this.drawOnMinimap(anchorY, this.mapmarker1, anchorX);
         }
 

@@ -10,14 +10,14 @@ import { sleep } from '#/util/JsUtil.js';
 
 export default abstract class GameShell {
     protected state: number = 0;
-    protected deltime: number = 20;
-    protected mindel: number = 1;
+    protected deltime: number = 20; // jag::oldscape::javapal::GameShell::m_delTime
+    protected mindel: number = 1; // jag::oldscape::javapal::GameShell::m_minDel
     protected otim: number[] = new Array(10);
-    protected fps: number = 0;
+    protected fps: number = 0; // jag::oldscape::javapal::GameShell::m_fps
     protected debug: boolean = false;
     protected drawArea: PixMap | null = null;
     protected redrawScreen: boolean = true;
-    protected hasFocus: boolean = true;
+    protected focus: boolean = true; // jag::oldscape::javapal::GameShell::m_focus
 
     public idleCycle: number = performance.now();
     public mouseButton: number = 0;
@@ -37,12 +37,12 @@ export default abstract class GameShell {
     protected keyQueueReadPos: number = 0;
     protected keyQueueWritePos: number = 0;
 
-    // custom
+    /// custom
     protected resizeToFit: boolean = false;
     protected tfps: number = 50;
     protected ingame: boolean = false;
 
-    // touch controls
+    /// touch controls
     private startedInViewport: boolean = false;
     private startedInTabArea: boolean = false;
     private startedInChatScroll: boolean = false;
@@ -84,11 +84,13 @@ export default abstract class GameShell {
         }
     }
 
-    protected get width(): number {
+    // jag::oldscape::javapal::GameShell::m_sWid
+    protected get sWid(): number {
         return canvas.width;
     }
 
-    protected get height(): number {
+    // jag::oldscape::javapal::GameShell::m_sHei
+    protected get sHei(): number {
         return canvas.height;
     }
 
@@ -282,8 +284,8 @@ export default abstract class GameShell {
     }
 
     protected async drawProgress(progress: number, message: string): Promise<void> {
-        const width: number = this.width;
-        const height: number = this.height;
+        const width: number = this.sWid;
+        const height: number = this.sHei;
 
         if (this.redrawScreen) {
             canvas2d.fillStyle = 'black';
@@ -690,7 +692,7 @@ export default abstract class GameShell {
     }
 
     private onfocus(_e: FocusEvent) {
-        this.hasFocus = true;
+        this.focus = true;
         this.redrawScreen = true;
         this.refresh();
 
@@ -700,7 +702,7 @@ export default abstract class GameShell {
     }
 
     private onblur(_e: FocusEvent) {
-        this.hasFocus = false;
+        this.focus = false;
 
         // custom: taken from later version to release all keys
         for (let i = 0; i < 128; i++) {
@@ -850,8 +852,8 @@ export default abstract class GameShell {
     }
 
     private getMousePos(e: MouseEvent): { x: number, y: number } {
-        const fixedWidth: number = this.width;
-        const fixedHeight: number = this.height;
+        const fixedWidth: number = this.sWid;
+        const fixedHeight: number = this.sHei;
 
         const canvasBounds: DOMRect = canvas.getBoundingClientRect();
         const clickLocWithinCanvas = {

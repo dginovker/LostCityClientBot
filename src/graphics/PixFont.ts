@@ -19,7 +19,7 @@ export default class PixFont extends DoublyLinkable {
     readonly charOffsetY: Int32Array = new Int32Array(94);
     readonly charAdvance: Int32Array = new Int32Array(95);
     readonly drawWidth: Int32Array = new Int32Array(256);
-    private readonly random: JavaRandom = new JavaRandom(BigInt(Date.now()));
+    private readonly rand: JavaRandom = new JavaRandom(BigInt(Date.now())); // jag::oldscape::jstring::PixfontGeneric::m_rand
     strikeout: boolean = false;
     height2d: number = 0;
 
@@ -166,9 +166,9 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
-        const length: number = str.length;
         y -= this.height2d;
-        for (let i: number = 0; i < length; i++) {
+
+        for (let i: number = 0; i < str.length; i++) {
             const c: number = PixFont.CHARCODESET[str.charCodeAt(i)];
 
             if (c !== 94) {
@@ -240,9 +240,9 @@ export default class PixFont extends DoublyLinkable {
         x |= 0;
         y |= 0;
 
-        this.random.setSeed(BigInt(seed));
+        this.rand.setSeed(BigInt(seed));
 
-        const rand: number = (this.random.nextInt() & 0x1f) + 192;
+        const rand: number = (this.rand.nextInt() & 0x1f) + 192;
         const offY: number = y - this.height2d;
         for (let i: number = 0; i < str.length; i++) {
             if (str.charAt(i) === '@' && i + 4 < str.length && str.charAt(i + 4) === '@') {
@@ -262,7 +262,7 @@ export default class PixFont extends DoublyLinkable {
                 }
 
                 x += this.charAdvance[c];
-                if ((this.random.nextInt() & 0x3) === 0) {
+                if ((this.rand.nextInt() & 0x3) === 0) {
                     x++;
                 }
             }
@@ -323,6 +323,7 @@ export default class PixFont extends DoublyLinkable {
         this.drawString(x - this.stringWid(str), y, str, color);
     }
 
+    // jag::oldscape::jstring::PixfontGeneric::PlotLetter
     plotLetter(data: Int8Array, x: number, y: number, w: number, h: number, color: number): void {
         x |= 0;
         y |= 0;

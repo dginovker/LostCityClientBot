@@ -185,9 +185,9 @@ export class MapView extends GameShell {
     }
 
     async load(): Promise<void> {
-        this.keyHeight = this.height - this.keyY - 20;
-        this.overviewX = this.width - this.imageOverviewWidth - 5;
-        this.overviewY = this.height - this.imageOverviewHeight - 20;
+        this.keyHeight = this.sHei - this.keyY - 20;
+        this.overviewX = this.sWid - this.imageOverviewWidth - 5;
+        this.overviewY = this.sHei - this.imageOverviewHeight - 20;
 
         this.db = new Database(await Database.openDatabase());
 
@@ -288,11 +288,11 @@ export class MapView extends GameShell {
 
             Pix2D.cls();
 
-            const left: number = this.offsetX - ((this.width / this.zoom) | 0);
-            const top: number = this.offsetZ - ((this.height / this.zoom) | 0);
-            const right: number = this.offsetX + ((this.width / this.zoom) | 0);
-            const bottom: number = this.offsetZ + ((this.height / this.zoom) | 0);
-            this.renderMap(left, top, right, bottom, 0, 0, this.width, this.height);
+            const left: number = this.offsetX - ((this.sWid / this.zoom) | 0);
+            const top: number = this.offsetZ - ((this.sHei / this.zoom) | 0);
+            const right: number = this.offsetX + ((this.sWid / this.zoom) | 0);
+            const bottom: number = this.offsetZ + ((this.sHei / this.zoom) | 0);
+            this.renderMap(left, top, right, bottom, 0, 0, this.sWid, this.sHei);
 
             if (this.showOverview) {
                 this.imageOverview?.quickPlotSprite(this.overviewX, this.overviewY);
@@ -359,7 +359,7 @@ export class MapView extends GameShell {
             this.drawString(this.overviewX, this.overviewY + this.imageOverviewHeight, this.imageOverviewWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Overview');
             this.drawString(this.keyX, this.keyY + this.keyHeight, this.keyWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Key');
 
-            let y = this.height - this.keyY - 20 + 1;
+            let y = this.sHei - this.keyY - 20 + 1;
             if (this.targetZoom == 3.0) {
                 this.drawString(170, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '37%');
             } else {
@@ -462,7 +462,7 @@ export class MapView extends GameShell {
             this.lastOffsetX = this.offsetX;
             this.lastOffsetZ = this.offsetZ;
 
-            let zoomY: number = this.height - this.keyY - 20 + 1;
+            let zoomY: number = this.sHei - this.keyY - 20 + 1;
             if (this.mouseClickX > 170 && this.mouseClickX < 220 && this.mouseClickY > zoomY) {
                 this.targetZoom = 3.0;
                 this.nextMouseClickX = -1;
@@ -580,21 +580,21 @@ export class MapView extends GameShell {
             this.flashTimer--;
         }
 
-        const left: number = this.offsetX - ((this.width / this.zoom) | 0);
-        const top: number = this.offsetZ - ((this.height / this.zoom) | 0);
-        const right: number = this.offsetX + ((this.width / this.zoom) | 0);
-        const bottom: number = this.offsetZ + ((this.height / this.zoom) | 0);
+        const left: number = this.offsetX - ((this.sWid / this.zoom) | 0);
+        const top: number = this.offsetZ - ((this.sHei / this.zoom) | 0);
+        const right: number = this.offsetX + ((this.sWid / this.zoom) | 0);
+        const bottom: number = this.offsetZ + ((this.sHei / this.zoom) | 0);
         if (left < 48) {
-            this.offsetX = ((this.width / this.zoom) | 0) + 48;
+            this.offsetX = ((this.sWid / this.zoom) | 0) + 48;
         }
         if (top < 48) {
-            this.offsetZ = ((this.height / this.zoom) | 0) + 48;
+            this.offsetZ = ((this.sHei / this.zoom) | 0) + 48;
         }
         if (right > this.sizeX - 48) {
-            this.offsetX = this.sizeX - 48 - ((this.width / this.zoom) | 0);
+            this.offsetX = this.sizeX - 48 - ((this.sWid / this.zoom) | 0);
         }
         if (bottom > this.sizeZ - 48) {
-            this.offsetZ = this.sizeZ - 48 - ((this.height / this.zoom) | 0);
+            this.offsetZ = this.sizeZ - 48 - ((this.sHei / this.zoom) | 0);
         }
     }
 
