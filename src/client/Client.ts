@@ -556,10 +556,6 @@ export class Client extends GameShell {
             Client.setHighMem();
         }
 
-        if (typeof process.env.SECURE_ORIGIN !== 'undefined' && process.env.SECURE_ORIGIN !== 'false' && window.location.hostname !== process.env.SECURE_ORIGIN) {
-            this.errorHost = true;
-        }
-
         this.run();
     }
 
@@ -595,6 +591,10 @@ export class Client extends GameShell {
         }
 
         this.alreadyStarted = true;
+
+        if (typeof process.env.SECURE_ORIGIN !== 'undefined' && process.env.SECURE_ORIGIN !== 'false' && window.location.hostname !== process.env.SECURE_ORIGIN) {
+            this.errorHost = true;
+        }
 
         try {
             this.db = new Database(await Database.openDatabase());
@@ -1449,8 +1449,8 @@ export class Client extends GameShell {
                 await this.stream.read();
             }
 
-            let reply: number = await this.stream.read();
-            if (reply === 0) {
+            let response: number = await this.stream.read();
+            if (response === 0) {
                 await this.stream.readBytes(this.in.data, 0, 8);
                 this.in.pos = 0;
 
@@ -1491,13 +1491,13 @@ export class Client extends GameShell {
                 this.randomIn = new Isaac(seed);
                 this.stream?.write(this.loginout.data, this.loginout.pos);
 
-                reply = await this.stream.read();
+                response = await this.stream.read();
             }
 
-            if (reply === 1) {
+            if (response === 1) {
                 await sleep(2000);
                 await this.login(username, password, reconnect);
-            } else if (reply === 2) {
+            } else if (response === 2) {
                 this.staffmodlevel = await this.stream.read();
                 this.mouseTracked = await this.stream.read() === 1;
 
@@ -1608,43 +1608,43 @@ export class Client extends GameShell {
                 Client.oplogic10 = 0;
 
                 this.prepareGame();
-            } else if (reply === 3) {
+            } else if (response === 3) {
                 this.loginMes1 = '';
                 this.loginMes2 = 'Invalid username or password.';
-            } else if (reply === 4) {
+            } else if (response === 4) {
                 this.loginMes1 = 'Your account has been disabled.';
                 this.loginMes2 = 'Please check your message-centre for details.';
-            } else if (reply === 5) {
+            } else if (response === 5) {
                 this.loginMes1 = 'Your account is already logged in.';
                 this.loginMes2 = 'Try again in 60 secs...';
-            } else if (reply === 6) {
+            } else if (response === 6) {
                 this.loginMes1 = 'RuneScape has been updated!';
                 this.loginMes2 = 'Please reload this page.';
-            } else if (reply === 7) {
+            } else if (response === 7) {
                 this.loginMes1 = 'This world is full.';
                 this.loginMes2 = 'Please use a different world.';
-            } else if (reply === 8) {
+            } else if (response === 8) {
                 this.loginMes1 = 'Unable to connect.';
                 this.loginMes2 = 'Login server offline.';
-            } else if (reply === 9) {
+            } else if (response === 9) {
                 this.loginMes1 = 'Login limit exceeded.';
                 this.loginMes2 = 'Too many connections from your address.';
-            } else if (reply === 10) {
+            } else if (response === 10) {
                 this.loginMes1 = 'Unable to connect.';
                 this.loginMes2 = 'Bad session id.';
-            } else if (reply === 11) {
+            } else if (response === 11) {
                 this.loginMes2 = 'Login server rejected session.'; // intentionally loginMessage1
                 this.loginMes2 = 'Please try again.';
-            } else if (reply === 12) {
+            } else if (response === 12) {
                 this.loginMes1 = 'You need a members account to login to this world.';
                 this.loginMes2 = 'Please subscribe, or use a different world.';
-            } else if (reply === 13) {
+            } else if (response === 13) {
                 this.loginMes1 = 'Could not complete login.';
                 this.loginMes2 = 'Please try using a different world.';
-            } else if (reply === 14) {
+            } else if (response === 14) {
                 this.loginMes1 = 'The server is being updated.';
                 this.loginMes2 = 'Please wait 1 minute and try again.';
-            } else if (reply === 15) {
+            } else if (response === 15) {
                 this.ingame = true;
                 this.out.pos = 0;
                 this.in.pos = 0;
@@ -1658,16 +1658,16 @@ export class Client extends GameShell {
                 this.menuSize = 0;
                 this.menuVisible = false;
                 this.sceneLoadStartTime = performance.now();
-            } else if (reply === 16) {
+            } else if (response === 16) {
                 this.loginMes1 = 'Login attempts exceeded.';
                 this.loginMes2 = 'Please wait 1 minute and try again.';
-            } else if (reply === 17) {
+            } else if (response === 17) {
                 this.loginMes1 = 'You are standing in a members-only area.';
                 this.loginMes2 = 'To play on this world move to a free area first';
-            } else if (reply === 20) {
+            } else if (response === 20) {
                 this.loginMes1 = 'Invalid loginserver requested';
                 this.loginMes2 = 'Please try using a different world.';
-            } else if (reply === 21) {
+            } else if (response === 21) {
                 for (let remaining = await this.stream.read(); remaining >= 0; remaining--) {
                     this.loginMes1 = 'You have only just left another world';
                     this.loginMes2 = 'Your profile will be transferred in: ' + remaining + ' seconds.';
@@ -1678,14 +1678,19 @@ export class Client extends GameShell {
 
                 await this.login(username, password, reconnect);
             } else {
+                console.log('response:' + response);
                 this.loginMes1 = 'Unexpected server response';
                 this.loginMes2 = 'Please try using a different world.';
             }
-        } catch (err) {
-            console.error(err);
-
-            this.loginMes1 = '';
-            this.loginMes2 = 'Error connecting to server.';
+        } catch (e) {
+            if (e instanceof WebSocket && e.readyState === 3) {
+                // IO error
+                this.loginMes1 = '';
+                this.loginMes2 = 'Error connecting to server.';
+            } else {
+                // exceptions in Java get stuck permanently on "Connecting to server..."
+                throw e;
+            }
         }
     }
 
@@ -1782,394 +1787,399 @@ export class Client extends GameShell {
 
         const now = performance.now();
 
-        if (this.ingame) {
-            if (!this.mouseTracked) {
-                this.mouseTracking.length = 0;
-            } else if (this.mouseClickButton !== 0 || this.mouseTracking.length >= 40) {
-                this.out.pIsaac(ClientProt.EVENT_MOUSE_MOVE);
-                this.out.p1(0);
-                const start = this.out.pos;
-                let count = 0;
+        if (!this.ingame) {
+            return;
+        }
 
-                // custom: Java client checks `start - this.out.pos < 240` but this is obviously wrong
-                //   and will lead to an invalid packet if the user is buffering a lot of mouse movements (i.e. while disconnected)
-                for (let i = 0; i < this.mouseTracking.length && this.out.pos - start < 240; i++) {
-                    count++;
+        if (!this.mouseTracked) {
+            this.mouseTracking.length = 0;
+        } else if (this.mouseClickButton !== 0 || this.mouseTracking.length >= 40) {
+            this.out.pIsaac(ClientProt.EVENT_MOUSE_MOVE);
+            this.out.p1(0);
+            const start = this.out.pos;
+            let count = 0;
 
-                    let y = this.mouseTracking.y[i];
-                    if (y < 0) {
-                        y = 0;
-                    } else if (y > 502) {
-                        y = 502;
-                    }
+            // custom: Java client checks `start - this.out.pos < 240` but this is obviously wrong
+            //   and will lead to an invalid packet if the user is buffering a lot of mouse movements (i.e. while disconnected)
+            for (let i = 0; i < this.mouseTracking.length && this.out.pos - start < 240; i++) {
+                count++;
 
-                    let x = this.mouseTracking.x[i];
-                    if (x < 0) {
-                        x = 0;
-                    } else if (x > 764) {
-                        x = 764;
-                    }
-
-                    let pos = y * 765 + x;
-                    if (this.mouseTracking.y[i] === -1 && this.mouseTracking.x[i] === -1) {
-                        x = -1;
-                        y = -1;
-                        pos = 0x7FFFF;
-                    }
-
-                    if (x !== this.mouseTrackedX || y !== this.mouseTrackedY) {
-                        let dx = x - this.mouseTrackedX;
-                        this.mouseTrackedX = x;
-                        let dy = y - this.mouseTrackedY;
-                        this.mouseTrackedY = y;
-
-                        if (this.mouseTrackedDelta < 8 && dx >= -32 && dx <= 31 && dy >= -32 && dy <= 31) {
-                            dx += 32;
-                            dy += 32;
-                            this.out.p2((this.mouseTrackedDelta << 12) + (dx << 6) + dy);
-                            this.mouseTrackedDelta = 0;
-                        } else if (this.mouseTrackedDelta < 8) {
-                            this.out.p3(0x800000 + (this.mouseTrackedDelta << 19) + pos);
-                            this.mouseTrackedDelta = 0;
-                        } else {
-                            this.out.p4(0xC0000000 + (this.mouseTrackedDelta << 19) + pos);
-                            this.mouseTrackedDelta = 0;
-                        }
-                    } else if (this.mouseTrackedDelta < 2047) {
-                        this.mouseTrackedDelta++;
-                    }
-                }
-
-                this.out.psize1(this.out.pos - start);
-
-                if (count >= this.mouseTracking.length) {
-                    this.mouseTracking.length = 0;
-                } else {
-                    this.mouseTracking.length -= count;
-
-                    for (let i = 0; i < this.mouseTracking.length; i++) {
-                        this.mouseTracking.x[i] = this.mouseTracking.x[i + count];
-                        this.mouseTracking.y[i] = this.mouseTracking.y[i + count];
-                    }
-                }
-            }
-
-            if (this.mouseClickButton !== 0) {
-                let delta = ((this.mouseClickTime - this.prevMouseClickTime) / 50) | 0;
-                if (delta > 4095) {
-                    delta = 4095;
-                }
-
-                this.prevMouseClickTime = this.mouseClickTime;
-
-                let y = this.mouseClickY;
+                let y = this.mouseTracking.y[i];
                 if (y < 0) {
                     y = 0;
                 } else if (y > 502) {
                     y = 502;
                 }
 
-                let x = this.mouseClickX;
+                let x = this.mouseTracking.x[i];
                 if (x < 0) {
                     x = 0;
                 } else if (x > 764) {
                     x = 764;
                 }
 
-                const pos = y * 765 + x;
-
-                let button = 0;
-                if (this.mouseClickButton === 2) {
-                    button = 1;
+                let pos = y * 765 + x;
+                if (this.mouseTracking.y[i] === -1 && this.mouseTracking.x[i] === -1) {
+                    x = -1;
+                    y = -1;
+                    pos = 0x7FFFF;
                 }
 
-                this.out.pIsaac(ClientProt.EVENT_MOUSE_CLICK);
-                this.out.p4((delta << 20) + (button << 19) + pos);
-            }
+                if (x !== this.mouseTrackedX || y !== this.mouseTrackedY) {
+                    let dx = x - this.mouseTrackedX;
+                    this.mouseTrackedX = x;
+                    let dy = y - this.mouseTrackedY;
+                    this.mouseTrackedY = y;
 
-            if (this.sendCameraDelay > 0) {
-                this.sendCameraDelay--;
-            }
-
-            if (this.keyHeld[1] === 1 || this.keyHeld[2] === 1 || this.keyHeld[3] === 1 || this.keyHeld[4] === 1) {
-                this.sendCamera = true;
-            }
-
-            if (this.sendCamera && this.sendCameraDelay <= 0) {
-                this.sendCameraDelay = 20;
-                this.sendCamera = false;
-                this.out.pIsaac(ClientProt.EVENT_CAMERA_POSITION);
-                this.out.p2(this.orbitCameraPitch);
-                this.out.p2(this.orbitCameraYaw);
-            }
-
-            if (this.focus && !this.focusIn) {
-                this.focusIn = true;
-                this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
-                this.out.p1(1);
-            } else if (!this.focus && this.focusIn) {
-                this.focusIn = false;
-                this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
-                this.out.p1(0);
-            }
-
-            this.checkMinimap();
-            this.locChangeDoQueue();
-            await this.soundsDoQueue();
-
-            const tracking: Packet | null = InputTracking.flush();
-            if (tracking) {
-                this.out.pIsaac(ClientProt.EVENT_TRACKING);
-                this.out.p2(tracking.pos);
-                this.out.pdata(tracking.data, tracking.pos, 0);
-                tracking.release();
-            }
-
-            if (now - this.packetCycle > 5_000) {
-                // no packets received in 5s, connection lost
-                await this.tryReconnect();
-            }
-
-            this.movePlayers();
-            this.moveNpcs();
-            this.timeoutChat();
-
-            this.sceneDelta++;
-
-            if (this.crossMode !== 0) {
-                this.crossCycle += 20;
-
-                if (this.crossCycle >= 400) {
-                    this.crossMode = 0;
-                }
-            }
-
-            if (this.selectedArea !== 0) {
-                this.selectedCycle++;
-
-                if (this.selectedCycle >= 15) {
-                    if (this.selectedArea === 2) {
-                        this.redrawSidebar = true;
-                    } else if (this.selectedArea === 3) {
-                        this.redrawChatback = true;
+                    if (this.mouseTrackedDelta < 8 && dx >= -32 && dx <= 31 && dy >= -32 && dy <= 31) {
+                        dx += 32;
+                        dy += 32;
+                        this.out.p2((this.mouseTrackedDelta << 12) + (dx << 6) + dy);
+                        this.mouseTrackedDelta = 0;
+                    } else if (this.mouseTrackedDelta < 8) {
+                        this.out.p3(0x800000 + (this.mouseTrackedDelta << 19) + pos);
+                        this.mouseTrackedDelta = 0;
+                    } else {
+                        this.out.p4(0xC0000000 + (this.mouseTrackedDelta << 19) + pos);
+                        this.mouseTrackedDelta = 0;
                     }
-
-                    this.selectedArea = 0;
+                } else if (this.mouseTrackedDelta < 2047) {
+                    this.mouseTrackedDelta++;
                 }
             }
 
-            if (this.objDragArea !== 0) {
-                this.objDragCycles++;
+            this.out.psize1(this.out.pos - start);
 
-                if (this.mouseX > this.objGrabX + 5 || this.mouseX < this.objGrabX - 5 || this.mouseY > this.objGrabY + 5 || this.mouseY < this.objGrabY - 5) {
-                    this.objGrabThreshold = true;
+            if (count >= this.mouseTracking.length) {
+                this.mouseTracking.length = 0;
+            } else {
+                this.mouseTracking.length -= count;
+
+                for (let i = 0; i < this.mouseTracking.length; i++) {
+                    this.mouseTracking.x[i] = this.mouseTracking.x[i + count];
+                    this.mouseTracking.y[i] = this.mouseTracking.y[i + count];
+                }
+            }
+        }
+
+        if (this.mouseClickButton !== 0) {
+            let delta = ((this.mouseClickTime - this.prevMouseClickTime) / 50) | 0;
+            if (delta > 4095) {
+                delta = 4095;
+            }
+
+            this.prevMouseClickTime = this.mouseClickTime;
+
+            let y = this.mouseClickY;
+            if (y < 0) {
+                y = 0;
+            } else if (y > 502) {
+                y = 502;
+            }
+
+            let x = this.mouseClickX;
+            if (x < 0) {
+                x = 0;
+            } else if (x > 764) {
+                x = 764;
+            }
+
+            const pos = y * 765 + x;
+
+            let button = 0;
+            if (this.mouseClickButton === 2) {
+                button = 1;
+            }
+
+            this.out.pIsaac(ClientProt.EVENT_MOUSE_CLICK);
+            this.out.p4((delta << 20) + (button << 19) + pos);
+        }
+
+        if (this.sendCameraDelay > 0) {
+            this.sendCameraDelay--;
+        }
+
+        if (this.keyHeld[1] === 1 || this.keyHeld[2] === 1 || this.keyHeld[3] === 1 || this.keyHeld[4] === 1) {
+            this.sendCamera = true;
+        }
+
+        if (this.sendCamera && this.sendCameraDelay <= 0) {
+            this.sendCameraDelay = 20;
+            this.sendCamera = false;
+            this.out.pIsaac(ClientProt.EVENT_CAMERA_POSITION);
+            this.out.p2(this.orbitCameraPitch);
+            this.out.p2(this.orbitCameraYaw);
+        }
+
+        if (this.focus && !this.focusIn) {
+            this.focusIn = true;
+            this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
+            this.out.p1(1);
+        } else if (!this.focus && this.focusIn) {
+            this.focusIn = false;
+            this.out.pIsaac(ClientProt.EVENT_APPLET_FOCUS);
+            this.out.p1(0);
+        }
+
+        this.checkMinimap();
+        this.locChangeDoQueue();
+        await this.soundsDoQueue();
+
+        const tracking: Packet | null = InputTracking.flush();
+        if (tracking) {
+            this.out.pIsaac(ClientProt.EVENT_TRACKING);
+            this.out.p2(tracking.pos);
+            this.out.pdata(tracking.data, tracking.pos, 0);
+            tracking.release();
+        }
+
+        if (now - this.packetCycle > 15_000) {
+            // no packets received recently, connection lost
+            await this.tryReconnect();
+        }
+
+        this.movePlayers();
+        this.moveNpcs();
+        this.timeoutChat();
+
+        this.sceneDelta++;
+
+        if (this.crossMode !== 0) {
+            this.crossCycle += 20;
+
+            if (this.crossCycle >= 400) {
+                this.crossMode = 0;
+            }
+        }
+
+        if (this.selectedArea !== 0) {
+            this.selectedCycle++;
+
+            if (this.selectedCycle >= 15) {
+                if (this.selectedArea === 2) {
+                    this.redrawSidebar = true;
+                } else if (this.selectedArea === 3) {
+                    this.redrawChatback = true;
                 }
 
-                if (this.mouseButton === 0) {
-                    if (this.objDragArea === 2) {
-                        this.redrawSidebar = true;
-                    } else if (this.objDragArea === 3) {
-                        this.redrawChatback = true;
-                    }
+                this.selectedArea = 0;
+            }
+        }
 
-                    this.objDragArea = 0;
+        if (this.objDragArea !== 0) {
+            this.objDragCycles++;
 
-                    if (this.objGrabThreshold && this.objDragCycles >= 5) {
-                        this.hoveredSlotParentId = -1;
-                        this.buildMinimenu();
+            if (this.mouseX > this.objGrabX + 5 || this.mouseX < this.objGrabX - 5 || this.mouseY > this.objGrabY + 5 || this.mouseY < this.objGrabY - 5) {
+                this.objGrabThreshold = true;
+            }
 
-                        if (this.hoveredSlotParentId === this.objDragLayerId && this.hoveredSlot !== this.objDragSlot) {
-                            const com: IfType = IfType.list[this.objDragLayerId];
+            if (this.mouseButton === 0) {
+                if (this.objDragArea === 2) {
+                    this.redrawSidebar = true;
+                } else if (this.objDragArea === 3) {
+                    this.redrawChatback = true;
+                }
 
-                            let mode = 0;
-                            if (this.bankArrangeMode == 1 && com.clientCode == ClientCode.CC_BANKMODE) {
-                                mode = 1;
-                            }
-                            if (com.linkObjType && com.linkObjType[this.hoveredSlot] <= 0) {
-                                mode = 0;
-                            }
+                this.objDragArea = 0;
 
-                            if (com.swappable && com.linkObjType && com.linkObjCount) {
-                                const src = this.objDragSlot;
-                                const dst = this.hoveredSlot;
+                if (this.objGrabThreshold && this.objDragCycles >= 5) {
+                    this.hoveredSlotParentId = -1;
+                    this.buildMinimenu();
 
-                                com.linkObjType[dst] = com.linkObjType[src];
-                                com.linkObjCount[dst] = com.linkObjCount[src];
-                                com.linkObjType[src] = -1;
-                                com.linkObjCount[src] = 0;
-                            } else if (mode == 1) {
-                                let src = this.objDragSlot;
-                                let dst = this.hoveredSlot;
+                    if (this.hoveredSlotParentId === this.objDragLayerId && this.hoveredSlot !== this.objDragSlot) {
+                        const com: IfType = IfType.list[this.objDragLayerId];
 
-                                while (src != dst) {
-                                    if (src > dst) {
-                                        com.swapObj(src, src - 1);
-                                        src--;
-                                    } else if (src < dst) {
-                                        com.swapObj(src, src + 1);
-                                        src++;
-                                    }
-                                }
-                            } else {
-                                com.swapObj(this.objDragSlot, this.hoveredSlot);
-                            }
-
-                            this.out.pIsaac(ClientProt.INV_BUTTOND);
-                            this.out.p2(this.objDragLayerId);
-                            this.out.p2(this.objDragSlot);
-                            this.out.p2(this.hoveredSlot);
-                            this.out.p1(mode);
+                        let mode = 0;
+                        if (this.bankArrangeMode == 1 && com.clientCode == ClientCode.CC_BANKMODE) {
+                            mode = 1;
                         }
-                    } else if ((this.oneMouseButton === 1 || this.isAddFriendOption(this.menuSize - 1)) && this.menuSize > 2) {
-                        this.showContextMenu();
-                    } else if (this.menuSize > 0) {
-                        this.useMenuOption(this.menuSize - 1);
+                        if (com.linkObjType && com.linkObjType[this.hoveredSlot] <= 0) {
+                            mode = 0;
+                        }
+
+                        if (com.swappable && com.linkObjType && com.linkObjCount) {
+                            const src = this.objDragSlot;
+                            const dst = this.hoveredSlot;
+
+                            com.linkObjType[dst] = com.linkObjType[src];
+                            com.linkObjCount[dst] = com.linkObjCount[src];
+                            com.linkObjType[src] = -1;
+                            com.linkObjCount[src] = 0;
+                        } else if (mode == 1) {
+                            let src = this.objDragSlot;
+                            let dst = this.hoveredSlot;
+
+                            while (src != dst) {
+                                if (src > dst) {
+                                    com.swapObj(src, src - 1);
+                                    src--;
+                                } else if (src < dst) {
+                                    com.swapObj(src, src + 1);
+                                    src++;
+                                }
+                            }
+                        } else {
+                            com.swapObj(this.objDragSlot, this.hoveredSlot);
+                        }
+
+                        this.out.pIsaac(ClientProt.INV_BUTTOND);
+                        this.out.p2(this.objDragLayerId);
+                        this.out.p2(this.objDragSlot);
+                        this.out.p2(this.hoveredSlot);
+                        this.out.p1(mode);
                     }
-
-                    this.selectedCycle = 10;
-                    this.mouseClickButton = 0;
+                } else if ((this.oneMouseButton === 1 || this.isAddFriendOption(this.menuSize - 1)) && this.menuSize > 2) {
+                    this.showContextMenu();
+                } else if (this.menuSize > 0) {
+                    this.useMenuOption(this.menuSize - 1);
                 }
-            }
 
-            Client.cyclelogic7++;
-            if (Client.cyclelogic7 > 62) {
-                Client.cyclelogic7 = 0;
-
-                this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC7);
-            }
-
-            if (World.groundX !== -1) {
-                if (this.localPlayer) {
-                    const x: number = World.groundX;
-                    const z: number = World.groundZ;
-                    const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], x, z, 0, 0, 0, 0, 0, 0, true);
-                    World.groundX = -1;
-
-                    if (success) {
-                        this.crossX = this.mouseClickX;
-                        this.crossY = this.mouseClickY;
-                        this.crossMode = 1;
-                        this.crossCycle = 0;
-                    }
-                }
-            }
-
-            if (this.mouseClickButton === 1 && this.modalMessage) {
-                this.modalMessage = null;
-                this.redrawChatback = true;
+                this.selectedCycle = 10;
                 this.mouseClickButton = 0;
             }
+        }
 
-            const checkClickInput = !this.isMobile || (this.isMobile && !MobileKeyboard.isWithinCanvasKeyboard(this.mouseClickX, this.mouseClickY));
+        Client.cyclelogic7++;
+        if (Client.cyclelogic7 > 62) {
+            Client.cyclelogic7 = 0;
 
-            if (checkClickInput) {
-                this.handleMouseInput();
-                this.handleMinimapInput();
-                this.handleTabInput();
-                this.handleChatModeInput();
-            }
+            this.out.pIsaac(ClientProt.ANTICHEAT_CYCLELOGIC7);
+        }
 
-            if (this.mouseButton === 1 || this.mouseClickButton === 1) {
-                this.dragCycles++;
-            }
+        if (World.groundX !== -1) {
+            if (this.localPlayer) {
+                const x: number = World.groundX;
+                const z: number = World.groundZ;
+                const success: boolean = this.tryMove(this.localPlayer.routeTileX[0], this.localPlayer.routeTileZ[0], x, z, 0, 0, 0, 0, 0, 0, true);
+                World.groundX = -1;
 
-            if (this.sceneState === 2) {
-                this.followCamera();
-            }
-
-            if (this.sceneState === 2 && this.cinemaCam) {
-                this.cinemaCamera();
-            }
-
-            for (let i: number = 0; i < 5; i++) {
-                this.camShakeCycle[i]++;
-            }
-
-            await this.handleInputKey();
-
-            if (now - this.idleCycle > 90_000) {
-                // no input in 90s, notify the server
-                this.pendingLogout = 250;
-                this.idleCycle += 10_000; // 10s backoff
-
-                this.out.pIsaac(ClientProt.IDLE_TIMER);
-            }
-
-            this.macroCameraCycle++;
-            if (this.macroCameraCycle > 500) {
-                this.macroCameraCycle = 0;
-
-                const rand: number = (Math.random() * 8.0) | 0;
-                if ((rand & 0x1) === 1) {
-                    this.macroCameraX += this.macroCameraXModifier;
-                }
-                if ((rand & 0x2) === 2) {
-                    this.macroCameraZ += this.macroCameraZModifier;
-                }
-                if ((rand & 0x4) === 4) {
-                    this.macroCameraAngle += this.macroCameraAngleModifier;
+                if (success) {
+                    this.crossX = this.mouseClickX;
+                    this.crossY = this.mouseClickY;
+                    this.crossMode = 1;
+                    this.crossCycle = 0;
                 }
             }
+        }
 
-            if (this.macroCameraX < -50) {
-                this.macroCameraXModifier = 2;
-            } else if (this.macroCameraX > 50) {
-                this.macroCameraXModifier = -2;
+        if (this.mouseClickButton === 1 && this.modalMessage) {
+            this.modalMessage = null;
+            this.redrawChatback = true;
+            this.mouseClickButton = 0;
+        }
+
+        const checkClickInput = !this.isMobile || (this.isMobile && !MobileKeyboard.isWithinCanvasKeyboard(this.mouseClickX, this.mouseClickY));
+
+        if (checkClickInput) {
+            this.handleMouseInput();
+            this.handleMinimapInput();
+            this.handleTabInput();
+            this.handleChatModeInput();
+        }
+
+        if (this.mouseButton === 1 || this.mouseClickButton === 1) {
+            this.dragCycles++;
+        }
+
+        if (this.sceneState === 2) {
+            this.followCamera();
+        }
+
+        if (this.sceneState === 2 && this.cinemaCam) {
+            this.cinemaCamera();
+        }
+
+        for (let i: number = 0; i < 5; i++) {
+            this.camShakeCycle[i]++;
+        }
+
+        await this.handleInputKey();
+
+        if (now - this.idleCycle > 90_000) {
+            // no input in 90s, notify the server
+            this.pendingLogout = 250;
+            this.idleCycle += 10_000; // 10s backoff
+
+            this.out.pIsaac(ClientProt.IDLE_TIMER);
+        }
+
+        this.macroCameraCycle++;
+        if (this.macroCameraCycle > 500) {
+            this.macroCameraCycle = 0;
+
+            const rand: number = (Math.random() * 8.0) | 0;
+            if ((rand & 0x1) === 1) {
+                this.macroCameraX += this.macroCameraXModifier;
             }
-
-            if (this.macroCameraZ < -55) {
-                this.macroCameraZModifier = 2;
-            } else if (this.macroCameraZ > 55) {
-                this.macroCameraZModifier = -2;
+            if ((rand & 0x2) === 2) {
+                this.macroCameraZ += this.macroCameraZModifier;
             }
-
-            if (this.macroCameraAngle < -40) {
-                this.macroCameraAngleModifier = 1;
-            } else if (this.macroCameraAngle > 40) {
-                this.macroCameraAngleModifier = -1;
+            if ((rand & 0x4) === 4) {
+                this.macroCameraAngle += this.macroCameraAngleModifier;
             }
+        }
 
-            this.macroMinimapCycle++;
-            if (this.macroMinimapCycle > 500) {
-                this.macroMinimapCycle = 0;
+        if (this.macroCameraX < -50) {
+            this.macroCameraXModifier = 2;
+        } else if (this.macroCameraX > 50) {
+            this.macroCameraXModifier = -2;
+        }
 
-                const rand: number = (Math.random() * 8.0) | 0;
-                if ((rand & 0x1) === 1) {
-                    this.macroMinimapAngle += this.macroMinimapAngleModifier;
-                }
-                if ((rand & 0x2) === 2) {
-                    this.macroMinimapZoom += this.macroMinimapZoomModifier;
-                }
+        if (this.macroCameraZ < -55) {
+            this.macroCameraZModifier = 2;
+        } else if (this.macroCameraZ > 55) {
+            this.macroCameraZModifier = -2;
+        }
+
+        if (this.macroCameraAngle < -40) {
+            this.macroCameraAngleModifier = 1;
+        } else if (this.macroCameraAngle > 40) {
+            this.macroCameraAngleModifier = -1;
+        }
+
+        this.macroMinimapCycle++;
+        if (this.macroMinimapCycle > 500) {
+            this.macroMinimapCycle = 0;
+
+            const rand: number = (Math.random() * 8.0) | 0;
+            if ((rand & 0x1) === 1) {
+                this.macroMinimapAngle += this.macroMinimapAngleModifier;
             }
-
-            if (this.macroMinimapAngle < -60) {
-                this.macroMinimapAngleModifier = 2;
-            } else if (this.macroMinimapAngle > 60) {
-                this.macroMinimapAngleModifier = -2;
+            if ((rand & 0x2) === 2) {
+                this.macroMinimapZoom += this.macroMinimapZoomModifier;
             }
+        }
 
-            if (this.macroMinimapZoom < -20) {
-                this.macroMinimapZoomModifier = 1;
-            } else if (this.macroMinimapZoom > 10) {
-                this.macroMinimapZoomModifier = -1;
+        if (this.macroMinimapAngle < -60) {
+            this.macroMinimapAngleModifier = 2;
+        } else if (this.macroMinimapAngle > 60) {
+            this.macroMinimapAngleModifier = -2;
+        }
+
+        if (this.macroMinimapZoom < -20) {
+            this.macroMinimapZoomModifier = 1;
+        } else if (this.macroMinimapZoom > 10) {
+            this.macroMinimapZoomModifier = -1;
+        }
+
+        if (now - this.noTimeoutCycle > 1_000) {
+            // nothing sent in the last 1s, keep the client connected
+            this.out.pIsaac(ClientProt.NO_TIMEOUT);
+        }
+
+        try {
+            if (this.stream && this.out.pos > 0) {
+                this.stream.write(this.out.data, this.out.pos);
+                this.out.pos = 0;
+                this.noTimeoutCycle = now;
             }
-
-            if (now - this.noTimeoutCycle > 1_000) {
-                // nothing sent in the last 1s, keep the client connected
-                this.out.pIsaac(ClientProt.NO_TIMEOUT);
-            }
-
-            try {
-                if (this.stream && this.out.pos > 0) {
-                    this.stream.write(this.out.data, this.out.pos);
-                    this.out.pos = 0;
-                    this.noTimeoutCycle = now;
-                }
-            } catch (e) {
-                console.error(e);
-
-                // todo: reconnect on IO error, logout on any other error
+        } catch (e) {
+            if (e instanceof WebSocket && e.readyState === 3) {
+                // IO error
                 await this.tryReconnect();
+            } else {
+                // logic error
+                await this.logout();
             }
         }
     }
@@ -7483,19 +7493,26 @@ export class Client extends GameShell {
                 return true;
             }
 
+            // (java tries to report this to the world)
             console.error(`T1 - ${this.ptype},${this.psize} - ${this.ptype1},${this.ptype2}`);
             await this.logout();
         } catch (e) {
-            // todo: try reconnecting if there was an IO error
-            console.error(e);
+            if (e instanceof WebSocket && e.readyState === 3) {
+                // IO error
+                await this.tryReconnect();
+            } else {
+                // logic error
+                console.error(e);
 
-            let str = `T2 - ${this.ptype},${this.psize} - ${this.ptype1},${this.ptype2} - ${this.psize},${(this.localPlayer?.routeTileX[0] ?? 0) + this.mapBuildBaseX},${(this.localPlayer?.routeTileZ[0] ?? 0) + this.mapBuildBaseZ} -`;
-            for (let i = 0; i < this.psize && i < 50; i++) {
-                str += this.in.data[i] + ',';
+                let str = `T2 - ${this.ptype},${this.psize} - ${this.ptype1},${this.ptype2} - ${this.psize},${(this.localPlayer?.routeTileX[0] ?? 0) + this.mapBuildBaseX},${(this.localPlayer?.routeTileZ[0] ?? 0) + this.mapBuildBaseZ} -`;
+                for (let i = 0; i < this.psize && i < 50; i++) {
+                    str += this.in.data[i] + ',';
+                }
+                // (java tries to report this to the world)
+                console.error(str);
+
+                await this.logout();
             }
-            console.error(str);
-
-            await this.logout();
         }
 
         return true;
