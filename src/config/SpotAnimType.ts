@@ -10,7 +10,7 @@ import Packet from '#/io/Packet.js';
 export default class SpotAnimType {
     static count: number = 0;
     static list: SpotAnimType[] = [];
-    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
+    static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
 
     id: number = 0;
 
@@ -79,14 +79,9 @@ export default class SpotAnimType {
 
     // jag::oldscape::configdecoder::SpotType::GetTempModel2 [sic]
     getTempModel(): Model | null {
-        let model: Model | null = null;
-
-        if (SpotAnimType.modelCache) {
-            model = SpotAnimType.modelCache.get(BigInt(this.id)) as Model | null;
-
-            if (model) {
-                return model;
-            }
+        let model = SpotAnimType.modelCache.get(BigInt(this.id));
+        if (model) {
+            return model;
         }
 
         model = Model.load(this.model);
@@ -100,10 +95,7 @@ export default class SpotAnimType {
             }
         }
 
-        if (SpotAnimType.modelCache) {
-            SpotAnimType.modelCache.put(BigInt(this.id), model);
-        }
-
+        SpotAnimType.modelCache.put(BigInt(this.id), model);
         return model;
     }
 }

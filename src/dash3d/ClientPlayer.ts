@@ -205,7 +205,7 @@ export default class ClientPlayer extends ClientEntity {
     baseId: bigint = 0n; // jag::oldscape::rs2lib::PlayerModel::CalcBaseId
     lowMemory: boolean = false;
     modelCacheKey: bigint = -1n;
-    static modelCache: LruCache | null = new LruCache(200); // jag::oldscape::rs2lib::PlayerModel::m_modelCache
+    static modelCache: LruCache<Model> = new LruCache(200); // jag::oldscape::rs2lib::PlayerModel::m_modelCache
     y: number = 0;
     locStartCycle: number = 0;
     locStopCycle: number = 0;
@@ -451,7 +451,7 @@ export default class ClientPlayer extends ClientEntity {
             }
         }
 
-        let model: Model | null = ClientPlayer.modelCache?.get(hash) as Model | null;
+        let model = ClientPlayer.modelCache.get(hash);
         if (!model) {
             let needsModel = false;
 
@@ -476,8 +476,8 @@ export default class ClientPlayer extends ClientEntity {
             }
 
             if (needsModel) {
-                if (this.modelCacheKey !== -1n && ClientPlayer.modelCache) {
-                    model = ClientPlayer.modelCache.get(this.baseId) as Model | null;
+                if (this.modelCacheKey !== -1n) {
+                    model = ClientPlayer.modelCache.get(this.baseId);
                 }
 
                 if (model == null) {
@@ -532,7 +532,7 @@ export default class ClientPlayer extends ClientEntity {
 
             model.prepareAnim();
             model.calculateNormals(64, 850, -30, -50, -30, true);
-            ClientPlayer.modelCache?.put(hash, model);
+            ClientPlayer.modelCache.put(hash, model);
             this.modelCacheKey = hash;
         }
 

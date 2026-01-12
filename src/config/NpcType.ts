@@ -14,7 +14,7 @@ export default class NpcType {
     static dat: Packet | null = null;
     static cache: (NpcType | null)[] | null = null;
     static cachePos: number = 0;
-    static modelCache: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
+    static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
 
     id: number = -1;
 
@@ -166,44 +166,40 @@ export default class NpcType {
 
     // jag::oldscape::configdecoder::NpcType::GetTempModel
     getTempModel(primaryTransformId: number, secondaryTransformId: number, seqMask: Int32Array | null): Model | null {
-        let model: Model | null = null;
+        let model = NpcType.modelCache.get(BigInt(this.id));
 
-        if (NpcType.modelCache) {
-            model = NpcType.modelCache.get(BigInt(this.id)) as Model | null;
+        if (!model && this.models) {
+            let ready = false;
+            for (let i = 0; i < this.models.length; i++) {
+                if (!Model.requestDownload(this.models[i])) {
+                    ready = true;
+                }
+            }
+            if (ready) {
+                return null;
+            }
 
-            if (!model && this.models) {
-                let ready = false;
-                for (let i = 0; i < this.models.length; i++) {
-                    if (!Model.requestDownload(this.models[i])) {
-                        ready = true;
+            const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
+            for (let i: number = 0; i < this.models.length; i++) {
+                models[i] = Model.load(this.models[i]);
+            }
+
+            if (models.length === 1) {
+                model = models[0];
+            } else {
+                model = Model.combine(models, models.length);
+            }
+
+            if (model) {
+                if (this.recol_s && this.recol_d) {
+                    for (let i: number = 0; i < this.recol_s.length; i++) {
+                        model.recolour(this.recol_s[i], this.recol_d[i]);
                     }
                 }
-                if (ready) {
-                    return null;
-                }
 
-                const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
-                for (let i: number = 0; i < this.models.length; i++) {
-                    models[i] = Model.load(this.models[i]);
-                }
-
-                if (models.length === 1) {
-                    model = models[0];
-                } else {
-                    model = Model.combine(models, models.length);
-                }
-
-                if (model) {
-                    if (this.recol_s && this.recol_d) {
-                        for (let i: number = 0; i < this.recol_s.length; i++) {
-                            model.recolour(this.recol_s[i], this.recol_d[i]);
-                        }
-                    }
-
-                    model.prepareAnim();
-                    model.calculateNormals(64, 850, -30, -50, -30, true);
-                    NpcType.modelCache.put(BigInt(this.id), model);
-                }
+                model.prepareAnim();
+                model.calculateNormals(64, 850, -30, -50, -30, true);
+                NpcType.modelCache.put(BigInt(this.id), model);
             }
         }
 

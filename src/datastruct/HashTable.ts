@@ -1,6 +1,6 @@
 import Linkable from '#/datastruct/Linkable.js';
 
-export default class HashTable {
+export default class HashTable<T extends Linkable> {
     readonly bucketCount: number;
     readonly buckets: Linkable[];
 
@@ -15,19 +15,19 @@ export default class HashTable {
         }
     }
 
-    get(key: bigint): Linkable | null {
-        const start: Linkable = this.buckets[Number(key & BigInt(this.bucketCount - 1))];
+    get(key: bigint): T | null {
+        const start = this.buckets[Number(key & BigInt(this.bucketCount - 1))];
 
-        for (let node: Linkable | null = start.next; node !== start; node = node?.next ?? null) {
+        for (let node = start.next; node !== start; node = node?.next ?? null) {
             if (node && node.key === key) {
-                return node;
+                return node as T;
             }
         }
 
         return null;
     }
 
-    put(key: bigint, value: Linkable): void {
+    put(key: bigint, value: T): void {
         if (value.prev) {
             value.unlink();
         }

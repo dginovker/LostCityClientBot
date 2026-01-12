@@ -18,8 +18,8 @@ export default class LocType {
     static dat: Packet | null = null;
     static cache: (LocType | null)[] | null = null;
     static cachePos: number = 0;
-    static mc1: LruCache | null = new LruCache(500); // jag::oldscape::configdecoder::LocType::m_mc1
-    static mc2: LruCache | null = new LruCache(30); // jag::oldscape::configdecoder::LocType::m_mc2
+    static mc1: LruCache<Model> = new LruCache(500); // jag::oldscape::configdecoder::LocType::m_mc1
+    static mc2: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::LocType::m_mc2
     static temp: Model[] = new Array(4);
 
     id: number = -1;
@@ -366,7 +366,7 @@ export default class LocType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + BigInt(angle);
 
-            let cached: Model | null = LocType.mc2?.get(typecode) as Model | null;
+            let cached = LocType.mc2.get(typecode);
             if (cached) {
                 return cached;
             }
@@ -384,7 +384,7 @@ export default class LocType {
                     modelId += 65536;
                 }
 
-                model = LocType.mc1?.get(BigInt(modelId)) as Model | null;
+                model = LocType.mc1.get(BigInt(modelId));
                 if (!model) {
                     model = Model.load(modelId & 0xffff);
                     if (!model) {
@@ -395,7 +395,7 @@ export default class LocType {
                         model.rotate180();
                     }
 
-                    LocType.mc1?.put(BigInt(modelId), model);
+                    LocType.mc1.put(BigInt(modelId), model);
                 }
 
                 if (modelCount > 1) {
@@ -420,7 +420,7 @@ export default class LocType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
 
-            let cached: Model | null = LocType.mc2?.get(typecode) as Model | null;
+            let cached = LocType.mc2.get(typecode);
             if (cached) {
                 return cached;
             }
@@ -439,7 +439,7 @@ export default class LocType {
                 modelId += 65536;
             }
 
-            model = LocType.mc1?.get(BigInt(modelId)) as Model | null;
+            model = LocType.mc1.get(BigInt(modelId));
             if (!model) {
                 model = Model.load(modelId & 0xffff);
                 if (!model) {
@@ -450,7 +450,7 @@ export default class LocType {
                     model.rotate180();
                 }
 
-                LocType.mc1?.put(BigInt(modelId), model);
+                LocType.mc1.put(BigInt(modelId), model);
             }
         }
 
@@ -493,7 +493,7 @@ export default class LocType {
             modified.objRaise = modified.minY;
         }
 
-        LocType.mc2?.put(typecode, modified);
+        LocType.mc2.put(typecode, modified);
         return modified;
     }
 }

@@ -18,8 +18,8 @@ export default class ObjType {
     static cache: (ObjType | null)[] | null = null;
     static cachePos: number = 0;
     static membersWorld: boolean = true;
-    static modelCache: LruCache | null = new LruCache(50);
-    static spriteCache: LruCache | null = new LruCache(200);
+    static modelCache: LruCache<Model> = new LruCache(50);
+    static spriteCache: LruCache<Pix32> = new LruCache(200);
 
     id: number = -1;
 
@@ -308,13 +308,9 @@ export default class ObjType {
             }
         }
 
-        let model = null;
-        if (ObjType.modelCache) {
-            model = ObjType.modelCache.get(BigInt(this.id)) as Model | null;
-
-            if (model) {
-                return model;
-            }
+        let model = ObjType.modelCache.get(BigInt(this.id));
+        if (model) {
+            return model;
         }
 
         model = Model.load(this.model);
@@ -335,10 +331,7 @@ export default class ObjType {
         model.calculateNormals(this.ambient + 64, this.contrast + 768, -50, -10, -50, true);
         model.useAABBMouseCheck = true;
 
-        if (ObjType.modelCache) {
-            ObjType.modelCache.put(BigInt(this.id), model);
-        }
-
+        ObjType.modelCache.put(BigInt(this.id), model);
         return model;
     }
 
@@ -372,8 +365,8 @@ export default class ObjType {
 
     // jag::oldscape::configdecoder::ObjType::GetSprite
     static getSprite(id: number, count: number, outlineRgb: number): Pix32 | null {
-        if (ObjType.spriteCache && outlineRgb === 0) {
-            let icon: Pix32 | null = ObjType.spriteCache.get(BigInt(id)) as Pix32 | null;
+        if (outlineRgb === 0) {
+            let icon = ObjType.spriteCache.get(BigInt(id));
 
             if (icon && icon.ohi !== count && icon.ohi !== -1) {
                 icon.unlink();
@@ -507,7 +500,7 @@ export default class ObjType {
             linkedIcon.ohi = h;
         }
 
-        if (ObjType.spriteCache && outlineRgb === 0) {
+        if (outlineRgb === 0) {
             ObjType.spriteCache.put(BigInt(id), icon);
         }
 
