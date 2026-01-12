@@ -410,14 +410,12 @@ export default abstract class GameShell {
     }
 
     protected pointerMoveInner(x: number, y: number, e: PointerEvent) {
-        if (e.pointerType === 'mouse') {
-            this.idleCycle = performance.now();
-            this.mouseX = x;
-            this.mouseY = y;
+        this.idleCycle = performance.now();
+        this.mouseX = x;
+        this.mouseY = y;
 
-            if (InputTracking.active) {
-                InputTracking.mouseMoved(x, y, e.pointerType);
-            }
+        if (InputTracking.active) {
+            InputTracking.mouseMoved(x, y, e.pointerType);
         }
     }
 

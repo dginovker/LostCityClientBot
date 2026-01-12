@@ -1596,4 +1596,48 @@ export class MapView extends GameShell {
             }
         }
     }
+
+    // ----
+
+    override pointerDownInner(x: number, y: number, e: PointerEvent) {
+        if (e.pointerType === 'mouse') {
+            return;
+        }
+
+        this.idleCycle = performance.now();
+        this.mouseX = x;
+        this.mouseY = y;
+        this.mouseButton = 1;
+        this.nextMouseClickX = x;
+        this.nextMouseClickY = y;
+        this.nextMouseClickButton = 1;
+    }
+
+    override pointerUpInner(x: number, y: number, e: PointerEvent) {
+        if (e.pointerType === 'mouse') {
+            return;
+        }
+
+        this.idleCycle = performance.now();
+        this.mouseX = -1;
+        this.mouseY = -1;
+        this.mouseButton = 0;
+        this.nextMouseClickX = -1;
+        this.nextMouseClickY = -1;
+        this.nextMouseClickButton = 0;
+    }
+
+    override pointerMoveInner(x: number, y: number, e: PointerEvent) {
+        this.idleCycle = performance.now();
+        this.mouseX = x;
+        this.mouseY = y;
+    }
+
+    override touchStartInner(e: TouchEvent) {
+        if (e.touches.length < 2) {
+            // 1 touch - prevent natural browser behavior
+            // 2+ touches - allow scrolling/zooming
+            e.preventDefault();
+        }
+    }
 }
