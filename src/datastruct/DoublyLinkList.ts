@@ -1,6 +1,6 @@
 import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
 
-export default class DoublyLinkList {
+export default class DoublyLinkList<T extends DoublyLinkable> {
     readonly sentinel: DoublyLinkable = new DoublyLinkable();
     cursor: DoublyLinkable | null = null;
 
@@ -9,7 +9,7 @@ export default class DoublyLinkList {
         this.sentinel.prev2 = this.sentinel;
     }
 
-    push(node: DoublyLinkable): void {
+    push(node: T): void {
         if (node.prev2) {
             node.unlink2();
         }
@@ -22,8 +22,8 @@ export default class DoublyLinkList {
         node.next2.prev2 = node;
     }
 
-    pop(): DoublyLinkable | null {
-        const node: DoublyLinkable | null = this.sentinel.next2;
+    pop(): T | null {
+        const node: T | null = this.sentinel.next2 as T | null;
         if (node === this.sentinel) {
             return null;
         } else {
@@ -33,7 +33,7 @@ export default class DoublyLinkList {
     }
 
     head() {
-        const node: DoublyLinkable | null = this.sentinel.next2;
+        const node: T | null = this.sentinel.next2 as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;
@@ -44,7 +44,7 @@ export default class DoublyLinkList {
     }
 
     next() {
-        const node: DoublyLinkable | null = this.cursor;
+        const node: T | null = this.cursor as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;

@@ -431,10 +431,10 @@ export class Client extends GameShell {
     private npc: (ClientNpc | null)[] = new TypedArray1d(16384, null);
     private npcCount: number = 0;
     private npcIds: Int32Array = new Int32Array(16384);
-    private projectiles: LinkList = new LinkList();
-    private spotanims: LinkList = new LinkList();
-    private objStacks: (LinkList | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
-    private locChanges: LinkList = new LinkList();
+    private projectiles: LinkList<ClientProj> = new LinkList();
+    private spotanims: LinkList<MapSpotAnim> = new LinkList();
+    private objStacks: (LinkList<ClientObj> | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
+    private locChanges: LinkList<LocChange> = new LinkList();
 
     // bfs routefinder
     private routeX: Int32Array = new Int32Array(4000); // jag::oldscape::movement::RouteFinding::m_routeX
@@ -640,7 +640,7 @@ export class Client extends GameShell {
             await this.drawProgress(60, 'Connecting to update server');
 
             this.onDemand = new OnDemand(versionlist, this);
-            AnimFrame.init(this.onDemand.getAnimCount());
+            AnimFrame.init(this.onDemand.getAnimFrameCount());
             Model.init(this.onDemand.getFileCount(0), this.onDemand);
 
             await this.drawProgress(62, 'Preloading cache');
@@ -678,7 +678,7 @@ export class Client extends GameShell {
 
             const modelCount = this.onDemand.getFileCount(0);
             for (let i = 0; i < modelCount; i++) {
-                const flags = this.onDemand.getModelFlags(i);
+                const flags = this.onDemand.getModelUse(i);
                 if ((flags & 0x1) != 0) {
                     this.onDemand.request(0, i);
                 }
@@ -730,7 +730,7 @@ export class Client extends GameShell {
 
             const modelCount2 = this.onDemand.getFileCount(0);
             for (let i = 0; i < modelCount2; i++) {
-                let flags = this.onDemand.getModelFlags(i);
+                let flags = this.onDemand.getModelUse(i);
 
                 let priority = 0;
                 if ((flags & 0x8) != 0) {
@@ -764,7 +764,7 @@ export class Client extends GameShell {
             if (!Client.lowMem) {
                 const midiCount = this.onDemand.getFileCount(2);
                 for (let i = 0; i < midiCount; i++) {
-                    if (this.onDemand.shouldPrefetchMidi(i)) {
+                    if (this.onDemand.isMidiJingle(i)) {
                         this.onDemand.prefetchPriority(2, i, 1);
                     }
                 }
@@ -1268,7 +1268,7 @@ export class Client extends GameShell {
             if (req.archive === 0) {
                 Model.unpack(req.file, req.data);
 
-                if ((this.onDemand.getModelFlags(req.file) & 0x62) != 0) {
+                if ((this.onDemand.getModelUse(req.file) & 0x62) != 0) {
                     this.redrawSidebar = true;
 
                     if (this.chatLayerId !== -1) {
@@ -2380,7 +2380,7 @@ export class Client extends GameShell {
             const modelCount = this.onDemand?.getFileCount(0) ?? 0;
 
             for (let i = 0; i < modelCount; i++) {
-                const flags = this.onDemand?.getModelFlags(i) ?? 0;
+                const flags = this.onDemand?.getModelUse(i) ?? 0;
 
                 if ((flags & 0x79) == 0) {
                     Model.unload(i);
@@ -2422,7 +2422,7 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::LocChangePostBuildCorrect
     private locChangePostBuildCorrect(): void {
-        for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
+        for (let loc = this.locChanges.head(); loc !== null; loc = this.locChanges.next()) {
             if (loc.endTime === -1) {
                 loc.startTime = 0;
                 this.locChangeSetOld(loc);
@@ -2548,7 +2548,7 @@ export class Client extends GameShell {
             return;
         }
 
-        for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
+        for (let loc = this.locChanges.head(); loc !== null; loc = this.locChanges.next()) {
             if (loc.endTime > 0) {
                 loc.endTime--;
             }
@@ -2966,12 +2966,12 @@ export class Client extends GameShell {
                     this.addPlayerOptions(player, typeId, x, z);
                 }
             } else if (entityType === 3) {
-                const objs: LinkList | null = this.objStacks[this.minusedlevel][x][z];
+                const objs = this.objStacks[this.minusedlevel][x][z];
                 if (!objs) {
                     continue;
                 }
 
-                for (let obj: ClientObj | null = objs.tail() as ClientObj | null; obj; obj = objs.prev() as ClientObj | null) {
+                for (let obj = objs.tail(); obj !== null; obj = objs.prev()) {
                     const type: ObjType = ObjType.get(obj.id);
                     if (this.objSelected === 1) {
                         this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + type.name;
@@ -4978,7 +4978,7 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::GdmAddProjectiles
     private addProjectiles(): void {
-        for (let proj: ClientProj | null = this.projectiles.head() as ClientProj | null; proj; proj = this.projectiles.next() as ClientProj | null) {
+        for (let proj = this.projectiles.head(); proj !== null; proj = this.projectiles.next()) {
             if (proj.level !== this.minusedlevel || this.loopCycle > proj.t2) {
                 proj.unlink();
             } else if (this.loopCycle >= proj.t1) {
@@ -5039,7 +5039,7 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::GdmAddMapAnim
     private addMapAnim(): void {
-        for (let spot: MapSpotAnim | null = this.spotanims.head() as MapSpotAnim | null; spot; spot = this.spotanims.next() as MapSpotAnim | null) {
+        for (let spot = this.spotanims.head(); spot !== null; spot = this.spotanims.next()) {
             if (spot.level !== this.minusedlevel || spot.seqComplete) {
                 spot.unlink();
             } else if (this.loopCycle >= spot.startCycle) {
@@ -7311,7 +7311,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
+                for (let loc = this.locChanges.head(); loc !== null; loc = this.locChanges.next()) {
                     loc.x -= dx;
                     loc.z -= dz;
 
@@ -7459,7 +7459,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                for (let loc: LocChange | null = this.locChanges.head() as LocChange | null; loc; loc = this.locChanges.next() as LocChange | null) {
+                for (let loc = this.locChanges.head(); loc !== null; loc = this.locChanges.next()) {
                     if (loc.x >= this.zoneUpdateX && loc.x < this.zoneUpdateX + 8 && loc.z >= this.zoneUpdateZ && loc.z < this.zoneUpdateZ + 8 && loc.level === this.minusedlevel) {
                         loc.endTime = 0;
                     }
@@ -7615,16 +7615,16 @@ export class Client extends GameShell {
             const type: number = buf.g2();
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
-                const list: LinkList | null = this.objStacks[this.minusedlevel][x][z];
-                if (list) {
-                    for (let obj: ClientObj | null = list.head() as ClientObj | null; obj; obj = list.next() as ClientObj | null) {
+                const objs = this.objStacks[this.minusedlevel][x][z];
+                if (objs) {
+                    for (let obj = objs.head(); obj !== null; obj = objs.next()) {
                         if (obj.id === (type & 0x7fff)) {
                             obj.unlink();
                             break;
                         }
                     }
 
-                    if (!list.head()) {
+                    if (objs.head() === null) {
                         this.objStacks[this.minusedlevel][x][z] = null;
                     }
 
@@ -7671,11 +7671,11 @@ export class Client extends GameShell {
             const pid: number = buf.g2();
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && pid !== this.localPid) {
-                const obj: ClientObj = new ClientObj(id, count);
                 if (!this.objStacks[this.minusedlevel][x][z]) {
                     this.objStacks[this.minusedlevel][x][z] = new LinkList();
                 }
 
+                const obj: ClientObj = new ClientObj(id, count);
                 this.objStacks[this.minusedlevel][x][z]?.push(obj);
                 this.showObject(x, z);
             }
@@ -7753,9 +7753,9 @@ export class Client extends GameShell {
             const count: number = buf.g2();
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
-                const list: LinkList | null = this.objStacks[this.minusedlevel][x][z];
-                if (list) {
-                    for (let obj: ClientObj | null = list.head() as ClientObj | null; obj; obj = list.next() as ClientObj | null) {
+                const objs = this.objStacks[this.minusedlevel][x][z];
+                if (objs) {
+                    for (let obj = objs.head(); obj !== null; obj = objs.next()) {
                         if (obj.id === (type & 0x7fff) && obj.count === ocount) {
                             obj.count = count;
                             break;
@@ -7771,7 +7771,7 @@ export class Client extends GameShell {
     // jag::oldscape::Client::LocChangeCreate
     private locChangeCreate(endTime: number, type: number, angle: number, layer: number, z: number, shape: number, level: number, x: number, startTime: number): void {
         let loc: LocChange | null = null;
-        for (let next: LocChange | null = this.locChanges.head() as LocChange | null; next; next = this.locChanges.next() as LocChange | null) {
+        for (let next = this.locChanges.head(); next !== null; next = this.locChanges.next()) {
             if (next.level === this.minusedlevel && next.x === x && next.z === z && next.layer === layer) {
                 loc = next;
                 break;
@@ -7903,8 +7903,8 @@ export class Client extends GameShell {
 
     // jag::oldscape::Client::ShowObject
     private showObject(x: number, z: number): void {
-        const objStacks: LinkList | null = this.objStacks[this.minusedlevel][x][z];
-        if (!objStacks) {
+        const objs = this.objStacks[this.minusedlevel][x][z];
+        if (!objs) {
             this.world?.delObj(this.minusedlevel, x, z);
             return;
         }
@@ -7912,7 +7912,7 @@ export class Client extends GameShell {
         let topCost: number = -99999999;
         let topObj: ClientObj | null = null;
 
-        for (let obj: ClientObj | null = objStacks.head() as ClientObj | null; obj; obj = objStacks.next() as ClientObj | null) {
+        for (let obj = objs.head(); obj !== null; obj = objs.next()) {
             const type: ObjType = ObjType.get(obj.id);
             let cost: number = type.cost;
 
@@ -7930,11 +7930,11 @@ export class Client extends GameShell {
             return; // custom
         }
 
-        objStacks.addHead(topObj);
+        objs.addHead(topObj);
 
         let bottomObj: ClientObj | null = null;
         let middleObj: ClientObj | null = null;
-        for (let obj: ClientObj | null = objStacks.head() as ClientObj | null; obj; obj = objStacks.next() as ClientObj | null) {
+        for (let obj = objs.head(); obj !== null; obj = objs.next()) {
             if (obj.id !== topObj.id && bottomObj === null) {
                 bottomObj = obj;
             }
@@ -11255,8 +11255,8 @@ export class Client extends GameShell {
 
         for (let ltx: number = 0; ltx < CollisionConstants.SIZE; ltx++) {
             for (let ltz: number = 0; ltz < CollisionConstants.SIZE; ltz++) {
-                const stack: LinkList | null = this.objStacks[this.minusedlevel][ltx][ltz];
-                if (stack) {
+                const objs = this.objStacks[this.minusedlevel][ltx][ltz];
+                if (objs) {
                     anchorX = ltx * 4 + 2 - ((this.localPlayer.x / 32) | 0);
                     anchorY = ltz * 4 + 2 - ((this.localPlayer.z / 32) | 0);
                     this.drawOnMinimap(anchorY, this.mapdots1, anchorX);

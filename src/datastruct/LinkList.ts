@@ -1,6 +1,6 @@
 import Linkable from '#/datastruct/Linkable.js';
 
-export default class LinkList {
+export default class LinkList<T extends Linkable> {
     private readonly sentinel: Linkable = new Linkable();
     private cursor: Linkable | null = null;
 
@@ -9,7 +9,7 @@ export default class LinkList {
         this.sentinel.prev = this.sentinel;
     }
 
-    push(node: Linkable): void {
+    push(node: T): void {
         if (node.prev) {
             node.unlink();
         }
@@ -22,7 +22,7 @@ export default class LinkList {
         node.next.prev = node;
     }
 
-    addHead(node: Linkable): void {
+    addHead(node: T): void {
         if (node.prev) {
             node.unlink();
         }
@@ -35,8 +35,8 @@ export default class LinkList {
         }
     }
 
-    pop(): Linkable | null {
-        const node: Linkable | null = this.sentinel.next;
+    pop(): T | null {
+        const node: T | null = this.sentinel.next as T | null;
         if (node === this.sentinel) {
             return null;
         }
@@ -45,8 +45,8 @@ export default class LinkList {
         return node;
     }
 
-    head(): Linkable | null {
-        const node: Linkable | null = this.sentinel.next;
+    head(): T | null {
+        const node: T | null = this.sentinel.next as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;
@@ -56,8 +56,8 @@ export default class LinkList {
         return node;
     }
 
-    tail(): Linkable | null {
-        const node: Linkable | null = this.sentinel.prev;
+    tail(): T | null {
+        const node: T | null = this.sentinel.prev as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;
@@ -67,8 +67,8 @@ export default class LinkList {
         return node;
     }
 
-    next(): Linkable | null {
-        const node: Linkable | null = this.cursor;
+    next(): T | null {
+        const node: T | null = this.cursor as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;
@@ -78,8 +78,8 @@ export default class LinkList {
         return node;
     }
 
-    prev(): Linkable | null {
-        const node: Linkable | null = this.cursor;
+    prev(): T | null {
+        const node: T | null = this.cursor as T | null;
         if (node === this.sentinel) {
             this.cursor = null;
             return null;
@@ -92,7 +92,7 @@ export default class LinkList {
     clear(): void {
         // eslint-disable-next-line no-constant-condition
         while (true) {
-            const node: Linkable | null = this.sentinel.next;
+            const node: T | null = this.sentinel.next as T | null;
             if (node === this.sentinel) {
                 return;
             }

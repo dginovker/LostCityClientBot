@@ -82,7 +82,7 @@ export default class World {
     private static cameraCosY: number = 0; // jag::oldscape::dash3d::world::m_cameraCosY
 
     private static fillLeft: number = 0; // jag::oldscape::dash3d::world::m_fillLeft
-    private static fillQueue: LinkList = new LinkList();
+    private static fillQueue: LinkList<Square> = new LinkList();
 
     static maxLevel: number = 0; // jag::oldscape::dash3d::world::m_maxLevel
 
@@ -1502,7 +1502,7 @@ export default class World {
             let tile: Square | null;
 
             do {
-                tile = World.fillQueue.pop() as Square | null;
+                tile = World.fillQueue.pop();
 
                 if (!tile) {
                     return;
