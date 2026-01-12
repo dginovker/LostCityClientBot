@@ -39,7 +39,7 @@ export default class ClientLocAnim extends ModelSource {
     }
 
     // jag::oldscape::ClientLocAnim::GetTempModel
-    getTempModel(loopCycle: number): Model | null {
+    override getTempModel(loopCycle: number): Model | null {
         if (this.seq) {
             let delta = loopCycle - this.seqCycle;
             if (delta > 100 && this.seq.loops > 0) {

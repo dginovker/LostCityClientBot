@@ -521,11 +521,11 @@ export class Client extends GameShell {
     static readbit = new Int32Array(32);
 
     static {
-		let n = 2;
-		for (let bit = 0; bit < 32; bit++) {
-			Client.readbit[bit] = n - 1;
-			n += n;
-		}
+        let n = 2;
+        for (let bit = 0; bit < 32; bit++) {
+            Client.readbit[bit] = n - 1;
+            n += n;
+        }
 
         let acc: number = 0;
         for (let i: number = 0; i < 99; i++) {
@@ -579,7 +579,7 @@ export class Client extends GameShell {
 
     // ----
 
-    async load() {
+    override async load() {
         if (this.isMobile && Client.lowMem) {
             // force mobile on low detail mode to 30 fps
             this.setTargetedFramerate(30);
@@ -1019,7 +1019,7 @@ export class Client extends GameShell {
         }
     }
 
-    async loop() {
+    override async loop() {
         if (this.errorStarted || this.errorLoading || this.errorHost) {
             return;
         }
@@ -1035,13 +1035,17 @@ export class Client extends GameShell {
         await this.onDemandLoop();
     }
 
-    async draw() {
+    override async draw() {
         if (this.errorStarted || this.errorLoading || this.errorHost) {
             this.drawError();
             return;
         }
 
         this.drawCycle++;
+
+        if (this.isMobile) {
+            MobileKeyboard.draw();
+        }
 
         if (this.ingame) {
             this.gameDraw();
@@ -1052,13 +1056,13 @@ export class Client extends GameShell {
         this.dragCycles = 0;
     }
 
-    refresh() {
+    override refresh() {
         this.redrawFrame = true;
     }
 
     // ----
 
-    async drawProgress(percent: number, message: string): Promise<void> {
+    override async drawProgress(percent: number, message: string): Promise<void> {
         console.log(`${percent}%: ${message}`);
 
         this.lastProgressPercent = percent;
@@ -11834,28 +11838,402 @@ export class Client extends GameShell {
 
     // ----
 
-    getTitleScreenState(): number {
-        return this.loginscreen;
+    /// touch controls
+    private startedInViewport: boolean = false;
+    private startedInTabArea: boolean = false;
+    private startedInChatScroll: boolean = false;
+    private ttime: number = -1;
+    // start
+    private sx: number = 0;
+    private sy: number = 0;
+    // mouse
+    private mx: number = 0;
+    private my: number = 0;
+    // new
+    private nx: number = 0;
+    private ny: number = 0;
+    private dragging: boolean = false;
+    private panning: boolean = false;
+
+    override mouseDownInner(x: number, y: number, e: MouseEvent) {
+        this.idleCycle = performance.now();
+        this.nextMouseClickX = x;
+        this.nextMouseClickY = y;
+        this.nextMouseClickTime = performance.now();
+
+        // custom: down event comes before and potentially without move event
+        this.mouseX = x;
+        this.mouseY = y;
+
+        if (e.button === 2) {
+            this.nextMouseClickButton = 2;
+            this.mouseButton = 2;
+        } else {
+            this.nextMouseClickButton = 1;
+            this.mouseButton = 1;
+        }
+
+        if (InputTracking.active) {
+            InputTracking.mousePressed(x, y, e.button, 'mouse');
+        }
     }
 
-    isChatBackInputOpen(): boolean {
-        return this.chatbackInputOpen;
+    override pointerDownInner(x: number, y: number, e: PointerEvent) {
+        if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
+            MobileKeyboard.captureMouseDown(x, y);
+            return;
+        }
+
+        if (e.pointerType !== 'mouse') {
+            // custom: touchscreen support
+            // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
+
+            this.idleCycle = performance.now();
+            this.nextMouseClickX = -1;
+            this.nextMouseClickY = -1;
+            this.nextMouseClickButton = 0;
+            this.mouseX = x;
+            this.mouseY = y;
+            this.mouseButton = 0;
+
+            this.sx = this.nx = this.mx = e.screenX | 0;
+            this.sy = this.ny = this.my = e.screenY | 0;
+            this.ttime = e.timeStamp;
+
+            this.startedInViewport = this.insideViewportArea();
+            this.startedInTabArea = this.insideTabArea();
+            this.startedInChatScroll = this.insideChatScrollArea();
+        }
     }
 
-    isShowSocialInput(): boolean {
-        return this.showSocialInput;
+    override mouseUpInner(x: number, y: number, e: MouseEvent) {
+        this.idleCycle = performance.now();
+        this.mouseButton = 0;
+
+        if (InputTracking.active) {
+            InputTracking.mouseReleased(e.button, 'mouse');
+        }
+
+        // custom: up event comes before and potentially without move event
+        this.mouseX = x;
+        this.mouseY = y;
     }
 
-    getChatInterfaceId(): number {
-        return this.chatLayerId;
+    override pointerUpInner(x: number, y: number, e: PointerEvent) {
+        if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
+            MobileKeyboard.captureMouseUp(x, y);
+            return;
+        }
+
+        if (e.pointerType !== 'mouse') {
+            // custom: touchscreen support
+            // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
+
+            this.idleCycle = performance.now();
+            this.mouseX = x;
+            this.mouseY = y;
+
+            if (this.dragging) {
+                this.dragging = false;
+
+                this.nextMouseClickX = -1;
+                this.nextMouseClickY = -1;
+                this.nextMouseClickButton = 0;
+                this.mouseButton = 0;
+
+                if (InputTracking.active) {
+                    InputTracking.mouseReleased(0, e.pointerType);
+                }
+            } else if (this.panning) {
+                // ignore up events if the player was moving the camera in the viewport
+                this.panning = false;
+
+                // release all arrow keys
+                this.keyHeld[1] = 0;
+                this.keyHeld[2] = 0;
+                this.keyHeld[3] = 0;
+                this.keyHeld[4] = 0;
+                return;
+            } else {
+                if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
+                    // show keyboard when tapping in an input area
+                    MobileKeyboard.show(x, y, e.clientX, e.clientY);
+                } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
+                    // hide keyboard when tapping outside of an input area
+                    MobileKeyboard.hide();
+                    this.refresh();
+                }
+
+                // within click threshold: activate mouse button
+                this.nextMouseClickX = x;
+                this.nextMouseClickY = y;
+                this.nextMouseClickTime = performance.now();
+
+                const longPress: boolean = e.timeStamp >= this.ttime + 500;
+                if (longPress) {
+                    this.nextMouseClickButton = 2;
+                    this.mouseButton = 2;
+                } else {
+                    this.nextMouseClickButton = 1;
+                    this.mouseButton = 1;
+                }
+
+                if (InputTracking.active) {
+                    InputTracking.mousePressed(x, y, longPress ? 2 : 0, e.pointerType);
+                }
+
+                // release after a client cycle has passed
+                setTimeout(() => {
+                    this.mouseButton = 0;
+
+                    if (InputTracking.active) {
+                        InputTracking.mouseReleased(longPress ? 2 : 0, e.pointerType);
+                    }
+                }, 40);
+            }
+        }
     }
 
-    getViewportInterfaceId(): number {
-        return this.mainLayerId;
+    override pointerEnterInner(x: number, y: number, e: PointerEvent) {
+        if (e.pointerType === 'mouse') {
+            this.mouseX = x;
+            this.mouseY = y;
+
+            if (InputTracking.active) {
+                InputTracking.mouseEntered();
+            }
+        } else {
+            // custom: touchscreen support
+
+            this.idleCycle = performance.now();
+            this.nextMouseClickX = -1;
+            this.nextMouseClickY = -1;
+            this.nextMouseClickButton = 0;
+            this.mouseX = x;
+            this.mouseY = y;
+            this.mouseButton = 0;
+
+            this.sx = this.nx = this.mx = e.screenX | 0;
+            this.sy = this.ny = this.my = e.screenY | 0;
+            this.ttime = e.timeStamp;
+
+            this.startedInViewport = this.insideViewportArea();
+            this.startedInTabArea = this.insideTabArea();
+        }
     }
 
-    getReportAbuseInterfaceId(): number {
-        // custom: for report abuse input on mobile
-        return this.reportAbuseLayerId;
+    override pointerLeaveInner(e: PointerEvent) {
+        if (e.pointerType === 'mouse') {
+            this.idleCycle = performance.now();
+            this.mouseX = -1;
+            this.mouseY = -1;
+
+            if (InputTracking.active) {
+                InputTracking.mouseExited();
+            }
+
+            // custom: moving off-canvas may have a stuck mouse event
+            this.nextMouseClickX = -1;
+            this.nextMouseClickY = -1;
+            this.nextMouseClickButton = 0;
+            this.mouseButton = 0;
+        } else {
+            // custom: touchscreen support
+            this.idleCycle = performance.now();
+
+            // release all arrow keys
+            this.keyHeld[1] = 0;
+            this.keyHeld[2] = 0;
+            this.keyHeld[3] = 0;
+            this.keyHeld[4] = 0;
+        }
+    }
+
+    override pointerMoveInner(x: number, y: number, e: PointerEvent) {
+        if (e.pointerType === 'mouse') {
+            this.idleCycle = performance.now();
+            this.mouseX = x;
+            this.mouseY = y;
+
+            if (InputTracking.active) {
+                InputTracking.mouseMoved(x, y, e.pointerType);
+            }
+        } else {
+            // custom: touchscreen support
+            this.idleCycle = performance.now();
+            this.mouseX = x;
+            this.mouseY = y;
+
+            this.nx = e.screenX | 0;
+            this.ny = e.screenY | 0;
+
+            if (this.dragging) {
+                // no-op
+            } else if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && this.exceedsGrabThreshold(20)) {
+                MobileKeyboard.notifyTouchMove(x, y);
+            } else if (this.startedInViewport && !this.isViewportObscured() && this.exceedsGrabThreshold(20)) {
+                // moving camera
+                this.panning = true;
+
+                // emulate arrow keys:
+                if (this.mx - this.nx > 0) {
+                    // right
+                    this.keyHeld[1] = 0;
+                    this.keyHeld[2] = 1;
+                } else if (this.mx - this.nx < 0) {
+                    // left
+                    this.keyHeld[1] = 1;
+                    this.keyHeld[2] = 0;
+                }
+
+                if (this.my - this.ny > 0) {
+                    // down
+                    this.keyHeld[3] = 0;
+                    this.keyHeld[4] = 1;
+                } else if (this.my - this.ny < 0) {
+                    // up
+                    this.keyHeld[3] = 1;
+                    this.keyHeld[4] = 0;
+                }
+            } else if (this.startedInTabArea || this.startedInChatScroll || this.isViewportObscured()) {
+                if (!this.dragging && this.exceedsGrabThreshold(5)) {
+                    this.dragging = true;
+
+                    this.nextMouseClickX = x;
+                    this.nextMouseClickY = y;
+                    this.nextMouseClickButton = 1;
+                    this.mouseButton = 1;
+                }
+            }
+
+            this.mx = this.nx;
+            this.my = this.ny;
+        }
+    }
+
+    // all mouse logic is done above, this is for controlling canvas behaviors
+    override touchStartInner(e: TouchEvent) {
+        if (e.touches.length < 2 || this.dragging) {
+            // 1 touch - prevent natural browser behavior
+            // 2+ touches - allow scrolling/zooming
+            e.preventDefault();
+        }
+    }
+
+    private exceedsGrabThreshold(size: number) {
+        return Math.abs(this.sx - this.nx) > size || Math.abs(this.sy - this.ny) > size;
+    }
+
+    private isViewportObscured(): boolean {
+        return this.mainLayerId !== -1;
+    }
+
+    private insideMobileInputArea(): boolean {
+        return this.insideChatInputArea() || this.insideChatPopupArea() || this.insideUsernameArea() || this.inPasswordArea() || this.insideReportInterfaceTextArea();
+    }
+
+    private insideViewportArea() {
+        // 512 x 334
+        const viewportAreaX1: number = 4;
+        const viewportAreaY1: number = 4;
+        const viewportAreaX2: number = viewportAreaX1 + 512;
+        const viewportAreaY2: number = viewportAreaY1 + 334;
+        return this.ingame && this.mouseX >= viewportAreaX1 && this.mouseX <= viewportAreaX2 && this.mouseY >= viewportAreaY1 && this.mouseY <= viewportAreaY2;
+    }
+
+    private insideTabArea() {
+        const tabAreaX1: number = 553;
+        const tabAreaY1: number = 205;
+        const tabAreaX2: number = tabAreaX1 + 190;
+        const tabAreaY2: number = tabAreaY1 + 261;
+        return this.ingame && this.mouseX >= tabAreaX1 && this.mouseX <= tabAreaX2 && this.mouseY >= tabAreaY1 && this.mouseY <= tabAreaY2;
+    }
+
+    private insideChatScrollArea() {
+        const chatInputAreaX1: number = 480;
+        const chatInputAreaY1: number = 357;
+        const chatInputAreaX2: number = chatInputAreaX1 + 16;
+        const chatInputAreaY2: number = chatInputAreaY1 + 77;
+        return (
+            this.ingame &&
+            (!this.chatbackInputOpen && !this.showSocialInput) &&
+            this.mouseX >= chatInputAreaX1 &&
+            this.mouseX <= chatInputAreaX2 &&
+            this.mouseY >= chatInputAreaY1 &&
+            this.mouseY <= chatInputAreaY2
+        );
+    }
+
+    private insideChatInputArea() {
+        const chatInputAreaX1: number = 17;
+        const chatInputAreaY1: number = 434;
+        const chatInputAreaX2: number = chatInputAreaX1 + 479;
+        const chatInputAreaY2: number = chatInputAreaY1 + 26;
+        return (
+            this.ingame &&
+            this.chatLayerId === -1 &&
+            !this.chatbackInputOpen &&
+            !this.showSocialInput &&
+            this.mouseX >= chatInputAreaX1 &&
+            this.mouseX <= chatInputAreaX2 &&
+            this.mouseY >= chatInputAreaY1 &&
+            this.mouseY <= chatInputAreaY2
+        );
+    }
+
+    protected insideChatPopupArea() {
+        const chatInputAreaX1: number = 17;
+        const chatInputAreaY1: number = 357;
+        const chatInputAreaX2: number = chatInputAreaX1 + 479;
+        const chatInputAreaY2: number = chatInputAreaY1 + 96;
+        return (
+            this.ingame &&
+            (this.chatbackInputOpen || this.showSocialInput) &&
+            this.mouseX >= chatInputAreaX1 &&
+            this.mouseX <= chatInputAreaX2 &&
+            this.mouseY >= chatInputAreaY1 &&
+            this.mouseY <= chatInputAreaY2
+        );
+    }
+
+    private insideReportInterfaceTextArea() {
+        // actual component size is [233, 137, 58 14]
+        // extended it a little bit for easier interaction, since the area to
+        // touch is not obvious (it's a bit narrow)
+        if (!this.ingame) {
+            return false;
+        }
+
+        // either viewport or report-abuse interface Ids are bad
+        if (this.mainLayerId === -1 || this.reportAbuseLayerId === -1) {
+            return false;
+        }
+
+        // active viewport interface Id does not match
+        if (this.mainLayerId !== this.reportAbuseLayerId) {
+            return false;
+        }
+
+        const reportInputAreaX1: number = 87;
+        const reportInputAreaY1: number = 119;
+        const reportInputAreaX2: number = reportInputAreaX1 + 348;
+        const reportInputAreaY2: number = reportInputAreaY1 + 37;
+        return this.mouseX >= reportInputAreaX1 && this.mouseX <= reportInputAreaX2 && this.mouseY >= reportInputAreaY1 && this.mouseY <= reportInputAreaY2;
+    }
+
+    private insideUsernameArea() {
+        const usernameAreaX1: number = 280;
+        const usernameAreaY1: number = 233;
+        const usernameAreaX2: number = usernameAreaX1 + 190;
+        const usernameAreaY2: number = usernameAreaY1 + 31;
+        return !this.ingame && this.loginscreen === 2 && this.mouseX >= usernameAreaX1 && this.mouseX <= usernameAreaX2 && this.mouseY >= usernameAreaY1 && this.mouseY <= usernameAreaY2;
+    }
+
+    private inPasswordArea() {
+        const passwordAreaX1: number = 280;
+        const passwordAreaY1: number = 264;
+        const passwordAreaX2: number = passwordAreaX1 + 278;
+        const passwordAreaY2: number = passwordAreaY1 + 20;
+        return !this.ingame && this.loginscreen === 2 && this.mouseX >= passwordAreaX1 && this.mouseX <= passwordAreaX2 && this.mouseY >= passwordAreaY1 && this.mouseY <= passwordAreaY2;
     }
 }

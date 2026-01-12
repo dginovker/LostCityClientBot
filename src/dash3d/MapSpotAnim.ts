@@ -43,7 +43,7 @@ export default class MapSpotAnim extends ModelSource {
         }
     }
 
-    getTempModel(): Model | null {
+    override getTempModel(): Model | null {
         const tmp: Model | null = this.type.getTempModel();
         if (!tmp) {
             return null;

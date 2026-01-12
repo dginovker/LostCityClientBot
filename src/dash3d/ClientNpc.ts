@@ -22,7 +22,7 @@ export default class ClientNpc extends ClientEntity {
     type: NpcType | null = null;
 
     // jag::oldscape::ClientNpc::GetTempModel
-    getTempModel(): Model | null {
+    override getTempModel(): Model | null {
         if (this.type == null) {
             return null;
         }

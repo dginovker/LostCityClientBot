@@ -77,8 +77,6 @@ export class MapView extends GameShell {
 
     redraw: boolean = true;
     redrawTimer: number = 0;
-    nextMouseClickX: number = -1;
-    nextMouseClickY: number = -1;
     lastOffsetX: number = -1;
     lastOffsetZ: number = -1;
 
@@ -184,7 +182,7 @@ export class MapView extends GameShell {
         this.run();
     }
 
-    async load(): Promise<void> {
+    override async load(): Promise<void> {
         this.keyHeight = this.sHei - this.keyY - 20;
         this.overviewX = this.sWid - this.imageOverviewWidth - 5;
         this.overviewY = this.sHei - this.imageOverviewHeight - 20;
@@ -281,7 +279,7 @@ export class MapView extends GameShell {
         }
     }
 
-    async draw(): Promise<void> {
+    override async draw(): Promise<void> {
         if (this.redraw) {
             this.redraw = false;
             this.redrawTimer = 0;
@@ -392,11 +390,11 @@ export class MapView extends GameShell {
         }
     }
 
-    refresh() {
+    override refresh() {
         this.redrawTimer = 0;
     }
 
-    async loop(): Promise<void> {
+    override async loop(): Promise<void> {
         if (this.keyHeld[1] == 1) {
             this.offsetX = (this.offsetX - 16.0 / this.zoom) | 0;
             this.redraw = true;
@@ -1597,31 +1595,5 @@ export class MapView extends GameShell {
                 }
             }
         }
-    }
-
-    // ----
-
-    getTitleScreenState(): number {
-        return -1;
-    }
-
-    isChatBackInputOpen(): boolean {
-        return false;
-    }
-
-    isShowSocialInput(): boolean {
-        return false;
-    }
-
-    getChatInterfaceId(): number {
-        return -1;
-    }
-
-    getViewportInterfaceId(): number {
-        return -1;
-    }
-
-    getReportAbuseInterfaceId(): number {
-        return -1;
     }
 }

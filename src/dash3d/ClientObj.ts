@@ -13,7 +13,7 @@ export default class ClientObj extends ModelSource {
     }
 
     // jag::oldscape::ClientObj::GetTempModel
-    getTempModel(): Model | null {
+    override getTempModel(): Model | null {
         const obj = ObjType.get(this.id);
         return obj.getModel(this.count);
     }

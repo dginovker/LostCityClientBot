@@ -93,7 +93,7 @@ export default class ClientProj extends ModelSource {
     }
 
     // jag::oldscape::ClientProj::GetTempModel
-    getTempModel(): Model | null {
+    override getTempModel(): Model | null {
         const spotModel: Model | null = this.spotanim.getTempModel();
         if (!spotModel) {
             return null;

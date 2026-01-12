@@ -309,7 +309,7 @@ export default class ClientPlayer extends ClientEntity {
     }
 
     // jag::oldscape::ClientPlayer::GetTempModel
-    getTempModel(loopCycle: number): Model | null {
+    override getTempModel(loopCycle: number): Model | null {
         if (!this.ready) {
             return null;
         }
