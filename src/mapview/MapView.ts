@@ -18,7 +18,7 @@ export class MapView extends GameShell {
     // overworld
     readonly startX: number = 3200;
     readonly startZ: number = 3200;
-    readonly sizeX: number = 22 << 6;
+    readonly sizeX: number = 20 << 6;
     readonly sizeZ: number = 19 << 6;
     readonly originX: number = 36 << 6;
     readonly originZ: number = 44 << 6;
