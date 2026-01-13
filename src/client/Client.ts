@@ -11855,27 +11855,25 @@ export class Client extends GameShell {
         }
 
         if (e.pointerType !== 'mouse') {
-            return;
+            // custom: touchscreen support
+            // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
+
+            this.idleCycle = performance.now();
+            this.nextMouseClickX = -1;
+            this.nextMouseClickY = -1;
+            this.nextMouseClickButton = 0;
+            this.mouseX = x;
+            this.mouseY = y;
+            this.mouseButton = 0;
+
+            this.sx = this.nx = this.mx = e.screenX | 0;
+            this.sy = this.ny = this.my = e.screenY | 0;
+            this.ttime = e.timeStamp;
+
+            this.startedInViewport = this.insideViewportArea();
+            this.startedInTabArea = this.insideTabArea();
+            this.startedInChatScroll = this.insideChatScrollArea();
         }
-
-        // custom: touchscreen support
-        // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
-
-        this.idleCycle = performance.now();
-        this.nextMouseClickX = -1;
-        this.nextMouseClickY = -1;
-        this.nextMouseClickButton = 0;
-        this.mouseX = x;
-        this.mouseY = y;
-        this.mouseButton = 0;
-
-        this.sx = this.nx = this.mx = e.screenX | 0;
-        this.sy = this.ny = this.my = e.screenY | 0;
-        this.ttime = e.timeStamp;
-
-        this.startedInViewport = this.insideViewportArea();
-        this.startedInTabArea = this.insideTabArea();
-        this.startedInChatScroll = this.insideChatScrollArea();
     }
 
     override mouseUpInner(x: number, y: number, e: MouseEvent) {
@@ -11898,73 +11896,71 @@ export class Client extends GameShell {
         }
 
         if (e.pointerType !== 'mouse') {
-            return;
-        }
+            // custom: touchscreen support
+            // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
 
-        // custom: touchscreen support
-        // we don't acknowledge the first press as a click, instead we interpret the user's gesture on release
+            this.idleCycle = performance.now();
+            this.mouseX = x;
+            this.mouseY = y;
 
-        this.idleCycle = performance.now();
-        this.mouseX = x;
-        this.mouseY = y;
+            if (this.dragging) {
+                this.dragging = false;
 
-        if (this.dragging) {
-            this.dragging = false;
-
-            this.nextMouseClickX = -1;
-            this.nextMouseClickY = -1;
-            this.nextMouseClickButton = 0;
-            this.mouseButton = 0;
-
-            if (InputTracking.active) {
-                InputTracking.mouseReleased(0, e.pointerType);
-            }
-        } else if (this.panning) {
-            // ignore up events if the player was moving the camera in the viewport
-            this.panning = false;
-
-            // release all arrow keys
-            this.keyHeld[1] = 0;
-            this.keyHeld[2] = 0;
-            this.keyHeld[3] = 0;
-            this.keyHeld[4] = 0;
-            return;
-        } else {
-            if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
-                // show keyboard when tapping in an input area
-                MobileKeyboard.show(x, y, e.clientX, e.clientY);
-            } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
-                // hide keyboard when tapping outside of an input area
-                MobileKeyboard.hide();
-                this.refresh();
-            }
-
-            // within click threshold: activate mouse button
-            this.nextMouseClickX = x;
-            this.nextMouseClickY = y;
-            this.nextMouseClickTime = performance.now();
-
-            const longPress: boolean = e.timeStamp >= this.ttime + 500;
-            if (longPress) {
-                this.nextMouseClickButton = 2;
-                this.mouseButton = 2;
-            } else {
-                this.nextMouseClickButton = 1;
-                this.mouseButton = 1;
-            }
-
-            if (InputTracking.active) {
-                InputTracking.mousePressed(x, y, longPress ? 2 : 0, e.pointerType);
-            }
-
-            // release after a client cycle has passed
-            setTimeout(() => {
+                this.nextMouseClickX = -1;
+                this.nextMouseClickY = -1;
+                this.nextMouseClickButton = 0;
                 this.mouseButton = 0;
 
                 if (InputTracking.active) {
-                    InputTracking.mouseReleased(longPress ? 2 : 0, e.pointerType);
+                    InputTracking.mouseReleased(0, e.pointerType);
                 }
-            }, 40);
+            } else if (this.panning) {
+                // ignore up events if the player was moving the camera in the viewport
+                this.panning = false;
+
+                // release all arrow keys
+                this.keyHeld[1] = 0;
+                this.keyHeld[2] = 0;
+                this.keyHeld[3] = 0;
+                this.keyHeld[4] = 0;
+                return;
+            } else {
+                if (!MobileKeyboard.isDisplayed() && this.insideMobileInputArea()) {
+                    // show keyboard when tapping in an input area
+                    MobileKeyboard.show(x, y, e.clientX, e.clientY);
+                } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
+                    // hide keyboard when tapping outside of an input area
+                    MobileKeyboard.hide();
+                    this.refresh();
+                }
+
+                // within click threshold: activate mouse button
+                this.nextMouseClickX = x;
+                this.nextMouseClickY = y;
+                this.nextMouseClickTime = performance.now();
+
+                const longPress: boolean = e.timeStamp >= this.ttime + 500;
+                if (longPress) {
+                    this.nextMouseClickButton = 2;
+                    this.mouseButton = 2;
+                } else {
+                    this.nextMouseClickButton = 1;
+                    this.mouseButton = 1;
+                }
+
+                if (InputTracking.active) {
+                    InputTracking.mousePressed(x, y, longPress ? 2 : 0, e.pointerType);
+                }
+
+                // release after a client cycle has passed
+                setTimeout(() => {
+                    this.mouseButton = 0;
+
+                    if (InputTracking.active) {
+                        InputTracking.mouseReleased(longPress ? 2 : 0, e.pointerType);
+                    }
+                }, 40);
+            }
         }
     }
 

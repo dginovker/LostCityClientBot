@@ -1631,12 +1631,4 @@ export class MapView extends GameShell {
         this.mouseX = x;
         this.mouseY = y;
     }
-
-    override touchStartInner(e: TouchEvent) {
-        if (e.touches.length < 2) {
-            // 1 touch - prevent natural browser behavior
-            // 2+ touches - allow scrolling/zooming
-            e.preventDefault();
-        }
-    }
 }

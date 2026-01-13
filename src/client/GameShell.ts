@@ -423,7 +423,12 @@ export default abstract class GameShell {
         this.touchStartInner(e);
     }
 
-    protected touchStartInner(_e: TouchEvent) {
+    protected touchStartInner(e: TouchEvent) {
+        if (e.touches.length < 2) {
+            // 1 touch - prevent natural browser behavior
+            // 2+ touches - allow scrolling/zooming
+            e.preventDefault();
+        }
     }
 
     private onkeydown(e: KeyboardEvent) {
