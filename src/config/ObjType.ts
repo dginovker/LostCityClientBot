@@ -523,30 +523,30 @@ export default class ObjType {
 
     // jag::oldscape::configdecoder::ObjType::CheckWearModel
     checkWearModel(gender: number): boolean {
-		let wear = this.manwear;
-		let wear2 = this.manwear2;
-		let wear3 = this.manwear3;
-		if (gender == 1) {
-			wear = this.womanwear;
-			wear2 = this.womanwear2;
-			wear3 = this.womanwear3;
-		}
+        let wear = this.manwear;
+        let wear2 = this.manwear2;
+        let wear3 = this.manwear3;
+        if (gender == 1) {
+            wear = this.womanwear;
+            wear2 = this.womanwear2;
+            wear3 = this.womanwear3;
+        }
 
-		if (wear == -1) {
-			return true;
-		}
+        if (wear == -1) {
+            return true;
+        }
 
-		let ready = true;
-		if (!Model.requestDownload(wear)) {
-			ready = false;
-		}
-		if (wear2 != -1 && !Model.requestDownload(wear2)) {
-			ready = false;
-		}
-		if (wear3 != -1 && !Model.requestDownload(wear3)) {
-			ready = false;
-		}
-		return ready;
+        let ready = true;
+        if (!Model.requestDownload(wear)) {
+            ready = false;
+        }
+        if (wear2 != -1 && !Model.requestDownload(wear2)) {
+            ready = false;
+        }
+        if (wear3 != -1 && !Model.requestDownload(wear3)) {
+            ready = false;
+        }
+        return ready;
     }
 
     // jag::oldscape::configdecoder::ObjType::GetWearModelNoCheck
@@ -609,25 +609,25 @@ export default class ObjType {
 
     // jag::oldscape::configdecoder::ObjType::CheckHeadModel
     checkHeadModel(gender: number): boolean {
-		let head = this.manhead;
-		let head2 = this.manhead2;
-		if (gender == 1) {
-			head = this.womanhead;
-			head2 = this.womanhead2;
-		}
+        let head = this.manhead;
+        let head2 = this.manhead2;
+        if (gender == 1) {
+            head = this.womanhead;
+            head2 = this.womanhead2;
+        }
 
-		if (head == -1) {
-			return true;
-		}
+        if (head == -1) {
+            return true;
+        }
 
-		let ready = true;
-		if (!Model.requestDownload(head)) {
-			ready = false;
-		}
-		if (head2 != -1 && !Model.requestDownload(head2)) {
-			ready = false;
-		}
-		return ready;
+        let ready = true;
+        if (!Model.requestDownload(head)) {
+            ready = false;
+        }
+        if (head2 != -1 && !Model.requestDownload(head2)) {
+            ready = false;
+        }
+        return ready;
     }
 
     // jag::oldscape::configdecoder::ObjType::GetHeadModelNoCheck

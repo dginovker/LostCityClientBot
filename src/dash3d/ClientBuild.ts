@@ -82,15 +82,15 @@ export default class ClientBuild {
 
     // jag::oldscape::ClientBuild::ChangeLocAvailable
     static changeLocAvailable(id: number, shape: number): boolean {
-		const loc = LocType.get(id);
-		if (shape == 11) {
-			shape = 10;
-		}
-		if (shape >= 5 && shape <= 8) {
-			shape = 4;
-		}
-		return loc.checkModel(shape);
-	}
+        const loc = LocType.get(id);
+        if (shape == 11) {
+            shape = 10;
+        }
+        if (shape >= 5 && shape <= 8) {
+            shape = 4;
+        }
+        return loc.checkModel(shape);
+    }
 
     // jag::oldscape::ClientBuild::ChangeLocUnchecked
     static changeLocUnchecked(loopCycle: number, level: number, x: number, z: number, scene: World | null, levelHeightmap: Int32Array[][], collision: CollisionMap | null, locId: number, shape: number, angle: number, trueLevel: number): void {
@@ -413,7 +413,7 @@ export default class ClientBuild {
                     const light: number = lightAmbient + (((lightX * normalX + lightY * normalY + lightZ * normalZ) / lightMagnitude) | 0);
                     const shade: number = (shademap[x - 1][z] >> 2) + (shademap[x + 1][z] >> 3) + (shademap[x][z - 1] >> 2) + (shademap[x][z + 1] >> 3) + (shademap[x][z] >> 1);
 
-                    this.lightmap[x][z] = light - shade;   
+                    this.lightmap[x][z] = light - shade;
                 }
             }
 
@@ -825,7 +825,6 @@ export default class ClientBuild {
                     if (stx >= 0 && stx < CollisionConstants.SIZE && stz >= 0 && stz < CollisionConstants.SIZE) {
                         this.mapl[level][stx][stz] = 0;
 
-                        // eslint-disable-next-line no-constant-condition
                         while (true) {
                             opcode = buf.g1();
                             if (opcode === 0) {
@@ -861,7 +860,6 @@ export default class ClientBuild {
                             }
                         }
                     } else {
-                        // eslint-disable-next-line no-constant-condition
                         while (true) {
                             opcode = buf.g1();
                             if (opcode === 0) {
@@ -886,19 +884,19 @@ export default class ClientBuild {
     // jag::oldscape::ClientBuild::CheckLocations
     static checkLocations(src: Uint8Array, xOffset: number, zOffset: number): boolean {
         let ready = true;
-		const buf = new Packet(src);
-		let locId = -1;
+        const buf = new Packet(src);
+        let locId = -1;
 
-		while (true) {
-			const deltaId = buf.gsmarts();
-			if (deltaId == 0) {
-				break;
-			}
+        while (true) {
+            const deltaId = buf.gsmarts();
+            if (deltaId == 0) {
+                break;
+            }
 
-			locId += deltaId;
+            locId += deltaId;
 
-			let locPos = 0;
-			let skip = false;
+            let locPos = 0;
+            let skip = false;
 
             while (true) {
                 if (skip) {
@@ -916,12 +914,12 @@ export default class ClientBuild {
 
                     locPos += deltaPos - 1;
 
-                    let z = locPos & 0x3F;
-                    let x = locPos >> 6 & 0x3F;
+                    const z = locPos & 0x3F;
+                    const x = locPos >> 6 & 0x3F;
 
-                    let shape = buf.g1() >> 2;
-                    let stx = xOffset + x;
-                    let stz = zOffset + z;
+                    const shape = buf.g1() >> 2;
+                    const stx = xOffset + x;
+                    const stz = zOffset + z;
 
                     if (stx > 0 && stz > 0 && stx < 103 && stz < 103) {
                         const loc = LocType.get(locId);
@@ -935,34 +933,34 @@ export default class ClientBuild {
                     }
                 }
             }
-		}
+        }
 
         return ready;
     }
 
     // jag::oldscape::ClientBuild::PrefetchLocations
     static prefetchLocations(buf: Packet, od: OnDemand) {
-		let locId = -1;
-		while (true) {
-			const deltaId = buf.gsmarts();
-			if (deltaId == 0) {
-				return;
-			}
+        let locId = -1;
+        while (true) {
+            const deltaId = buf.gsmarts();
+            if (deltaId == 0) {
+                return;
+            }
 
-			locId += deltaId;
+            locId += deltaId;
 
-			let loc = LocType.get(locId);
-			loc.prefetchModelAll(od);
+            const loc = LocType.get(locId);
+            loc.prefetchModelAll(od);
 
-			while (true) {
-				const deltaPos = buf.gsmarts();
-				if (deltaPos == 0) {
-					break;
-				}
+            while (true) {
+                const deltaPos = buf.gsmarts();
+                if (deltaPos == 0) {
+                    break;
+                }
 
-				buf.g1();
-			}
-		}
+                buf.g1();
+            }
+        }
     }
 
     // jag::oldscape::ClientBuild::LoadLocations
@@ -970,7 +968,6 @@ export default class ClientBuild {
         const buf: Packet = new Packet(src);
         let locId: number = -1;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const deltaId: number = buf.gsmarts();
             if (deltaId === 0) {
@@ -980,7 +977,6 @@ export default class ClientBuild {
             locId += deltaId;
 
             let locPos: number = 0;
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 const deltaPos: number = buf.gsmarts();
                 if (deltaPos === 0) {

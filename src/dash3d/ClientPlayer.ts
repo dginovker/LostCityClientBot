@@ -561,23 +561,23 @@ export default class ClientPlayer extends ClientEntity {
             return null;
         }
 
-		let needsModel = false;
+        let needsModel = false;
 
-		for (let i = 0; i < 12; i++) {
-			const part = this.appearance[i];
+        for (let i = 0; i < 12; i++) {
+            const part = this.appearance[i];
 
-			if (part >= 0x100 && part < 0x200 && !IdkType.list[part - 0x100].checkHead()) {
-				needsModel = true;
-			}
+            if (part >= 0x100 && part < 0x200 && !IdkType.list[part - 0x100].checkHead()) {
+                needsModel = true;
+            }
 
-			if (part >= 0x200 && !ObjType.get(part - 0x200).checkHeadModel(this.gender)) {
-				needsModel = true;
-			}
-		}
+            if (part >= 0x200 && !ObjType.get(part - 0x200).checkHeadModel(this.gender)) {
+                needsModel = true;
+            }
+        }
 
-		if (needsModel) {
-			return null;
-		}
+        if (needsModel) {
+            return null;
+        }
 
         const models: (Model | null)[] = new TypedArray1d(12, null);
         let modelCount: number = 0;

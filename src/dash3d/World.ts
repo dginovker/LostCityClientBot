@@ -1497,7 +1497,6 @@ export default class World {
     private fill(next: Square, checkAdjacent: boolean, loopCycle: number): void {
         World.fillQueue.push(next);
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let tile: Square | null;
 
@@ -1840,7 +1839,6 @@ export default class World {
                     }
                 }
 
-                // eslint-disable-next-line no-constant-condition
                 while (spriteBufferSize > 0) {
                     let farthestDistance: number = -50;
                     let farthestIndex: number = -1;

@@ -297,8 +297,8 @@ export default class Pix8 extends Pix2D {
             const local5: number = this.hi;
             let local7: number = 0;
             let local9: number = 0;
-            const local15: number = ((local2 << 16) / arg2) | 0;
-            const local21: number = ((local5 << 16) / arg3) | 0;
+            const _local15: number = ((local2 << 16) / arg2) | 0;
+            const _local21: number = ((local5 << 16) / arg3) | 0;
             const local24: number = this.owi;
             const local27: number = this.ohi;
             const local33: number = ((local24 << 16) / arg2) | 0;
@@ -340,7 +340,7 @@ export default class Pix8 extends Pix2D {
                 local137 += local144;
             }
             this.plotScale(Pix2D.pixels, this.data, this.bpal, local7, local9, local133, local137, arg2, arg3, local33, local39, local2);
-        } catch (ignore) {
+        } catch (_e) {
             console.log('error in sprite clipping routine');
         }
     }
@@ -364,7 +364,7 @@ export default class Pix8 extends Pix2D {
                 offW = lastOffW;
                 dstOff += dstStep;
             }
-        } catch (e) {
+        } catch (_e) {
             console.log('error in plot_scale');
         }
     }

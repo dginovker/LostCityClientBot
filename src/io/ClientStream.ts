@@ -70,17 +70,19 @@ export default class ClientStream {
         this.wsout.close();
     }
 
-    private onclose = (event: CloseEvent): void => {
+    private onclose = (_event: CloseEvent): void => {
         if (this.closed) {
             return;
         }
+
         this.close();
     };
 
-    private onerror = (event: Event): void => {
+    private onerror = (_event: Event): void => {
         if (this.closed) {
             return;
         }
+
         this.ioerror = true;
         this.close();
     };
@@ -111,7 +113,7 @@ class WebSocketWriter {
         }
         try {
             this.socket.send(src.slice(0, len));
-        } catch (e) {
+        } catch (_e) {
             this.ioerror = true;
         }
     }

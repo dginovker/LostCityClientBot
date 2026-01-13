@@ -238,7 +238,7 @@ export class MapView extends GameShell {
             for (let i: number = 0; i < 50; i++) {
                 this.imageMapscene[i] = Pix8.load(worldmap, 'mapscene', i);
             }
-        } catch (ignore) {
+        } catch (_e) {
             // empty
         }
 
@@ -246,7 +246,7 @@ export class MapView extends GameShell {
             for (let i: number = 0; i < 50; i++) {
                 this.imageMapfunction[i] = Pix32.load(worldmap, 'mapfunction', i);
             }
-        } catch (ignore) {
+        } catch (_e) {
             // empty
         }
 
@@ -327,7 +327,7 @@ export class MapView extends GameShell {
                 this.drawString(this.keyX, this.keyY + 18, this.keyWidth, this.keyHeight - 36, 0x999999, 0x777777, 0x555555, '');
                 this.drawString(this.keyX, this.keyY + this.keyHeight - 18, this.keyWidth, 18, 0x999999, 0x777777, 0x555555, 'Next page');
 
-                let maxKeys: number = (this.keyHeight - 20) / 18;
+                const maxKeys: number = (this.keyHeight - 20) / 18;
                 let y: number = this.keyY + 18 + 3;
 
                 for (let row: number = 0; row < maxKeys; row++) {
@@ -357,7 +357,7 @@ export class MapView extends GameShell {
             this.drawString(this.overviewX, this.overviewY + this.imageOverviewHeight, this.imageOverviewWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Overview');
             this.drawString(this.keyX, this.keyY + this.keyHeight, this.keyWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Key');
 
-            let y = this.sHei - this.keyY - 20 + 1;
+            const y = this.sHei - this.keyY - 20 + 1;
             if (this.targetZoom == 3.0) {
                 this.drawString(170, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '37%');
             } else {
@@ -460,7 +460,7 @@ export class MapView extends GameShell {
             this.lastOffsetX = this.offsetX;
             this.lastOffsetZ = this.offsetZ;
 
-            let zoomY: number = this.sHei - this.keyY - 20 + 1;
+            const zoomY: number = this.sHei - this.keyY - 20 + 1;
             if (this.mouseClickX > 170 && this.mouseClickX < 220 && this.mouseClickY > zoomY) {
                 this.targetZoom = 3.0;
                 this.nextMouseClickX = -1;
@@ -500,7 +500,7 @@ export class MapView extends GameShell {
             this.currentKeyHover = -1;
 
             if (this.mouseX > this.keyX && this.mouseX < this.keyX + this.keyWidth) {
-                let maxKeys: number = (this.keyHeight - 20) / 18;
+                const maxKeys: number = (this.keyHeight - 20) / 18;
                 let y: number = this.keyY + 21 + 5;
 
                 for (let row: number = 0; row < maxKeys; row++) {
@@ -611,7 +611,7 @@ export class MapView extends GameShell {
 
             try {
                 data = await downloadUrl('/worldmap.jag');
-            } catch (e) {
+            } catch (_e) {
                 data = undefined;
                 for (let i: number = retry; i > 0; i--) {
                     await this.drawProgress(0, `Error loading - Will retry in ${i} secs.`);
@@ -745,7 +745,6 @@ export class MapView extends GameShell {
                     let zIndex: number = this.sizeZ - mz - 1;
 
                     for (let z: number = -64; z < 0; z++) {
-                        // eslint-disable-next-line no-constant-condition
                         while (true) {
                             const opcode: number = data.g1();
                             if (opcode === 0) {
@@ -1134,13 +1133,13 @@ export class MapView extends GameShell {
                 x -= this.originX;
                 y = this.originZ + this.sizeZ - y;
 
-                let drawX: number = (widthOffset + ((width - widthOffset) * (x - left)) / (right - left)) | 0;
+                const drawX: number = (widthOffset + ((width - widthOffset) * (x - left)) / (right - left)) | 0;
                 let drawY: number = (heightOffset + ((height - heightOffset) * (y - top)) / (bottom - top)) | 0;
-                let fontType: number = this.labelFont[i];
+                const fontType: number = this.labelFont[i];
 
                 // todo: WorldmapFont
                 let rgb = 0xffffff;
-                let font = this.b12;
+                const font = this.b12;
 
                 if (fontType === 2) {
                     rgb = 0xffaa00;
@@ -1159,14 +1158,14 @@ export class MapView extends GameShell {
                     drawY -= font.height2d * (lineCount - 1) / 2;
 
                     while (true) {
-                        let newline = label.indexOf('/');
+                        const newline = label.indexOf('/');
                         if (newline === -1) {
                             font.centreString(drawX + 1, drawY + 1, label, 0);
                             font.centreString(drawX, drawY, label, rgb);
                             break;
                         }
 
-                        let part = label.substring(0, newline);
+                        const part = label.substring(0, newline);
                         font.centreString(drawX + 1, drawY + 1, part, 0);
                         font.centreString(drawX, drawY, part, rgb);
 
@@ -1613,7 +1612,7 @@ export class MapView extends GameShell {
         this.nextMouseClickButton = 1;
     }
 
-    override pointerUpInner(x: number, y: number, e: PointerEvent) {
+    override pointerUpInner(_x: number, _y: number, e: PointerEvent) {
         if (e.pointerType === 'mouse') {
             return;
         }
@@ -1627,7 +1626,7 @@ export class MapView extends GameShell {
         this.nextMouseClickButton = 0;
     }
 
-    override pointerMoveInner(x: number, y: number, e: PointerEvent) {
+    override pointerMoveInner(x: number, y: number, _e: PointerEvent) {
         this.idleCycle = performance.now();
         this.mouseX = x;
         this.mouseY = y;

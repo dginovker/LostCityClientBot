@@ -214,7 +214,7 @@ export default abstract class GameShell {
             if (this.debug) {
                 console.log('ntime:' + ntime);
                 for (let i = 0; i < 10; i++) {
-                    let o = (opos - i - 1 + 20) % 10;
+                    const o = (opos - i - 1 + 20) % 10;
                     console.log('otim' + o + ':' + this.otim[o]);
                 }
                 console.log('fps:' + this.fps + ' ratio:' + ratio + ' count:' + count);
@@ -329,7 +329,7 @@ export default abstract class GameShell {
         this.pointerDownInner(x, y, e);
     }
 
-    protected pointerDownInner(x: number, y: number, e: PointerEvent) {
+    protected pointerDownInner(_x: number, _y: number, _e: PointerEvent) {
     }
 
     private onmouseup(e: MouseEvent) {
@@ -357,7 +357,7 @@ export default abstract class GameShell {
         this.pointerUpInner(x, y, e);
     }
 
-    protected pointerUpInner(x: number, y: number, e: PointerEvent) {
+    protected pointerUpInner(_x: number, _y: number, _e: PointerEvent) {
     }
 
     private onpointerenter(e: PointerEvent) {
@@ -370,7 +370,7 @@ export default abstract class GameShell {
         this.pointerEnterInner(x, y, e);
     }
 
-    protected pointerEnterInner(x: number, y: number, e: PointerEvent) {
+    protected pointerEnterInner(x: number, y: number, _e: PointerEvent) {
         this.mouseX = x;
         this.mouseY = y;
 
@@ -383,7 +383,7 @@ export default abstract class GameShell {
         this.pointerLeaveInner(e);
     }
 
-    protected pointerLeaveInner(e: PointerEvent) {
+    protected pointerLeaveInner(_e: PointerEvent) {
         this.idleCycle = performance.now();
         this.mouseX = -1;
         this.mouseY = -1;
@@ -423,7 +423,7 @@ export default abstract class GameShell {
         this.touchStartInner(e);
     }
 
-    protected touchStartInner(e: TouchEvent) {
+    protected touchStartInner(_e: TouchEvent) {
     }
 
     private onkeydown(e: KeyboardEvent) {
@@ -540,6 +540,7 @@ export default abstract class GameShell {
     private get isTouchDevice() {
         return (this.hasTouchEvents ||
             (navigator.maxTouchPoints > 0) ||
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ((navigator as any).msMaxTouchPoints > 0));
     }
 

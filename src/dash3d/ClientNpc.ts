@@ -35,8 +35,8 @@ export default class ClientNpc extends ClientEntity {
         this.height = model.minY;
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
-            let spot = SpotAnimType.list[this.spotanimId];
-            let spotModel = spot.getTempModel();
+            const spot = SpotAnimType.list[this.spotanimId];
+            const spotModel = spot.getTempModel();
 
             if (spotModel != null) {
                 const temp: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);

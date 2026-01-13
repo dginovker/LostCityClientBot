@@ -34,7 +34,6 @@ export default class LruCache<T extends DoublyLinkable> {
     }
 
     clear(): void {
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const node: T | null = this.history.pop();
             if (!node) {

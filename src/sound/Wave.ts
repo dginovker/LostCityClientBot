@@ -20,7 +20,6 @@ export default class Wave {
         this.waveBuffer = new Packet(this.waveBytes);
         Tone.init();
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             const id: number = dat.g2();
             if (id === 65535) {

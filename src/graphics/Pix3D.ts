@@ -101,8 +101,8 @@ export default class Pix3D extends Pix2D {
                     this.textures[i]?.trim();
                 }
                 this.textureCount++;
-            } catch (err) {
-                /* empty */
+            } catch (_e) {
+                // empty
             }
         }
     }

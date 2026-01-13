@@ -22,8 +22,8 @@ export default class VarpType {
         }
 
         if (dat.pos != dat.data.length) {
-			console.log('varptype load mismatch');
-		}
+            console.log('varptype load mismatch');
+        }
     }
 
     decode(dat: Packet): void {
@@ -37,18 +37,26 @@ export default class VarpType {
                 dat.pos += 1;
             } else if (code === 2) {
                 dat.pos += 1;
-            } else if (code === 3) {
-            } else if (code === 4) {
-            } else if (code === 5) {
+            }
+            // else if (code === 3) {
+            // } else if (code === 4) {
+            // }
+            else if (code === 5) {
                 this.clientcode = dat.g2();
-            } else if (code === 6) {
-            } else if (code === 7) {
+            }
+            // else if (code === 6) {
+            // }
+            else if (code === 7) {
                 dat.pos += 4;
-            } else if (code === 8) {
-            } else if (code === 10) {
+            }
+            // else if (code === 8) {
+            // }
+            else if (code === 10) {
                 dat.gjstr();
-            } else if (code === 11) {
-            } else {
+            }
+            // else if (code === 11) {
+            // }
+            else {
                 console.log('Error unrecognised config code: ', code);
             }
         }

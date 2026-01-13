@@ -202,13 +202,13 @@ class CanvasMobileKeyboard implements Keyboard {
      */
     private getBoxForIndex(index: number): KeyBox {
         const lineIndex = (index < CHAR_OFFSET_PER_ROW[1] ? 0 : (index < CHAR_OFFSET_PER_ROW[2] ? 1 : (index < CHAR_OFFSET_PER_ROW[3] ? 2 : 3)));
-        let offsetPos = index - CHAR_OFFSET_PER_ROW[lineIndex];
+        const offsetPos = index - CHAR_OFFSET_PER_ROW[lineIndex];
         const box = {
             startX: (offsetPos * WIDTH_PER_KEYBOX) + 5,
             startY: (lineIndex * HEIGHT_PER_KEYBOX + 5),
             width: WIDTH_PER_KEYBOX,
             height: HEIGHT_PER_KEYBOX,
-        }
+        };
         if (lineIndex === 1) {
             box.startX += (WIDTH_PER_KEYBOX / 2);
         }
@@ -430,11 +430,11 @@ class CanvasMobileKeyboard implements Keyboard {
             const downEvent = new KeyboardEvent('keydown', {
                 key: char,
                 code: char,
-            })
+            });
             const upEvent = new KeyboardEvent('keyup', {
                 key: char,
                 code: char,
-            })
+            });
             canvas.dispatchEvent(downEvent);
             canvas.dispatchEvent(upEvent);
             if (!this.animateBoxTimeout) {

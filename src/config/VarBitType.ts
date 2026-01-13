@@ -25,8 +25,8 @@ export default class VarBitType {
         }
 
         if (dat.pos != dat.data.length) {
-			console.log('varbit load mismatch');
-		}
+            console.log('varbit load mismatch');
+        }
     }
 
     decode(dat: Packet): void {

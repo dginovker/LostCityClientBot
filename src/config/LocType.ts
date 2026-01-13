@@ -366,7 +366,7 @@ export default class LocType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + BigInt(angle);
 
-            let cached = LocType.mc2.get(typecode);
+            const cached = LocType.mc2.get(typecode);
             if (cached) {
                 return cached;
             }
@@ -420,7 +420,7 @@ export default class LocType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
 
-            let cached = LocType.mc2.get(typecode);
+            const cached = LocType.mc2.get(typecode);
             if (cached) {
                 return cached;
             }
@@ -461,7 +461,7 @@ export default class LocType {
         const scaled: boolean = this.resizex !== 128 || this.resizey !== 128 || this.resizez !== 128;
         const translated: boolean = this.offsetx !== 0 || this.offsety !== 0 || this.offsetz !== 0;
 
-        let modified: Model = Model.copyForAnim(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
+        const modified: Model = Model.copyForAnim(model, !this.recol_s, AnimFrame.shareAlpha(transformId), angle === LocAngle.WEST && transformId === -1 && !scaled && !translated);
         if (transformId !== -1) {
             modified.prepareAnim();
             modified.animate(transformId);

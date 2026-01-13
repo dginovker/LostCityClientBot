@@ -345,12 +345,12 @@ export default class IfType {
         }
 
         let tmp = this.linkObjType[src];
-		this.linkObjType[src] = this.linkObjType[dst];
-		this.linkObjType[dst] = tmp;
+        this.linkObjType[src] = this.linkObjType[dst];
+        this.linkObjType[dst] = tmp;
 
-		tmp = this.linkObjCount[src];
-		this.linkObjCount[src] = this.linkObjCount[dst];
-		this.linkObjCount[dst] = tmp;
+        tmp = this.linkObjCount[src];
+        this.linkObjCount[src] = this.linkObjCount[dst];
+        this.linkObjCount[dst] = tmp;
     }
 
     // jag::oldscape::rs2lib::IfType::GetTempModel
@@ -436,7 +436,7 @@ export default class IfType {
             const image = Pix32.load(media, name, spriteIndex);
             this.spriteCache?.put(uid, image);
             return image;
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     }

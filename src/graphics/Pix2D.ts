@@ -196,7 +196,7 @@ export default class Pix2D extends DoublyLinkable {
         const r0: number = ((color >> 16) & 0xff) * alpha;
         const g0: number = ((color >> 8) & 0xff) * alpha;
         const b0: number = (color & 0xff) * alpha;
-        const step: number = this.width - width;
+        const _step: number = this.width - width;
         let offset: number = x + y * this.width;
         for (let i: number = 0; i < width; i++) {
             const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;

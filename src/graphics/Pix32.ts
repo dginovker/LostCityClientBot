@@ -138,18 +138,18 @@ export default class Pix32 extends Pix2D {
 
     // jag::oldscape::graphics::Pix32::Trim
     trim(): void {
-		const pixels = new Int32Array(this.owi * this.ohi);
-		for (let y = 0; y < this.hi; y++) {
-			for (let x = 0; x < this.wi; x++) {
-				pixels[(this.yof + y) * this.owi + this.xof + x] = this.data[this.wi * y + x];
-			}
-		}
+        const pixels = new Int32Array(this.owi * this.ohi);
+        for (let y = 0; y < this.hi; y++) {
+            for (let x = 0; x < this.wi; x++) {
+                pixels[(this.yof + y) * this.owi + this.xof + x] = this.data[this.wi * y + x];
+            }
+        }
 
         this.data = pixels;
-		this.wi = this.owi;
-		this.hi = this.ohi;
-		this.xof = 0;
-		this.yof = 0;
+        this.wi = this.owi;
+        this.hi = this.ohi;
+        this.xof = 0;
+        this.yof = 0;
     }
 
     // jag::oldscape::graphics::NXTPix2D::QuickPlotSprite
@@ -469,8 +469,8 @@ export default class Pix32 extends Pix2D {
                 leftY += cosZoom;
                 leftOff += Pix2D.width;
             }
-        } catch (e) {
-            /* empty */
+        } catch (_e) {
+            // empty
         }
     }
 
@@ -500,12 +500,12 @@ export default class Pix32 extends Pix2D {
                 let srcY: number = leftY;
 
                 for (let j: number = -w; j < 0; j++) {
-					const rgb = this.data[(srcX >> 16) + (srcY >> 16) * this.owi];
-					if (rgb == 0) {
-						dstX++;
-					} else {
-						Pix2D.pixels[dstX++] = rgb;
-					}
+                    const rgb = this.data[(srcX >> 16) + (srcY >> 16) * this.owi];
+                    if (rgb == 0) {
+                        dstX++;
+                    } else {
+                        Pix2D.pixels[dstX++] = rgb;
+                    }
 
                     srcX += cosZoom;
                     srcY -= sinZoom;
@@ -515,8 +515,8 @@ export default class Pix32 extends Pix2D {
                 leftY += cosZoom;
                 leftOff += Pix2D.width;
             }
-        } catch (e) {
-            /* empty */
+        } catch (_e) {
+            // empty
         }
     }
 

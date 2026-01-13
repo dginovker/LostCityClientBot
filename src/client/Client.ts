@@ -598,7 +598,7 @@ export class Client extends GameShell {
 
         try {
             this.db = new Database(await Database.openDatabase());
-        } catch (err) {
+        } catch (_e) {
             // possibly incognito mode
             this.db = null;
         }
@@ -730,7 +730,7 @@ export class Client extends GameShell {
 
             const modelCount2 = this.onDemand.getFileCount(0);
             for (let i = 0; i < modelCount2; i++) {
-                let flags = this.onDemand.getModelUse(i);
+                const flags = this.onDemand.getModelUse(i);
 
                 let priority = 0;
                 if ((flags & 0x8) != 0) {
@@ -793,32 +793,32 @@ export class Client extends GameShell {
                 for (let i: number = 0; i < 50; i++) {
                     this.mapscene[i] = Pix8.load(jagMedia, 'mapscene', i);
                 }
-            } catch (e) {
-                /* empty */
+            } catch (_e) {
+                // empty
             }
 
             try {
                 for (let i: number = 0; i < 50; i++) {
                     this.mapfunction[i] = Pix32.load(jagMedia, 'mapfunction', i);
                 }
-            } catch (e) {
-                /* empty */
+            } catch (_e) {
+                // empty
             }
 
             try {
                 for (let i: number = 0; i < 20; i++) {
                     this.hitmarks[i] = Pix32.load(jagMedia, 'hitmarks', i);
                 }
-            } catch (e) {
-                /* empty */
+            } catch (_e) {
+                // empty
             }
 
             try {
                 for (let i: number = 0; i < 20; i++) {
                     this.headicons[i] = Pix32.load(jagMedia, 'headicons', i);
                 }
-            } catch (e) {
-                /* empty */
+            } catch (_e) {
+                // empty
             }
 
             this.mapmarker1 = Pix32.load(jagMedia, 'mapmarker', 0);
@@ -1008,11 +1008,11 @@ export class Client extends GameShell {
             setInterval(() => {
                 this.mouseTracking.cycle();
             }, 50);
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
 
-            if (err instanceof Error) {
-                this.errorMessage = `loaderror - ${this.lastProgressMessage} ${this.lastProgressPercent}%: ${err.message}`;
+            if (e instanceof Error) {
+                this.errorMessage = `loaderror - ${this.lastProgressMessage} ${this.lastProgressPercent}%: ${e.message}`;
             }
 
             this.errorLoading = true;
@@ -1196,7 +1196,8 @@ export class Client extends GameShell {
             if (this.db) {
                 data = await this.db.read(0, index);
             }
-        } catch (err) {
+        } catch (_e) {
+            // empty
         }
 
         if (data && Packet.getcrc(data, 0, data.length) !== crc) {
@@ -1220,13 +1221,14 @@ export class Client extends GameShell {
                         if (this.db) {
                             await this.db.write(0, index, data);
                         }
-                    } catch (e) {
+                    } catch (_e) {
+                        // empty
                     }
                 } else {
                     data = undefined;
                     loops++;
                 }
-            } catch (e) {
+            } catch (_e) {
                 data = undefined;
             }
 
@@ -1370,7 +1372,6 @@ export class Client extends GameShell {
                 this.loginPass = '';
             }
 
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 const key: number = this.pollKey();
                 if (key === -1) {
@@ -1786,7 +1787,7 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < 5 && (await this.tcpIn()); i++) {
-            /* empty */
+            // empty
         }
 
         const now = performance.now();
@@ -2013,7 +2014,7 @@ export class Client extends GameShell {
                             com.linkObjCount[src] = 0;
                         } else if (mode == 1) {
                             let src = this.objDragSlot;
-                            let dst = this.hoveredSlot;
+                            const dst = this.hoveredSlot;
 
                             while (src != dst) {
                                 if (src > dst) {
@@ -2374,8 +2375,8 @@ export class Client extends GameShell {
             }
 
             this.locChangePostBuildCorrect();
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
         }
 
         LocType.mc1?.clear();
@@ -2487,7 +2488,7 @@ export class Client extends GameShell {
 
         for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
             for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
-                let typecode: number = this.world?.gdType(this.minusedlevel, x, z) ?? 0;
+                const typecode: number = this.world?.gdType(this.minusedlevel, x, z) ?? 0;
                 if (typecode === 0) {
                     continue;
                 }
@@ -2596,7 +2597,8 @@ export class Client extends GameShell {
                         this.lastWaveLoops = this.waveLoops[wave];
                         await playWave(buf.data.slice(0, buf.pos));
                     }
-                } catch (e) {
+                } catch (_e) {
+                    // empty
                 }
 
                 this.waveCount--;
@@ -2731,13 +2733,13 @@ export class Client extends GameShell {
                 const type: number = this.messageType[i];
                 let sender = this.messageSender[i];
 
-                let mod = false;
+                let _mod = false;
                 if (sender && sender.startsWith('@cr1@')) {
                     sender = sender.substring(5);
-                    mod = true;
+                    _mod = true;
                 } else if (sender && sender.startsWith('@cr2@')) {
                     sender = sender.substring(5);
-                    mod = true;
+                    _mod = true;
                 }
 
                 if ((type === 3 || type === 7) && (type === 7 || this.chatPrivateMode === 0 || (this.chatPrivateMode === 1 && this.isFriend(sender)))) {
@@ -2787,13 +2789,13 @@ export class Client extends GameShell {
             }
 
             let sender = this.messageSender[i];
-            let mod = false;
+            let _mod = false;
             if (sender && sender.startsWith('@cr1@')) {
                 sender = sender.substring(5);
-                mod = true;
+                _mod = true;
             } else if (sender && sender.startsWith('@cr2@')) {
                 sender = sender.substring(5);
-                mod = true;
+                _mod = true;
             }
 
             if (type === 0) {
@@ -3578,11 +3580,9 @@ export class Client extends GameShell {
             this.out.p1(232);
         }
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
             let key: number;
             do {
-                // eslint-disable-next-line no-constant-condition
                 while (true) {
                     key = this.pollKey();
                     if (key === -1) {
@@ -3672,7 +3672,8 @@ export class Client extends GameShell {
                                 let value: number = 0;
                                 try {
                                     value = parseInt(this.chatbackInput, 10);
-                                } catch (e) {
+                                } catch (_e) {
+                                    // empty
                                 }
 
                                 this.out.pIsaac(ClientProt.RESUME_P_COUNTDIALOG);
@@ -3721,7 +3722,9 @@ export class Client extends GameShell {
                                 try {
                                     const desiredFps = parseInt(this.chatTyped.substring(6)) || 50;
                                     this.setTargetedFramerate(desiredFps);
-                                } catch (e) { }
+                                } catch (_e) {
+                                    // empty
+                                }
                             } else if (this.chatTyped.startsWith('::')) {
                                 this.out.pIsaac(ClientProt.CLIENT_CHEAT);
                                 this.out.p1(this.chatTyped.length - 2 + 1);
@@ -4551,7 +4554,7 @@ export class Client extends GameShell {
         }
 
         if (this.sideLayerId !== -1) {
-            let redraw = this.animateLayer(this.sideLayerId, this.sceneDelta);
+            const redraw = this.animateLayer(this.sideLayerId, this.sceneDelta);
             if (redraw) {
                 this.redrawSidebar = true;
             }
@@ -4593,7 +4596,7 @@ export class Client extends GameShell {
         }
 
         if (this.chatLayerId !== -1) {
-            let redraw = this.animateLayer(this.chatLayerId, this.sceneDelta);
+            const redraw = this.animateLayer(this.chatLayerId, this.sceneDelta);
             if (redraw) {
                 this.redrawChatback = true;
             }
@@ -5133,7 +5136,7 @@ export class Client extends GameShell {
             }
 
             if (tileDeltaX > tileDeltaZ) {
-                let delta = ((tileDeltaZ * 65536) / tileDeltaX) | 0;
+                const delta = ((tileDeltaZ * 65536) / tileDeltaX) | 0;
                 let accumulator = 32768;
 
                 while (cameraLocalTileX !== playerLocalTileX) {
@@ -5163,7 +5166,7 @@ export class Client extends GameShell {
                     }
                 }
             } else {
-                let delta = ((tileDeltaX * 65536) / tileDeltaZ) | 0;
+                const delta = ((tileDeltaX * 65536) / tileDeltaZ) | 0;
                 let accumulator = 32768;
 
                 while (cameraLocalTileZ !== playerLocalTileZ) {
@@ -5574,7 +5577,7 @@ export class Client extends GameShell {
         }
 
         if (this.displayFps) {
-            let x: number = 507;
+            const x: number = 507;
             let y: number = 20;
 
             let color: number = Colors.YELLOW;
@@ -5587,6 +5590,7 @@ export class Client extends GameShell {
 
             let memoryUsage = -1;
             if (typeof window.performance['memory' as keyof Performance] !== 'undefined') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const memory = window.performance['memory' as keyof Performance] as any;
                 memoryUsage = (memory.usedJSHeapSize / 1024) | 0;
             }
@@ -6904,7 +6908,7 @@ export class Client extends GameShell {
                         } else {
                             this.addChat(3, filtered, JString.formatName(JString.fromBase37(from)));
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // signlink.reporterror('cde1'); TODO?
                     }
                 }
@@ -7234,12 +7238,12 @@ export class Client extends GameShell {
                             this.mapBuildLocationFile[mapCount] = -1;
                             mapCount++;
                         } else if (this.onDemand) {
-                            let landFile = this.mapBuildGroundFile[mapCount] = this.onDemand.getMapFile(x, z, 0);
+                            const landFile = this.mapBuildGroundFile[mapCount] = this.onDemand.getMapFile(x, z, 0);
                             if (landFile != -1) {
                                 this.onDemand.request(3, landFile);
                             }
 
-                            let locFile = this.mapBuildLocationFile[mapCount] = this.onDemand.getMapFile(x, z, 1);
+                            const locFile = this.mapBuildLocationFile[mapCount] = this.onDemand.getMapFile(x, z, 1);
                             if (locFile != -1) {
                                 this.onDemand.request(3, locFile);
                             }
@@ -7713,7 +7717,7 @@ export class Client extends GameShell {
                 const heightNE: number = this.groundh[this.minusedlevel][x + 1][z + 1];
                 const heightNW: number = this.groundh[this.minusedlevel][x][z + 1];
 
-                let model = loc.getModel(shape, rotate, heightSW, heightSE, heightNE, heightNW, -1);
+                const model = loc.getModel(shape, rotate, heightSW, heightSE, heightNE, heightNW, -1);
                 if (model) {
                     this.locChangeCreate(t2 + 1, -1, 0, layer, z, 0, this.minusedlevel, x, t1 + 1);
 
@@ -8102,7 +8106,7 @@ export class Client extends GameShell {
 
     private getPlayerNewVis(buf: Packet, size: number): void {
         while (buf.bitPos + 10 < size * 8) {
-            let index = buf.gBit(11);
+            const index = buf.gBit(11);
             if (index === 2047) {
                 break;
             }
@@ -8278,7 +8282,7 @@ export class Client extends GameShell {
                         } else {
                             this.addChat(2, filtered, player.name);
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // signlink.reporterror('cde2');
                     }
                 }
@@ -9847,7 +9851,6 @@ export class Client extends GameShell {
                             }
 
                             text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 0)) + text.substring(index + 2);
-                            // eslint-disable-next-line no-constant-condition
                         } while (true);
 
                         do {
@@ -9857,7 +9860,6 @@ export class Client extends GameShell {
                             }
 
                             text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 1)) + text.substring(index + 2);
-                            // eslint-disable-next-line no-constant-condition
                         } while (true);
 
                         do {
@@ -9867,7 +9869,6 @@ export class Client extends GameShell {
                             }
 
                             text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 2)) + text.substring(index + 2);
-                            // eslint-disable-next-line no-constant-condition
                         } while (true);
 
                         do {
@@ -9877,7 +9878,6 @@ export class Client extends GameShell {
                             }
 
                             text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 3)) + text.substring(index + 2);
-                            // eslint-disable-next-line no-constant-condition
                         } while (true);
 
                         do {
@@ -9887,7 +9887,6 @@ export class Client extends GameShell {
                             }
 
                             text = text.substring(0, index) + this.getIntString(this.getIfVar(child, 4)) + text.substring(index + 2);
-                            // eslint-disable-next-line no-constant-condition
                         } while (true);
                     }
 
@@ -10135,7 +10134,6 @@ export class Client extends GameShell {
             let pc: number = 0;
             let arithmetic = 0;
 
-            // eslint-disable-next-line no-constant-condition
             while (true) {
                 let register: number = 0;
                 let nextArithmetic: number = 0;
@@ -10261,7 +10259,7 @@ export class Client extends GameShell {
                     arithmetic = nextArithmetic;
                 }
             }
-        } catch (e) {
+        } catch (_e) {
             return -1;
         }
     }
@@ -10963,7 +10961,6 @@ export class Client extends GameShell {
             let kit: number = this.designKits[part];
 
             if (kit !== -1) {
-                // eslint-disable-next-line no-constant-condition
                 while (true) {
                     if (direction === 0) {
                         kit--;
@@ -11105,7 +11102,7 @@ export class Client extends GameShell {
         } else if (this.tutLayerId !== -1) {
             this.drawLayer(IfType.list[this.tutLayerId], 0, 0, 0);
         } else {
-            let font: PixFont | null = this.fontPlain12;
+            const font: PixFont | null = this.fontPlain12;
             let line: number = 0;
 
             Pix2D.setClipping(0, 0, 463, 77);
@@ -11305,8 +11302,8 @@ export class Client extends GameShell {
                 const npc = this.npc[this.hintNpc];
 
                 if (npc != null) {
-                    let x = ((npc.x / 32) | 0) - ((this.localPlayer.x / 32) | 0);
-                    let y = ((npc.z / 32) | 0) - ((this.localPlayer.z / 32) | 0);
+                    const x = ((npc.x / 32) | 0) - ((this.localPlayer.x / 32) | 0);
+                    const y = ((npc.z / 32) | 0) - ((this.localPlayer.z / 32) | 0);
                     this.drawMinimapHint(x, y, this.mapmarker2);
                 }
             } else if (this.hintType == 2) {

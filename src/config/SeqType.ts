@@ -63,7 +63,7 @@ export default class SeqType {
         let duration = this.delay[frame];
 
         if (duration === 0) {
-            let transform = AnimFrame.get(this.frames[frame]);
+            const transform = AnimFrame.get(this.frames[frame]);
             if (transform != null) {
                 duration = this.delay[frame] = transform.delay;
             }

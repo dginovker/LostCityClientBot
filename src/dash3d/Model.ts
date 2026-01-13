@@ -162,17 +162,17 @@ export default class Model extends ModelSource {
         meta.faceCount = buf.g2();
         meta.faceTextureCount = buf.g1();
 
-        let hasFaceInfo = buf.g1();
+        const hasFaceInfo = buf.g1();
 
-        let priority = buf.g1();
-        let hasFaceAlpha = buf.g1();
-        let hasFaceLabels = buf.g1();
-        let hasVertexLabels = buf.g1();
+        const priority = buf.g1();
+        const hasFaceAlpha = buf.g1();
+        const hasFaceLabels = buf.g1();
+        const hasVertexLabels = buf.g1();
 
-        let dataLengthX = buf.g2();
-        let dataLengthY = buf.g2();
-        let dataLengthZ = buf.g2();
-        let dataLengthFaceIndex = buf.g2();
+        const dataLengthX = buf.g2();
+        const dataLengthY = buf.g2();
+        const dataLengthZ = buf.g2();
+        const dataLengthFaceIndex = buf.g2();
 
         let pos = 0;
 
@@ -313,7 +313,7 @@ export default class Model extends ModelSource {
         let dy = 0;
         let dz = 0;
         for (let v = 0; v < model.vertexCount; v++) {
-            let order = point1.g1();
+            const order = point1.g1();
 
             let x = 0;
             if ((order & 0x1) != 0) {
@@ -398,17 +398,17 @@ export default class Model extends ModelSource {
                 c = vertex1.gsmart() + b;
                 last = c;
             } else if (order === 2) {
-                a = a;
+                // a = a;
                 b = c;
                 c = vertex1.gsmart() + last;
                 last = c;
             } else if (order === 3) {
                 a = c;
-                b = b;
+                // b = b;
                 c = vertex1.gsmart() + last;
                 last = c;
             } else if (order === 4) {
-                let tmp = a;
+                const tmp = a;
                 a = b;
                 b = tmp;
                 c = vertex1.gsmart() + last;
@@ -1873,8 +1873,8 @@ export default class Model extends ModelSource {
         try {
             // try catch for example a model being drawn from 3d can crash like at baxtorian falls
             this.render2(false, false, 0);
-        } catch (err) {
-            /* empty */
+        } catch (_e) {
+            // empty
         }
     }
 
@@ -2008,8 +2008,8 @@ export default class Model extends ModelSource {
         try {
             // try catch for example a model being drawn from 3d can crash like at baxtorian falls
             this.render2(clipped, picking, typecode);
-        } catch (err) {
-            /* empty */
+        } catch (_e) {
+            // empty
         }
     }
 
@@ -2094,7 +2094,7 @@ export default class Model extends ModelSource {
                     for (let f: number = 0; f < count; f++) {
                         try {
                             this.render3(faces[f]);
-                        } catch (e) {
+                        } catch (_e) {
                             // chrome's V8 optimizer hates us
                         }
                     }
@@ -2191,7 +2191,7 @@ export default class Model extends ModelSource {
                         } else {
                             priorityDepth = -1000;
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // chrome's V8 optimizer hates us
                     }
                 }
@@ -2212,7 +2212,7 @@ export default class Model extends ModelSource {
                         } else {
                             priorityDepth = -1000;
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // chrome's V8 optimizer hates us
                     }
                 }
@@ -2233,7 +2233,7 @@ export default class Model extends ModelSource {
                         } else {
                             priorityDepth = -1000;
                         }
-                    } catch (e) {
+                    } catch (_e) {
                         // chrome's V8 optimizer hates us
                     }
                 }
@@ -2244,7 +2244,7 @@ export default class Model extends ModelSource {
                 for (let i: number = 0; i < count; i++) {
                     try {
                         this.render3(faces[i]);
-                    } catch (e) {
+                    } catch (_e) {
                         // chrome's V8 optimizer hates us
                     }
                 }
@@ -2266,7 +2266,7 @@ export default class Model extends ModelSource {
                     } else {
                         priorityDepth = -1000;
                     }
-                } catch (e) {
+                } catch (_e) {
                     // chrome's V8 optimizer hates us
                 }
             }

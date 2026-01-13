@@ -620,8 +620,8 @@ export default class OnDemand extends OnDemandProvider {
 
                     this.partAvailable = 0;
                 }
-            } catch (err) {
-                console.error(err);
+            } catch (e) {
+                console.error(e);
 
                 if (this.stream) {
                     this.stream.close();
@@ -686,8 +686,8 @@ export default class OnDemand extends OnDemandProvider {
 
             this.stream.write(this.buf, 4);
             this.noTimeoutCycle = 0;
-        } catch (err) {
-            console.error(err);
+        } catch (e) {
+            console.error(e);
 
             this.stream = null;
             this.partAvailable = 0;
@@ -748,8 +748,8 @@ export default class OnDemand extends OnDemandProvider {
                 }
 
                 success = true;
-            } catch (err) {
-                console.error(err);
+            } catch (e) {
+                console.error(e);
             }
         }
     }

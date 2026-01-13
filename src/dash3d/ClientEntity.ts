@@ -59,7 +59,7 @@ export default abstract class ClientEntity extends ModelSource {
     routeRun: boolean[] = new TypedArray1d(10, false);
     seqDelayMove: number = 0;
     preanimRouteLength: number = 0;
-	turnspeed: number = 32;
+    turnspeed: number = 32;
 
     // jag::oldscape::ClientEntity::Ready
     abstract isReady(): boolean;

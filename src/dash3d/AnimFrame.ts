@@ -32,25 +32,25 @@ export default class AnimFrame {
         const delLength = buf.g2();
         let pos = 0;
 
-		const head = new Packet(data);
-		head.pos = pos;
-		pos += headLength + 2;
+        const head = new Packet(data);
+        head.pos = pos;
+        pos += headLength + 2;
 
-		const tran1 = new Packet(data);
-		tran1.pos = pos;
-		pos += tran1Length;
+        const tran1 = new Packet(data);
+        tran1.pos = pos;
+        pos += tran1Length;
 
-		const tran2 = new Packet(data);
-		tran2.pos = pos;
-		pos += tran2Length;
+        const tran2 = new Packet(data);
+        tran2.pos = pos;
+        pos += tran2Length;
 
-		const del = new Packet(data);
-		del.pos = pos;
-		pos += delLength;
+        const del = new Packet(data);
+        del.pos = pos;
+        pos += delLength;
 
-		const baseBuf = new Packet(data);
-		baseBuf.pos = pos;
-		const base = new AnimBase(baseBuf);
+        const baseBuf = new Packet(data);
+        baseBuf.pos = pos;
+        const base = new AnimBase(baseBuf);
 
         const total = head.g2();
         const tempTi: Int32Array = new Int32Array(500);
