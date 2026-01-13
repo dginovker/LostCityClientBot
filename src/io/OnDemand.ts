@@ -317,7 +317,7 @@ export default class OnDemand extends OnDemandProvider {
 
                 if (req.cycle > 50) {
                     req.cycle = 0;
-                    this.send(req);
+                    await this.send(req);
                 }
             }
         }
@@ -329,7 +329,7 @@ export default class OnDemand extends OnDemandProvider {
 
                 if (req.cycle > 50) {
                     req.cycle = 0;
-                    this.send(req);
+                    await this.send(req);
                 }
             }
         }
@@ -603,7 +603,7 @@ export default class OnDemand extends OnDemandProvider {
 
                     if (this.partAvailable + this.partOffset >= dst.length && this.current) {
                         if (this.app.db) {
-                            this.app.db.write(this.current.archive + 1, this.current.file, dst);
+                            await this.app.db.write(this.current.archive + 1, this.current.file, dst);
                         }
 
                         if (!this.current.urgent && this.current.archive === 3) {
