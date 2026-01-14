@@ -1,4 +1,4 @@
-export const enum Colors {
+export const enum Colour {
     RED = 0xff0000,
     GREEN = 0xff00,
     BLUE = 0xff,
@@ -16,13 +16,4 @@ export const enum Colors {
     GREEN1 = 0xc0ff00,
     GREEN2 = 0x80ff00,
     GREEN3 = 0x40ff00,
-
-    PROGRESS_RED = 0x8c1111,
-    OPTIONS_MENU = 0x5d5447,
-    SCROLLBAR_TRACK = 0x23201b,
-    SCROLLBAR_GRIP_FOREGROUND = 0x4d4233,
-    SCROLLBAR_GRIP_HIGHLIGHT = 0x766654,
-    SCROLLBAR_GRIP_LOWLIGHT = 0x332d25,
-    TRADE_MESSAGE = 0x800080,
-    DUEL_MESSAGE = 0x7e3200
 }

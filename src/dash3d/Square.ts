@@ -16,7 +16,7 @@ export default class Square extends Linkable {
     readonly z: number;
     readonly originalLevel: number;
     readonly sprites: (Sprite | null)[] = new TypedArray1d(5, null);
-    readonly spriteExtendDirections: Int32Array = new Int32Array(5);
+    readonly spriteSpan: Int32Array = new Int32Array(5);
 
     quickGround: QuickGround | null = null;
     ground: Ground | null = null;
@@ -26,7 +26,7 @@ export default class Square extends Linkable {
     groundObject: GroundObject | null = null;
     linkedSquare: Square | null = null;
     spriteCount: number = 0;
-    combinedSpriteExtendDirections: number = 0;
+    spriteSpans: number = 0;
     drawLevel: number = 0;
     drawFront: boolean = false;
     drawBack: boolean = false;

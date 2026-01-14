@@ -7,7 +7,7 @@ import Sprite from '#/dash3d/Sprite.js';
 import GroundObject from '#/dash3d/GroundObject.js';
 import Square from '#/dash3d/Square.js';
 import Ground from '#/dash3d/Ground.js';
-import { OverlayShape } from '#/dash3d/OverlayShape.js';
+import { TerrainOverlayShape } from '#/dash3d/TerrainOverlayShape.js';
 import QuickGround from '#/dash3d/QuickGround.js';
 import Wall from '#/dash3d/Wall.js';
 import Decor from '#/dash3d/Decor.js';
@@ -319,28 +319,15 @@ export default class World {
 
     // jag::oldscape::dash3d::world::SetGround
     setGround(
-        level: number,
-        x: number,
-        z: number,
-        shape: number,
-        angle: number,
-        textureId: number,
-        southwestY: number,
-        southeastY: number,
-        northeastY: number,
-        northwestY: number,
-        southwestColor: number,
-        southeastColor: number,
-        northeastColor: number,
-        northwestColor: number,
-        southwestColor2: number,
-        southeastColor2: number,
-        northeastColor2: number,
-        northwestColor2: number,
-        backgroundRgb: number,
-        foregroundRgb: number
+        level: number, x: number, z: number,
+        shape: number, rotation: number,
+        texture: number,
+        heightSW: number, heightSE: number, heightNE: number, heightNW: number,
+        colourSW: number, colourSE: number, colourNE: number, colourNW: number,
+        colour2SW: number, colour2SE: number, colour2NE: number, colour2NW: number,
+        overlay: number, underlay: number
     ): void {
-        if (shape === OverlayShape.PLAIN) {
+        if (shape === TerrainOverlayShape.PLAIN) {
             for (let l: number = level; l >= 0; l--) {
                 if (!this.levelTiles[l][x][z]) {
                     this.levelTiles[l][x][z] = new Square(l, x, z);
@@ -349,9 +336,14 @@ export default class World {
 
             const tile: Square | null = this.levelTiles[level][x][z];
             if (tile) {
-                tile.quickGround = new QuickGround(southwestColor, southeastColor, northeastColor, northwestColor, -1, backgroundRgb, false);
+                tile.quickGround = new QuickGround(
+                    colourSW, colourSE, colourNE, colourNW,
+                    -1,
+                    overlay,
+                    false
+                );
             }
-        } else if (shape === OverlayShape.DIAGONAL) {
+        } else if (shape === TerrainOverlayShape.DIAGONAL) {
             for (let l: number = level; l >= 0; l--) {
                 if (!this.levelTiles[l][x][z]) {
                     this.levelTiles[l][x][z] = new Square(l, x, z);
@@ -360,7 +352,12 @@ export default class World {
 
             const tile: Square | null = this.levelTiles[level][x][z];
             if (tile) {
-                tile.quickGround = new QuickGround(southwestColor2, southeastColor2, northeastColor2, northwestColor2, textureId, foregroundRgb, southwestY === southeastY && southwestY === northeastY && southwestY === northwestY);
+                tile.quickGround = new QuickGround(
+                    colour2SW, colour2SE, colour2NE, colour2NW,
+                    texture,
+                    underlay,
+                    heightSW === heightSE && heightSW === heightNE && heightSW === heightNW
+                );
             }
         } else {
             for (let l: number = level; l >= 0; l--) {
@@ -372,25 +369,13 @@ export default class World {
             const tile: Square | null = this.levelTiles[level][x][z];
             if (tile) {
                 tile.ground = new Ground(
-                    x,
-                    shape,
-                    southeastColor2,
-                    southeastY,
-                    northeastColor,
-                    angle,
-                    southwestColor,
-                    northwestY,
-                    foregroundRgb,
-                    southwestColor2,
-                    textureId,
-                    northwestColor2,
-                    backgroundRgb,
-                    northeastY,
-                    northeastColor2,
-                    northwestColor,
-                    southwestY,
-                    z,
-                    southeastColor
+                    x, z,
+                    shape, rotation,
+                    texture,
+                    heightSW, heightSE, heightNE, heightNW,
+                    colourSW, colourSE, colourNE, colourNW,
+                    colour2SW, colour2SE, colour2NE, colour2NW,
+                    overlay, underlay
                 );
             }
         }
@@ -992,9 +977,9 @@ export default class World {
             return;
         }
 
-        const underlay: QuickGround | null = tile.quickGround;
-        if (underlay) {
-            const rgb: number = underlay.rgb;
+        const quickGround: QuickGround | null = tile.quickGround;
+        if (quickGround) {
+            const rgb: number = quickGround.minimapRgb;
             if (rgb !== 0) {
                 for (let i: number = 0; i < 4; i++) {
                     dst[offset] = rgb;
@@ -1007,39 +992,39 @@ export default class World {
             return;
         }
 
-        const overlay: Ground | null = tile.ground;
-        if (overlay) {
-            const shape: number = overlay.shape;
-            const angle: number = overlay.shapeAngle;
-            const background: number = overlay.underlayColour;
-            const foreground: number = overlay.overlayColour;
-            const mask: Int8Array = World.MINIMAP_SHAPE[shape];
-            const rotation: Int8Array = World.MINIMAP_ROTATE[angle];
+        const ground: Ground | null = tile.ground;
+        if (ground) {
+            const shape: number = ground.overlayShape;
+            const rotation: number = ground.overlayRotation;
+            const overlay: number = ground.minimapOverlay;
+            const underlay: number = ground.minimapUnderlay;
+            const minimapShape: Int8Array = World.MINIMAP_SHAPE[shape];
+            const minimapRotation: Int8Array = World.MINIMAP_ROTATE[rotation];
 
             let off: number = 0;
-            if (background !== 0) {
+            if (overlay !== 0) {
                 for (let i: number = 0; i < 4; i++) {
-                    dst[offset] = mask[rotation[off++]] === 0 ? background : foreground;
-                    dst[offset + 1] = mask[rotation[off++]] === 0 ? background : foreground;
-                    dst[offset + 2] = mask[rotation[off++]] === 0 ? background : foreground;
-                    dst[offset + 3] = mask[rotation[off++]] === 0 ? background : foreground;
+                    dst[offset] = minimapShape[minimapRotation[off++]] === 0 ? overlay : underlay;
+                    dst[offset + 1] = minimapShape[minimapRotation[off++]] === 0 ? overlay : underlay;
+                    dst[offset + 2] = minimapShape[minimapRotation[off++]] === 0 ? overlay : underlay;
+                    dst[offset + 3] = minimapShape[minimapRotation[off++]] === 0 ? overlay : underlay;
                     offset += step;
                 }
                 return;
             }
 
             for (let i: number = 0; i < 4; i++) {
-                if (mask[rotation[off++]] !== 0) {
-                    dst[offset] = foreground;
+                if (minimapShape[minimapRotation[off++]] !== 0) {
+                    dst[offset] = underlay;
                 }
-                if (mask[rotation[off++]] !== 0) {
-                    dst[offset + 1] = foreground;
+                if (minimapShape[minimapRotation[off++]] !== 0) {
+                    dst[offset + 1] = underlay;
                 }
-                if (mask[rotation[off++]] !== 0) {
-                    dst[offset + 2] = foreground;
+                if (minimapShape[minimapRotation[off++]] !== 0) {
+                    dst[offset + 2] = underlay;
                 }
-                if (mask[rotation[off++]] !== 0) {
-                    dst[offset + 3] = foreground;
+                if (minimapShape[minimapRotation[off++]] !== 0) {
+                    dst[offset + 3] = underlay;
                 }
                 offset += step;
             }
@@ -1299,8 +1284,8 @@ export default class World {
                 const tile: Square | null = this.levelTiles[level][tx][tz];
                 if (tile) {
                     tile.sprites[tile.spriteCount] = sprite;
-                    tile.spriteExtendDirections[tile.spriteCount] = spans;
-                    tile.combinedSpriteExtendDirections |= spans;
+                    tile.spriteSpan[tile.spriteCount] = spans;
+                    tile.spriteSpans |= spans;
                     tile.spriteCount++;
                 }
             }
@@ -1327,17 +1312,17 @@ export default class World {
                         tile.spriteCount--;
                         for (let j: number = i; j < tile.spriteCount; j++) {
                             tile.sprites[j] = tile.sprites[j + 1];
-                            tile.spriteExtendDirections[j] = tile.spriteExtendDirections[j + 1];
+                            tile.spriteSpan[j] = tile.spriteSpan[j + 1];
                         }
                         tile.sprites[tile.spriteCount] = null;
                         break;
                     }
                 }
 
-                tile.combinedSpriteExtendDirections = 0;
+                tile.spriteSpans = 0;
 
                 for (let i: number = 0; i < tile.spriteCount; i++) {
-                    tile.combinedSpriteExtendDirections |= tile.spriteExtendDirections[i];
+                    tile.spriteSpans |= tile.spriteSpan[i];
                 }
             }
         }
@@ -1527,7 +1512,7 @@ export default class World {
                     if (tileX <= World.gx && tileX > World.minX) {
                         const adjacent: Square | null = tiles[tileX - 1][tileZ];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x1) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.spriteSpans & 0x1) === 0)) {
                             continue;
                         }
                     }
@@ -1535,7 +1520,7 @@ export default class World {
                     if (tileX >= World.gx && tileX < World.maxX - 1) {
                         const adjacent: Square | null = tiles[tileX + 1][tileZ];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x4) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.spriteSpans & 0x4) === 0)) {
                             continue;
                         }
                     }
@@ -1543,7 +1528,7 @@ export default class World {
                     if (tileZ <= World.gz && tileZ > World.minZ) {
                         const adjacent: Square | null = tiles[tileX][tileZ - 1];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x8) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.spriteSpans & 0x8) === 0)) {
                             continue;
                         }
                     }
@@ -1551,7 +1536,7 @@ export default class World {
                     if (tileZ >= World.gz && tileZ < World.maxZ - 1) {
                         const adjacent: Square | null = tiles[tileX][tileZ + 1];
 
-                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.combinedSpriteExtendDirections & 0x2) === 0)) {
+                        if (adjacent && adjacent.drawBack && (adjacent.drawFront || (tile.spriteSpans & 0x2) === 0)) {
                             continue;
                         }
                     }
@@ -1709,7 +1694,7 @@ export default class World {
                     }
                 }
 
-                const spans: number = tile.combinedSpriteExtendDirections;
+                const spans: number = tile.spriteSpans;
 
                 if (spans !== 0) {
                     if (tileX < World.gx && (spans & 0x4) !== 0) {
@@ -1750,7 +1735,7 @@ export default class World {
                         continue;
                     }
 
-                    if (sprite.cycle !== World.cycleNo && (tile.spriteExtendDirections[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
+                    if (sprite.cycle !== World.cycleNo && (tile.spriteSpan[i] & tile.cornerSides) === tile.sidesBeforeCorner) {
                         draw = false;
                         break;
                     }
@@ -2111,17 +2096,17 @@ export default class World {
                 World.groundZ = tileZ;
             }
 
-            if (quick.textureId === -1) {
-                if (quick.neColour !== 12345678) {
-                    Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, quick.neColour, quick.nwColour, quick.seColour);
+            if (quick.texture === -1) {
+                if (quick.colourNE !== 12345678) {
+                    Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, quick.colourNE, quick.colourNW, quick.colourSE);
                 }
             } else if (World.lowMem) {
-                const averageColor: number = World.TEXTURE_HSL[quick.textureId];
-                Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, this.mulLightness(averageColor, quick.neColour), this.mulLightness(averageColor, quick.nwColour), this.mulLightness(averageColor, quick.seColour));
+                const textureAverage: number = World.TEXTURE_HSL[quick.texture];
+                Pix3D.gouraudTriangle(py1, px3, pz0, pz1, py3, px1, this.mulLightness(textureAverage, quick.colourNE), this.mulLightness(textureAverage, quick.colourNW), this.mulLightness(textureAverage, quick.colourSE));
             } else if (quick.flat) {
-                Pix3D.textureTriangle(py1, px3, pz0, pz1, py3, px1, quick.neColour, quick.nwColour, quick.seColour, x0, y0, z0, x1, x3, y1, y3, z1, z3, quick.textureId);
+                Pix3D.textureTriangle(py1, px3, pz0, pz1, py3, px1, quick.colourNE, quick.colourNW, quick.colourSE, x0, y0, z0, x1, x3, y1, y3, z1, z3, quick.texture);
             } else {
-                Pix3D.textureTriangle(py1, px3, pz0, pz1, py3, px1, quick.neColour, quick.nwColour, quick.seColour, x2, y2, z2, x3, x1, y3, y1, z3, z1, quick.textureId);
+                Pix3D.textureTriangle(py1, px3, pz0, pz1, py3, px1, quick.colourNE, quick.colourNW, quick.colourSE, x2, y2, z2, x3, x1, y3, y1, z3, z1, quick.texture);
             }
         }
 
@@ -2133,15 +2118,15 @@ export default class World {
                 World.groundZ = tileZ;
             }
 
-            if (quick.textureId !== -1) {
+            if (quick.texture !== -1) {
                 if (!World.lowMem) {
-                    Pix3D.textureTriangle(px0, pz0, px3, py0, px1, py3, quick.swColour, quick.seColour, quick.nwColour, x0, y0, z0, x1, x3, y1, y3, z1, z3, quick.textureId);
+                    Pix3D.textureTriangle(px0, pz0, px3, py0, px1, py3, quick.colourSW, quick.colourSE, quick.colourNW, x0, y0, z0, x1, x3, y1, y3, z1, z3, quick.texture);
                 } else {
-                    const averageColor: number = World.TEXTURE_HSL[quick.textureId];
-                    Pix3D.gouraudTriangle(px0, pz0, px3, py0, px1, py3, this.mulLightness(averageColor, quick.swColour), this.mulLightness(averageColor, quick.seColour), this.mulLightness(averageColor, quick.nwColour));
+                    const textureAverage: number = World.TEXTURE_HSL[quick.texture];
+                    Pix3D.gouraudTriangle(px0, pz0, px3, py0, px1, py3, this.mulLightness(textureAverage, quick.colourSW), this.mulLightness(textureAverage, quick.colourSE), this.mulLightness(textureAverage, quick.colourNW));
                 }
-            } else if (quick.swColour !== 12345678) {
-                Pix3D.gouraudTriangle(px0, pz0, px3, py0, px1, py3, quick.swColour, quick.seColour, quick.nwColour);
+            } else if (quick.colourSW !== 12345678) {
+                Pix3D.gouraudTriangle(px0, pz0, px3, py0, px1, py3, quick.colourSW, quick.colourSE, quick.colourNW);
             }
         }
     }
@@ -2167,7 +2152,7 @@ export default class World {
                 return;
             }
 
-            if (ground.triangleTextureIds) {
+            if (ground.faceTexture) {
                 Ground.drawTextureVertexX[i] = x;
                 Ground.drawTextureVertexY[i] = y;
                 Ground.drawTextureVertexZ[i] = z;
@@ -2179,11 +2164,11 @@ export default class World {
 
         Pix3D.trans = 0;
 
-        vertexCount = ground.triangleVertexA.length;
+        vertexCount = ground.faceVertexA.length;
         for (let v: number = 0; v < vertexCount; v++) {
-            const a: number = ground.triangleVertexA[v];
-            const b: number = ground.triangleVertexB[v];
-            const c: number = ground.triangleVertexC[v];
+            const a: number = ground.faceVertexA[v];
+            const b: number = ground.faceVertexB[v];
+            const c: number = ground.faceVertexC[v];
 
             const x0: number = Ground.drawVertexX[a];
             const x1: number = Ground.drawVertexX[b];
@@ -2200,13 +2185,13 @@ export default class World {
                     World.groundZ = tileZ;
                 }
 
-                if (!ground.triangleTextureIds || ground.triangleTextureIds[v] === -1) {
-                    if (ground.triangleColorA[v] !== 12345678) {
-                        Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, ground.triangleColorA[v], ground.triangleColorB[v], ground.triangleColorC[v]);
+                if (!ground.faceTexture || ground.faceTexture[v] === -1) {
+                    if (ground.faceColourA[v] !== 12345678) {
+                        Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, ground.faceColourA[v], ground.faceColourB[v], ground.faceColourC[v]);
                     }
                 } else if (World.lowMem) {
-                    const textureColor: number = World.TEXTURE_HSL[ground.triangleTextureIds[v]];
-                    Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, this.mulLightness(textureColor, ground.triangleColorA[v]), this.mulLightness(textureColor, ground.triangleColorB[v]), this.mulLightness(textureColor, ground.triangleColorC[v]));
+                    const textureAverage: number = World.TEXTURE_HSL[ground.faceTexture[v]];
+                    Pix3D.gouraudTriangle(x0, x1, x2, y0, y1, y2, this.mulLightness(textureAverage, ground.faceColourA[v]), this.mulLightness(textureAverage, ground.faceColourB[v]), this.mulLightness(textureAverage, ground.faceColourC[v]));
                 } else if (ground.flat) {
                     Pix3D.textureTriangle(
                         x0,
@@ -2215,9 +2200,9 @@ export default class World {
                         y0,
                         y1,
                         y2,
-                        ground.triangleColorA[v],
-                        ground.triangleColorB[v],
-                        ground.triangleColorC[v],
+                        ground.faceColourA[v],
+                        ground.faceColourB[v],
+                        ground.faceColourC[v],
                         Ground.drawTextureVertexX[0],
                         Ground.drawTextureVertexY[0],
                         Ground.drawTextureVertexZ[0],
@@ -2227,7 +2212,7 @@ export default class World {
                         Ground.drawTextureVertexY[3],
                         Ground.drawTextureVertexZ[1],
                         Ground.drawTextureVertexZ[3],
-                        ground.triangleTextureIds[v]
+                        ground.faceTexture[v]
                     );
                 } else {
                     Pix3D.textureTriangle(
@@ -2237,9 +2222,9 @@ export default class World {
                         y0,
                         y1,
                         y2,
-                        ground.triangleColorA[v],
-                        ground.triangleColorB[v],
-                        ground.triangleColorC[v],
+                        ground.faceColourA[v],
+                        ground.faceColourB[v],
+                        ground.faceColourC[v],
                         Ground.drawTextureVertexX[a],
                         Ground.drawTextureVertexY[a],
                         Ground.drawTextureVertexZ[a],
@@ -2249,7 +2234,7 @@ export default class World {
                         Ground.drawTextureVertexY[c],
                         Ground.drawTextureVertexZ[b],
                         Ground.drawTextureVertexZ[c],
-                        ground.triangleTextureIds[v]
+                        ground.faceTexture[v]
                     );
                 }
             }

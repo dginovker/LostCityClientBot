@@ -1,4 +1,5 @@
-export const enum OverlayShape {
+// jag::graphics::TerrainOverlayShape
+export const enum TerrainOverlayShape {
     PLAIN = 0,
     DIAGONAL = 1,
     LEFT_SEMI_DIAGONAL_SMALL = 2,

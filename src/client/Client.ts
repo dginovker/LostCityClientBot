@@ -46,7 +46,7 @@ import { downloadUrl, sleep, arraycopy } from '#/util/JsUtil.js';
 
 import AnimFrame from '#/dash3d/AnimFrame.js';
 import { canvas2d } from '#/graphics/Canvas.js';
-import { Colors } from '#/graphics/Colors.js';
+import { Colour } from '#/graphics/Colour.js';
 import Pix2D from '#/graphics/Pix2D.js';
 import Pix3D from '#/graphics/Pix3D.js';
 import Model from '#/dash3d/Model.js';
@@ -457,16 +457,16 @@ export class Client extends GameShell {
     private designColours: Int32Array = new Int32Array(5);
 
     // friends/chats
-    static readonly CHAT_COLORS = Int32Array.of(Colors.YELLOW, Colors.RED, Colors.GREEN, Colors.CYAN, Colors.MAGENTA, Colors.WHITE);
+    static readonly CHAT_COLORS = Int32Array.of(Colour.YELLOW, Colour.RED, Colour.GREEN, Colour.CYAN, Colour.MAGENTA, Colour.WHITE);
     private friendCount: number = 0;
     private chatCount: number = 0;
     private chatX: Int32Array = new Int32Array(Constants.MAX_CHATS);
     private chatY: Int32Array = new Int32Array(Constants.MAX_CHATS);
     private chatHeight: Int32Array = new Int32Array(Constants.MAX_CHATS);
     private chatWidth: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatColors: Int32Array = new Int32Array(Constants.MAX_CHATS);
+    private chatColour: Int32Array = new Int32Array(Constants.MAX_CHATS);
     private chatEffect: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatTimers: Int32Array = new Int32Array(Constants.MAX_CHATS);
+    private chatTimer: Int32Array = new Int32Array(Constants.MAX_CHATS);
     private chats: (string | null)[] = new TypedArray1d(Constants.MAX_CHATS, null);
     private friendName: (string | null)[] = new TypedArray1d(200, null);
     private friendName37: BigInt64Array = new BigInt64Array(200);
@@ -517,6 +517,11 @@ export class Client extends GameShell {
     mouseTrackedY: number = 0;
     mouseTrackedDelta: number = 0;
     friendListStatus: number = 0;
+
+    SCROLLBAR_TRACK = 0x23201b;
+    SCROLLBAR_GRIP_FOREGROUND = 0x4d4233;
+    SCROLLBAR_GRIP_HIGHLIGHT = 0x766654;
+    SCROLLBAR_GRIP_LOWLIGHT = 0x332d25;
 
     static readbit = new Int32Array(32);
 
@@ -1081,14 +1086,14 @@ export class Client extends GameShell {
         const y: number = 200;
 
         const offsetY: number = 20;
-        this.fontBold12?.centreString((x / 2) | 0, ((y / 2) | 0) - offsetY - 26, 'RuneScape is loading - please wait...', Colors.WHITE);
+        this.fontBold12?.centreString((x / 2) | 0, ((y / 2) | 0) - offsetY - 26, 'RuneScape is loading - please wait...', Colour.WHITE);
 
         const midY: number = ((y / 2) | 0) - 18 - offsetY;
-        Pix2D.drawRect(((x / 2) | 0) - 152, midY, 304, 34, Colors.PROGRESS_RED);
-        Pix2D.drawRect(((x / 2) | 0) - 151, midY + 1, 302, 32, Colors.BLACK);
-        Pix2D.fillRect(((x / 2) | 0) - 150, midY + 2, percent * 3, 30, Colors.PROGRESS_RED);
-        Pix2D.fillRect(((x / 2) | 0) - 150 + percent * 3, midY + 2, 300 - percent * 3, 30, Colors.BLACK);
-        this.fontBold12?.centreString((x / 2) | 0, ((y / 2) | 0) + 5 - offsetY, message, Colors.WHITE);
+        Pix2D.drawRect(((x / 2) | 0) - 152, midY, 304, 34, 0x8c1111);
+        Pix2D.drawRect(((x / 2) | 0) - 151, midY + 1, 302, 32, Colour.BLACK);
+        Pix2D.fillRect(((x / 2) | 0) - 150, midY + 2, percent * 3, 30, 0x8c1111);
+        Pix2D.fillRect(((x / 2) | 0) - 150 + percent * 3, midY + 2, 300 - percent * 3, 30, Colour.BLACK);
+        this.fontBold12?.centreString((x / 2) | 0, ((y / 2) | 0) + 5 - offsetY, message, Colour.WHITE);
 
         this.imageTitle4?.draw(202, 171);
 
@@ -2203,10 +2208,10 @@ export class Client extends GameShell {
         }
 
         this.areaViewport?.bind();
-        this.fontPlain12?.centreString(257, 144, 'Connection lost', Colors.BLACK);
-        this.fontPlain12?.centreString(256, 143, 'Connection lost', Colors.WHITE);
-        this.fontPlain12?.centreString(257, 159, 'Please wait - attempting to reestablish', Colors.BLACK);
-        this.fontPlain12?.centreString(256, 158, 'Please wait - attempting to reestablish', Colors.WHITE);
+        this.fontPlain12?.centreString(257, 144, 'Connection lost', Colour.BLACK);
+        this.fontPlain12?.centreString(256, 143, 'Connection lost', Colour.WHITE);
+        this.fontPlain12?.centreString(257, 159, 'Please wait - attempting to reestablish', Colour.BLACK);
+        this.fontPlain12?.centreString(256, 158, 'Please wait - attempting to reestablish', Colour.WHITE);
         this.areaViewport?.draw(4, 4);
 
         this.minimapFlagX = 0;
@@ -2224,8 +2229,8 @@ export class Client extends GameShell {
     private checkMinimap(): void {
         if (Client.lowMem && this.sceneState === 2 && ClientBuild.minusedlevel !== this.minusedlevel) {
             this.areaViewport?.bind();
-            this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colors.BLACK);
-            this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colors.WHITE);
+            this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colour.BLACK);
+            this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colour.WHITE);
             this.areaViewport?.draw(4, 4);
             this.sceneState = 1;
             this.sceneLoadStartTime = performance.now();
@@ -3730,42 +3735,42 @@ export class Client extends GameShell {
                                 this.out.p1(this.chatTyped.length - 2 + 1);
                                 this.out.pjstr(this.chatTyped.substring(2));
                             } else {
-                                let color: number = 0;
+                                let colour: number = 0;
                                 if (this.chatTyped.startsWith('yellow:')) {
-                                    color = 0;
+                                    colour = 0;
                                     this.chatTyped = this.chatTyped.substring(7);
                                 } else if (this.chatTyped.startsWith('red:')) {
-                                    color = 1;
+                                    colour = 1;
                                     this.chatTyped = this.chatTyped.substring(4);
                                 } else if (this.chatTyped.startsWith('green:')) {
-                                    color = 2;
+                                    colour = 2;
                                     this.chatTyped = this.chatTyped.substring(6);
                                 } else if (this.chatTyped.startsWith('cyan:')) {
-                                    color = 3;
+                                    colour = 3;
                                     this.chatTyped = this.chatTyped.substring(5);
                                 } else if (this.chatTyped.startsWith('purple:')) {
-                                    color = 4;
+                                    colour = 4;
                                     this.chatTyped = this.chatTyped.substring(7);
                                 } else if (this.chatTyped.startsWith('white:')) {
-                                    color = 5;
+                                    colour = 5;
                                     this.chatTyped = this.chatTyped.substring(6);
                                 } else if (this.chatTyped.startsWith('flash1:')) {
-                                    color = 6;
+                                    colour = 6;
                                     this.chatTyped = this.chatTyped.substring(7);
                                 } else if (this.chatTyped.startsWith('flash2:')) {
-                                    color = 7;
+                                    colour = 7;
                                     this.chatTyped = this.chatTyped.substring(7);
                                 } else if (this.chatTyped.startsWith('flash3:')) {
-                                    color = 8;
+                                    colour = 8;
                                     this.chatTyped = this.chatTyped.substring(7);
                                 } else if (this.chatTyped.startsWith('glow1:')) {
-                                    color = 9;
+                                    colour = 9;
                                     this.chatTyped = this.chatTyped.substring(6);
                                 } else if (this.chatTyped.startsWith('glow2:')) {
-                                    color = 10;
+                                    colour = 10;
                                     this.chatTyped = this.chatTyped.substring(6);
                                 } else if (this.chatTyped.startsWith('glow3:')) {
-                                    color = 11;
+                                    colour = 11;
                                     this.chatTyped = this.chatTyped.substring(6);
                                 }
 
@@ -3783,7 +3788,7 @@ export class Client extends GameShell {
                                 this.out.p1(0);
                                 const start: number = this.out.pos;
 
-                                this.out.p1(color);
+                                this.out.p1(colour);
                                 this.out.p1(effect);
                                 WordPack.pack(this.out, this.chatTyped);
                                 this.out.psize1(this.out.pos - start);
@@ -3793,7 +3798,7 @@ export class Client extends GameShell {
 
                                 if (this.localPlayer && this.localPlayer.name) {
                                     this.localPlayer.chatMessage = this.chatTyped;
-                                    this.localPlayer.chatColour = color;
+                                    this.localPlayer.chatColour = colour;
                                     this.localPlayer.chatEffect = effect;
                                     this.localPlayer.chatTimer = 150;
 
@@ -4371,13 +4376,13 @@ export class Client extends GameShell {
             this.flameGradient0[index] = index * 262144;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient0[index + 64] = index * 1024 + Colors.RED;
+            this.flameGradient0[index + 64] = index * 1024 + Colour.RED;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient0[index + 128] = index * 4 + Colors.YELLOW;
+            this.flameGradient0[index + 128] = index * 4 + Colour.YELLOW;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient0[index + 192] = Colors.WHITE;
+            this.flameGradient0[index + 192] = Colour.WHITE;
         }
 
         this.flameGradient1 = new Int32Array(256);
@@ -4385,13 +4390,13 @@ export class Client extends GameShell {
             this.flameGradient1[index] = index * 1024;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient1[index + 64] = index * 4 + Colors.GREEN;
+            this.flameGradient1[index + 64] = index * 4 + Colour.GREEN;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient1[index + 128] = index * 262144 + Colors.CYAN;
+            this.flameGradient1[index + 128] = index * 262144 + Colour.CYAN;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient1[index + 192] = Colors.WHITE;
+            this.flameGradient1[index + 192] = Colour.WHITE;
         }
 
         this.flameGradient2 = new Int32Array(256);
@@ -4399,13 +4404,13 @@ export class Client extends GameShell {
             this.flameGradient2[index] = index * 4;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient2[index + 64] = index * 262144 + Colors.BLUE;
+            this.flameGradient2[index + 64] = index * 262144 + Colour.BLUE;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient2[index + 128] = index * 1024 + Colors.MAGENTA;
+            this.flameGradient2[index + 128] = index * 1024 + Colour.MAGENTA;
         }
         for (let index: number = 0; index < 64; index++) {
-            this.flameGradient2[index + 192] = Colors.WHITE;
+            this.flameGradient2[index + 192] = Colour.WHITE;
         }
 
         this.flameGradient = new Int32Array(256);
@@ -4440,65 +4445,65 @@ export class Client extends GameShell {
                 this.fontPlain11?.centreStringTag(w / 2, extraY, this.onDemand.message, 0x75a9a9, true);
             }
 
-            this.fontBold12?.centreStringTag(w / 2, y, 'Welcome to RuneScape', Colors.YELLOW, true);
+            this.fontBold12?.centreStringTag(w / 2, y, 'Welcome to RuneScape', Colour.YELLOW, true);
             y += 30;
 
             let x = ((w / 2) | 0) - 80;
             y = ((h / 2) | 0) + 20;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
-            this.fontBold12?.centreStringTag(x, y + 5, 'New user', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y + 5, 'New user', Colour.WHITE, true);
 
             x = ((w / 2) | 0) + 80;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
-            this.fontBold12?.centreStringTag(x, y + 5, 'Existing User', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y + 5, 'Existing User', Colour.WHITE, true);
         } else if (this.loginscreen === 2) {
             let x: number = ((w / 2) | 0) - 80;
             let y: number = ((h / 2) | 0) - 40;
             if (this.loginMes1.length > 0) {
-                this.fontBold12?.centreStringTag(w / 2, y - 15, this.loginMes1, Colors.YELLOW, true);
-                this.fontBold12?.centreStringTag(w / 2, y, this.loginMes2, Colors.YELLOW, true);
+                this.fontBold12?.centreStringTag(w / 2, y - 15, this.loginMes1, Colour.YELLOW, true);
+                this.fontBold12?.centreStringTag(w / 2, y, this.loginMes2, Colour.YELLOW, true);
                 y += 30;
             } else {
-                this.fontBold12?.centreStringTag(w / 2, y - 7, this.loginMes2, Colors.YELLOW, true);
+                this.fontBold12?.centreStringTag(w / 2, y - 7, this.loginMes2, Colour.YELLOW, true);
                 y += 30;
             }
 
-            this.fontBold12?.drawStringTag(w / 2 - 90, y, `Username: ${this.loginUser}${this.loginSelect === 0 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
+            this.fontBold12?.drawStringTag(w / 2 - 90, y, `Username: ${this.loginUser}${this.loginSelect === 0 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colour.WHITE, true);
             y += 15;
 
-            this.fontBold12?.drawStringTag(w / 2 - 88, y, `Password: ${JString.toAsterisks(this.loginPass)}${this.loginSelect === 1 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colors.WHITE, true);
+            this.fontBold12?.drawStringTag(w / 2 - 88, y, `Password: ${JString.toAsterisks(this.loginPass)}${this.loginSelect === 1 && this.loopCycle % 40 < 20 ? '@yel@|' : ''}`, Colour.WHITE, true);
             y += 15;
 
             x = ((w / 2) | 0) - 80;
             y = ((h / 2) | 0) + 50;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
-            this.fontBold12?.centreStringTag(x, y + 5, 'Login', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y + 5, 'Login', Colour.WHITE, true);
 
             x = ((w / 2) | 0) + 80;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
-            this.fontBold12?.centreStringTag(x, y + 5, 'Cancel', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y + 5, 'Cancel', Colour.WHITE, true);
         } else if (this.loginscreen === 3) {
             let x: number = (w / 2) | 0;
             let y: number = ((h / 2) | 0) - 60;
-            this.fontBold12?.centreStringTag(x, y, 'Create a free account', Colors.YELLOW, true);
+            this.fontBold12?.centreStringTag(x, y, 'Create a free account', Colour.YELLOW, true);
 
             y = ((h / 2) | 0) - 35;
-            this.fontBold12?.centreStringTag(x, y, 'To create a new account you need to', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y, 'To create a new account you need to', Colour.WHITE, true);
             y += 15;
 
-            this.fontBold12?.centreStringTag(x, y, 'go back to the main RuneScape webpage', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y, 'go back to the main RuneScape webpage', Colour.WHITE, true);
             y += 15;
 
-            this.fontBold12?.centreStringTag(x, y, "and choose the red 'create account'", Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y, "and choose the red 'create account'", Colour.WHITE, true);
             y += 15;
 
-            this.fontBold12?.centreStringTag(x, y, 'button at the top right of that page.', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y, 'button at the top right of that page.', Colour.WHITE, true);
             y += 15;
 
             x = (w / 2) | 0;
             y = ((h / 2) | 0) + 50;
             this.imageTitlebutton?.plotSprite(x - 73, y - 20);
-            this.fontBold12?.centreStringTag(x, y + 5, 'Cancel', Colors.WHITE, true);
+            this.fontBold12?.centreStringTag(x, y + 5, 'Cancel', Colour.WHITE, true);
         }
 
         this.imageTitle4?.draw(202, 171);
@@ -4751,43 +4756,43 @@ export class Client extends GameShell {
             this.areaBackbase1?.bind();
             this.backbase1?.plotSprite(0, 0);
 
-            this.fontPlain12?.centreStringTag(55, 28, 'Public chat', Colors.WHITE, true);
+            this.fontPlain12?.centreStringTag(55, 28, 'Public chat', Colour.WHITE, true);
             if (this.chatPublicMode === 0) {
-                this.fontPlain12?.centreStringTag(55, 41, 'On', Colors.GREEN, true);
+                this.fontPlain12?.centreStringTag(55, 41, 'On', Colour.GREEN, true);
             }
             if (this.chatPublicMode === 1) {
-                this.fontPlain12?.centreStringTag(55, 41, 'Friends', Colors.YELLOW, true);
+                this.fontPlain12?.centreStringTag(55, 41, 'Friends', Colour.YELLOW, true);
             }
             if (this.chatPublicMode === 2) {
-                this.fontPlain12?.centreStringTag(55, 41, 'Off', Colors.RED, true);
+                this.fontPlain12?.centreStringTag(55, 41, 'Off', Colour.RED, true);
             }
             if (this.chatPublicMode === 3) {
-                this.fontPlain12?.centreStringTag(55, 41, 'Hide', Colors.CYAN, true);
+                this.fontPlain12?.centreStringTag(55, 41, 'Hide', Colour.CYAN, true);
             }
 
-            this.fontPlain12?.centreStringTag(184, 28, 'Private chat', Colors.WHITE, true);
+            this.fontPlain12?.centreStringTag(184, 28, 'Private chat', Colour.WHITE, true);
             if (this.chatPrivateMode === 0) {
-                this.fontPlain12?.centreStringTag(184, 41, 'On', Colors.GREEN, true);
+                this.fontPlain12?.centreStringTag(184, 41, 'On', Colour.GREEN, true);
             }
             if (this.chatPrivateMode === 1) {
-                this.fontPlain12?.centreStringTag(184, 41, 'Friends', Colors.YELLOW, true);
+                this.fontPlain12?.centreStringTag(184, 41, 'Friends', Colour.YELLOW, true);
             }
             if (this.chatPrivateMode === 2) {
-                this.fontPlain12?.centreStringTag(184, 41, 'Off', Colors.RED, true);
+                this.fontPlain12?.centreStringTag(184, 41, 'Off', Colour.RED, true);
             }
 
-            this.fontPlain12?.centreStringTag(324, 28, 'Trade/duel', Colors.WHITE, true);
+            this.fontPlain12?.centreStringTag(324, 28, 'Trade/duel', Colour.WHITE, true);
             if (this.chatTradeMode === 0) {
-                this.fontPlain12?.centreStringTag(324, 41, 'On', Colors.GREEN, true);
+                this.fontPlain12?.centreStringTag(324, 41, 'On', Colour.GREEN, true);
             }
             if (this.chatTradeMode === 1) {
-                this.fontPlain12?.centreStringTag(324, 41, 'Friends', Colors.YELLOW, true);
+                this.fontPlain12?.centreStringTag(324, 41, 'Friends', Colour.YELLOW, true);
             }
             if (this.chatTradeMode === 2) {
-                this.fontPlain12?.centreStringTag(324, 41, 'Off', Colors.RED, true);
+                this.fontPlain12?.centreStringTag(324, 41, 'Off', Colour.RED, true);
             }
 
-            this.fontPlain12?.centreStringTag(458, 33, 'Report abuse', Colors.WHITE, true);
+            this.fontPlain12?.centreStringTag(458, 33, 'Report abuse', Colour.WHITE, true);
 
             this.areaBackbase1?.draw(0, 453);
 
@@ -5276,9 +5281,9 @@ export class Client extends GameShell {
                     this.chatX[this.chatCount] = this.projectX;
                     this.chatY[this.chatCount] = this.projectY;
 
-                    this.chatColors[this.chatCount] = entity.chatColour;
+                    this.chatColour[this.chatCount] = entity.chatColour;
                     this.chatEffect[this.chatCount] = entity.chatEffect;
-                    this.chatTimers[this.chatCount] = entity.chatTimer;
+                    this.chatTimer[this.chatCount] = entity.chatTimer;
                     this.chats[this.chatCount++] = entity.chatMessage as string;
 
                     if (this.chatEffects === 0 && entity.chatEffect === 1) {
@@ -5300,8 +5305,8 @@ export class Client extends GameShell {
                     if (w > 30) {
                         w = 30;
                     }
-                    Pix2D.fillRect(this.projectX - 15, this.projectY - 3, w, 5, Colors.GREEN);
-                    Pix2D.fillRect(this.projectX - 15 + w, this.projectY - 3, 30 - w, 5, Colors.RED);
+                    Pix2D.fillRect(this.projectX - 15, this.projectY - 3, w, 5, Colour.GREEN);
+                    Pix2D.fillRect(this.projectX - 15 + w, this.projectY - 3, 30 - w, 5, Colour.RED);
                 }
             }
 
@@ -5324,8 +5329,8 @@ export class Client extends GameShell {
                     }
 
                     this.hitmarks[entity.damageTypes[i]]?.plotSprite(this.projectX - 12, this.projectY - 12);
-                    this.fontPlain11?.centreString(this.projectX, this.projectY + 4, entity.damageValues[i].toString(), Colors.BLACK);
-                    this.fontPlain11?.centreString(this.projectX - 1, this.projectY + 3, entity.damageValues[i].toString(), Colors.WHITE);
+                    this.fontPlain11?.centreString(this.projectX, this.projectY + 4, entity.damageValues[i].toString(), Colour.BLACK);
+                    this.fontPlain11?.centreString(this.projectX - 1, this.projectY + 3, entity.damageValues[i].toString(), Colour.WHITE);
                 }
             }
         }
@@ -5352,63 +5357,63 @@ export class Client extends GameShell {
 
             const message: string | null = this.chats[i];
             if (this.chatEffects === 0) {
-                let color: number = Colors.YELLOW;
+                let colour: number = Colour.YELLOW;
 
-                if (this.chatColors[i] < 6) {
-                    color = Client.CHAT_COLORS[this.chatColors[i]];
-                } else if (this.chatColors[i] === 6) {
-                    color = this.sceneCycle % 20 < 10 ? Colors.RED : Colors.YELLOW;
-                } else if (this.chatColors[i] === 7) {
-                    color = this.sceneCycle % 20 < 10 ? Colors.BLUE : Colors.CYAN;
-                } else if (this.chatColors[i] === 8) {
-                    color = this.sceneCycle % 20 < 10 ? 0xb000 : 0x80ff80;
-                } else if (this.chatColors[i] === 9) {
-                    const delta: number = 150 - this.chatTimers[i];
+                if (this.chatColour[i] < 6) {
+                    colour = Client.CHAT_COLORS[this.chatColour[i]];
+                } else if (this.chatColour[i] === 6) {
+                    colour = this.sceneCycle % 20 < 10 ? Colour.RED : Colour.YELLOW;
+                } else if (this.chatColour[i] === 7) {
+                    colour = this.sceneCycle % 20 < 10 ? Colour.BLUE : Colour.CYAN;
+                } else if (this.chatColour[i] === 8) {
+                    colour = this.sceneCycle % 20 < 10 ? 0xb000 : 0x80ff80;
+                } else if (this.chatColour[i] === 9) {
+                    const delta: number = 150 - this.chatTimer[i];
                     if (delta < 50) {
-                        color = delta * 1280 + Colors.RED;
+                        colour = delta * 1280 + Colour.RED;
                     } else if (delta < 100) {
-                        color = Colors.YELLOW - (delta - 50) * 327680;
+                        colour = Colour.YELLOW - (delta - 50) * 327680;
                     } else if (delta < 150) {
-                        color = (delta - 100) * 5 + Colors.GREEN;
+                        colour = (delta - 100) * 5 + Colour.GREEN;
                     }
-                } else if (this.chatColors[i] === 10) {
-                    const delta: number = 150 - this.chatTimers[i];
+                } else if (this.chatColour[i] === 10) {
+                    const delta: number = 150 - this.chatTimer[i];
                     if (delta < 50) {
-                        color = delta * 5 + Colors.RED;
+                        colour = delta * 5 + Colour.RED;
                     } else if (delta < 100) {
-                        color = Colors.MAGENTA - (delta - 50) * 327680;
+                        colour = Colour.MAGENTA - (delta - 50) * 327680;
                     } else if (delta < 150) {
-                        color = (delta - 100) * 327680 + Colors.BLUE - (delta - 100) * 5;
+                        colour = (delta - 100) * 327680 + Colour.BLUE - (delta - 100) * 5;
                     }
                 }
-                if (this.chatColors[i] === 11) {
-                    const delta: number = 150 - this.chatTimers[i];
+                if (this.chatColour[i] === 11) {
+                    const delta: number = 150 - this.chatTimer[i];
                     if (delta < 50) {
-                        color = Colors.WHITE - delta * 327685;
+                        colour = Colour.WHITE - delta * 327685;
                     } else if (delta < 100) {
-                        color = (delta - 50) * 327685 + Colors.GREEN;
+                        colour = (delta - 50) * 327685 + Colour.GREEN;
                     } else if (delta < 150) {
-                        color = Colors.WHITE - (delta - 100) * 327680;
+                        colour = Colour.WHITE - (delta - 100) * 327680;
                     }
                 }
 
                 if (this.chatEffect[i] === 0) {
-                    this.fontBold12?.centreString(this.projectX, this.projectY + 1, message, Colors.BLACK);
-                    this.fontBold12?.centreString(this.projectX, this.projectY, message, color);
+                    this.fontBold12?.centreString(this.projectX, this.projectY + 1, message, Colour.BLACK);
+                    this.fontBold12?.centreString(this.projectX, this.projectY, message, colour);
                 } else if (this.chatEffect[i] === 1) {
-                    this.fontBold12?.centerStringWave(this.projectX, this.projectY + 1, message, Colors.BLACK, this.sceneCycle);
-                    this.fontBold12?.centerStringWave(this.projectX, this.projectY, message, color, this.sceneCycle);
+                    this.fontBold12?.centerStringWave(this.projectX, this.projectY + 1, message, Colour.BLACK, this.sceneCycle);
+                    this.fontBold12?.centerStringWave(this.projectX, this.projectY, message, colour, this.sceneCycle);
                 } else if (this.chatEffect[i] === 2) {
                     const w: number = this.fontBold12?.stringWid(message) ?? 0;
-                    const offsetX: number = ((150 - this.chatTimers[i]) * (w + 100)) / 150;
+                    const offsetX: number = ((150 - this.chatTimer[i]) * (w + 100)) / 150;
                     Pix2D.setClipping(this.projectX - 50, 0, this.projectX + 50, 334);
-                    this.fontBold12?.drawString(this.projectX + 50 - offsetX, this.projectY + 1, message, Colors.BLACK);
-                    this.fontBold12?.drawString(this.projectX + 50 - offsetX, this.projectY, message, color);
+                    this.fontBold12?.drawString(this.projectX + 50 - offsetX, this.projectY + 1, message, Colour.BLACK);
+                    this.fontBold12?.drawString(this.projectX + 50 - offsetX, this.projectY, message, colour);
                     Pix2D.resetClipping();
                 }
             } else {
-                this.fontBold12?.centreString(this.projectX, this.projectY + 1, message, Colors.BLACK);
-                this.fontBold12?.centreString(this.projectX, this.projectY, message, Colors.YELLOW);
+                this.fontBold12?.centreString(this.projectX, this.projectY + 1, message, Colour.BLACK);
+                this.fontBold12?.centreString(this.projectX, this.projectY, message, Colour.YELLOW);
             }
         }
     }
@@ -5580,12 +5585,12 @@ export class Client extends GameShell {
             const x: number = 507;
             let y: number = 20;
 
-            let color: number = Colors.YELLOW;
+            let colour: number = Colour.YELLOW;
             if (this.fps < 15) {
-                color = Colors.RED;
+                colour = Colour.RED;
             }
 
-            this.fontPlain12?.drawStringRight(x, y, 'Fps:' + this.fps, color);
+            this.fontPlain12?.drawStringRight(x, y, 'Fps:' + this.fps, colour);
             y += 15;
 
             let memoryUsage = -1;
@@ -5596,7 +5601,7 @@ export class Client extends GameShell {
             }
 
             if (memoryUsage !== -1) {
-                this.fontPlain12?.drawStringRight(x, y, 'Mem:' + memoryUsage + 'k', Colors.YELLOW);
+                this.fontPlain12?.drawStringRight(x, y, 'Mem:' + memoryUsage + 'k', Colour.YELLOW);
             }
         }
 
@@ -5606,9 +5611,9 @@ export class Client extends GameShell {
             seconds %= 60;
 
             if (seconds < 10) {
-                this.fontPlain12?.drawString(4, 329, 'System update in: ' + minutes + ':0' + seconds, Colors.YELLOW);
+                this.fontPlain12?.drawString(4, 329, 'System update in: ' + minutes + ':0' + seconds, Colour.YELLOW);
             } else {
-                this.fontPlain12?.drawString(4, 329, 'System update in: ' + minutes + ':' + seconds, Colors.YELLOW);
+                this.fontPlain12?.drawString(4, 329, 'System update in: ' + minutes + ':' + seconds, Colour.YELLOW);
             }
         }
     }
@@ -5645,8 +5650,8 @@ export class Client extends GameShell {
                 const y = 329 - lineOffset * 13;
                 let x = 4;
 
-                font?.drawString(4, y, 'From', Colors.BLACK);
-                font?.drawString(4, y - 1, 'From', Colors.CYAN);
+                font?.drawString(4, y, 'From', Colour.BLACK);
+                font?.drawString(4, y - 1, 'From', Colour.CYAN);
                 x += font?.stringWid('From ') ?? 0;
 
                 if (modlevel == 1) {
@@ -5657,8 +5662,8 @@ export class Client extends GameShell {
                     x += 14;
                 }
 
-                font?.drawString(x, y, sender + ': ' + this.messageText[i], Colors.BLACK);
-                font?.drawString(x, y - 1, sender + ': ' + this.messageText[i], Colors.CYAN);
+                font?.drawString(x, y, sender + ': ' + this.messageText[i], Colour.BLACK);
+                font?.drawString(x, y - 1, sender + ': ' + this.messageText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5667,8 +5672,8 @@ export class Client extends GameShell {
             } else if (type === 5 && this.chatPrivateMode < 2) {
                 const y = 329 - lineOffset * 13;
 
-                font?.drawString(4, y, this.messageText[i], Colors.BLACK);
-                font?.drawString(4, y - 1, this.messageText[i], Colors.CYAN);
+                font?.drawString(4, y, this.messageText[i], Colour.BLACK);
+                font?.drawString(4, y - 1, this.messageText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5677,8 +5682,8 @@ export class Client extends GameShell {
             } else if (type === 6 && this.chatPrivateMode < 2) {
                 const y = 329 - lineOffset * 13;
 
-                font?.drawString(4, y, 'To ' + sender + ': ' + this.messageText[i], Colors.BLACK);
-                font?.drawString(4, y - 1, 'To ' + sender + ': ' + this.messageText[i], Colors.CYAN);
+                font?.drawString(4, y, 'To ' + sender + ': ' + this.messageText[i], Colour.BLACK);
+                font?.drawString(4, y - 1, 'To ' + sender + ': ' + this.messageText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5729,7 +5734,7 @@ export class Client extends GameShell {
             tooltip = tooltip + '@whi@ / ' + (this.menuSize - 2) + ' more options';
         }
 
-        this.fontBold12?.drawStringAntiMacro(4, 15, tooltip, Colors.WHITE, true, (this.loopCycle / 1000) | 0);
+        this.fontBold12?.drawStringAntiMacro(4, 15, tooltip, Colour.WHITE, true, (this.loopCycle / 1000) | 0);
     }
 
     private drawMinimenu(): void {
@@ -5737,11 +5742,11 @@ export class Client extends GameShell {
         const y: number = this.menuY;
         const w: number = this.menuWidth;
         const h: number = this.menuHeight;
-        const background: number = Colors.OPTIONS_MENU;
+        const background: number = 0x5d5447;
 
         Pix2D.fillRect(x, y, w, h, background);
-        Pix2D.fillRect(x + 1, y + 1, w - 2, 16, Colors.BLACK);
-        Pix2D.drawRect(x + 1, y + 18, w - 2, h - 19, Colors.BLACK);
+        Pix2D.fillRect(x + 1, y + 1, w - 2, 16, Colour.BLACK);
+        Pix2D.drawRect(x + 1, y + 18, w - 2, h - 19, Colour.BLACK);
 
         this.fontBold12?.drawString(x + 3, y + 14, 'Choose Option', background);
 
@@ -5761,9 +5766,9 @@ export class Client extends GameShell {
         for (let i: number = 0; i < this.menuSize; i++) {
             const optionY: number = y + (this.menuSize - 1 - i) * 15 + 31;
 
-            let rgb: number = Colors.WHITE;
+            let rgb: number = Colour.WHITE;
             if (mouseX > x && mouseX < x + w && mouseY > optionY - 13 && mouseY < optionY + 3) {
-                rgb = Colors.YELLOW;
+                rgb = Colour.YELLOW;
             }
 
             this.fontBold12?.drawStringTag(x + 3, optionY, this.menuOption[i], rgb, true);
@@ -6465,11 +6470,11 @@ export class Client extends GameShell {
 
             if (this.ptype === ServerProt.IF_SETCOLOUR) {
                 const com: number = this.in.g2();
-                const color: number = this.in.g2();
+                const colour: number = this.in.g2();
 
-                const r: number = (color >> 10) & 0x1f;
-                const g: number = (color >> 5) & 0x1f;
-                const b: number = color & 0x1f;
+                const r: number = (colour >> 10) & 0x1f;
+                const g: number = (colour >> 5) & 0x1f;
+                const b: number = colour & 0x1f;
                 IfType.list[com].colour = (r << 19) + (g << 11) + (b << 3);
 
                 this.ptype = -1;
@@ -7211,8 +7216,8 @@ export class Client extends GameShell {
                 this.sceneLoadStartTime = performance.now();
 
                 this.areaViewport?.bind();
-                this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colors.BLACK);
-                this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colors.WHITE);
+                this.fontPlain12?.centreString(257, 151, 'Loading - please wait.', Colour.BLACK);
+                this.fontPlain12?.centreString(256, 150, 'Loading - please wait.', Colour.WHITE);
                 this.areaViewport?.draw(4, 4);
 
                 let regions = 0;
@@ -9749,8 +9754,8 @@ export class Client extends GameShell {
 
                                     if (icon.owi === 33 || child.linkObjCount[slot] !== 1) {
                                         const count: number = child.linkObjCount[slot];
-                                        this.fontPlain11?.drawString(slotX + dx + 1, slotY + 10 + dy, this.formatObjCount(count), Colors.BLACK);
-                                        this.fontPlain11?.drawString(slotX + dx, slotY + 9 + dy, this.formatObjCount(count), Colors.YELLOW);
+                                        this.fontPlain11?.drawString(slotX + dx + 1, slotY + 10 + dy, this.formatObjCount(count), Colour.BLACK);
+                                        this.fontPlain11?.drawString(slotX + dx, slotY + 9 + dy, this.formatObjCount(count), Colour.YELLOW);
                                     }
                                 }
                             }
@@ -9993,7 +9998,7 @@ export class Client extends GameShell {
     private drawScrollbar(x: number, y: number, scrollY: number, scrollHeight: number, height: number): void {
         this.scrollbar1?.plotSprite(x, y);
         this.scrollbar2?.plotSprite(x, y + height - 16);
-        Pix2D.fillRect(x, y + 16, 16, height - 32, Colors.SCROLLBAR_TRACK);
+        Pix2D.fillRect(x, y + 16, 16, height - 32, this.SCROLLBAR_TRACK);
 
         let gripSize: number = (((height - 32) * height) / scrollHeight) | 0;
         if (gripSize < 8) {
@@ -10001,19 +10006,19 @@ export class Client extends GameShell {
         }
 
         const gripY: number = (((height - gripSize - 32) * scrollY) / (scrollHeight - height)) | 0;
-        Pix2D.fillRect(x, y + gripY + 16, 16, gripSize, Colors.SCROLLBAR_GRIP_FOREGROUND);
+        Pix2D.fillRect(x, y + gripY + 16, 16, gripSize, this.SCROLLBAR_GRIP_FOREGROUND);
 
-        Pix2D.vline(x, y + gripY + 16, Colors.SCROLLBAR_GRIP_HIGHLIGHT, gripSize);
-        Pix2D.vline(x + 1, y + gripY + 16, Colors.SCROLLBAR_GRIP_HIGHLIGHT, gripSize);
+        Pix2D.vline(x, y + gripY + 16, this.SCROLLBAR_GRIP_HIGHLIGHT, gripSize);
+        Pix2D.vline(x + 1, y + gripY + 16, this.SCROLLBAR_GRIP_HIGHLIGHT, gripSize);
 
-        Pix2D.hline(x, y + gripY + 16, Colors.SCROLLBAR_GRIP_HIGHLIGHT, 16);
-        Pix2D.hline(x, y + gripY + 17, Colors.SCROLLBAR_GRIP_HIGHLIGHT, 16);
+        Pix2D.hline(x, y + gripY + 16, this.SCROLLBAR_GRIP_HIGHLIGHT, 16);
+        Pix2D.hline(x, y + gripY + 17, this.SCROLLBAR_GRIP_HIGHLIGHT, 16);
 
-        Pix2D.vline(x + 15, y + gripY + 16, Colors.SCROLLBAR_GRIP_LOWLIGHT, gripSize);
-        Pix2D.vline(x + 14, y + gripY + 17, Colors.SCROLLBAR_GRIP_LOWLIGHT, gripSize - 1);
+        Pix2D.vline(x + 15, y + gripY + 16, this.SCROLLBAR_GRIP_LOWLIGHT, gripSize);
+        Pix2D.vline(x + 14, y + gripY + 17, this.SCROLLBAR_GRIP_LOWLIGHT, gripSize - 1);
 
-        Pix2D.hline(x, y + gripY + gripSize + 15, Colors.SCROLLBAR_GRIP_LOWLIGHT, 16);
-        Pix2D.hline(x + 1, y + gripY + gripSize + 14, Colors.SCROLLBAR_GRIP_LOWLIGHT, 15);
+        Pix2D.hline(x, y + gripY + gripSize + 15, this.SCROLLBAR_GRIP_LOWLIGHT, 16);
+        Pix2D.hline(x + 1, y + gripY + gripSize + 14, this.SCROLLBAR_GRIP_LOWLIGHT, 15);
     }
 
     private formatObjCount(amount: number): string {
@@ -10835,10 +10840,10 @@ export class Client extends GameShell {
             if (this.staffmodlevel < 1) {
                 com.text = '';
             } else if (this.reportAbuseMuteOption) {
-                com.colour = Colors.RED;
+                com.colour = Colour.RED;
                 com.text = 'Moderator option: Mute player for 48 hours: <ON>';
             } else {
-                com.colour = Colors.WHITE;
+                com.colour = Colour.WHITE;
                 com.text = 'Moderator option: Mute player for 48 hours: <OFF>';
             }
         } else if (clientCode === ClientCode.CC_LAST_LOGIN_INFO || clientCode === ClientCode.CC_LAST_LOGIN_INFO2) {
@@ -10861,13 +10866,13 @@ export class Client extends GameShell {
         } else if (clientCode === ClientCode.CC_UNREAD_MESSAGES) {
             if (this.unreadMessages === 0) {
                 com.text = '0 unread messages';
-                com.colour = Colors.YELLOW;
+                com.colour = Colour.YELLOW;
             } else if (this.unreadMessages === 1) {
                 com.text = '1 unread message';
-                com.colour = Colors.GREEN;
+                com.colour = Colour.GREEN;
             } else if (this.unreadMessages > 1) {
                 com.text = this.unreadMessages + ' unread messages';
-                com.colour = Colors.GREEN;
+                com.colour = Colour.GREEN;
             }
         } else if (clientCode === ClientCode.CC_RECOVERY1) {
             if (this.daysSinceRecoveriesChanged === 201) {
@@ -10986,23 +10991,23 @@ export class Client extends GameShell {
         } else if (clientCode >= ClientCode.CC_RECOLOUR_HAIR_L && clientCode <= ClientCode.CC_RECOLOUR_SKIN_R) {
             const part: number = ((clientCode - 314) / 2) | 0;
             const direction: number = clientCode & 0x1;
-            let color: number = this.designColours[part];
+            let colour: number = this.designColours[part];
 
             if (direction === 0) {
-                color--;
-                if (color < 0) {
-                    color = ClientPlayer.recol1d[part].length - 1;
+                colour--;
+                if (colour < 0) {
+                    colour = ClientPlayer.recol1d[part].length - 1;
                 }
             }
 
             if (direction === 1) {
-                color++;
-                if (color >= ClientPlayer.recol1d[part].length) {
-                    color = 0;
+                colour++;
+                if (colour >= ClientPlayer.recol1d[part].length) {
+                    colour = 0;
                 }
             }
 
-            this.designColours[part] = color;
+            this.designColours[part] = colour;
             this.updateDesignModel = true;
         } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE && !this.designGender) {
             this.designGender = true;
@@ -11089,14 +11094,14 @@ export class Client extends GameShell {
         this.chatback?.plotSprite(0, 0);
 
         if (this.showSocialInput) {
-            this.fontBold12?.centreString(239, 40, this.socialMessage, Colors.BLACK);
-            this.fontBold12?.centreString(239, 60, this.socialInput + '*', Colors.DARKBLUE);
+            this.fontBold12?.centreString(239, 40, this.socialMessage, Colour.BLACK);
+            this.fontBold12?.centreString(239, 60, this.socialInput + '*', Colour.DARKBLUE);
         } else if (this.chatbackInputOpen) {
-            this.fontBold12?.centreString(239, 40, 'Enter amount:', Colors.BLACK);
-            this.fontBold12?.centreString(239, 60, this.chatbackInput + '*', Colors.DARKBLUE);
+            this.fontBold12?.centreString(239, 40, 'Enter amount:', Colour.BLACK);
+            this.fontBold12?.centreString(239, 60, this.chatbackInput + '*', Colour.DARKBLUE);
         } else if (this.modalMessage) {
-            this.fontBold12?.centreString(239, 40, this.modalMessage, Colors.BLACK);
-            this.fontBold12?.centreString(239, 60, 'Click to continue', Colors.DARKBLUE);
+            this.fontBold12?.centreString(239, 40, this.modalMessage, Colour.BLACK);
+            this.fontBold12?.centreString(239, 60, 'Click to continue', Colour.DARKBLUE);
         } else if (this.chatLayerId !== -1) {
             this.drawLayer(IfType.list[this.chatLayerId], 0, 0, 0);
         } else if (this.tutLayerId !== -1) {
@@ -11128,7 +11133,7 @@ export class Client extends GameShell {
 
                 if (type === 0) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, message, Colors.BLACK);
+                        font?.drawString(4, y, message, Colour.BLACK);
                     }
 
                     line++;
@@ -11143,10 +11148,10 @@ export class Client extends GameShell {
                             x += 14;
                         }
 
-                        font?.drawString(x, y, sender + ':', Colors.BLACK);
+                        font?.drawString(x, y, sender + ':', Colour.BLACK);
                         x += (font?.stringWid(sender) ?? 0) + 8;
 
-                        font?.drawString(x, y, message, Colors.BLUE);
+                        font?.drawString(x, y, message, Colour.BLUE);
                     }
 
                     line++;
@@ -11154,7 +11159,7 @@ export class Client extends GameShell {
                     if (y > 0 && y < 110) {
                         let x = 4;
 
-                        font?.drawString(x, y, 'From ', Colors.BLACK);
+                        font?.drawString(x, y, 'From ', Colour.BLACK);
                         x += font?.stringWid('From ') ?? 0;
 
                         if (modlevel == 1) {
@@ -11165,35 +11170,35 @@ export class Client extends GameShell {
                             x += 14;
                         }
 
-                        font?.drawString(x, y, sender + ':', Colors.BLACK);
+                        font?.drawString(x, y, sender + ':', Colour.BLACK);
                         x += (font?.stringWid(sender) ?? 0) + 8;
 
-                        font?.drawString(x, y, message, Colors.DARKRED);
+                        font?.drawString(x, y, message, Colour.DARKRED);
                     }
 
                     line++;
                 } else if (type === 4 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, sender + ' ' + this.messageText[i], Colors.TRADE_MESSAGE);
+                        font?.drawString(4, y, sender + ' ' + this.messageText[i], 0x800080);
                     }
 
                     line++;
                 } else if (type === 5 && this.splitPrivateChat === 0 && this.chatPrivateMode < 2) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, message, Colors.DARKRED);
+                        font?.drawString(4, y, message, Colour.DARKRED);
                     }
 
                     line++;
                 } else if (type === 6 && this.splitPrivateChat === 0 && this.chatPrivateMode < 2) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, 'To ' + sender + ':', Colors.BLACK);
-                        font?.drawString(font.stringWid('To ' + sender) + 12, y, message, Colors.DARKRED);
+                        font?.drawString(4, y, 'To ' + sender + ':', Colour.BLACK);
+                        font?.drawString(font.stringWid('To ' + sender) + 12, y, message, Colour.DARKRED);
                     }
 
                     line++;
                 } else if (type === 8 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, sender + ' ' + this.messageText[i], Colors.DUEL_MESSAGE);
+                        font?.drawString(4, y, sender + ' ' + this.messageText[i], 0x7e3200);
                     }
 
                     line++;
@@ -11216,10 +11221,10 @@ export class Client extends GameShell {
                 username = this.localPlayer.name;
             }
 
-            font?.drawString(4, 90, username + ':', Colors.BLACK);
-            font?.drawString(font.stringWid(username + ': ') + 6, 90, this.chatTyped + '*', Colors.BLUE);
+            font?.drawString(4, 90, username + ':', Colour.BLACK);
+            font?.drawString(font.stringWid(username + ': ') + 6, 90, this.chatTyped + '*', Colour.BLUE);
 
-            Pix2D.hline(0, 77, Colors.BLACK, 479);
+            Pix2D.hline(0, 77, Colour.BLACK, 479);
         }
 
         if (this.menuVisible && this.menuArea === 2) {
@@ -11328,7 +11333,7 @@ export class Client extends GameShell {
         }
 
         // the white square local player position in the center of the minimap.
-        Pix2D.fillRect(97, 78, 3, 3, Colors.WHITE);
+        Pix2D.fillRect(97, 78, 3, 3, Colour.WHITE);
 
         this.areaViewport?.bind();
     }
@@ -11682,7 +11687,7 @@ export class Client extends GameShell {
             this.flameBuffer0[rand] = (Math.random() * 256.0) | 0;
         }
 
-        // changes color between last few flames
+        // changes colour between last few flames
         for (let i: number = 0; i < 20; i++) {
             for (let y: number = 1; y < flameHeight - 1; y++) {
                 for (let x: number = 1; x < 127; x++) {
@@ -11721,7 +11726,7 @@ export class Client extends GameShell {
 
         const height: number = 256;
 
-        // just colors
+        // just colours
         if (this.flameGradientCycle0 > 0) {
             for (let i: number = 0; i < 256; i++) {
                 if (this.flameGradientCycle0 > 768) {

@@ -100,15 +100,15 @@ export default class Pix2D extends DoublyLinkable {
                 const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
                 const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
                 const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
-                const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
-                this.pixels[offset++] = color;
+                const mixed: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
+                this.pixels[offset++] = mixed;
             }
             offset += step;
         }
     }
 
     // jag::oldscape::graphics::NXTPix2D::FillRect
-    static fillRect(x: number, y: number, width: number, height: number, color: number): void {
+    static fillRect(x: number, y: number, width: number, height: number, rgb: number): void {
         if (x < this.boundLeft) {
             width -= this.boundLeft - x;
             x = this.boundLeft;
@@ -131,7 +131,7 @@ export default class Pix2D extends DoublyLinkable {
         let offset: number = x + y * this.width;
         for (let i: number = -height; i < 0; i++) {
             for (let j: number = -width; j < 0; j++) {
-                this.pixels[offset++] = color;
+                this.pixels[offset++] = rgb;
             }
 
             offset += step;
@@ -139,25 +139,25 @@ export default class Pix2D extends DoublyLinkable {
     }
 
     // jag::oldscape::graphics::Pix2D::DrawRect
-    static drawRect(x: number, y: number, w: number, h: number, color: number): void {
-        this.hline(x, y, color, w);
-        this.hline(x, y + h - 1, color, w);
-        this.vline(x, y, color, h);
-        this.vline(x + w - 1, y, color, h);
+    static drawRect(x: number, y: number, w: number, h: number, rgb: number): void {
+        this.hline(x, y, rgb, w);
+        this.hline(x, y + h - 1, rgb, w);
+        this.vline(x, y, rgb, h);
+        this.vline(x + w - 1, y, rgb, h);
     }
 
     // jag::oldscape::graphics::Pix2D::DrawRectTrans
-    static drawRectTrans(x: number, y: number, w: number, h: number, color: number, alpha: number): void {
-        this.hlineTrans(x, y, color, w, alpha);
-        this.hlineTrans(x, y + h - 1, color, w, alpha);
+    static drawRectTrans(x: number, y: number, w: number, h: number, rgb: number, alpha: number): void {
+        this.hlineTrans(x, y, rgb, w, alpha);
+        this.hlineTrans(x, y + h - 1, rgb, w, alpha);
         if (h >= 3) {
-            this.vlineTrans(x, y, color, h, alpha);
-            this.vlineTrans(x + w - 1, y, color, h, alpha);
+            this.vlineTrans(x, y, rgb, h, alpha);
+            this.vlineTrans(x + w - 1, y, rgb, h, alpha);
         }
     }
 
     // jag::oldscape::graphics::NXTPix2D::HLine
-    static hline(x: number, y: number, color: number, width: number): void {
+    static hline(x: number, y: number, rgb: number, width: number): void {
         if (y < this.boundTop || y >= this.boundBottom) {
             return;
         }
@@ -173,12 +173,12 @@ export default class Pix2D extends DoublyLinkable {
 
         const off: number = x + y * this.width;
         for (let i: number = 0; i < width; i++) {
-            this.pixels[off + i] = color;
+            this.pixels[off + i] = rgb;
         }
     }
 
     // jag::oldscape::graphics::NXTPix2D::HLineTrans
-    static hlineTrans(x: number, y: number, color: number, width: number, alpha: number): void {
+    static hlineTrans(x: number, y: number, rgb: number, width: number, alpha: number): void {
         if (y < this.boundTop || y >= this.boundBottom) {
             return;
         }
@@ -193,22 +193,22 @@ export default class Pix2D extends DoublyLinkable {
         }
 
         const invAlpha: number = 256 - alpha;
-        const r0: number = ((color >> 16) & 0xff) * alpha;
-        const g0: number = ((color >> 8) & 0xff) * alpha;
-        const b0: number = (color & 0xff) * alpha;
+        const r0: number = ((rgb >> 16) & 0xff) * alpha;
+        const g0: number = ((rgb >> 8) & 0xff) * alpha;
+        const b0: number = (rgb & 0xff) * alpha;
         const _step: number = this.width - width;
         let offset: number = x + y * this.width;
         for (let i: number = 0; i < width; i++) {
             const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
             const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
             const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
-            const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
-            this.pixels[offset++] = color;
+            const mixed: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
+            this.pixels[offset++] = mixed;
         }
     };
 
     // jag::oldscape::graphics::NXTPix2D::VLine
-    static vline(x: number, y: number, color: number, height: number): void {
+    static vline(x: number, y: number, rgb: number, height: number): void {
         if (x < this.boundLeft || x >= this.boundRight) {
             return;
         }
@@ -224,12 +224,12 @@ export default class Pix2D extends DoublyLinkable {
 
         const off: number = x + y * this.width;
         for (let i: number = 0; i < height; i++) {
-            this.pixels[off + i * this.width] = color;
+            this.pixels[off + i * this.width] = rgb;
         }
     }
 
     // jag::oldscape::graphics::NXTPix2D::VLineTrans
-    static vlineTrans(x: number, y: number, color: number, height: number, alpha: number): void {
+    static vlineTrans(x: number, y: number, rgb: number, height: number, alpha: number): void {
         if (x < this.boundLeft || x >= this.boundRight) {
             return;
         }
@@ -244,16 +244,16 @@ export default class Pix2D extends DoublyLinkable {
         }
 
         const invAlpha: number = 256 - alpha;
-        const r0: number = ((color >> 16) & 0xff) * alpha;
-        const g0: number = ((color >> 8) & 0xff) * alpha;
-        const b0: number = (color & 0xff) * alpha;
+        const r0: number = ((rgb >> 16) & 0xff) * alpha;
+        const g0: number = ((rgb >> 8) & 0xff) * alpha;
+        const b0: number = (rgb & 0xff) * alpha;
         let offset: number = x + y * this.width;
         for (let i: number = 0; i < height; i++) {
             const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
             const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
             const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
-            const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
-            this.pixels[offset] = color;
+            const mixed: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
+            this.pixels[offset] = mixed;
             offset += this.width;
         }
     };
@@ -294,8 +294,8 @@ export default class Pix2D extends DoublyLinkable {
                 const r1: number = ((this.pixels[offset] >> 16) & 0xff) * invAlpha;
                 const g1: number = ((this.pixels[offset] >> 8) & 0xff) * invAlpha;
                 const b1: number = (this.pixels[offset] & 0xff) * invAlpha;
-                const color: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
-                this.pixels[offset++] = color;
+                const mixed: number = (((r0 + r1) >> 8) << 16) + (((g0 + g1) >> 8) << 8) + ((b0 + b1) >> 8);
+                this.pixels[offset++] = mixed;
             }
         }
     }

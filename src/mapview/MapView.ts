@@ -73,7 +73,7 @@ export class MapView extends GameShell {
 
     b12: PixFont | null = null;
 
-    floormapColors: number[][] = [];
+    floormapColours: number[][] = [];
 
     redraw: boolean = true;
     redrawTimer: number = 0;
@@ -108,12 +108,12 @@ export class MapView extends GameShell {
     overviewY: number = 503 - this.imageOverviewHeight - 20;
     showOverview: boolean = false;
 
-    readonly colorInactiveBorderTL: number = 0x887755;
-    readonly colorInactive: number = 0x776644;
-    readonly colorInactiveBorderBR: number = 0x665533;
-    readonly colorActiveBorderTL: number = 0xaa0000;
-    readonly colorActive: number = 0x990000;
-    readonly colorActiveBorderBR: number = 0x880000;
+    readonly INACTIVE_BORDER_TL: number = 0x887755;
+    readonly INACTIVE: number = 0x776644;
+    readonly INACTIVE_BORDER_BR: number = 0x665533;
+    readonly ACTIVE_BORDER_TL: number = 0xaa0000;
+    readonly ACTIVE: number = 0x990000;
+    readonly ACTIVE_BORDER_BR: number = 0x880000;
 
     zoom: number = 4;
     targetZoom: number = 4;
@@ -265,14 +265,14 @@ export class MapView extends GameShell {
         // this.f26 = new WorldmapFont(26, true, this);
         // this.f30 = new WorldmapFont(30, true, this);
 
-        this.floormapColors = new TypedArray2d(this.sizeX, this.sizeZ, 0);
-        this.averageUnderlayColors();
+        this.floormapColours = new TypedArray2d(this.sizeX, this.sizeZ, 0);
+        this.averageUnderlayColours();
 
         this.imageOverview = new Pix32(this.imageOverviewWidth, this.imageOverviewHeight);
         this.imageOverview.setPixels();
         this.renderMap(0, 0, this.sizeX, this.sizeZ, 0, 0, this.imageOverviewWidth, this.imageOverviewHeight);
         Pix2D.drawRect(0, 0, this.imageOverviewWidth, this.imageOverviewHeight, 0);
-        Pix2D.drawRect(1, 1, this.imageOverviewWidth - 2, this.imageOverviewHeight - 2, this.colorInactiveBorderTL);
+        Pix2D.drawRect(1, 1, this.imageOverviewWidth - 2, this.imageOverviewHeight - 2, this.INACTIVE_BORDER_TL);
 
         if (this.drawArea) {
             this.drawArea.bind();
@@ -354,32 +354,32 @@ export class MapView extends GameShell {
                 }
             }
 
-            this.drawString(this.overviewX, this.overviewY + this.imageOverviewHeight, this.imageOverviewWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Overview');
-            this.drawString(this.keyX, this.keyY + this.keyHeight, this.keyWidth, 18, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, 'Key');
+            this.drawString(this.overviewX, this.overviewY + this.imageOverviewHeight, this.imageOverviewWidth, 18, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, 'Overview');
+            this.drawString(this.keyX, this.keyY + this.keyHeight, this.keyWidth, 18, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, 'Key');
 
             const y = this.sHei - this.keyY - 20 + 1;
             if (this.targetZoom == 3.0) {
-                this.drawString(170, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '37%');
+                this.drawString(170, y, 50, 30, this.ACTIVE_BORDER_TL, this.ACTIVE, this.ACTIVE_BORDER_BR, '37%');
             } else {
-                this.drawString(170, y, 50, 30, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, '37%');
+                this.drawString(170, y, 50, 30, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, '37%');
             }
 
             if (this.targetZoom == 4.0) {
-                this.drawString(230, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '50%');
+                this.drawString(230, y, 50, 30, this.ACTIVE_BORDER_TL, this.ACTIVE, this.ACTIVE_BORDER_BR, '50%');
             } else {
-                this.drawString(230, y, 50, 30, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, '50%');
+                this.drawString(230, y, 50, 30, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, '50%');
             }
 
             if (this.targetZoom == 6.0) {
-                this.drawString(290, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '75%');
+                this.drawString(290, y, 50, 30, this.ACTIVE_BORDER_TL, this.ACTIVE, this.ACTIVE_BORDER_BR, '75%');
             } else {
-                this.drawString(290, y, 50, 30, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, '75%');
+                this.drawString(290, y, 50, 30, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, '75%');
             }
 
             if (this.targetZoom == 8.0) {
-                this.drawString(350, y, 50, 30, this.colorActiveBorderTL, this.colorActive, this.colorActiveBorderBR, '100%');
+                this.drawString(350, y, 50, 30, this.ACTIVE_BORDER_TL, this.ACTIVE, this.ACTIVE_BORDER_BR, '100%');
             } else {
-                this.drawString(350, y, 50, 30, this.colorInactiveBorderTL, this.colorInactive, this.colorInactiveBorderBR, '100%');
+                this.drawString(350, y, 50, 30, this.INACTIVE_BORDER_TL, this.INACTIVE, this.INACTIVE_BORDER_BR, '100%');
             }
         }
 
@@ -629,7 +629,7 @@ export class MapView extends GameShell {
         return new Jagfile(data);
     }
 
-    drawString(x: number, y: number, width: number, height: number, colorBorderTL: number, fillColor: number, colorBorderBR: number, str: string): void {
+    drawString(x: number, y: number, width: number, height: number, borderTL: number, fill: number, borderBR: number, str: string): void {
         x = Math.trunc(x);
         y = Math.trunc(y);
         width = Math.trunc(width);
@@ -642,17 +642,17 @@ export class MapView extends GameShell {
         const widthPad: number = width - 2;
         const heightPad: number = height - 2;
 
-        Pix2D.fillRect(xPad, yPad, widthPad, heightPad, fillColor);
-        Pix2D.hline(xPad, yPad, colorBorderTL, widthPad);
-        Pix2D.vline(xPad, yPad, colorBorderTL, heightPad);
-        Pix2D.hline(xPad, yPad + heightPad - 1, colorBorderBR, widthPad);
-        Pix2D.vline(xPad + widthPad - 1, yPad, colorBorderBR, heightPad);
+        Pix2D.fillRect(xPad, yPad, widthPad, heightPad, fill);
+        Pix2D.hline(xPad, yPad, borderTL, widthPad);
+        Pix2D.vline(xPad, yPad, borderTL, heightPad);
+        Pix2D.hline(xPad, yPad + heightPad - 1, borderBR, widthPad);
+        Pix2D.vline(xPad + widthPad - 1, yPad, borderBR, heightPad);
 
         this.b12?.centreString(xPad + widthPad / 2 + 1, yPad + heightPad / 2 + 1 + 4, str, 0);
         this.b12?.centreString(xPad + widthPad / 2, yPad + heightPad / 2 + 4, str, 0xffffff);
     }
 
-    averageUnderlayColors(): void {
+    averageUnderlayColours(): void {
         const maxX: number = this.sizeX;
         const maxZ: number = this.sizeZ;
 
@@ -677,7 +677,7 @@ export class MapView extends GameShell {
                     b += (tileNorth & 0x3ff) - (tileSouth & 0x3ff);
 
                     if (b > 0) {
-                        this.floormapColors[x][z] = this.getRgb(r / 8533.0, g / 8533.0, b / 8533.0);
+                        this.floormapColours[x][z] = this.getRgb(r / 8533.0, g / 8533.0, b / 8533.0);
                     }
                 }
             }
@@ -915,14 +915,14 @@ export class MapView extends GameShell {
 
                 const overlay: number = this.overlayTiles[x + left][y + top];
                 if (overlay === 0) {
-                    Pix2D.fillRect(startX, startY, endX - startX, endY - startY, this.floormapColors[x + left][y + top]);
+                    Pix2D.fillRect(startX, startY, endX - startX, endY - startY, this.floormapColours[x + left][y + top]);
                 } else {
                     const info: number = this.overlayInfo[x + left][y + top];
                     const shape: number = info & 0xfc;
                     if (shape == 0 || lengthX <= 1 || lengthY <= 1) {
                         Pix2D.fillRect(startX, startY, lengthX, lengthY, overlay);
                     } else {
-                        this.drawOverlayShape(Pix2D.pixels, startY * Pix2D.width + startX, this.floormapColors[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
+                        this.drawOverlayShape(Pix2D.pixels, startY * Pix2D.width + startX, this.floormapColours[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
                     }
                 }
             }
@@ -1194,13 +1194,13 @@ export class MapView extends GameShell {
                         continue;
                     }
 
-                    let color = 0xffffff;
+                    let rgb = 0xffffff;
                     if (this.activeTileX !== -1 && this.activeTileZ !== -1) {
-                        color = 0xff0000;
+                        rgb = 0xff0000;
                     }
 
-                    Pix2D.drawRect(drawLeft, drawTop, drawRight - drawLeft, drawBottom - drawTop, color);
-                    this.b12?.drawStringRight(drawRight - 5, drawBottom - 5, mx + '_' + mz, color, false);
+                    Pix2D.drawRect(drawLeft, drawTop, drawRight - drawLeft, drawBottom - drawTop, rgb);
+                    this.b12?.drawStringRight(drawRight - 5, drawBottom - 5, mx + '_' + mz, rgb, false);
 
                     if (mx == 33 && mz >= 71 && mz <= 73) {
                         this.b12?.centreString((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xff0000);
@@ -1212,7 +1212,7 @@ export class MapView extends GameShell {
         }
     }
 
-    drawOverlayShape(data: Int32Array, off: number, color: number, overlay: number, width: number, height: number, shape: number, rotation: number): void {
+    drawOverlayShape(data: Int32Array, off: number, underlay: number, overlay: number, width: number, height: number, shape: number, rotation: number): void {
         const step: number = Pix2D.width - width;
         if (shape == 9) {
             shape = 1;
@@ -1232,7 +1232,7 @@ export class MapView extends GameShell {
                         if (x <= y) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1243,7 +1243,7 @@ export class MapView extends GameShell {
                         if (x <= y) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1254,7 +1254,7 @@ export class MapView extends GameShell {
                         if (x >= y) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1265,7 +1265,7 @@ export class MapView extends GameShell {
                         if (x >= y) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1278,7 +1278,7 @@ export class MapView extends GameShell {
                         if (x <= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1289,7 +1289,7 @@ export class MapView extends GameShell {
                         if (x >= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1300,7 +1300,7 @@ export class MapView extends GameShell {
                         if (x <= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1311,7 +1311,7 @@ export class MapView extends GameShell {
                         if (x >= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1324,7 +1324,7 @@ export class MapView extends GameShell {
                         if (x <= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1335,7 +1335,7 @@ export class MapView extends GameShell {
                         if (x >= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1346,7 +1346,7 @@ export class MapView extends GameShell {
                         if (x <= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1357,7 +1357,7 @@ export class MapView extends GameShell {
                         if (x >= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1370,7 +1370,7 @@ export class MapView extends GameShell {
                         if (x >= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1381,7 +1381,7 @@ export class MapView extends GameShell {
                         if (x <= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1392,7 +1392,7 @@ export class MapView extends GameShell {
                         if (x >= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1403,7 +1403,7 @@ export class MapView extends GameShell {
                         if (x <= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1416,7 +1416,7 @@ export class MapView extends GameShell {
                         if (x >= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1427,7 +1427,7 @@ export class MapView extends GameShell {
                         if (x <= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1438,7 +1438,7 @@ export class MapView extends GameShell {
                         if (x >= y >> 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1449,7 +1449,7 @@ export class MapView extends GameShell {
                         if (x <= y << 1) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1462,7 +1462,7 @@ export class MapView extends GameShell {
                         if (x <= width / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1473,7 +1473,7 @@ export class MapView extends GameShell {
                         if (y <= height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1484,7 +1484,7 @@ export class MapView extends GameShell {
                         if (x >= width / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1495,7 +1495,7 @@ export class MapView extends GameShell {
                         if (y >= height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1508,7 +1508,7 @@ export class MapView extends GameShell {
                         if (x <= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1519,7 +1519,7 @@ export class MapView extends GameShell {
                         if (x <= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1530,7 +1530,7 @@ export class MapView extends GameShell {
                         if (x <= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1541,7 +1541,7 @@ export class MapView extends GameShell {
                         if (x <= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1554,7 +1554,7 @@ export class MapView extends GameShell {
                         if (x >= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1565,7 +1565,7 @@ export class MapView extends GameShell {
                         if (x >= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1576,7 +1576,7 @@ export class MapView extends GameShell {
                         if (x >= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;
@@ -1587,7 +1587,7 @@ export class MapView extends GameShell {
                         if (x >= y - height / 2) {
                             data[off++] = overlay;
                         } else {
-                            data[off++] = color;
+                            data[off++] = underlay;
                         }
                     }
                     off += step;

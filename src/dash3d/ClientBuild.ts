@@ -8,10 +8,10 @@ import LocShape from '#/dash3d/LocShape.js';
 import { MapFlag } from '#/dash3d/MapFlag.js';
 import Model from '#/dash3d/Model.js';
 import type ModelSource from '#/dash3d/ModelSource.js';
-import { OverlayShape } from '#/dash3d/OverlayShape.js';
+import { TerrainOverlayShape } from '#/dash3d/TerrainOverlayShape.js';
 import World from '#/dash3d/World.js';
 
-import { Colors } from '#/graphics/Colors.js';
+import { Colour } from '#/graphics/Colour.js';
 import Pix3D from '#/graphics/Pix3D.js';
 
 import type OnDemand from '#/io/OnDemand.js';
@@ -430,28 +430,28 @@ export default class ClientBuild {
                     const x1: number = x0 + 5;
 
                     if (x1 >= 0 && x1 < this.maxTileX) {
-                        const underlayId: number = this.floort1[level][x1][z0] & 0xff;
+                        const t1: number = this.floort1[level][x1][z0] & 0xff;
 
-                        if (underlayId > 0) {
-                            const flu: FloType = FloType.list[underlayId - 1];
-                            this.huetot[z0] += flu.chroma;
-                            this.sattot[z0] += flu.saturation;
-                            this.ligtot[z0] += flu.lightness;
-                            this.comtot[z0] += flu.luminance;
+                        if (t1 > 0) {
+                            const flo: FloType = FloType.list[t1 - 1];
+                            this.huetot[z0] += flo.chroma;
+                            this.sattot[z0] += flo.saturation;
+                            this.ligtot[z0] += flo.lightness;
+                            this.comtot[z0] += flo.luminance;
                             this.tot[z0]++;
                         }
                     }
 
                     const x2: number = x0 - 5;
                     if (x2 >= 0 && x2 < this.maxTileX) {
-                        const underlayId: number = this.floort1[level][x2][z0] & 0xff;
+                        const t1: number = this.floort1[level][x2][z0] & 0xff;
 
-                        if (underlayId > 0) {
-                            const flu: FloType = FloType.list[underlayId - 1];
-                            this.huetot[z0] -= flu.chroma;
-                            this.sattot[z0] -= flu.saturation;
-                            this.ligtot[z0] -= flu.lightness;
-                            this.comtot[z0] -= flu.luminance;
+                        if (t1 > 0) {
+                            const flo: FloType = FloType.list[t1 - 1];
+                            this.huetot[z0] -= flo.chroma;
+                            this.sattot[z0] -= flo.saturation;
+                            this.ligtot[z0] -= flo.lightness;
+                            this.comtot[z0] -= flo.luminance;
                             this.tot[z0]--;
                         }
                     }
@@ -484,10 +484,10 @@ export default class ClientBuild {
                         }
 
                         if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.mapl[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisBelowLevel(level, x0, z0) === ClientBuild.minusedlevel))) {
-                            const underlayId: number = this.floort1[level][x0][z0] & 0xff;
-                            const overlayId: number = this.floort2[level][x0][z0] & 0xff;
+                            const t1: number = this.floort1[level][x0][z0] & 0xff;
+                            const t2: number = this.floort2[level][x0][z0] & 0xff;
 
-                            if (underlayId > 0 || overlayId > 0) {
+                            if (t1 > 0 || t2 > 0) {
                                 const heightSW: number = this.groundh[level][x0][z0];
                                 const heightSE: number = this.groundh[level][x0 + 1][z0];
                                 const heightNE: number = this.groundh[level][x0 + 1][z0 + 1];
@@ -498,31 +498,29 @@ export default class ClientBuild {
                                 const lightNE: number = this.lightmap[x0 + 1][z0 + 1];
                                 const lightNW: number = this.lightmap[x0][z0 + 1];
 
-                                let baseColor: number = -1;
-                                let tintColor: number = -1;
+                                let t1Colour: number = -1;
+                                let t1OffColour: number = -1;
 
-                                if (underlayId > 0) {
+                                if (t1 > 0) {
                                     const hue: number = ((hueAccumulator * 256) / luminanceAccumulator) | 0;
                                     const saturation: number = (saturationAccumulator / magnitudeAccumulator) | 0;
                                     let lightness: number = (lightnessAccumulator / magnitudeAccumulator) | 0;
-                                    baseColor = ClientBuild.getTable(hue, saturation, lightness);
+                                    t1Colour = ClientBuild.getTable(hue, saturation, lightness);
 
                                     const randomHue: number = (hue + ClientBuild.hueOff) & 0xff;
-
                                     lightness += ClientBuild.ligOff;
                                     if (lightness < 0) {
                                         lightness = 0;
                                     } else if (lightness > 255) {
                                         lightness = 255;
                                     }
-
-                                    tintColor = ClientBuild.getTable(randomHue, saturation, lightness);
+                                    t1OffColour = ClientBuild.getTable(randomHue, saturation, lightness);
                                 }
 
                                 if (level > 0) {
-                                    let occludes: boolean = underlayId !== 0 || this.floors[level][x0][z0] === OverlayShape.PLAIN;
+                                    let occludes: boolean = t1 !== 0 || this.floors[level][x0][z0] === TerrainOverlayShape.PLAIN;
 
-                                    if (overlayId > 0 && !FloType.list[overlayId - 1].occlude) {
+                                    if (t2 > 0 && !FloType.list[t2 - 1].occlude) {
                                         occludes = false;
                                     }
 
@@ -532,52 +530,52 @@ export default class ClientBuild {
                                     }
                                 }
 
-                                let shadeColor: number = 0;
-                                if (baseColor !== -1) {
-                                    shadeColor = Pix3D.colourTable[ClientBuild.getUCol(tintColor, 96)];
+                                let underlay: number = 0;
+                                if (t1Colour !== -1) {
+                                    underlay = Pix3D.colourTable[ClientBuild.getUCol(t1OffColour, 96)];
                                 }
 
-                                if (overlayId === 0) {
+                                if (t2 === 0) {
                                     scene?.setGround(
                                         level,
                                         x0,
                                         z0,
-                                        OverlayShape.PLAIN,
+                                        TerrainOverlayShape.PLAIN,
                                         LocAngle.WEST,
                                         -1,
                                         heightSW,
                                         heightSE,
                                         heightNE,
                                         heightNW,
-                                        ClientBuild.getUCol(baseColor, lightSW),
-                                        ClientBuild.getUCol(baseColor, lightSE),
-                                        ClientBuild.getUCol(baseColor, lightNE),
-                                        ClientBuild.getUCol(baseColor, lightNW),
-                                        Colors.BLACK,
-                                        Colors.BLACK,
-                                        Colors.BLACK,
-                                        Colors.BLACK,
-                                        shadeColor,
-                                        Colors.BLACK
+                                        ClientBuild.getUCol(t1Colour, lightSW),
+                                        ClientBuild.getUCol(t1Colour, lightSE),
+                                        ClientBuild.getUCol(t1Colour, lightNE),
+                                        ClientBuild.getUCol(t1Colour, lightNW),
+                                        Colour.BLACK,
+                                        Colour.BLACK,
+                                        Colour.BLACK,
+                                        Colour.BLACK,
+                                        underlay,
+                                        Colour.BLACK
                                     );
                                 } else {
                                     const shape: number = this.floors[level][x0][z0] + 1;
                                     const rotation: number = this.floorr[level][x0][z0];
-                                    const flo: FloType = FloType.list[overlayId - 1];
-                                    let textureId: number = flo.texture;
-                                    let hsl: number;
-                                    let rgb: number;
+                                    const flo: FloType = FloType.list[t2 - 1];
+                                    let texture: number = flo.texture;
 
-                                    if (textureId >= 0) {
-                                        rgb = Pix3D.getAverageTextureRgb(textureId);
-                                        hsl = -1;
-                                    } else if (flo.rgb === Colors.MAGENTA) {
-                                        rgb = 0;
-                                        hsl = -2;
-                                        textureId = -1;
+                                    let t2Colour: number;
+                                    let overlay: number;
+                                    if (texture >= 0) {
+                                        overlay = Pix3D.getAverageTextureRgb(texture);
+                                        t2Colour = -1;
+                                    } else if (flo.rgb === Colour.MAGENTA) {
+                                        overlay = 0;
+                                        t2Colour = -2;
+                                        texture = -1;
                                     } else {
-                                        hsl = ClientBuild.getTable(flo.hue, flo.saturation, flo.lightness);
-                                        rgb = Pix3D.colourTable[ClientBuild.getOCol(flo.hsl, 96)];
+                                        t2Colour = ClientBuild.getTable(flo.hue, flo.saturation, flo.lightness);
+                                        overlay = Pix3D.colourTable[ClientBuild.getOCol(flo.hsl, 96)];
                                     }
 
                                     scene?.setGround(
@@ -586,21 +584,21 @@ export default class ClientBuild {
                                         z0,
                                         shape,
                                         rotation,
-                                        textureId,
+                                        texture,
                                         heightSW,
                                         heightSE,
                                         heightNE,
                                         heightNW,
-                                        ClientBuild.getUCol(baseColor, lightSW),
-                                        ClientBuild.getUCol(baseColor, lightSE),
-                                        ClientBuild.getUCol(baseColor, lightNE),
-                                        ClientBuild.getUCol(baseColor, lightNW),
-                                        ClientBuild.getOCol(hsl, lightSW),
-                                        ClientBuild.getOCol(hsl, lightSE),
-                                        ClientBuild.getOCol(hsl, lightNE),
-                                        ClientBuild.getOCol(hsl, lightNW),
-                                        shadeColor,
-                                        rgb
+                                        ClientBuild.getUCol(t1Colour, lightSW),
+                                        ClientBuild.getUCol(t1Colour, lightSE),
+                                        ClientBuild.getUCol(t1Colour, lightNE),
+                                        ClientBuild.getUCol(t1Colour, lightNW),
+                                        ClientBuild.getOCol(t2Colour, lightSW),
+                                        ClientBuild.getOCol(t2Colour, lightSE),
+                                        ClientBuild.getOCol(t2Colour, lightNE),
+                                        ClientBuild.getOCol(t2Colour, lightNW),
+                                        underlay,
+                                        overlay
                                     );
                                 }
                             }

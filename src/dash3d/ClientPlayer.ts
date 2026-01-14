@@ -29,7 +29,7 @@ export const enum PlayerUpdate {
     HITMARK2 = 0x400,
 }
 
-const enum HairColor {
+const enum HairColour {
     HAIR_DARK_BROWN = 6798,
     HAIR_WHITE = 107,
     HAIR_LIGHT_GREY = 10283,
@@ -44,7 +44,7 @@ const enum HairColor {
     HAIR_MAGENTA = 54193,
 }
 
-const enum BodyColorSource {
+const enum BodyColourSource {
     BODY_KHAKI = 8741,
     BODY_CHARCOAL = 12,
     BODY_CRIMSON = 64030,
@@ -63,7 +63,7 @@ const enum BodyColorSource {
     BODY_EMERALD = 25239,
 }
 
-const enum BodyColorDest {
+const enum BodyColourDest {
     BODY_RECOLOR_KHAKI = 9104,
     BODY_RECOLOR_CHARCOAL = 10275,
     BODY_RECOLOR_CRIMSON = 7595,
@@ -82,7 +82,7 @@ const enum BodyColorDest {
     BODY_RECOLOR_EMERALD = 25486,
 }
 
-const enum FeetColor {
+const enum FeetColour {
     FEET_BROWN = 4626,
     FEET_KHAKI = 11146,
     FEET_ASHEN = 6439,
@@ -91,7 +91,7 @@ const enum FeetColor {
     FEET_GREY = 10270,
 }
 
-const enum SkinColor {
+const enum SkinColour {
     SKIN = 4574,
     SKIN_DARKER = 4550,
     SKIN_DARKER_DARKER = 4537,
@@ -105,93 +105,93 @@ const enum SkinColor {
 export default class ClientPlayer extends ClientEntity {
     // prettier-ignore
     static readonly recol2d: number[] = [
-        BodyColorDest.BODY_RECOLOR_KHAKI,
-        BodyColorDest.BODY_RECOLOR_CHARCOAL,
-        BodyColorDest.BODY_RECOLOR_CRIMSON,
-        BodyColorDest.BODY_RECOLOR_NAVY,
-        BodyColorDest.BODY_RECOLOR_STRAW,
-        BodyColorDest.BODY_RECOLOR_WHITE,
-        BodyColorDest.BODY_RECOLOR_RED,
-        BodyColorDest.BODY_RECOLOR_BLUE,
-        BodyColorDest.BODY_RECOLOR_GREEN,
-        BodyColorDest.BODY_RECOLOR_YELLOW,
-        BodyColorDest.BODY_RECOLOR_PURPLE,
-        BodyColorDest.BODY_RECOLOR_ORANGE,
-        BodyColorDest.BODY_RECOLOR_ROSE,
-        BodyColorDest.BODY_RECOLOR_LIME,
-        BodyColorDest.BODY_RECOLOR_CYAN,
-        BodyColorDest.BODY_RECOLOR_EMERALD
+        BodyColourDest.BODY_RECOLOR_KHAKI,
+        BodyColourDest.BODY_RECOLOR_CHARCOAL,
+        BodyColourDest.BODY_RECOLOR_CRIMSON,
+        BodyColourDest.BODY_RECOLOR_NAVY,
+        BodyColourDest.BODY_RECOLOR_STRAW,
+        BodyColourDest.BODY_RECOLOR_WHITE,
+        BodyColourDest.BODY_RECOLOR_RED,
+        BodyColourDest.BODY_RECOLOR_BLUE,
+        BodyColourDest.BODY_RECOLOR_GREEN,
+        BodyColourDest.BODY_RECOLOR_YELLOW,
+        BodyColourDest.BODY_RECOLOR_PURPLE,
+        BodyColourDest.BODY_RECOLOR_ORANGE,
+        BodyColourDest.BODY_RECOLOR_ROSE,
+        BodyColourDest.BODY_RECOLOR_LIME,
+        BodyColourDest.BODY_RECOLOR_CYAN,
+        BodyColourDest.BODY_RECOLOR_EMERALD
     ]; // jag::oldscape::rs2lib::PlayerModel::m_recol2d
 
     // prettier-ignore
     static readonly recol1d: number[][] = [
         [ // hair
-            HairColor.HAIR_DARK_BROWN,
-            HairColor.HAIR_WHITE,
-            HairColor.HAIR_LIGHT_GREY,
-            HairColor.HAIR_DARK_GREY,
-            HairColor.HAIR_APRICOT,
-            HairColor.HAIR_STRAW,
-            HairColor.HAIR_LIGHT_BROWN,
-            HairColor.HAIR_BROWN,
-            HairColor.HAIR_TURQUOISE,
-            HairColor.HAIR_GREEN,
-            HairColor.HAIR_GINGER,
-            HairColor.HAIR_MAGENTA
+            HairColour.HAIR_DARK_BROWN,
+            HairColour.HAIR_WHITE,
+            HairColour.HAIR_LIGHT_GREY,
+            HairColour.HAIR_DARK_GREY,
+            HairColour.HAIR_APRICOT,
+            HairColour.HAIR_STRAW,
+            HairColour.HAIR_LIGHT_BROWN,
+            HairColour.HAIR_BROWN,
+            HairColour.HAIR_TURQUOISE,
+            HairColour.HAIR_GREEN,
+            HairColour.HAIR_GINGER,
+            HairColour.HAIR_MAGENTA
         ],
         [ // torso
-            BodyColorSource.BODY_KHAKI,
-            BodyColorSource.BODY_CHARCOAL,
-            BodyColorSource.BODY_CRIMSON,
-            BodyColorSource.BODY_NAVY,
-            BodyColorSource.BODY_STRAW,
-            BodyColorSource.BODY_WHITE,
-            BodyColorSource.BODY_RED,
-            BodyColorSource.BODY_BLUE,
-            BodyColorSource.BODY_GREEN,
-            BodyColorSource.BODY_YELLOW,
-            BodyColorSource.BODY_PURPLE,
-            BodyColorSource.BODY_ORANGE,
-            BodyColorSource.BODY_ROSE,
-            BodyColorSource.BODY_LIME,
-            BodyColorSource.BODY_CYAN,
-            BodyColorSource.BODY_EMERALD
+            BodyColourSource.BODY_KHAKI,
+            BodyColourSource.BODY_CHARCOAL,
+            BodyColourSource.BODY_CRIMSON,
+            BodyColourSource.BODY_NAVY,
+            BodyColourSource.BODY_STRAW,
+            BodyColourSource.BODY_WHITE,
+            BodyColourSource.BODY_RED,
+            BodyColourSource.BODY_BLUE,
+            BodyColourSource.BODY_GREEN,
+            BodyColourSource.BODY_YELLOW,
+            BodyColourSource.BODY_PURPLE,
+            BodyColourSource.BODY_ORANGE,
+            BodyColourSource.BODY_ROSE,
+            BodyColourSource.BODY_LIME,
+            BodyColourSource.BODY_CYAN,
+            BodyColourSource.BODY_EMERALD
         ],
         [ // legs
-            BodyColorSource.BODY_EMERALD - 1,
-            BodyColorSource.BODY_KHAKI + 1,
-            BodyColorSource.BODY_CHARCOAL,
-            BodyColorSource.BODY_CRIMSON,
-            BodyColorSource.BODY_NAVY,
-            BodyColorSource.BODY_STRAW,
-            BodyColorSource.BODY_WHITE,
-            BodyColorSource.BODY_RED,
-            BodyColorSource.BODY_BLUE,
-            BodyColorSource.BODY_GREEN,
-            BodyColorSource.BODY_YELLOW,
-            BodyColorSource.BODY_PURPLE,
-            BodyColorSource.BODY_ORANGE,
-            BodyColorSource.BODY_ROSE,
-            BodyColorSource.BODY_LIME,
-            BodyColorSource.BODY_CYAN
+            BodyColourSource.BODY_EMERALD - 1,
+            BodyColourSource.BODY_KHAKI + 1,
+            BodyColourSource.BODY_CHARCOAL,
+            BodyColourSource.BODY_CRIMSON,
+            BodyColourSource.BODY_NAVY,
+            BodyColourSource.BODY_STRAW,
+            BodyColourSource.BODY_WHITE,
+            BodyColourSource.BODY_RED,
+            BodyColourSource.BODY_BLUE,
+            BodyColourSource.BODY_GREEN,
+            BodyColourSource.BODY_YELLOW,
+            BodyColourSource.BODY_PURPLE,
+            BodyColourSource.BODY_ORANGE,
+            BodyColourSource.BODY_ROSE,
+            BodyColourSource.BODY_LIME,
+            BodyColourSource.BODY_CYAN
         ],
         [ // feet
-            FeetColor.FEET_BROWN,
-            FeetColor.FEET_KHAKI,
-            FeetColor.FEET_ASHEN,
-            FeetColor.FEET_DARK,
-            FeetColor.FEET_TERRACOTTA,
-            FeetColor.FEET_GREY
+            FeetColour.FEET_BROWN,
+            FeetColour.FEET_KHAKI,
+            FeetColour.FEET_ASHEN,
+            FeetColour.FEET_DARK,
+            FeetColour.FEET_TERRACOTTA,
+            FeetColour.FEET_GREY
         ],
         [ // skin
-            SkinColor.SKIN_DARKER,
-            SkinColor.SKIN_DARKER_DARKER,
-            SkinColor.SKIN_DARKER_DARKER_DARKER,
-            SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER,
-            SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER,
-            SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
-            SkinColor.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
-            SkinColor.SKIN
+            SkinColour.SKIN_DARKER,
+            SkinColour.SKIN_DARKER_DARKER,
+            SkinColour.SKIN_DARKER_DARKER_DARKER,
+            SkinColour.SKIN_DARKER_DARKER_DARKER_DARKER,
+            SkinColour.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER,
+            SkinColour.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
+            SkinColour.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
+            SkinColour.SKIN
         ]
     ]; // jag::oldscape::rs2lib::PlayerModel::m_recol1d
 
@@ -241,11 +241,11 @@ export default class ClientPlayer extends ClientEntity {
         }
 
         for (let part: number = 0; part < 5; part++) {
-            let color: number = buf.g1();
-            if (color < 0 || color >= ClientPlayer.recol1d[part].length) {
-                color = 0;
+            let colour: number = buf.g1();
+            if (colour < 0 || colour >= ClientPlayer.recol1d[part].length) {
+                colour = 0;
             }
-            this.colour[part] = color;
+            this.colour[part] = colour;
         }
 
         this.readyanim = buf.g2();

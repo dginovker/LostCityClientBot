@@ -181,7 +181,7 @@ class CanvasMobileKeyboard implements Keyboard {
     /**
      * Returns a CSS style colour string for the given keyboard key index.
      */
-    private getBoxColorForIndex(index: number): string {
+    private getBoxColourForIndex(index: number): string {
         // If we are animating that key, mark it as a bit darker.
         if (this.animateBoxIndex > -1) {
             if (this.animateBoxIndex === index) {
@@ -244,7 +244,7 @@ class CanvasMobileKeyboard implements Keyboard {
     private drawKeyBoxes() {
         for (let i = 0; i < KEYMAP_REGULAR.length; i++) {
             const box = this.getBoxForIndex(i);
-            canvas2d.fillStyle = this.getBoxColorForIndex(i);
+            canvas2d.fillStyle = this.getBoxColourForIndex(i);
             canvas2d.beginPath();
             canvas2d.roundRect(this.startX + box.startX + 2, this.startY + box.startY + 2, box.width - 2, box.height - 2, 5);
             canvas2d.fill();

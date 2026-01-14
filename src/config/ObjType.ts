@@ -3,7 +3,7 @@ import LruCache from '#/datastruct/LruCache.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
-import { Colors } from '#/graphics/Colors.js';
+import { Colour } from '#/graphics/Colour.js';
 import Pix2D from '#/graphics/Pix2D.js';
 import Pix3D from '#/graphics/Pix3D.js';
 import Model from '#/dash3d/Model.js';
@@ -426,7 +426,7 @@ export default class ObjType {
 
         Pix3D.lowDetail = false;
         Pix2D.setPixels(icon.data, 32, 32);
-        Pix2D.fillRect(0, 0, 32, 32, Colors.BLACK);
+        Pix2D.fillRect(0, 0, 32, 32, Colour.BLACK);
         Pix3D.init();
 
         let zoom = obj.zoom2d;
