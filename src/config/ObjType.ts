@@ -413,21 +413,21 @@ export default class ObjType {
 
         const icon: Pix32 = new Pix32(32, 32);
 
-        const _cx: number = Pix3D.projectionX;
-        const _cy: number = Pix3D.projectionY;
+        const _cx: number = Pix3D.originX;
+        const _cy: number = Pix3D.originY;
         const _loff: Int32Array = Pix3D.scanline;
         const _data: Int32Array = Pix2D.pixels;
         const _w: number = Pix2D.width;
         const _h: number = Pix2D.height;
-        const _l: number = Pix2D.left;
-        const _r: number = Pix2D.right;
-        const _t: number = Pix2D.top;
-        const _b: number = Pix2D.bottom;
+        const _l: number = Pix2D.clipMinX;
+        const _r: number = Pix2D.clipMaxX;
+        const _t: number = Pix2D.clipMinY;
+        const _b: number = Pix2D.clipMaxY;
 
         Pix3D.lowDetail = false;
         Pix2D.setPixels(icon.data, 32, 32);
         Pix2D.fillRect(0, 0, 32, 32, Colour.BLACK);
-        Pix3D.init();
+        Pix3D.setRenderClipping();
 
         let zoom = obj.zoom2d;
         if (outlineRgb === -1) {
@@ -506,8 +506,8 @@ export default class ObjType {
 
         Pix2D.setPixels(_data, _w, _h);
         Pix2D.setClipping(_l, _t, _r, _b);
-        Pix3D.projectionX = _cx;
-        Pix3D.projectionY = _cy;
+        Pix3D.originX = _cx;
+        Pix3D.originY = _cy;
         Pix3D.scanline = _loff;
         Pix3D.lowDetail = true;
 

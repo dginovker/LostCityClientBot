@@ -22,8 +22,8 @@ export default class Pix3D extends Pix2D {
     static textureCycle: Int32Array = new Int32Array(50);
     static texPal: (Int32Array | null)[] = new TypedArray1d(50, null);
     static textureCount: number = 0;
-    static projectionX: number = 0;
-    static projectionY: number = 0;
+    static originX: number = 0;
+    static originY: number = 0;
     static texelPool: (Int32Array | null)[] | null = null;
     static poolSize: number = 0;
     private static opaque: boolean = false;
@@ -50,22 +50,24 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    static init(): void {
+    // jag::oldscape::dash3d::Pix3D::SetRenderClipping
+    static setRenderClipping(): void {
         this.scanline = new Int32Array(Pix2D.height);
         for (let y: number = 0; y < Pix2D.height; y++) {
             this.scanline[y] = Pix2D.width * y;
         }
-        this.projectionX = (Pix2D.width / 2) | 0;
-        this.projectionY = (Pix2D.height / 2) | 0;
+        this.originX = (Pix2D.width / 2) | 0;
+        this.originY = (Pix2D.height / 2) | 0;
     }
 
-    static initWH(width: number, height: number): void {
+    // jag::oldscape::dash3d::Pix3D::SetClipping
+    static override setClipping(width: number, height: number): void {
         this.scanline = new Int32Array(height);
         for (let y: number = 0; y < height; y++) {
             this.scanline[y] = width * y;
         }
-        this.projectionX = (width / 2) | 0;
-        this.projectionY = (height / 2) | 0;
+        this.originX = (width / 2) | 0;
+        this.originY = (height / 2) | 0;
     }
 
     static clearTexels(): void {
@@ -354,16 +356,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.bottom) {
+            if (yA >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
             if (yB < yC) {
@@ -540,16 +542,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.bottom) {
+            if (yB >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
             if (yC < yA) {
@@ -722,16 +724,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.bottom) {
+            if (yC >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
             if (yA < yB) {
@@ -920,8 +922,8 @@ export default class Pix3D extends Pix2D {
                     colourStep = 0;
                 }
 
-                if (xB > Pix2D.clipX) {
-                    xB = Pix2D.clipX;
+                if (xB > Pix2D.sizeX) {
+                    xB = Pix2D.sizeX;
                 }
 
                 if (xA < 0) {
@@ -1014,8 +1016,8 @@ export default class Pix3D extends Pix2D {
             const colourStep: number = ((colourB - colourA) / (xB - xA)) | 0;
 
             if (this.hclip) {
-                if (xB > Pix2D.clipX) {
-                    xB = Pix2D.clipX;
+                if (xB > Pix2D.sizeX) {
+                    xB = Pix2D.sizeX;
                 }
 
                 if (xA < 0) {
@@ -1075,16 +1077,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.bottom) {
+            if (yA >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
             if (yB < yC) {
@@ -1235,16 +1237,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.bottom) {
+            if (yB >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
             if (yC < yA) {
@@ -1391,16 +1393,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.bottom) {
+            if (yC >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
             if (yA < yB) {
@@ -1552,8 +1554,8 @@ export default class Pix3D extends Pix2D {
         colour: number
     ): void {
         if (this.hclip) {
-            if (xB > Pix2D.clipX) {
-                xB = Pix2D.clipX;
+            if (xB > Pix2D.sizeX) {
+                xB = Pix2D.sizeX;
             }
 
             if (xA < 0) {
@@ -1677,16 +1679,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.bottom) {
+            if (yA >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
             if (yB < yC) {
@@ -1710,7 +1712,7 @@ export default class Pix3D extends Pix2D {
                     yB = 0;
                 }
 
-                const dy: number = yA - this.projectionY;
+                const dy: number = yA - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -1828,7 +1830,7 @@ export default class Pix3D extends Pix2D {
                     yC = 0;
                 }
 
-                const dy: number = yA - this.projectionY;
+                const dy: number = yA - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -1927,16 +1929,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.bottom) {
+            if (yB >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yC > Pix2D.bottom) {
-                yC = Pix2D.bottom;
+            if (yC > Pix2D.clipMaxY) {
+                yC = Pix2D.clipMaxY;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
             if (yC < yA) {
@@ -1960,7 +1962,7 @@ export default class Pix3D extends Pix2D {
                     yC = 0;
                 }
 
-                const dy: number = yB - this.projectionY;
+                const dy: number = yB - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -2078,7 +2080,7 @@ export default class Pix3D extends Pix2D {
                     yA = 0;
                 }
 
-                const dy: number = yB - this.projectionY;
+                const dy: number = yB - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -2173,16 +2175,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.bottom) {
+            if (yC >= Pix2D.clipMaxY) {
                 return;
             }
 
-            if (yA > Pix2D.bottom) {
-                yA = Pix2D.bottom;
+            if (yA > Pix2D.clipMaxY) {
+                yA = Pix2D.clipMaxY;
             }
 
-            if (yB > Pix2D.bottom) {
-                yB = Pix2D.bottom;
+            if (yB > Pix2D.clipMaxY) {
+                yB = Pix2D.clipMaxY;
             }
 
             if (yA < yB) {
@@ -2206,7 +2208,7 @@ export default class Pix3D extends Pix2D {
                     yA = 0;
                 }
 
-                const dy: number = yC - this.projectionY;
+                const dy: number = yC - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -2320,7 +2322,7 @@ export default class Pix3D extends Pix2D {
                     yB = 0;
                 }
 
-                const dy: number = yC - this.projectionY;
+                const dy: number = yC - this.originY;
                 u += uStepVertical * dy;
                 v += vStepVertical * dy;
                 w += wStepVertical * dy;
@@ -2440,8 +2442,8 @@ export default class Pix3D extends Pix2D {
         if (this.hclip) {
             shadeStrides = ((shadeB - shadeA) / (xB - xA)) | 0;
 
-            if (xB > Pix2D.clipX) {
-                xB = Pix2D.clipX;
+            if (xB > Pix2D.sizeX) {
+                xB = Pix2D.sizeX;
             }
 
             if (xA < 0) {
@@ -2480,7 +2482,7 @@ export default class Pix3D extends Pix2D {
             nextU = 0;
             nextV = 0;
 
-            dx = xA - this.projectionX;
+            dx = xA - this.originX;
             u = u + (uStride >> 3) * dx;
             v = v + (vStride >> 3) * dx;
             w = w + (wStride >> 3) * dx;
@@ -2696,7 +2698,7 @@ export default class Pix3D extends Pix2D {
             nextU = 0;
             nextV = 0;
 
-            dx = xA - this.projectionX;
+            dx = xA - this.originX;
             u = u + (uStride >> 3) * dx;
             v = v + (vStride >> 3) * dx;
             w = w + (wStride >> 3) * dx;

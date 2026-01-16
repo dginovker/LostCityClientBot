@@ -204,30 +204,30 @@ export default class Pix8 extends Pix2D {
         let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.top) {
-            const cutoff: number = Pix2D.top - y;
+        if (y < Pix2D.clipMinY) {
+            const cutoff: number = Pix2D.clipMinY - y;
             h -= cutoff;
-            y = Pix2D.top;
+            y = Pix2D.clipMinY;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.bottom) {
-            h -= y + h - Pix2D.bottom;
+        if (y + h > Pix2D.clipMaxY) {
+            h -= y + h - Pix2D.clipMaxY;
         }
 
-        if (x < Pix2D.left) {
-            const cutoff: number = Pix2D.left - x;
+        if (x < Pix2D.clipMinX) {
+            const cutoff: number = Pix2D.clipMinX - x;
             w -= cutoff;
-            x = Pix2D.left;
+            x = Pix2D.clipMinX;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.right) {
-            const cutoff: number = x + w - Pix2D.right;
+        if (x + w > Pix2D.clipMaxX) {
+            const cutoff: number = x + w - Pix2D.clipMaxX;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -316,26 +316,26 @@ export default class Pix8 extends Pix2D {
             let local133: number = arg0 + arg1 * Pix2D.width;
             let local137: number = Pix2D.width - arg2;
             let local144: number;
-            if (arg1 < Pix2D.top) {
-                local144 = Pix2D.top - arg1;
+            if (arg1 < Pix2D.clipMinY) {
+                local144 = Pix2D.clipMinY - arg1;
                 arg3 -= local144;
                 arg1 = 0;
                 local133 += local144 * Pix2D.width;
                 local9 += local39 * local144;
             }
-            if (arg1 + arg3 > Pix2D.bottom) {
-                arg3 -= arg1 + arg3 - Pix2D.bottom;
+            if (arg1 + arg3 > Pix2D.clipMaxY) {
+                arg3 -= arg1 + arg3 - Pix2D.clipMaxY;
             }
-            if (arg0 < Pix2D.left) {
-                local144 = Pix2D.left - arg0;
+            if (arg0 < Pix2D.clipMinX) {
+                local144 = Pix2D.clipMinX - arg0;
                 arg2 -= local144;
                 arg0 = 0;
                 local133 += local144;
                 local7 += local33 * local144;
                 local137 += local144;
             }
-            if (arg0 + arg2 > Pix2D.right) {
-                local144 = arg0 + arg2 - Pix2D.right;
+            if (arg0 + arg2 > Pix2D.clipMaxX) {
+                local144 = arg0 + arg2 - Pix2D.clipMaxX;
                 arg2 -= local144;
                 local137 += local144;
             }
