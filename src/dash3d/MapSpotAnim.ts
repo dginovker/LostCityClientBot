@@ -12,9 +12,9 @@ export default class MapSpotAnim extends ModelSource {
     readonly y: number;
     readonly startCycle: number;
 
-    seqComplete: boolean = false;
-    seqFrame: number = 0;
-    seqCycle: number = 0;
+    animComplete: boolean = false;
+    animFrame: number = 0;
+    animCycle: number = 0;
 
     constructor(id: number, level: number, x: number, z: number, y: number, cycle: number, delay: number) {
         super();
@@ -32,13 +32,13 @@ export default class MapSpotAnim extends ModelSource {
             return;
         }
 
-        for (this.seqCycle += delta; this.seqCycle > this.type.seq.getDuration(this.seqFrame); ) {
-            this.seqCycle -= this.type.seq.getDuration(this.seqFrame) + 1;
-            this.seqFrame++;
+        for (this.animCycle += delta; this.animCycle > this.type.seq.getDuration(this.animFrame); ) {
+            this.animCycle -= this.type.seq.getDuration(this.animFrame) + 1;
+            this.animFrame++;
 
-            if (this.seqFrame >= this.type.seq.numFrames) {
-                this.seqFrame = 0;
-                this.seqComplete = true;
+            if (this.animFrame >= this.type.seq.numFrames) {
+                this.animFrame = 0;
+                this.animComplete = true;
             }
         }
     }
@@ -51,12 +51,12 @@ export default class MapSpotAnim extends ModelSource {
 
         let frame = -1;
         if (this.type.seq && this.type.seq.frames) {
-            frame = this.type.seq.frames[this.seqFrame];
+            frame = this.type.seq.frames[this.animFrame];
         }
 
         const model: Model = Model.copyForAnim(tmp, true, AnimFrame.shareAlpha(frame), false);
 
-        if (!this.seqComplete) {
+        if (!this.animComplete) {
             model.prepareAnim();
             model.animate(frame);
             model.labelFaces = null;

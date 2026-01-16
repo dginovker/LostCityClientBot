@@ -1,7 +1,7 @@
 import AnimBase from '#/dash3d/AnimBase.js';
 import AnimFrame from '#/dash3d/AnimFrame.js';
 import Pix2D from '#/graphics/Pix2D.js';
-import Pix3D from '#/graphics/Pix3D.js';
+import Pix3D from '#/dash3d/Pix3D.js';
 
 import Packet from '#/io/Packet.js';
 
@@ -388,7 +388,6 @@ export default class Model extends ModelSource {
         let b = 0;
         let c = 0;
         let last = 0;
-
         for (let f = 0; f < model.faceCount; f++) {
             const order = vertex2.g1();
 
@@ -1891,12 +1890,12 @@ export default class Model extends ModelSource {
 
         const midX: number = (relativeZ * sinEyeYaw + relativeX * cosEyeYaw) >> 16;
         let leftX: number = (midX - this.radius) << 9;
-        if (((leftX / maxZ) | 0) >= Pix2D.centerX) {
+        if (((leftX / maxZ) | 0) >= Pix2D.centreX) {
             return;
         }
 
         let rightX: number = (midX + this.radius) << 9;
-        if (((rightX / maxZ) | 0) <= -Pix2D.centerX) {
+        if (((rightX / maxZ) | 0) <= -Pix2D.centreX) {
             return;
         }
 
@@ -1904,13 +1903,13 @@ export default class Model extends ModelSource {
         const radiusSinEyePitch: number = (this.radius * sinEyePitch) >> 16;
 
         let bottomY: number = (midY + radiusSinEyePitch) << 9;
-        if (((bottomY / maxZ) | 0) <= -Pix2D.centerY) {
+        if (((bottomY / maxZ) | 0) <= -Pix2D.centreY) {
             return;
         }
 
         const yPrime: number = radiusSinEyePitch + ((this.minY * cosEyePitch) >> 16);
         let topY: number = (midY - yPrime) << 9;
-        if (((topY / maxZ) | 0) >= Pix2D.centerY) {
+        if (((topY / maxZ) | 0) >= Pix2D.centreY) {
             return;
         }
 

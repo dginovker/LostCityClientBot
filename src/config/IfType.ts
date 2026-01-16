@@ -39,8 +39,8 @@ export default class IfType {
     static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::rs2lib::IfType::m_modelCache
     static spriteCache: LruCache<Pix32> | null = null; // jag::oldscape::rs2lib::IfType::m_spriteCache
 
-    seqFrame: number = 0;
-    seqCycle: number = 0;
+    animFrame: number = 0;
+    animCycle: number = 0;
     id: number = -1;
     layerId: number = -1;
     type: number = -1;

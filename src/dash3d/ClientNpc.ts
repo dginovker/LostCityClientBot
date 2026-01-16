@@ -72,25 +72,25 @@ export default class ClientNpc extends ClientEntity {
             return null;
         }
 
-        if (this.primarySeqId < 0 || this.primarySeqDelay != 0) {
-            const secondarySeq = SeqType.list[this.secondarySeqId];
+        if (this.primaryAnim < 0 || this.primaryAnimDelay != 0) {
+            const secondarySeq = SeqType.list[this.secondaryAnim];
             let secondaryTransform = -1;
-            if (this.secondarySeqId >= 0 && secondarySeq.frames) {
-                secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];
+            if (this.secondaryAnim >= 0 && secondarySeq.frames) {
+                secondaryTransform = secondarySeq.frames[this.secondaryAnimFrame];
             }
 
             return this.type.getTempModel(secondaryTransform, -1, null);
         } else {
-            const primarySeq = SeqType.list[this.primarySeqId];
+            const primarySeq = SeqType.list[this.primaryAnim];
             let primaryTransform = -1;
             if (primarySeq.frames) {
-                primaryTransform = primarySeq.frames[this.primarySeqFrame];
+                primaryTransform = primarySeq.frames[this.primaryAnimFrame];
             }
 
-            const secondarySeq = SeqType.list[this.secondarySeqId];
+            const secondarySeq = SeqType.list[this.secondaryAnim];
             let secondaryTransform = -1;
-            if (this.secondarySeqId >= 0 && this.secondarySeqId != this.readyanim && secondarySeq.frames) {
-                secondaryTransform = secondarySeq.frames[this.secondarySeqFrame];
+            if (this.secondaryAnim >= 0 && this.secondaryAnim != this.readyanim && secondarySeq.frames) {
+                secondaryTransform = secondarySeq.frames[this.secondaryAnimFrame];
             }
 
             return this.type.getTempModel(primaryTransform, secondaryTransform, primarySeq.walkmerge);

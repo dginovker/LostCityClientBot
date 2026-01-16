@@ -5,7 +5,7 @@ import Packet from '#/io/Packet.js';
 
 import { Colour } from '#/graphics/Colour.js';
 import Pix2D from '#/graphics/Pix2D.js';
-import Pix3D from '#/graphics/Pix3D.js';
+import Pix3D from '#/dash3d/Pix3D.js';
 import Model from '#/dash3d/Model.js';
 import Pix32 from '#/graphics/Pix32.js';
 
@@ -419,10 +419,10 @@ export default class ObjType {
         const _data: Int32Array = Pix2D.pixels;
         const _w: number = Pix2D.width;
         const _h: number = Pix2D.height;
-        const _l: number = Pix2D.boundLeft;
-        const _r: number = Pix2D.boundRight;
-        const _t: number = Pix2D.boundTop;
-        const _b: number = Pix2D.boundBottom;
+        const _l: number = Pix2D.left;
+        const _r: number = Pix2D.right;
+        const _t: number = Pix2D.top;
+        const _b: number = Pix2D.bottom;
 
         Pix3D.lowDetail = false;
         Pix2D.setPixels(icon.data, 32, 32);

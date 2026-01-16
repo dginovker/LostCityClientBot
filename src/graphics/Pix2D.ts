@@ -7,14 +7,14 @@ export default class Pix2D extends DoublyLinkable {
     static width: number = 0;
     static height: number = 0;
 
-    static boundTop: number = 0;
-    static boundBottom: number = 0;
-    static boundLeft: number = 0;
-    static boundRight: number = 0;
+    static top: number = 0;
+    static bottom: number = 0;
+    static left: number = 0;
+    static right: number = 0;
     static clipX: number = 0;
 
-    static centerX: number = 0;
-    static centerY: number = 0;
+    static centreX: number = 0;
+    static centreY: number = 0;
 
     // jag::oldscape::graphics::Pix2D::SetPixels
     static setPixels(pixels: Int32Array, width: number, height: number): void {
@@ -26,12 +26,12 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::Pix2D::ResetClipping
     static resetClipping(): void {
-        this.boundLeft = 0;
-        this.boundTop = 0;
-        this.boundRight = this.width;
-        this.boundBottom = this.height;
-        this.clipX = this.boundRight - 1;
-        this.centerX = (this.boundRight / 2) | 0;
+        this.left = 0;
+        this.top = 0;
+        this.right = this.width;
+        this.bottom = this.height;
+        this.clipX = this.right - 1;
+        this.centreX = (this.right / 2) | 0;
     }
 
     // jag::oldscape::graphics::Pix2D::SetClipping
@@ -52,13 +52,13 @@ export default class Pix2D extends DoublyLinkable {
             bottom = this.height;
         }
 
-        this.boundTop = top;
-        this.boundBottom = bottom;
-        this.boundLeft = left;
-        this.boundRight = right;
-        this.clipX = this.boundRight - 1;
-        this.centerX = (this.boundRight / 2) | 0;
-        this.centerY = (this.boundBottom / 2) | 0;
+        this.top = top;
+        this.bottom = bottom;
+        this.left = left;
+        this.right = right;
+        this.clipX = this.right - 1;
+        this.centreX = (this.right / 2) | 0;
+        this.centreY = (this.bottom / 2) | 0;
     }
 
     // jag::oldscape::graphics::NXTPix2D::Cls
@@ -71,22 +71,22 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::FillRectTrans
     static fillRectTrans(x: number, y: number, width: number, height: number, rgb: number, alpha: number): void {
-        if (x < this.boundLeft) {
-            width -= this.boundLeft - x;
-            x = this.boundLeft;
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
         }
 
-        if (y < this.boundTop) {
-            height -= this.boundTop - y;
-            y = this.boundTop;
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
         }
 
-        if (x + width > this.boundRight) {
-            width = this.boundRight - x;
+        if (x + width > this.right) {
+            width = this.right - x;
         }
 
-        if (y + height > this.boundBottom) {
-            height = this.boundBottom - y;
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
         }
 
         const invAlpha: number = 256 - alpha;
@@ -109,22 +109,22 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::FillRect
     static fillRect(x: number, y: number, width: number, height: number, rgb: number): void {
-        if (x < this.boundLeft) {
-            width -= this.boundLeft - x;
-            x = this.boundLeft;
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
         }
 
-        if (y < this.boundTop) {
-            height -= this.boundTop - y;
-            y = this.boundTop;
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
         }
 
-        if (x + width > this.boundRight) {
-            width = this.boundRight - x;
+        if (x + width > this.right) {
+            width = this.right - x;
         }
 
-        if (y + height > this.boundBottom) {
-            height = this.boundBottom - y;
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
         }
 
         const step: number = this.width - width;
@@ -158,17 +158,17 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::HLine
     static hline(x: number, y: number, rgb: number, width: number): void {
-        if (y < this.boundTop || y >= this.boundBottom) {
+        if (y < this.top || y >= this.bottom) {
             return;
         }
 
-        if (x < this.boundLeft) {
-            width -= this.boundLeft - x;
-            x = this.boundLeft;
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
         }
 
-        if (x + width > this.boundRight) {
-            width = this.boundRight - x;
+        if (x + width > this.right) {
+            width = this.right - x;
         }
 
         const off: number = x + y * this.width;
@@ -179,17 +179,17 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::HLineTrans
     static hlineTrans(x: number, y: number, rgb: number, width: number, alpha: number): void {
-        if (y < this.boundTop || y >= this.boundBottom) {
+        if (y < this.top || y >= this.bottom) {
             return;
         }
 
-        if (x < this.boundLeft) {
-            width -= this.boundLeft - x;
-            x = this.boundLeft;
+        if (x < this.left) {
+            width -= this.left - x;
+            x = this.left;
         }
 
-        if (x + width > this.boundRight) {
-            width = this.boundRight - x;
+        if (x + width > this.right) {
+            width = this.right - x;
         }
 
         const invAlpha: number = 256 - alpha;
@@ -209,17 +209,17 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::VLine
     static vline(x: number, y: number, rgb: number, height: number): void {
-        if (x < this.boundLeft || x >= this.boundRight) {
+        if (x < this.left || x >= this.right) {
             return;
         }
 
-        if (y < this.boundTop) {
-            height -= this.boundTop - y;
-            y = this.boundTop;
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
         }
 
-        if (y + height > this.boundBottom) {
-            height = this.boundBottom - y;
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
         }
 
         const off: number = x + y * this.width;
@@ -230,17 +230,17 @@ export default class Pix2D extends DoublyLinkable {
 
     // jag::oldscape::graphics::NXTPix2D::VLineTrans
     static vlineTrans(x: number, y: number, rgb: number, height: number, alpha: number): void {
-        if (x < this.boundLeft || x >= this.boundRight) {
+        if (x < this.left || x >= this.right) {
             return;
         }
 
-        if (y < this.boundTop) {
-            height -= this.boundTop - y;
-            y = this.boundTop;
+        if (y < this.top) {
+            height -= this.top - y;
+            y = this.top;
         }
 
-        if (y + height > this.boundBottom) {
-            height = this.boundBottom - y;
+        if (y + height > this.bottom) {
+            height = this.bottom - y;
         }
 
         const invAlpha: number = 256 - alpha;

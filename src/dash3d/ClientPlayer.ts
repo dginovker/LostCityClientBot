@@ -401,15 +401,15 @@ export default class ClientPlayer extends ClientEntity {
     getTempModel2(): Model | null {
         if (this.transmog != null) {
             let transformId = -1;
-            if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
-                const frames = SeqType.list[this.primarySeqId].frames;
+            if (this.primaryAnim >= 0 && this.primaryAnimDelay === 0) {
+                const frames = SeqType.list[this.primaryAnim].frames;
                 if (frames) {
-                    transformId = frames[this.primarySeqFrame];
+                    transformId = frames[this.primaryAnimFrame];
                 }
-            } else if (this.secondarySeqId >= 0) {
-                const frames = SeqType.list[this.secondarySeqId].frames;
+            } else if (this.secondaryAnim >= 0) {
+                const frames = SeqType.list[this.secondaryAnim].frames;
                 if (frames) {
-                    transformId = frames[this.secondarySeqFrame];
+                    transformId = frames[this.secondaryAnimFrame];
                 }
             }
             return this.transmog.getTempModel(transformId, -1, null);
@@ -421,17 +421,17 @@ export default class ClientPlayer extends ClientEntity {
         let leftHandValue: number = -1;
         let rightHandValue: number = -1;
 
-        if (this.primarySeqId >= 0 && this.primarySeqDelay === 0) {
-            const seq: SeqType = SeqType.list[this.primarySeqId];
+        if (this.primaryAnim >= 0 && this.primaryAnimDelay === 0) {
+            const seq: SeqType = SeqType.list[this.primaryAnim];
 
             if (seq.frames) {
-                primaryTransformId = seq.frames[this.primarySeqFrame];
+                primaryTransformId = seq.frames[this.primaryAnimFrame];
             }
 
-            if (this.secondarySeqId >= 0 && this.secondarySeqId !== this.readyanim) {
-                const secondFrames: Int16Array | null = SeqType.list[this.secondarySeqId].frames;
+            if (this.secondaryAnim >= 0 && this.secondaryAnim !== this.readyanim) {
+                const secondFrames: Int16Array | null = SeqType.list[this.secondaryAnim].frames;
                 if (secondFrames) {
-                    secondaryTransformId = secondFrames[this.secondarySeqFrame];
+                    secondaryTransformId = secondFrames[this.secondaryAnimFrame];
                 }
             }
 
@@ -444,10 +444,10 @@ export default class ClientPlayer extends ClientEntity {
                 rightHandValue = seq.replaceheldright;
                 hash += BigInt(rightHandValue - this.appearance[3]) << 48n;
             }
-        } else if (this.secondarySeqId >= 0) {
-            const secondFrames: Int16Array | null = SeqType.list[this.secondarySeqId].frames;
+        } else if (this.secondaryAnim >= 0) {
+            const secondFrames: Int16Array | null = SeqType.list[this.secondaryAnim].frames;
             if (secondFrames) {
-                primaryTransformId = secondFrames[this.secondarySeqFrame];
+                primaryTransformId = secondFrames[this.secondaryAnimFrame];
             }
         }
 
@@ -544,7 +544,7 @@ export default class ClientPlayer extends ClientEntity {
         tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) && AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
-            tmp.maskAnimate(primaryTransformId, secondaryTransformId, SeqType.list[this.primarySeqId].walkmerge);
+            tmp.maskAnimate(primaryTransformId, secondaryTransformId, SeqType.list[this.primaryAnim].walkmerge);
         } else if (primaryTransformId !== -1) {
             tmp.animate(primaryTransformId);
         }

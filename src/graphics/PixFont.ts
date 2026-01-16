@@ -336,30 +336,30 @@ export default class PixFont extends DoublyLinkable {
         let srcStep: number = 0;
         let srcOff: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h >= Pix2D.boundBottom) {
-            h -= y + h + 1 - Pix2D.boundBottom;
+        if (y + h >= Pix2D.bottom) {
+            h -= y + h + 1 - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w >= Pix2D.boundRight) {
-            const cutoff: number = x + w + 1 - Pix2D.boundRight;
+        if (x + w >= Pix2D.right) {
+            const cutoff: number = x + w + 1 - Pix2D.right;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -429,30 +429,30 @@ export default class PixFont extends DoublyLinkable {
         let srcStep: number = 0;
         let srcOff: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h >= Pix2D.boundBottom) {
-            h -= y + h + 1 - Pix2D.boundBottom;
+        if (y + h >= Pix2D.bottom) {
+            h -= y + h + 1 - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w >= Pix2D.boundRight) {
-            const cutoff: number = x + w + 1 - Pix2D.boundRight;
+        if (x + w >= Pix2D.right) {
+            const cutoff: number = x + w + 1 - Pix2D.right;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;

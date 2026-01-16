@@ -324,7 +324,7 @@ export default class LocType {
     }
 
     // jag::oldscape::configdecoder::LocType::GetModel
-    getModel(shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, transformId: number): Model | null {
+    getModel(shape: number, angle: number, heightSW: number, heightSE: number, heightNE: number, heightNW: number, transformId: number): Model | null {
         let modified = this.buildModel(shape, angle, transformId);
         if (!modified) {
             return null;
@@ -335,14 +335,14 @@ export default class LocType {
         }
 
         if (this.hillskew) {
-            const groundY: number = ((heightmapSW + heightmapSE + heightmapNE + heightmapNW) / 4) | 0;
+            const groundY: number = ((heightSW + heightSE + heightNE + heightNW) / 4) | 0;
 
             for (let i: number = 0; i < modified.vertexCount; i++) {
                 const x: number = modified.vertexX![i];
                 const z: number = modified.vertexZ![i];
 
-                const heightS: number = heightmapSW + ((((heightmapSE - heightmapSW) * (x + 64)) / 128) | 0);
-                const heightN: number = heightmapNW + ((((heightmapNE - heightmapNW) * (x + 64)) / 128) | 0);
+                const heightS: number = heightSW + ((((heightSE - heightSW) * (x + 64)) / 128) | 0);
+                const heightN: number = heightNW + ((((heightNE - heightNW) * (x + 64)) / 128) | 0);
                 const y: number = heightS + ((((heightN - heightS) * (z + 64)) / 128) | 0);
 
                 modified.vertexY![i] += y - groundY;

@@ -15,7 +15,7 @@ export default class ClientProj extends ModelSource {
     readonly t2: number;
     readonly angle: number;
     readonly startpos: number;
-    readonly targetEntity: number;
+    readonly target: number;
 
     mobile: boolean = false;
     x: number = 0.0;
@@ -28,10 +28,10 @@ export default class ClientProj extends ModelSource {
     accelerationY: number = 0.0;
     yaw: number = 0;
     pitch: number = 0;
-    seqFrame: number = 0;
-    seqCycle: number = 0;
+    animFrame: number = 0;
+    animCycle: number = 0;
 
-    constructor(spotanim: number, level: number, srcX: number, h1: number, srcZ: number, t1: number, t2: number, angle: number, startpos: number, targetEntity: number, h2: number) {
+    constructor(spotanim: number, level: number, srcX: number, h1: number, srcZ: number, t1: number, t2: number, angle: number, startpos: number, target: number, h2: number) {
         super();
         this.spotanim = SpotAnimType.list[spotanim];
         this.level = level;
@@ -42,7 +42,7 @@ export default class ClientProj extends ModelSource {
         this.t2 = t2;
         this.angle = angle;
         this.startpos = startpos;
-        this.targetEntity = targetEntity;
+        this.target = target;
         this.h2 = h2;
         this.mobile = false;
     }
@@ -80,13 +80,13 @@ export default class ClientProj extends ModelSource {
         this.pitch = ((Math.atan2(this.velocityY, this.velocity) * 325.949) | 0) & 0x7ff;
 
         if (this.spotanim.seq) {
-            this.seqCycle += delta;
+            this.animCycle += delta;
 
-            while (this.seqCycle > this.spotanim.seq.getDuration(this.seqFrame)) {
-                this.seqCycle -= this.spotanim.seq.getDuration(this.seqFrame) + 1;
-                this.seqFrame++;
-                if (this.seqFrame >= this.spotanim.seq.numFrames) {
-                    this.seqFrame = 0;
+            while (this.animCycle > this.spotanim.seq.getDuration(this.animFrame)) {
+                this.animCycle -= this.spotanim.seq.getDuration(this.animFrame) + 1;
+                this.animFrame++;
+                if (this.animFrame >= this.spotanim.seq.numFrames) {
+                    this.animFrame = 0;
                 }
             }
         }
@@ -101,7 +101,7 @@ export default class ClientProj extends ModelSource {
 
         let frame = -1;
         if (this.spotanim.seq && this.spotanim.seq.frames) {
-            frame = this.spotanim.seq.frames[this.seqFrame];
+            frame = this.spotanim.seq.frames[this.animFrame];
         }
 
         const model: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(frame), false);

@@ -12,7 +12,7 @@ import { TerrainOverlayShape } from '#/dash3d/TerrainOverlayShape.js';
 import World from '#/dash3d/World.js';
 
 import { Colour } from '#/graphics/Colour.js';
-import Pix3D from '#/graphics/Pix3D.js';
+import Pix3D from '#/dash3d/Pix3D.js';
 
 import type OnDemand from '#/io/OnDemand.js';
 import Packet from '#/io/Packet.js';

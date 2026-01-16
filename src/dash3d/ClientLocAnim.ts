@@ -8,69 +8,69 @@ export default class ClientLocAnim extends ModelSource {
     readonly index: number;
     readonly shape: number;
     readonly angle: number;
-    readonly hmapSW: number;
-    readonly hmapSE: number;
-    readonly hmapNE: number;
-    readonly hmapNW: number;
-    seq: SeqType | null;
-    seqFrame: number;
-    seqCycle: number;
+    readonly heightSW: number;
+    readonly heightSE: number;
+    readonly heightNE: number;
+    readonly heightNW: number;
+    anim: SeqType | null;
+    animFrame: number;
+    animCycle: number;
 
-    constructor(loopCycle: number, index: number, shape: number, angle: number, heightmapSW: number, heightmapSE: number, heightmapNE: number, heightmapNW: number, seq: number, randomFrame: boolean) {
+    constructor(loopCycle: number, index: number, shape: number, angle: number, heightSW: number, heightSE: number, heightNE: number, heightNW: number, seq: number, randomFrame: boolean) {
         super();
 
         this.index = index;
         this.shape = shape;
         this.angle = angle;
 
-        this.hmapSW = heightmapSW;
-        this.hmapSE = heightmapSE;
-        this.hmapNE = heightmapNE;
-        this.hmapNW = heightmapNW;
+        this.heightSW = heightSW;
+        this.heightSE = heightSE;
+        this.heightNE = heightNE;
+        this.heightNW = heightNW;
 
-        this.seq = SeqType.list[seq];
-        this.seqFrame = 0;
-        this.seqCycle = loopCycle;
+        this.anim = SeqType.list[seq];
+        this.animFrame = 0;
+        this.animCycle = loopCycle;
 
-        if (randomFrame && this.seq.loops !== -1) {
-            this.seqFrame = (Math.random() * this.seq.numFrames) | 0;
-            this.seqCycle -= (Math.random() * this.seq.getDuration(this.seqFrame)) | 0;
+        if (randomFrame && this.anim.loops !== -1) {
+            this.animFrame = (Math.random() * this.anim.numFrames) | 0;
+            this.animCycle -= (Math.random() * this.anim.getDuration(this.animFrame)) | 0;
         }
     }
 
     // jag::oldscape::ClientLocAnim::GetTempModel
     override getTempModel(loopCycle: number): Model | null {
-        if (this.seq) {
-            let delta = loopCycle - this.seqCycle;
-            if (delta > 100 && this.seq.loops > 0) {
+        if (this.anim) {
+            let delta = loopCycle - this.animCycle;
+            if (delta > 100 && this.anim.loops > 0) {
                 delta = 100;
             }
 
-            while (delta > this.seq.getDuration(this.seqFrame)) {
-                delta -= this.seq.getDuration((this.seqFrame));
-                this.seqFrame++;
+            while (delta > this.anim.getDuration(this.animFrame)) {
+                delta -= this.anim.getDuration((this.animFrame));
+                this.animFrame++;
 
-                if (this.seqFrame < this.seq.numFrames) {
+                if (this.animFrame < this.anim.numFrames) {
                     continue;
                 }
 
-                this.seqFrame -= this.seq.loops;
+                this.animFrame -= this.anim.loops;
 
-                if (this.seqFrame < 0 || this.seqFrame >= this.seq.numFrames) {
-                    this.seq = null;
+                if (this.animFrame < 0 || this.animFrame >= this.anim.numFrames) {
+                    this.anim = null;
                     break;
                 }
             }
 
-            this.seqCycle = loopCycle - delta;
+            this.animCycle = loopCycle - delta;
         }
 
         let frame = -1;
-        if (this.seq && this.seq.frames && typeof this.seq.frames[this.seqFrame] !== 'undefined') {
-            frame = this.seq.frames[this.seqFrame];
+        if (this.anim && this.anim.frames && typeof this.anim.frames[this.animFrame] !== 'undefined') {
+            frame = this.anim.frames[this.animFrame];
         }
 
         const loc = LocType.get(this.index);
-        return loc.getModel(this.shape, this.angle, this.hmapSW, this.hmapSE, this.hmapNE, this.hmapNW, frame);
+        return loc.getModel(this.shape, this.angle, this.heightSW, this.heightSE, this.heightNE, this.heightNW, frame);
     }
 }

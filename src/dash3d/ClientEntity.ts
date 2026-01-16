@@ -30,14 +30,14 @@ export default abstract class ClientEntity extends ModelSource {
     faceEntity: number = -1;
     faceSquareX: number = 0;
     faceSquareZ: number = 0;
-    secondarySeqId: number = -1;
-    secondarySeqFrame: number = 0;
-    secondarySeqCycle: number = 0;
-    primarySeqId: number = -1;
-    primarySeqFrame: number = 0;
-    primarySeqCycle: number = 0;
-    primarySeqDelay: number = 0;
-    primarySeqLoop: number = 0;
+    secondaryAnim: number = -1;
+    secondaryAnimFrame: number = 0;
+    secondaryAnimCycle: number = 0;
+    primaryAnim: number = -1;
+    primaryAnimFrame: number = 0;
+    primaryAnimCycle: number = 0;
+    primaryAnimDelay: number = 0;
+    primaryAnimLoop: number = 0;
     spotanimId: number = -1;
     spotanimFrame: number = 0;
     spotanimCycle: number = 0;
@@ -54,10 +54,10 @@ export default abstract class ClientEntity extends ModelSource {
     height: number = 0;
     dstYaw: number = 0;
     routeLength: number = 0;
-    routeTileX: Int32Array = new Int32Array(10);
-    routeTileZ: Int32Array = new Int32Array(10);
+    routeX: Int32Array = new Int32Array(10);
+    routeZ: Int32Array = new Int32Array(10);
     routeRun: boolean[] = new TypedArray1d(10, false);
-    seqDelayMove: number = 0;
+    animDelayMove: number = 0;
     preanimRouteLength: number = 0;
     turnspeed: number = 32;
 
@@ -67,13 +67,13 @@ export default abstract class ClientEntity extends ModelSource {
     // jag::oldscape::ClientNpc::Teleport
     // jag::oldscape::ClientPlayer::InstantMove (GPI)
     teleport(jump: boolean, x: number, z: number): void {
-        if (this.primarySeqId !== -1 && SeqType.list[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
-            this.primarySeqId = -1;
+        if (this.primaryAnim !== -1 && SeqType.list[this.primaryAnim].postanim_move === PostanimMove.ABORTANIM) {
+            this.primaryAnim = -1;
         }
 
         if (!jump) {
-            const dx: number = x - this.routeTileX[0];
-            const dz: number = z - this.routeTileZ[0];
+            const dx: number = x - this.routeX[0];
+            const dz: number = z - this.routeZ[0];
 
             if (dx >= -8 && dx <= 8 && dz >= -8 && dz <= 8) {
                 if (this.routeLength < 9) {
@@ -81,13 +81,13 @@ export default abstract class ClientEntity extends ModelSource {
                 }
 
                 for (let i: number = this.routeLength; i > 0; i--) {
-                    this.routeTileX[i] = this.routeTileX[i - 1];
-                    this.routeTileZ[i] = this.routeTileZ[i - 1];
+                    this.routeX[i] = this.routeX[i - 1];
+                    this.routeZ[i] = this.routeZ[i - 1];
                     this.routeRun[i] = this.routeRun[i - 1];
                 }
 
-                this.routeTileX[0] = x;
-                this.routeTileZ[0] = z;
+                this.routeX[0] = x;
+                this.routeZ[0] = z;
                 this.routeRun[0] = false;
                 return;
             }
@@ -95,18 +95,18 @@ export default abstract class ClientEntity extends ModelSource {
 
         this.routeLength = 0;
         this.preanimRouteLength = 0;
-        this.seqDelayMove = 0;
-        this.routeTileX[0] = x;
-        this.routeTileZ[0] = z;
-        this.x = this.routeTileX[0] * 128 + this.size * 64;
-        this.z = this.routeTileZ[0] * 128 + this.size * 64;
+        this.animDelayMove = 0;
+        this.routeX[0] = x;
+        this.routeZ[0] = z;
+        this.x = this.routeX[0] * 128 + this.size * 64;
+        this.z = this.routeZ[0] * 128 + this.size * 64;
     }
 
     // jag::oldscape::ClientNpc::MoveCode
     // jag::oldscape::ClientPlayer::AddToRoute (GPI)
     moveCode(running: boolean, direction: number): void {
-        let nextX: number = this.routeTileX[0];
-        let nextZ: number = this.routeTileZ[0];
+        let nextX: number = this.routeX[0];
+        let nextZ: number = this.routeZ[0];
 
         if (direction === 0) {
             nextX--;
@@ -130,8 +130,8 @@ export default abstract class ClientEntity extends ModelSource {
             nextZ--;
         }
 
-        if (this.primarySeqId !== -1 && SeqType.list[this.primarySeqId].postanim_move === PostanimMove.ABORTANIM) {
-            this.primarySeqId = -1;
+        if (this.primaryAnim !== -1 && SeqType.list[this.primaryAnim].postanim_move === PostanimMove.ABORTANIM) {
+            this.primaryAnim = -1;
         }
 
         if (this.routeLength < 9) {
@@ -139,13 +139,13 @@ export default abstract class ClientEntity extends ModelSource {
         }
 
         for (let i: number = this.routeLength; i > 0; i--) {
-            this.routeTileX[i] = this.routeTileX[i - 1];
-            this.routeTileZ[i] = this.routeTileZ[i - 1];
+            this.routeX[i] = this.routeX[i - 1];
+            this.routeZ[i] = this.routeZ[i - 1];
             this.routeRun[i] = this.routeRun[i - 1];
         }
 
-        this.routeTileX[0] = nextX;
-        this.routeTileZ[0] = nextZ;
+        this.routeX[0] = nextX;
+        this.routeZ[0] = nextZ;
         this.routeRun[0] = running;
     }
 

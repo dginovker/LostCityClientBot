@@ -2,7 +2,7 @@ import InputTracking from '#/client/InputTracking.js';
 import { CanvasEnabledKeys, KeyCodes } from '#/client/KeyCodes.js';
 
 import { canvas, canvas2d } from '#/graphics/Canvas.js';
-import Pix3D from '#/graphics/Pix3D.js';
+import Pix3D from '#/dash3d/Pix3D.js';
 import PixMap from '#/graphics/PixMap.js';
 
 import { sleep } from '#/util/JsUtil.js';
@@ -18,7 +18,7 @@ export default abstract class GameShell {
     protected redrawScreen: boolean = true;
     protected focus: boolean = true; // jag::oldscape::javapal::GameShell::m_focus
 
-    public idleCycle: number = performance.now();
+    public idleTimer: number = performance.now();
     public mouseButton: number = 0;
     public mouseX: number = -1;
     public mouseY: number = -1;
@@ -40,9 +40,9 @@ export default abstract class GameShell {
     protected resizeToFit: boolean = false;
     protected tfps: number = 50;
 
-    protected async load() { }
-    protected async loop() { }
-    protected async draw() { }
+    protected async maininit() { }
+    protected async mainloop() { }
+    protected async maindraw() { }
     protected refresh() { }
 
     constructor(resizetoFit: boolean = false) {
@@ -121,7 +121,7 @@ export default abstract class GameShell {
         };
 
         await this.drawProgress(0, 'Loading...');
-        await this.load();
+        await this.maininit();
 
         let ntime: number = 0;
         let opos: number = 0;
@@ -190,7 +190,7 @@ export default abstract class GameShell {
                 this.mouseClickTime = this.nextMouseClickTime;
                 this.nextMouseClickButton = 0;
 
-                await this.loop();
+                await this.mainloop();
 
                 // this.keyQueueReadPos = this.keyQueueWritePos;
                 count += ratio;
@@ -201,7 +201,7 @@ export default abstract class GameShell {
                 this.fps = ((ratio * 1000) / (this.deltime * 256)) | 0;
             }
 
-            await this.draw();
+            await this.maindraw();
 
             // this is custom for targeting specific fps (on mobile).
             if (this.tfps < 50) {
@@ -297,7 +297,7 @@ export default abstract class GameShell {
     }
 
     protected mouseDownInner(x: number, y: number, e: MouseEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.nextMouseClickX = x;
         this.nextMouseClickY = y;
         this.nextMouseClickTime = performance.now();
@@ -339,7 +339,7 @@ export default abstract class GameShell {
     }
 
     protected mouseUpInner(x: number, y: number, e: MouseEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseButton = 0;
 
         if (InputTracking.active) {
@@ -384,7 +384,7 @@ export default abstract class GameShell {
     }
 
     protected pointerLeaveInner(_e: PointerEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseX = -1;
         this.mouseY = -1;
 
@@ -410,7 +410,7 @@ export default abstract class GameShell {
     }
 
     protected pointerMoveInner(x: number, y: number, e: PointerEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseX = x;
         this.mouseY = y;
 
@@ -432,7 +432,7 @@ export default abstract class GameShell {
     }
 
     private onkeydown(e: KeyboardEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
 
         const keyCode = KeyCodes.get(e.key);
         if (!keyCode || (e.code.length === 0 && !e.isTrusted)) {
@@ -474,7 +474,7 @@ export default abstract class GameShell {
         //     this.refresh();
         // }
 
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
 
         const keyCode = KeyCodes.get(e.key);
         if (!keyCode || (e.code.length === 0 && !e.isTrusted)) {

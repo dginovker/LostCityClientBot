@@ -169,30 +169,30 @@ export default class Pix32 extends Pix2D {
         let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.boundBottom) {
-            h -= y + h - Pix2D.boundBottom;
+        if (y + h > Pix2D.bottom) {
+            h -= y + h - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.boundRight) {
-            const cutoff: number = x + w - Pix2D.boundRight;
+        if (x + w > Pix2D.right) {
+            const cutoff: number = x + w - Pix2D.right;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -242,30 +242,30 @@ export default class Pix32 extends Pix2D {
         let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.boundBottom) {
-            h -= y + h - Pix2D.boundBottom;
+        if (y + h > Pix2D.bottom) {
+            h -= y + h - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.boundRight) {
-            const cutoff: number = x + w - Pix2D.boundRight;
+        if (x + w > Pix2D.right) {
+            const cutoff: number = x + w - Pix2D.right;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -341,30 +341,30 @@ export default class Pix32 extends Pix2D {
         let dstOff: number = Pix2D.width - w;
         let srcOff: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcStep += cutoff * w;
             dstStep += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.boundBottom) {
-            h -= y + h - Pix2D.boundBottom;
+        if (y + h > Pix2D.bottom) {
+            h -= y + h - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcStep += cutoff;
             dstStep += cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
-        if (x + w > Pix2D.boundRight) {
-            const cutoff: number = x + w - Pix2D.boundRight;
+        if (x + w > Pix2D.right) {
+            const cutoff: number = x + w - Pix2D.right;
             w -= cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
@@ -535,30 +535,30 @@ export default class Pix32 extends Pix2D {
         let dstOff: number = Pix2D.width - w;
         let srcOff: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcStep += cutoff * w;
             dstStep += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.boundBottom) {
-            h -= y + h - Pix2D.boundBottom;
+        if (y + h > Pix2D.bottom) {
+            h -= y + h - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcStep += cutoff;
             dstStep += cutoff;
             srcOff += cutoff;
             dstOff += cutoff;
         }
 
-        if (x + w > Pix2D.boundRight) {
-            const cutoff: number = x + w - Pix2D.boundRight;
+        if (x + w > Pix2D.right) {
+            const cutoff: number = x + w - Pix2D.right;
             w -= cutoff;
             srcOff += cutoff;
             dstOff += cutoff;

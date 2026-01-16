@@ -182,7 +182,7 @@ export class MapView extends GameShell {
         this.run();
     }
 
-    override async load(): Promise<void> {
+    override async maininit(): Promise<void> {
         this.keyHeight = this.sHei - this.keyY - 20;
         this.overviewX = this.sWid - this.imageOverviewWidth - 5;
         this.overviewY = this.sHei - this.imageOverviewHeight - 20;
@@ -279,7 +279,7 @@ export class MapView extends GameShell {
         }
     }
 
-    override async draw(): Promise<void> {
+    override async maindraw(): Promise<void> {
         if (this.redraw) {
             this.redraw = false;
             this.redrawTimer = 0;
@@ -394,7 +394,7 @@ export class MapView extends GameShell {
         this.redrawTimer = 0;
     }
 
-    override async loop(): Promise<void> {
+    override async mainloop(): Promise<void> {
         if (this.keyHeld[1] == 1) {
             this.offsetX = (this.offsetX - 16.0 / this.zoom) | 0;
             this.redraw = true;
@@ -1603,7 +1603,7 @@ export class MapView extends GameShell {
             return;
         }
 
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseX = x;
         this.mouseY = y;
         this.mouseButton = 1;
@@ -1617,7 +1617,7 @@ export class MapView extends GameShell {
             return;
         }
 
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseX = -1;
         this.mouseY = -1;
         this.mouseButton = 0;
@@ -1627,7 +1627,7 @@ export class MapView extends GameShell {
     }
 
     override pointerMoveInner(x: number, y: number, _e: PointerEvent) {
-        this.idleCycle = performance.now();
+        this.idleTimer = performance.now();
         this.mouseX = x;
         this.mouseY = y;
     }

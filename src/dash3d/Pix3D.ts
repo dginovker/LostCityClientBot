@@ -354,16 +354,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.boundBottom) {
+            if (yA >= Pix2D.bottom) {
                 return;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
             if (yB < yC) {
@@ -540,16 +540,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.boundBottom) {
+            if (yB >= Pix2D.bottom) {
                 return;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
             if (yC < yA) {
@@ -722,16 +722,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.boundBottom) {
+            if (yC >= Pix2D.bottom) {
                 return;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
             if (yA < yB) {
@@ -1075,16 +1075,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.boundBottom) {
+            if (yA >= Pix2D.bottom) {
                 return;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
             if (yB < yC) {
@@ -1235,16 +1235,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.boundBottom) {
+            if (yB >= Pix2D.bottom) {
                 return;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
             if (yC < yA) {
@@ -1391,16 +1391,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.boundBottom) {
+            if (yC >= Pix2D.bottom) {
                 return;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
             if (yA < yB) {
@@ -1677,16 +1677,16 @@ export default class Pix3D extends Pix2D {
         }
 
         if (yA <= yB && yA <= yC) {
-            if (yA >= Pix2D.boundBottom) {
+            if (yA >= Pix2D.bottom) {
                 return;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
             if (yB < yC) {
@@ -1927,16 +1927,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else if (yB <= yC) {
-            if (yB >= Pix2D.boundBottom) {
+            if (yB >= Pix2D.bottom) {
                 return;
             }
 
-            if (yC > Pix2D.boundBottom) {
-                yC = Pix2D.boundBottom;
+            if (yC > Pix2D.bottom) {
+                yC = Pix2D.bottom;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
             if (yC < yA) {
@@ -2173,16 +2173,16 @@ export default class Pix3D extends Pix2D {
                 }
             }
         } else {
-            if (yC >= Pix2D.boundBottom) {
+            if (yC >= Pix2D.bottom) {
                 return;
             }
 
-            if (yA > Pix2D.boundBottom) {
-                yA = Pix2D.boundBottom;
+            if (yA > Pix2D.bottom) {
+                yA = Pix2D.bottom;
             }
 
-            if (yB > Pix2D.boundBottom) {
-                yB = Pix2D.boundBottom;
+            if (yB > Pix2D.bottom) {
+                yB = Pix2D.bottom;
             }
 
             if (yA < yB) {

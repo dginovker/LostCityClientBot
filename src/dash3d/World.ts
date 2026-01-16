@@ -15,7 +15,7 @@ import Decor from '#/dash3d/Decor.js';
 import LinkList from '#/datastruct/LinkList.js';
 
 import Pix2D from '#/graphics/Pix2D.js';
-import Pix3D from '#/graphics/Pix3D.js';
+import Pix3D from '#/dash3d/Pix3D.js';
 import Model from '#/dash3d/Model.js';
 
 import { Int32Array3d, TypedArray1d, TypedArray2d, TypedArray3d, TypedArray4d } from '#/util/Arrays.js';
@@ -218,7 +218,7 @@ export default class World {
     private readonly maxLevel: number;
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
-    private readonly groundHeight: Int32Array[][];
+    private readonly groundh: Int32Array[][];
     private readonly levelTiles: (Square | null)[][][];
     private readonly dynamicSprites: (Sprite | null)[];
     private readonly occlusionCycle: Int32Array[][];
@@ -235,7 +235,7 @@ export default class World {
         this.maxTileZ = maxTileZ;
         this.levelTiles = new TypedArray3d(maxLevel, maxTileX, maxTileZ, null);
         this.occlusionCycle = new Int32Array3d(maxLevel, maxTileX + 1, maxTileZ + 1);
-        this.groundHeight = levelHeightmaps;
+        this.groundh = levelHeightmaps;
 
         this.dynamicSprites = new TypedArray1d(5000, null);
         this.mergeIndexA = new Int32Array(10000);
@@ -863,8 +863,8 @@ export default class World {
                     const offsetX: number = (x - tileX) * 128 + (1 - tileSizeX) * 64;
                     const offsetZ: number = (z - tileZ) * 128 + (1 - tileSizeZ) * 64;
                     const offsetY: number =
-                        (((this.groundHeight[l][x][z] + this.groundHeight[l][x + 1][z] + this.groundHeight[l][x][z + 1] + this.groundHeight[l][x + 1][z + 1]) / 4) | 0) -
-                        (((this.groundHeight[level][tileX][tileZ] + this.groundHeight[level][tileX + 1][tileZ] + this.groundHeight[level][tileX][tileZ + 1] + this.groundHeight[level][tileX + 1][tileZ + 1]) / 4) | 0);
+                        (((this.groundh[l][x][z] + this.groundh[l][x + 1][z] + this.groundh[l][x][z + 1] + this.groundh[l][x + 1][z + 1]) / 4) | 0) -
+                        (((this.groundh[level][tileX][tileZ] + this.groundh[level][tileX + 1][tileZ] + this.groundh[level][tileX][tileZ + 1] + this.groundh[level][tileX + 1][tileZ + 1]) / 4) | 0);
 
                     const wall: Wall | null = tile.wall;
                     if (wall && wall.model1 && wall.model1.vertexNormal) {
@@ -1100,7 +1100,7 @@ export default class World {
                         continue;
                     }
 
-                    if (tile.drawLevel <= topLevel && (World.visibilityMap[x + 25 - World.gx][z + 25 - World.gz] || this.groundHeight[level][x][z] - eyeY >= 2000)) {
+                    if (tile.drawLevel <= topLevel && (World.visibilityMap[x + 25 - World.gx][z + 25 - World.gz] || this.groundh[level][x][z] - eyeY >= 2000)) {
                         tile.drawFront = true;
                         tile.drawBack = true;
                         tile.drawSprites = tile.spriteCount > 0;
@@ -2024,10 +2024,10 @@ export default class World {
         let z3: number;
         let z2: number = (z3 = z0 + 128);
 
-        let y0: number = this.groundHeight[level][tileX][tileZ] - World.cy;
-        let y1: number = this.groundHeight[level][tileX + 1][tileZ] - World.cy;
-        let y2: number = this.groundHeight[level][tileX + 1][tileZ + 1] - World.cy;
-        let y3: number = this.groundHeight[level][tileX][tileZ + 1] - World.cy;
+        let y0: number = this.groundh[level][tileX][tileZ] - World.cy;
+        let y1: number = this.groundh[level][tileX + 1][tileZ] - World.cy;
+        let y2: number = this.groundh[level][tileX + 1][tileZ + 1] - World.cy;
+        let y3: number = this.groundh[level][tileX][tileZ + 1] - World.cy;
 
         let tmp: number = (z0 * sinEyeYaw + x0 * cosEyeYaw) >> 16;
         z0 = (z0 * cosEyeYaw - x0 * sinEyeYaw) >> 16;
@@ -2252,10 +2252,10 @@ export default class World {
             const sx: number = x << 7;
             const sz: number = z << 7;
             if (
-                this.occluded(sx + 1, this.groundHeight[level][x][z], sz + 1) &&
-                this.occluded(sx + 128 - 1, this.groundHeight[level][x + 1][z], sz + 1) &&
-                this.occluded(sx + 128 - 1, this.groundHeight[level][x + 1][z + 1], sz + 128 - 1) &&
-                this.occluded(sx + 1, this.groundHeight[level][x][z + 1], sz + 128 - 1)
+                this.occluded(sx + 1, this.groundh[level][x][z], sz + 1) &&
+                this.occluded(sx + 128 - 1, this.groundh[level][x + 1][z], sz + 1) &&
+                this.occluded(sx + 128 - 1, this.groundh[level][x + 1][z + 1], sz + 128 - 1) &&
+                this.occluded(sx + 1, this.groundh[level][x][z + 1], sz + 128 - 1)
             ) {
                 this.occlusionCycle[level][x][z] = World.cycleNo;
                 return true;
@@ -2274,7 +2274,7 @@ export default class World {
 
         const sceneX: number = x << 7;
         const sceneZ: number = z << 7;
-        const sceneY: number = this.groundHeight[level][x][z] - 1;
+        const sceneY: number = this.groundh[level][x][z] - 1;
         const y0: number = sceneY - 120;
         const y1: number = sceneY - 230;
         const y2: number = sceneY - 238;
@@ -2391,10 +2391,10 @@ export default class World {
             const x: number = tileX << 7;
             const z: number = tileZ << 7;
             return (
-                this.occluded(x + 1, this.groundHeight[level][tileX][tileZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.groundHeight[level][tileX + 1][tileZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.groundHeight[level][tileX + 1][tileZ + 1] - y, z + 128 - 1) &&
-                this.occluded(x + 1, this.groundHeight[level][tileX][tileZ + 1] - y, z + 128 - 1)
+                this.occluded(x + 1, this.groundh[level][tileX][tileZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundh[level][tileX + 1][tileZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundh[level][tileX + 1][tileZ + 1] - y, z + 128 - 1) &&
+                this.occluded(x + 1, this.groundh[level][tileX][tileZ + 1] - y, z + 128 - 1)
             );
         }
         return false;
@@ -2415,7 +2415,7 @@ export default class World {
 
             z = (minX << 7) + 1;
             const z0: number = (minZ << 7) + 2;
-            const y0: number = this.groundHeight[level][minX][minZ] - y;
+            const y0: number = this.groundh[level][minX][minZ] - y;
             if (!this.occluded(z, y0, z0)) {
                 return false;
             }
@@ -2437,10 +2437,10 @@ export default class World {
             x = minX << 7;
             z = minZ << 7;
             return (
-                this.occluded(x + 1, this.groundHeight[level][minX][minZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.groundHeight[level][minX + 1][minZ] - y, z + 1) &&
-                this.occluded(x + 128 - 1, this.groundHeight[level][minX + 1][minZ + 1] - y, z + 128 - 1) &&
-                this.occluded(x + 1, this.groundHeight[level][minX][minZ + 1] - y, z + 128 - 1)
+                this.occluded(x + 1, this.groundh[level][minX][minZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundh[level][minX + 1][minZ] - y, z + 1) &&
+                this.occluded(x + 128 - 1, this.groundh[level][minX + 1][minZ + 1] - y, z + 128 - 1) &&
+                this.occluded(x + 1, this.groundh[level][minX][minZ + 1] - y, z + 128 - 1)
             );
         }
         return false;

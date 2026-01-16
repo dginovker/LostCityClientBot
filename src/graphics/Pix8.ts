@@ -204,30 +204,30 @@ export default class Pix8 extends Pix2D {
         let dstStep: number = Pix2D.width - w;
         let srcStep: number = 0;
 
-        if (y < Pix2D.boundTop) {
-            const cutoff: number = Pix2D.boundTop - y;
+        if (y < Pix2D.top) {
+            const cutoff: number = Pix2D.top - y;
             h -= cutoff;
-            y = Pix2D.boundTop;
+            y = Pix2D.top;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.boundBottom) {
-            h -= y + h - Pix2D.boundBottom;
+        if (y + h > Pix2D.bottom) {
+            h -= y + h - Pix2D.bottom;
         }
 
-        if (x < Pix2D.boundLeft) {
-            const cutoff: number = Pix2D.boundLeft - x;
+        if (x < Pix2D.left) {
+            const cutoff: number = Pix2D.left - x;
             w -= cutoff;
-            x = Pix2D.boundLeft;
+            x = Pix2D.left;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.boundRight) {
-            const cutoff: number = x + w - Pix2D.boundRight;
+        if (x + w > Pix2D.right) {
+            const cutoff: number = x + w - Pix2D.right;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
@@ -316,26 +316,26 @@ export default class Pix8 extends Pix2D {
             let local133: number = arg0 + arg1 * Pix2D.width;
             let local137: number = Pix2D.width - arg2;
             let local144: number;
-            if (arg1 < Pix2D.boundTop) {
-                local144 = Pix2D.boundTop - arg1;
+            if (arg1 < Pix2D.top) {
+                local144 = Pix2D.top - arg1;
                 arg3 -= local144;
                 arg1 = 0;
                 local133 += local144 * Pix2D.width;
                 local9 += local39 * local144;
             }
-            if (arg1 + arg3 > Pix2D.boundBottom) {
-                arg3 -= arg1 + arg3 - Pix2D.boundBottom;
+            if (arg1 + arg3 > Pix2D.bottom) {
+                arg3 -= arg1 + arg3 - Pix2D.bottom;
             }
-            if (arg0 < Pix2D.boundLeft) {
-                local144 = Pix2D.boundLeft - arg0;
+            if (arg0 < Pix2D.left) {
+                local144 = Pix2D.left - arg0;
                 arg2 -= local144;
                 arg0 = 0;
                 local133 += local144;
                 local7 += local33 * local144;
                 local137 += local144;
             }
-            if (arg0 + arg2 > Pix2D.boundRight) {
-                local144 = arg0 + arg2 - Pix2D.boundRight;
+            if (arg0 + arg2 > Pix2D.right) {
+                local144 = arg0 + arg2 - Pix2D.right;
                 arg2 -= local144;
                 local137 += local144;
             }
