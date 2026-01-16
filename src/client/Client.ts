@@ -257,7 +257,7 @@ export class Client extends GameShell {
     private menuY: number = 0;
     private menuWidth: number = 0;
     private menuHeight: number = 0;
-    private menuSize: number = 0;
+    private menuNumEntries: number = 0;
     private menuOption: string[] = [];
     private sideLayerId: number = -1;
     private chatLayerId: number = -1;
@@ -312,7 +312,7 @@ export class Client extends GameShell {
     private objGrabY: number = 0;
     private objDragCycles: number = 0;
     private objGrabThreshold: boolean = false;
-    private objSelected: number = 0;
+    private useMode: number = 0;
     private objSelectedSlot: number = 0;
     private objSelectedLayerId: number = 0;
     private objLayerId: number = 0;
@@ -324,10 +324,10 @@ export class Client extends GameShell {
     private resumedPauseButton: boolean = false;
     private var: number[] = []; // jag::oldscape::ClientVarCache::m_var
     private varServ: number[] = []; // jag::oldscape::ClientVarCache::m_varServ
-    private spellSelected: number = 0;
-    private activeSpellId: number = 0;
-    private activeSpellFlags: number = 0;
-    private spellCaption: string | null = null;
+    private targetMode: number = 0;
+    private targetCom: number = 0;
+    private targetMask: number = 0;
+    private targetOp: string | null = null;
     private oneMouseButton: number = 0;
     private menuAction: Int32Array = new Int32Array(500);
     private menuParamA: Int32Array = new Int32Array(500);
@@ -350,7 +350,7 @@ export class Client extends GameShell {
     // scene
     private world: World | null = null;
     private sceneState: number = 0;
-    private sceneDelta: number = 0;
+    private worldUpdateNum: number = 0;
     private sceneCycle: number = 0;
     private minimapFlagX: number = 0; // jag::oldscape::Client::GetMinimapFlagCoord
     private minimapFlagZ: number = 0;
@@ -447,7 +447,7 @@ export class Client extends GameShell {
     private localPlayer: ClientPlayer | null = null;
     private runenergy: number = 0;
     private inMultizone: number = 0;
-    private localPid: number = -1;
+    private selfSlot: number = -1;
     private runweight: number = 0;
     private noTimeoutCycle: number = 0;
     private staffmodlevel: number = 0;
@@ -1529,7 +1529,7 @@ export class Client extends GameShell {
                 this.rebootTimer = 0;
                 this.logoutTimer = 0;
                 this.hintType = 0;
-                this.menuSize = 0;
+                this.menuNumEntries = 0;
                 this.menuVisible = false;
                 this.idleTimer = performance.now();
 
@@ -1537,8 +1537,8 @@ export class Client extends GameShell {
                     this.messageText[i] = null;
                 }
 
-                this.objSelected = 0;
-                this.spellSelected = 0;
+                this.useMode = 0;
+                this.targetMode = 0;
                 this.sceneState = 0;
                 this.waveCount = 0;
 
@@ -1665,7 +1665,7 @@ export class Client extends GameShell {
                 this.psize = 0;
                 this.timeoutTimer = performance.now();
                 this.rebootTimer = 0;
-                this.menuSize = 0;
+                this.menuNumEntries = 0;
                 this.menuVisible = false;
                 this.sceneLoadStartTime = performance.now();
             } else if (response === 16) {
@@ -1945,14 +1945,14 @@ export class Client extends GameShell {
 
         if (now - this.timeoutTimer > 15_000) {
             // no packets received recently, connection lost
-            await this.tryReconnect();
+            await this.lostCon();
         }
 
         this.movePlayers();
         this.moveNpcs();
         this.timeoutChat();
 
-        this.sceneDelta++;
+        this.worldUpdateNum++;
 
         if (this.crossMode !== 0) {
             this.crossCycle += 20;
@@ -2040,10 +2040,10 @@ export class Client extends GameShell {
                         this.out.p2(this.hoveredSlot);
                         this.out.p1(mode);
                     }
-                } else if ((this.oneMouseButton === 1 || this.isAddFriendOption(this.menuSize - 1)) && this.menuSize > 2) {
-                    this.showContextMenu();
-                } else if (this.menuSize > 0) {
-                    this.useMenuOption(this.menuSize - 1);
+                } else if ((this.oneMouseButton === 1 || this.isAddFriendOption(this.menuNumEntries - 1)) && this.menuNumEntries > 2) {
+                    this.openMenu();
+                } else if (this.menuNumEntries > 0) {
+                    this.doAction(this.menuNumEntries - 1);
                 }
 
                 this.selectedCycle = 10;
@@ -2084,9 +2084,9 @@ export class Client extends GameShell {
 
         if (checkClickInput) {
             this.handleMouseInput();
-            this.handleMinimapInput();
-            this.handleTabInput();
-            this.handleChatModeInput();
+            this.minimapLoop();
+            this.tabLoop();
+            this.chatModeLoop();
         }
 
         if (this.mouseButton === 1 || this.mouseClickButton === 1) {
@@ -2096,7 +2096,6 @@ export class Client extends GameShell {
         if (this.sceneState === 2) {
             this.followCamera();
         }
-
         if (this.sceneState === 2 && this.cinemaCam) {
             this.cinemaCamera();
         }
@@ -2193,7 +2192,7 @@ export class Client extends GameShell {
         } catch (e) {
             if (e instanceof WebSocket && e.readyState === 3) {
                 // IO error
-                await this.tryReconnect();
+                await this.lostCon();
             } else {
                 // logic error
                 await this.logout();
@@ -2201,7 +2200,8 @@ export class Client extends GameShell {
         }
     }
 
-    private async tryReconnect() {
+    // jag::oldscape::Client::LostCon
+    private async lostCon() {
         if (this.logoutTimer > 0) {
             await this.logout();
             return;
@@ -2641,7 +2641,7 @@ export class Client extends GameShell {
 
         this.menuOption[0] = 'Cancel';
         this.menuAction[0] = MenuAction.CANCEL;
-        this.menuSize = 1;
+        this.menuNumEntries = 1;
 
         this.addPrivateChatOptions();
         this.lastOverLayerId = 0;
@@ -2695,7 +2695,7 @@ export class Client extends GameShell {
         while (!sorted) {
             sorted = true;
 
-            for (let i: number = 0; i < this.menuSize - 1; i++) {
+            for (let i: number = 0; i < this.menuNumEntries - 1; i++) {
                 if (this.menuAction[i] < 1000 && this.menuAction[i + 1] > 1000) {
                     const tmp0: string = this.menuOption[i];
                     this.menuOption[i] = this.menuOption[i + 1];
@@ -2752,18 +2752,18 @@ export class Client extends GameShell {
 
                     if (this.mouseX > 4 && this.mouseX < 516 && this.mouseY - 4 > y - 10 && this.mouseY - 4 <= y + 3) {
                         if (this.staffmodlevel) {
-                            this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                            this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.REPORT_ABUSE;
-                            this.menuSize++;
+                            this.menuOption[this.menuNumEntries] = 'Report abuse @whi@' + sender;
+                            this.menuAction[this.menuNumEntries] = MenuAction._PRIORITY + MenuAction.REPORT_ABUSE;
+                            this.menuNumEntries++;
                         }
 
-                        this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                        this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.IGNORELIST_ADD;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = 'Add ignore @whi@' + sender;
+                        this.menuAction[this.menuNumEntries] = MenuAction._PRIORITY + MenuAction.IGNORELIST_ADD;
+                        this.menuNumEntries++;
 
-                        this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                        this.menuAction[this.menuSize] = MenuAction._PRIORITY + MenuAction.FRIENDLIST_ADD;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = 'Add friend @whi@' + sender;
+                        this.menuAction[this.menuNumEntries] = MenuAction._PRIORITY + MenuAction.FRIENDLIST_ADD;
+                        this.menuNumEntries++;
                     }
 
                     line++;
@@ -2808,44 +2808,44 @@ export class Client extends GameShell {
             } else if ((type == 1 || type == 2) && (type == 1 || this.chatPublicMode == 0 || this.chatPublicMode == 1 && this.isFriend(sender))) {
                 if (mouseY > y - 14 && mouseY <= y && this.localPlayer && sender !== this.localPlayer.name) {
                     if (this.staffmodlevel >= 1) {
-                        this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                        this.menuAction[this.menuSize] = MenuAction.REPORT_ABUSE;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = 'Report abuse @whi@' + sender;
+                        this.menuAction[this.menuNumEntries] = MenuAction.REPORT_ABUSE;
+                        this.menuNumEntries++;
                     }
 
-                    this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.IGNORELIST_ADD;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Add ignore @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.IGNORELIST_ADD;
+                    this.menuNumEntries++;
 
-                    this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_ADD;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Add friend @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.FRIENDLIST_ADD;
+                    this.menuNumEntries++;
                 }
 
                 line++;
             } else if ((type === 3 || type === 7) && this.splitPrivateChat === 0 && (type === 7 || this.chatPrivateMode === 0 || (this.chatPrivateMode === 1 && this.isFriend(sender)))) {
                 if (mouseY > y - 14 && mouseY <= y) {
                     if (this.staffmodlevel >= 1) {
-                        this.menuOption[this.menuSize] = 'Report abuse @whi@' + sender;
-                        this.menuAction[this.menuSize] = MenuAction.REPORT_ABUSE;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = 'Report abuse @whi@' + sender;
+                        this.menuAction[this.menuNumEntries] = MenuAction.REPORT_ABUSE;
+                        this.menuNumEntries++;
                     }
 
-                    this.menuOption[this.menuSize] = 'Add ignore @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.IGNORELIST_ADD;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Add ignore @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.IGNORELIST_ADD;
+                    this.menuNumEntries++;
 
-                    this.menuOption[this.menuSize] = 'Add friend @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_ADD;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Add friend @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.FRIENDLIST_ADD;
+                    this.menuNumEntries++;
                 }
 
                 line++;
             } else if (type === 4 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                 if (mouseY > y - 14 && mouseY <= y) {
-                    this.menuOption[this.menuSize] = 'Accept trade @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.OPPLAYER_TRADEREQ;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Accept trade @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPPLAYER_TRADEREQ;
+                    this.menuNumEntries++;
                 }
 
                 line++;
@@ -2853,9 +2853,9 @@ export class Client extends GameShell {
                 line++;
             } else if (type === 8 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                 if (mouseY > y - 14 && mouseY <= y) {
-                    this.menuOption[this.menuSize] = 'Accept duel @whi@' + sender;
-                    this.menuAction[this.menuSize] = MenuAction.OPPLAYER_DUELREQ;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Accept duel @whi@' + sender;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPPLAYER_DUELREQ;
+                    this.menuNumEntries++;
                 }
 
                 line++;
@@ -2864,12 +2864,12 @@ export class Client extends GameShell {
     }
 
     private addViewportOptions(): void {
-        if (this.objSelected === 0 && this.spellSelected === 0) {
-            this.menuOption[this.menuSize] = 'Walk here';
-            this.menuAction[this.menuSize] = MenuAction.WALK;
-            this.menuParamB[this.menuSize] = this.mouseX;
-            this.menuParamC[this.menuSize] = this.mouseY;
-            this.menuSize++;
+        if (this.useMode === 0 && this.targetMode === 0) {
+            this.menuOption[this.menuNumEntries] = 'Walk here';
+            this.menuAction[this.menuNumEntries] = MenuAction.WALK;
+            this.menuParamB[this.menuNumEntries] = this.mouseX;
+            this.menuParamC[this.menuNumEntries] = this.mouseY;
+            this.menuNumEntries++;
         }
 
         let lastTypecode: number = -1;
@@ -2889,52 +2889,52 @@ export class Client extends GameShell {
             if (entityType === 2 && this.world && this.world.typecode2(this.minusedlevel, x, z, typecode) >= 0) {
                 const loc: LocType = LocType.get(typeId);
 
-                if (this.objSelected === 1) {
-                    this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = MenuAction.OPLOCU;
-                    this.menuParamA[this.menuSize] = typecode;
-                    this.menuParamB[this.menuSize] = x;
-                    this.menuParamC[this.menuSize] = z;
-                    this.menuSize++;
-                } else if (this.spellSelected !== 1) {
+                if (this.useMode === 1) {
+                    this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @cya@' + loc.name;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOCU;
+                    this.menuParamA[this.menuNumEntries] = typecode;
+                    this.menuParamB[this.menuNumEntries] = x;
+                    this.menuParamC[this.menuNumEntries] = z;
+                    this.menuNumEntries++;
+                } else if (this.targetMode !== 1) {
                     if (loc.op) {
                         for (let i: number = 4; i >= 0; i--) {
                             if (loc.op[i]) {
-                                this.menuOption[this.menuSize] = loc.op[i] + ' @cya@' + loc.name;
+                                this.menuOption[this.menuNumEntries] = loc.op[i] + ' @cya@' + loc.name;
 
                                 if (i === 0) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPLOC1;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC1;
                                 } else if (i === 1) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPLOC2;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC2;
                                 } else if (i === 2) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPLOC3;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC3;
                                 } else if (i === 3) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPLOC4;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC4;
                                 } else if (i === 4) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPLOC5;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC5;
                                 }
 
-                                this.menuParamA[this.menuSize] = typecode;
-                                this.menuParamB[this.menuSize] = x;
-                                this.menuParamC[this.menuSize] = z;
-                                this.menuSize++;
+                                this.menuParamA[this.menuNumEntries] = typecode;
+                                this.menuParamB[this.menuNumEntries] = x;
+                                this.menuParamC[this.menuNumEntries] = z;
+                                this.menuNumEntries++;
                             }
                         }
                     }
 
-                    this.menuOption[this.menuSize] = 'Examine @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = MenuAction.OPLOC6;
-                    this.menuParamA[this.menuSize] = typecode;
-                    this.menuParamB[this.menuSize] = x;
-                    this.menuParamC[this.menuSize] = z;
-                    this.menuSize++;
-                } else if ((this.activeSpellFlags & 0x4) === 4) {
-                    this.menuOption[this.menuSize] = this.spellCaption + ' @cya@' + loc.name;
-                    this.menuAction[this.menuSize] = MenuAction.OPLOCT;
-                    this.menuParamA[this.menuSize] = typecode;
-                    this.menuParamB[this.menuSize] = x;
-                    this.menuParamC[this.menuSize] = z;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC6;
+                    this.menuParamA[this.menuNumEntries] = typecode;
+                    this.menuParamB[this.menuNumEntries] = x;
+                    this.menuParamC[this.menuNumEntries] = z;
+                    this.menuNumEntries++;
+                } else if ((this.targetMask & 0x4) === 4) {
+                    this.menuOption[this.menuNumEntries] = this.targetOp + ' @cya@' + loc.name;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOCT;
+                    this.menuParamA[this.menuNumEntries] = typecode;
+                    this.menuParamB[this.menuNumEntries] = x;
+                    this.menuParamC[this.menuNumEntries] = z;
+                    this.menuNumEntries++;
                 }
             } else if (entityType === 1) {
                 const npc: ClientNpc | null = this.npc[typeId];
@@ -2984,57 +2984,57 @@ export class Client extends GameShell {
 
                 for (let obj = objs.tail(); obj !== null; obj = objs.prev()) {
                     const type: ObjType = ObjType.get(obj.id);
-                    if (this.objSelected === 1) {
-                        this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + type.name;
-                        this.menuAction[this.menuSize] = MenuAction.OPOBJU;
-                        this.menuParamA[this.menuSize] = obj.id;
-                        this.menuParamB[this.menuSize] = x;
-                        this.menuParamC[this.menuSize] = z;
-                        this.menuSize++;
-                    } else if (this.spellSelected !== 1) {
+                    if (this.useMode === 1) {
+                        this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @lre@' + type.name;
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPOBJU;
+                        this.menuParamA[this.menuNumEntries] = obj.id;
+                        this.menuParamB[this.menuNumEntries] = x;
+                        this.menuParamC[this.menuNumEntries] = z;
+                        this.menuNumEntries++;
+                    } else if (this.targetMode !== 1) {
                         for (let op: number = 4; op >= 0; op--) {
                             if (type.op && type.op[op]) {
-                                this.menuOption[this.menuSize] = type.op[op] + ' @lre@' + type.name;
+                                this.menuOption[this.menuNumEntries] = type.op[op] + ' @lre@' + type.name;
 
                                 if (op === 0) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ1;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ1;
                                 } else if (op === 1) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ2;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ2;
                                 } else if (op === 2) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ3;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ3;
                                 } else if (op === 3) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ4;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ4;
                                 } else if (op === 4) {
-                                    this.menuAction[this.menuSize] = MenuAction.OPOBJ5;
+                                    this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ5;
                                 }
 
-                                this.menuParamA[this.menuSize] = obj.id;
-                                this.menuParamB[this.menuSize] = x;
-                                this.menuParamC[this.menuSize] = z;
-                                this.menuSize++;
+                                this.menuParamA[this.menuNumEntries] = obj.id;
+                                this.menuParamB[this.menuNumEntries] = x;
+                                this.menuParamC[this.menuNumEntries] = z;
+                                this.menuNumEntries++;
                             } else if (op === 2) {
-                                this.menuOption[this.menuSize] = 'Take @lre@' + type.name;
-                                this.menuAction[this.menuSize] = MenuAction.OPOBJ3;
-                                this.menuParamA[this.menuSize] = obj.id;
-                                this.menuParamB[this.menuSize] = x;
-                                this.menuParamC[this.menuSize] = z;
-                                this.menuSize++;
+                                this.menuOption[this.menuNumEntries] = 'Take @lre@' + type.name;
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ3;
+                                this.menuParamA[this.menuNumEntries] = obj.id;
+                                this.menuParamB[this.menuNumEntries] = x;
+                                this.menuParamC[this.menuNumEntries] = z;
+                                this.menuNumEntries++;
                             }
                         }
 
-                        this.menuOption[this.menuSize] = 'Examine @lre@' + type.name;
-                        this.menuAction[this.menuSize] = MenuAction.OPOBJ6;
-                        this.menuParamA[this.menuSize] = obj.id;
-                        this.menuParamB[this.menuSize] = x;
-                        this.menuParamC[this.menuSize] = z;
-                        this.menuSize++;
-                    } else if ((this.activeSpellFlags & 0x1) === 1) {
-                        this.menuOption[this.menuSize] = this.spellCaption + ' @lre@' + type.name;
-                        this.menuAction[this.menuSize] = MenuAction.OPOBJT;
-                        this.menuParamA[this.menuSize] = obj.id;
-                        this.menuParamB[this.menuSize] = x;
-                        this.menuParamC[this.menuSize] = z;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name;
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ6;
+                        this.menuParamA[this.menuNumEntries] = obj.id;
+                        this.menuParamB[this.menuNumEntries] = x;
+                        this.menuParamC[this.menuNumEntries] = z;
+                        this.menuNumEntries++;
+                    } else if ((this.targetMask & 0x1) === 1) {
+                        this.menuOption[this.menuNumEntries] = this.targetOp + ' @lre@' + type.name;
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPOBJT;
+                        this.menuParamA[this.menuNumEntries] = obj.id;
+                        this.menuParamB[this.menuNumEntries] = x;
+                        this.menuParamC[this.menuNumEntries] = z;
+                        this.menuNumEntries++;
                     }
                 }
             }
@@ -3051,21 +3051,87 @@ export class Client extends GameShell {
         }
 
         let button: number = this.mouseClickButton;
-        if (this.spellSelected === 1 && this.mouseClickX >= 516 && this.mouseClickY >= 160 && this.mouseClickX <= 765 && this.mouseClickY <= 205) {
+        if (this.targetMode === 1 && this.mouseClickX >= 516 && this.mouseClickY >= 160 && this.mouseClickX <= 765 && this.mouseClickY <= 205) {
             button = 0;
         }
 
-        if (!this.menuVisible) {
-            if (button === 1 && this.menuSize > 0) {
-                const action: number = this.menuAction[this.menuSize - 1];
+        if (this.menuVisible) {
+            if (button === 1) {
+                const menuX: number = this.menuX;
+                const menuY: number = this.menuY;
+                const menuWidth: number = this.menuWidth;
+
+                let clickX: number = this.mouseClickX;
+                let clickY: number = this.mouseClickY;
+
+                if (this.menuArea === 0) {
+                    clickX -= 4;
+                    clickY -= 4;
+                } else if (this.menuArea === 1) {
+                    clickX -= 553;
+                    clickY -= 205;
+                } else if (this.menuArea === 2) {
+                    clickX -= 17;
+                    clickY -= 357;
+                }
+
+                let option: number = -1;
+                for (let i: number = 0; i < this.menuNumEntries; i++) {
+                    const optionY: number = menuY + (this.menuNumEntries - 1 - i) * 15 + 31;
+                    if (clickX > menuX && clickX < menuX + menuWidth && clickY > optionY - 13 && clickY < optionY + 3) {
+                        option = i;
+                    }
+                }
+
+                if (option !== -1) {
+                    this.doAction(option);
+                }
+
+                this.menuVisible = false;
+
+                if (this.menuArea === 1) {
+                    this.redrawSidebar = true;
+                } else if (this.menuArea === 2) {
+                    this.redrawChatback = true;
+                }
+            } else {
+                let x: number = this.mouseX;
+                let y: number = this.mouseY;
+
+                if (this.menuArea === 0) {
+                    x -= 4;
+                    y -= 4;
+                } else if (this.menuArea === 1) {
+                    x -= 553;
+                    y -= 205;
+                } else if (this.menuArea === 2) {
+                    x -= 17;
+                    y -= 357;
+                }
+
+                if (x < this.menuX - 10 || x > this.menuX + this.menuWidth + 10 || y < this.menuY - 10 || y > this.menuY + this.menuHeight + 10) {
+                    this.menuVisible = false;
+
+                    if (this.menuArea === 1) {
+                        this.redrawSidebar = true;
+                    }
+
+                    if (this.menuArea === 2) {
+                        this.redrawChatback = true;
+                    }
+                }
+            }
+        } else {
+            if (button === 1 && this.menuNumEntries > 0) {
+                const action: number = this.menuAction[this.menuNumEntries - 1];
 
                 if (
                     action == MenuAction.INV_BUTTON1 || action == MenuAction.INV_BUTTON2 || action == MenuAction.INV_BUTTON3 || action == MenuAction.INV_BUTTON4 || action == MenuAction.INV_BUTTON5 ||
                     action == MenuAction.OPHELD1 || action == MenuAction.OPHELD2 || action == MenuAction.OPHELD3 || action == MenuAction.OPHELD4 || action == MenuAction.OPHELD5 ||
                     action == MenuAction.OPHELDT_START || action === MenuAction.OPHELD6
                 ) {
-                    const slot: number = this.menuParamB[this.menuSize - 1];
-                    const comId: number = this.menuParamC[this.menuSize - 1];
+                    const slot: number = this.menuParamB[this.menuNumEntries - 1];
+                    const comId: number = this.menuParamC[this.menuNumEntries - 1];
                     const com: IfType = IfType.list[comId];
 
                     if (com.draggable || com.swappable) {
@@ -3090,87 +3156,20 @@ export class Client extends GameShell {
                 }
             }
 
-            if (button === 1 && (this.oneMouseButton === 1 || this.isAddFriendOption(this.menuSize - 1)) && this.menuSize > 2) {
+            if (button === 1 && (this.oneMouseButton === 1 || this.isAddFriendOption(this.menuNumEntries - 1)) && this.menuNumEntries > 2) {
                 button = 2;
             }
 
-            if (button === 1 && this.menuSize > 0) {
-                this.useMenuOption(this.menuSize - 1);
-            } else if (button == 2 && this.menuSize > 0) {
-                this.showContextMenu();
-            }
-
-            return;
-        }
-
-        if (button === 1) {
-            const menuX: number = this.menuX;
-            const menuY: number = this.menuY;
-            const menuWidth: number = this.menuWidth;
-
-            let clickX: number = this.mouseClickX;
-            let clickY: number = this.mouseClickY;
-
-            if (this.menuArea === 0) {
-                clickX -= 4;
-                clickY -= 4;
-            } else if (this.menuArea === 1) {
-                clickX -= 553;
-                clickY -= 205;
-            } else if (this.menuArea === 2) {
-                clickX -= 17;
-                clickY -= 357;
-            }
-
-            let option: number = -1;
-            for (let i: number = 0; i < this.menuSize; i++) {
-                const optionY: number = menuY + (this.menuSize - 1 - i) * 15 + 31;
-                if (clickX > menuX && clickX < menuX + menuWidth && clickY > optionY - 13 && clickY < optionY + 3) {
-                    option = i;
-                }
-            }
-
-            if (option !== -1) {
-                this.useMenuOption(option);
-            }
-
-            this.menuVisible = false;
-
-            if (this.menuArea === 1) {
-                this.redrawSidebar = true;
-            } else if (this.menuArea === 2) {
-                this.redrawChatback = true;
-            }
-        } else {
-            let x: number = this.mouseX;
-            let y: number = this.mouseY;
-
-            if (this.menuArea === 0) {
-                x -= 4;
-                y -= 4;
-            } else if (this.menuArea === 1) {
-                x -= 553;
-                y -= 205;
-            } else if (this.menuArea === 2) {
-                x -= 17;
-                y -= 357;
-            }
-
-            if (x < this.menuX - 10 || x > this.menuX + this.menuWidth + 10 || y < this.menuY - 10 || y > this.menuY + this.menuHeight + 10) {
-                this.menuVisible = false;
-
-                if (this.menuArea === 1) {
-                    this.redrawSidebar = true;
-                }
-
-                if (this.menuArea === 2) {
-                    this.redrawChatback = true;
-                }
+            if (button === 1 && this.menuNumEntries > 0) {
+                this.doAction(this.menuNumEntries - 1);
+            } else if (button == 2 && this.menuNumEntries > 0) {
+                this.openMenu();
             }
         }
     }
 
-    handleMinimapInput(): void {
+    // jag::oldscape::minimap::Minimap::GlMinimap
+    minimapLoop(): void {
         if (this.mouseClickButton !== 1 || !this.localPlayer) {
             return;
         }
@@ -3214,7 +3213,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handleTabInput(): void {
+    private tabLoop(): void {
         if (this.mouseClickButton !== 1) {
             return;
         }
@@ -3278,7 +3277,7 @@ export class Client extends GameShell {
         }
     }
 
-    private handleChatModeInput(): void {
+    private chatModeLoop(): void {
         if (this.mouseClickButton !== 1) {
             return;
         }
@@ -3703,7 +3702,7 @@ export class Client extends GameShell {
                         if ((key === 13 || key === 10) && this.chatTyped.length > 0) {
                             if (this.staffmodlevel === 2) {
                                 if (this.chatTyped === '::clientdrop') {
-                                    await this.tryReconnect();
+                                    await this.lostCon();
                                 } else if (this.chatTyped === '::prefetchmusic') {
                                     if (this.onDemand) {
                                         for (let i = 0; i < this.onDemand.getFileCount(2); i++) {
@@ -4110,7 +4109,7 @@ export class Client extends GameShell {
 
         if (e.faceEntity >= 32768) {
             let index: number = e.faceEntity - 32768;
-            if (index === this.localPid) {
+            if (index === this.selfSlot) {
                 index = Constants.LOCAL_PLAYER_INDEX;
             }
 
@@ -4559,7 +4558,7 @@ export class Client extends GameShell {
         }
 
         if (this.sideLayerId !== -1) {
-            const redraw = this.animateLayer(this.sideLayerId, this.sceneDelta);
+            const redraw = this.animateLayer(this.sideLayerId, this.worldUpdateNum);
             if (redraw) {
                 this.redrawSidebar = true;
             }
@@ -4601,7 +4600,7 @@ export class Client extends GameShell {
         }
 
         if (this.chatLayerId !== -1) {
-            const redraw = this.animateLayer(this.chatLayerId, this.sceneDelta);
+            const redraw = this.animateLayer(this.chatLayerId, this.worldUpdateNum);
             if (redraw) {
                 this.redrawChatback = true;
             }
@@ -4799,7 +4798,7 @@ export class Client extends GameShell {
             this.areaViewport?.bind();
         }
 
-        this.sceneDelta = 0;
+        this.worldUpdateNum = 0;
     }
 
     // jag::oldscape::Client::GameDrawMain
@@ -5005,7 +5004,7 @@ export class Client extends GameShell {
                 if (proj.target < 0) {
                     const index: number = -proj.target - 1;
                     let player: ClientPlayer | null;
-                    if (index === this.localPid) {
+                    if (index === this.selfSlot) {
                         player = this.localPlayer;
                     } else {
                         player = this.players[index];
@@ -5016,7 +5015,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                proj.move(this.sceneDelta);
+                proj.move(this.worldUpdateNum);
                 this.world?.addDynamic(this.minusedlevel, proj.x | 0, proj.y | 0, proj.z | 0, proj, -1, proj.yaw, 60, false);
             }
         }
@@ -5056,7 +5055,7 @@ export class Client extends GameShell {
             if (spot.level !== this.minusedlevel || spot.animComplete) {
                 spot.unlink();
             } else if (this.loopCycle >= spot.startCycle) {
-                spot.update(this.sceneDelta);
+                spot.update(this.worldUpdateNum);
 
                 if (spot.animComplete) {
                     spot.unlink();
@@ -5509,7 +5508,7 @@ export class Client extends GameShell {
                 }
 
                 const bottom: number = texture.wi * texture.hi - 1;
-                const adjustment: number = texture.wi * this.sceneDelta * 2;
+                const adjustment: number = texture.wi * this.worldUpdateNum * 2;
 
                 const src: Int8Array = texture.data;
                 const dst: Int8Array = this.textureBuffer;
@@ -5528,7 +5527,7 @@ export class Client extends GameShell {
                     return;
                 }
                 const bottom: number = texture.wi * texture.hi - 1;
-                const adjustment: number = texture.wi * this.sceneDelta * 2;
+                const adjustment: number = texture.wi * this.worldUpdateNum * 2;
 
                 const src: Int8Array = texture.data;
                 const dst: Int8Array = this.textureBuffer;
@@ -5561,12 +5560,12 @@ export class Client extends GameShell {
         }
 
         if (this.mainOverlayLayerId !== -1) {
-            this.animateLayer(this.mainOverlayLayerId, this.sceneDelta);
+            this.animateLayer(this.mainOverlayLayerId, this.worldUpdateNum);
             this.drawLayer(IfType.list[this.mainOverlayLayerId], 0, 0, 0);
         }
 
         if (this.mainLayerId !== -1) {
-            this.animateLayer(this.mainLayerId, this.sceneDelta);
+            this.animateLayer(this.mainLayerId, this.worldUpdateNum);
             this.drawLayer(IfType.list[this.mainLayerId], 0, 0, 0);
         }
 
@@ -5719,21 +5718,21 @@ export class Client extends GameShell {
     }
 
     private drawTooltip(): void {
-        if (this.menuSize < 2 && this.objSelected === 0 && this.spellSelected === 0) {
+        if (this.menuNumEntries < 2 && this.useMode === 0 && this.targetMode === 0) {
             return;
         }
 
         let tooltip: string;
-        if (this.objSelected === 1 && this.menuSize < 2) {
+        if (this.useMode === 1 && this.menuNumEntries < 2) {
             tooltip = 'Use ' + this.objSelectedName + ' with...';
-        } else if (this.spellSelected === 1 && this.menuSize < 2) {
-            tooltip = this.spellCaption + '...';
+        } else if (this.targetMode === 1 && this.menuNumEntries < 2) {
+            tooltip = this.targetOp + '...';
         } else {
-            tooltip = this.menuOption[this.menuSize - 1];
+            tooltip = this.menuOption[this.menuNumEntries - 1];
         }
 
-        if (this.menuSize > 2) {
-            tooltip = tooltip + '@whi@ / ' + (this.menuSize - 2) + ' more options';
+        if (this.menuNumEntries > 2) {
+            tooltip = tooltip + '@whi@ / ' + (this.menuNumEntries - 2) + ' more options';
         }
 
         this.fontBold12?.drawStringAntiMacro(4, 15, tooltip, Colour.WHITE, true, (this.loopCycle / 1000) | 0);
@@ -5765,8 +5764,8 @@ export class Client extends GameShell {
             mouseY -= 357;
         }
 
-        for (let i: number = 0; i < this.menuSize; i++) {
-            const optionY: number = y + (this.menuSize - 1 - i) * 15 + 31;
+        for (let i: number = 0; i < this.menuNumEntries; i++) {
+            const optionY: number = y + (this.menuNumEntries - 1 - i) * 15 + 31;
 
             let rgb: number = Colour.WHITE;
             if (mouseX > x && mouseX < x + w && mouseY > optionY - 13 && mouseY < optionY + 3) {
@@ -5783,22 +5782,29 @@ export class Client extends GameShell {
             return;
         }
 
-        let typecode: number = this.world.wallType(level, tileX, tileZ);
-        if (typecode !== 0) {
-            const info: number = this.world.typecode2(level, tileX, tileZ, typecode);
+        let wallType: number = this.world.wallType(level, tileX, tileZ);
+        if (wallType !== 0) {
+            const info: number = this.world.typecode2(level, tileX, tileZ, wallType);
             const angle: number = (info >> 6) & 0x3;
             const shape: number = info & 0x1f;
             let rgb: number = wallRgb;
-            if (typecode > 0) {
+            if (wallType > 0) {
                 rgb = doorRgb;
             }
 
             const dst: Int32Array = this.minimap.data;
             const offset: number = tileX * 4 + (103 - tileZ) * 512 * 4 + 24624;
-            const locId: number = (typecode >> 14) & 0x7fff;
+            const locId: number = (wallType >> 14) & 0x7fff;
 
             const loc: LocType = LocType.get(locId);
-            if (loc.mapscene === -1) {
+            if (loc.mapscene !== -1) {
+                const scene: Pix8 | null = this.mapscene[loc.mapscene];
+                if (scene) {
+                    const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
+                    const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
+                    scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
+                }
+            } else {
                 if (shape === LocShape.WALL_STRAIGHT.id || shape === LocShape.WALL_L.id) {
                     if (angle === LocAngle.WEST) {
                         dst[offset] = rgb;
@@ -5858,28 +5864,28 @@ export class Client extends GameShell {
                         dst[offset + 1536 + 3] = rgb;
                     }
                 }
-            } else {
+            }
+        }
+
+        let sceneType = this.world.sceneType(level, tileX, tileZ);
+        if (sceneType !== 0) {
+            const info: number = this.world.typecode2(level, tileX, tileZ, sceneType);
+            const angle: number = (info >> 6) & 0x3;
+            const shape: number = info & 0x1f;
+            const locId: number = (sceneType >> 14) & 0x7fff;
+
+            const loc: LocType = LocType.get(locId);
+            if (loc.mapscene !== -1) {
                 const scene: Pix8 | null = this.mapscene[loc.mapscene];
                 if (scene) {
                     const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
                     const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
                     scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
-            }
-        }
-
-        typecode = this.world.sceneType(level, tileX, tileZ);
-        if (typecode !== 0) {
-            const info: number = this.world.typecode2(level, tileX, tileZ, typecode);
-            const angle: number = (info >> 6) & 0x3;
-            const shape: number = info & 0x1f;
-            const locId: number = (typecode >> 14) & 0x7fff;
-
-            const loc: LocType = LocType.get(locId);
-            if (loc.mapscene === -1) {
+            } else {
                 if (shape === LocShape.WALL_DIAGONAL.id) {
                     let rgb: number = 0xeeeeee;
-                    if (typecode > 0) {
+                    if (sceneType > 0) {
                         rgb = 0xee0000;
                     }
 
@@ -5898,19 +5904,12 @@ export class Client extends GameShell {
                         dst[offset + 1536 + 3] = rgb;
                     }
                 }
-            } else {
-                const scene: Pix8 | null = this.mapscene[loc.mapscene];
-                if (scene) {
-                    const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
-                    const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
-                    scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
-                }
             }
         }
 
-        typecode = this.world.gdType(level, tileX, tileZ);
-        if (typecode !== 0) {
-            const locId = (typecode >> 14) & 0x7fff;
+        let gdType = this.world.gdType(level, tileX, tileZ);
+        if (gdType !== 0) {
+            const locId = (gdType >> 14) & 0x7fff;
 
             const loc: LocType = LocType.get(locId);
             if (loc.mapscene !== -1) {
@@ -6318,7 +6317,7 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.IF_OPENCHAT) {
                 const com: number = this.in.g2();
 
-                this.resetInterfaceAnimation(com);
+                this.ifAnimReset(com);
 
                 if (this.sideLayerId !== -1) {
                     this.sideLayerId = -1;
@@ -6402,7 +6401,7 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.IF_OPENMAIN) {
                 const com: number = this.in.g2();
 
-                this.resetInterfaceAnimation(com);
+                this.ifAnimReset(com);
 
                 if (this.sideLayerId !== -1) {
                     this.sideLayerId = -1;
@@ -6430,7 +6429,7 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.IF_OPENSIDE) {
                 const com: number = this.in.g2();
 
-                this.resetInterfaceAnimation(com);
+                this.ifAnimReset(com);
 
                 if (this.chatLayerId !== -1) {
                     this.chatLayerId = -1;
@@ -7110,7 +7109,7 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.UPDATE_PID) {
-                this.localPid = this.in.g2();
+                this.selfSlot = this.in.g2();
                 this.membersAccount = this.in.g1();
 
                 this.ptype = -1;
@@ -7521,7 +7520,7 @@ export class Client extends GameShell {
         } catch (e) {
             if (e instanceof WebSocket && e.readyState === 3) {
                 // IO error
-                await this.tryReconnect();
+                await this.lostCon();
             } else {
                 // logic error
                 console.error(e);
@@ -7685,7 +7684,7 @@ export class Client extends GameShell {
             const count: number = buf.g2();
             const pid: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && pid !== this.localPid) {
+            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && pid !== this.selfSlot) {
                 if (!this.objStacks[this.minusedlevel][x][z]) {
                     this.objStacks[this.minusedlevel][x][z] = new LinkList();
                 }
@@ -7710,7 +7709,7 @@ export class Client extends GameShell {
             let north: number = buf.g1b();
 
             let player: ClientPlayer | null;
-            if (pid === this.localPid) {
+            if (pid === this.selfSlot) {
                 player = this.localPlayer;
             } else {
                 player = this.players[pid];
@@ -8609,12 +8608,12 @@ export class Client extends GameShell {
         }
     }
 
-    private showContextMenu(): void {
+    private openMenu(): void {
         let width: number = 0;
         if (this.fontBold12) {
             width = this.fontBold12.stringWid('Choose Option');
             let maxWidth: number;
-            for (let i: number = 0; i < this.menuSize; i++) {
+            for (let i: number = 0; i < this.menuNumEntries; i++) {
                 maxWidth = this.fontBold12.stringWid(this.menuOption[i]);
                 if (maxWidth > width) {
                     width = maxWidth;
@@ -8623,7 +8622,7 @@ export class Client extends GameShell {
         }
         width += 8;
 
-        const height: number = this.menuSize * 15 + 21;
+        const height: number = this.menuNumEntries * 15 + 21;
 
         let x: number;
         let y: number;
@@ -8651,7 +8650,7 @@ export class Client extends GameShell {
             this.menuX = x;
             this.menuY = y;
             this.menuWidth = width;
-            this.menuHeight = this.menuSize * 15 + 22;
+            this.menuHeight = this.menuNumEntries * 15 + 22;
         }
 
         // the sidebar/tabs area
@@ -8675,7 +8674,7 @@ export class Client extends GameShell {
             this.menuX = x;
             this.menuY = y;
             this.menuWidth = width;
-            this.menuHeight = this.menuSize * 15 + 22;
+            this.menuHeight = this.menuNumEntries * 15 + 22;
         }
 
         // the chatbox area
@@ -8699,7 +8698,7 @@ export class Client extends GameShell {
             this.menuX = x;
             this.menuY = y;
             this.menuWidth = width;
-            this.menuHeight = this.menuSize * 15 + 22;
+            this.menuHeight = this.menuNumEntries * 15 + 22;
         }
     }
 
@@ -8716,7 +8715,8 @@ export class Client extends GameShell {
         return action === MenuAction.FRIENDLIST_ADD;
     }
 
-    private useMenuOption(optionId: number): void {
+    // jag::oldscape::Client::DoAction
+    private doAction(optionId: number): void {
         if (optionId < 0) {
             return;
         }
@@ -8822,7 +8822,7 @@ export class Client extends GameShell {
                 this.out.p2(b + this.mapBuildBaseX);
                 this.out.p2(c + this.mapBuildBaseZ);
                 this.out.p2(a);
-                this.out.p2(this.activeSpellId);
+                this.out.p2(this.targetCom);
             }
         }
 
@@ -8909,7 +8909,7 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPNPCT);
                 this.out.p2(a);
-                this.out.p2(this.activeSpellId);
+                this.out.p2(this.targetCom);
             }
         }
 
@@ -8980,7 +8980,7 @@ export class Client extends GameShell {
 
         if (action === MenuAction.OPLOCT) {
             if (this.interactWithLoc(ClientProt.OPLOCT, b, c, a)) {
-                this.out.p2(this.activeSpellId);
+                this.out.p2(this.targetCom);
             }
         }
 
@@ -9098,7 +9098,7 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPPLAYERT);
                 this.out.p2(a);
-                this.out.p2(this.activeSpellId);
+                this.out.p2(this.targetCom);
             }
         }
 
@@ -9181,22 +9181,22 @@ export class Client extends GameShell {
         }
 
         if (action === MenuAction.OPHELDT_START) {
-            this.objSelected = 1;
+            this.useMode = 1;
             this.objSelectedSlot = b;
             this.objSelectedLayerId = c;
             this.objLayerId = a;
             this.objSelectedName = ObjType.get(a).name;
-            this.spellSelected = 0;
+            this.targetMode = 0;
             this.redrawSidebar = true;
             return;
         }
 
         if (action === MenuAction.OPHELDT_SELECT) {
             const com: IfType = IfType.list[c];
-            this.spellSelected = 1;
-            this.activeSpellId = c;
-            this.activeSpellFlags = com.targetMask;
-            this.objSelected = 0;
+            this.targetMode = 1;
+            this.targetCom = c;
+            this.targetMask = com.targetMask;
+            this.useMode = 0;
             this.redrawSidebar = true;
 
             let prefix: string | null = com.targetVerb;
@@ -9209,9 +9209,9 @@ export class Client extends GameShell {
                 suffix = suffix.substring(suffix.indexOf(' ') + 1);
             }
 
-            this.spellCaption = prefix + ' ' + com.targetText + ' ' + suffix;
+            this.targetOp = prefix + ' ' + com.targetText + ' ' + suffix;
 
-            if (this.activeSpellFlags === 0x10) {
+            if (this.targetMask === 0x10) {
                 this.redrawSidebar = true;
                 this.sideTab = 3;
                 this.redrawSideicons = true;
@@ -9225,7 +9225,7 @@ export class Client extends GameShell {
             this.out.p2(a);
             this.out.p2(b);
             this.out.p2(c);
-            this.out.p2(this.activeSpellId);
+            this.out.p2(this.targetCom);
 
             this.selectedCycle = 0;
             this.selectedLayerId = c;
@@ -9316,7 +9316,7 @@ export class Client extends GameShell {
             let notify: boolean = true;
 
             if (com.clientCode > 0) {
-                notify = this.handleInterfaceAction(com);
+                notify = this.clientButton(com);
             }
 
             if (notify) {
@@ -9437,14 +9437,14 @@ export class Client extends GameShell {
             }
         }
 
-        this.objSelected = 0;
-        this.spellSelected = 0;
+        this.useMode = 0;
+        this.targetMode = 0;
         this.redrawSidebar = true;
     }
 
     // jag::oldscape::minimenu::Minimenu::AddNpcOptions
     private addNpcOptions(npc: NpcType, a: number, b: number, c: number): void {
-        if (this.menuSize >= 400) {
+        if (this.menuNumEntries >= 400) {
             return;
         }
 
@@ -9453,36 +9453,36 @@ export class Client extends GameShell {
             tooltip = tooltip + this.combatColourCode(this.localPlayer.combatLevel, npc.vislevel) + ' (level-' + npc.vislevel + ')';
         }
 
-        if (this.objSelected === 1) {
-            this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @yel@' + tooltip;
-            this.menuAction[this.menuSize] = MenuAction.OPNPCU;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
-        } else if (this.spellSelected !== 1) {
+        if (this.useMode === 1) {
+            this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @yel@' + tooltip;
+            this.menuAction[this.menuNumEntries] = MenuAction.OPNPCU;
+            this.menuParamA[this.menuNumEntries] = a;
+            this.menuParamB[this.menuNumEntries] = b;
+            this.menuParamC[this.menuNumEntries] = c;
+            this.menuNumEntries++;
+        } else if (this.targetMode !== 1) {
             let type: number;
             if (npc.op) {
                 for (type = 4; type >= 0; type--) {
                     if (npc.op[type] && npc.op[type]?.toLowerCase() !== 'attack') {
-                        this.menuOption[this.menuSize] = npc.op[type] + ' @yel@' + tooltip;
+                        this.menuOption[this.menuNumEntries] = npc.op[type] + ' @yel@' + tooltip;
 
                         if (type === 0) {
-                            this.menuAction[this.menuSize] = MenuAction.OPNPC1;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC1;
                         } else if (type === 1) {
-                            this.menuAction[this.menuSize] = MenuAction.OPNPC2;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC2;
                         } else if (type === 2) {
-                            this.menuAction[this.menuSize] = MenuAction.OPNPC3;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC3;
                         } else if (type === 3) {
-                            this.menuAction[this.menuSize] = MenuAction.OPNPC4;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC4;
                         } else if (type === 4) {
-                            this.menuAction[this.menuSize] = MenuAction.OPNPC5;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC5;
                         }
 
-                        this.menuParamA[this.menuSize] = a;
-                        this.menuParamB[this.menuSize] = b;
-                        this.menuParamC[this.menuSize] = c;
-                        this.menuSize++;
+                        this.menuParamA[this.menuNumEntries] = a;
+                        this.menuParamB[this.menuNumEntries] = b;
+                        this.menuParamC[this.menuNumEntries] = c;
+                        this.menuNumEntries++;
                     }
                 }
             }
@@ -9495,47 +9495,47 @@ export class Client extends GameShell {
                             priority = MenuAction._PRIORITY;
                         }
 
-                        this.menuOption[this.menuSize] = npc.op[type] + ' @yel@' + tooltip;
+                        this.menuOption[this.menuNumEntries] = npc.op[type] + ' @yel@' + tooltip;
 
                         if (type === 0) {
-                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC1;
+                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC1;
                         } else if (type === 1) {
-                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC2;
+                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC2;
                         } else if (type === 2) {
-                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC3;
+                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC3;
                         } else if (type === 3) {
-                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC4;
+                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC4;
                         } else if (type === 4) {
-                            this.menuAction[this.menuSize] = priority + MenuAction.OPNPC5;
+                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC5;
                         }
 
-                        this.menuParamA[this.menuSize] = a;
-                        this.menuParamB[this.menuSize] = b;
-                        this.menuParamC[this.menuSize] = c;
-                        this.menuSize++;
+                        this.menuParamA[this.menuNumEntries] = a;
+                        this.menuParamB[this.menuNumEntries] = b;
+                        this.menuParamC[this.menuNumEntries] = c;
+                        this.menuNumEntries++;
                     }
                 }
             }
 
-            this.menuOption[this.menuSize] = 'Examine @yel@' + tooltip;
-            this.menuAction[this.menuSize] = MenuAction.OPNPC6;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
-        } else if ((this.activeSpellFlags & 0x2) === 2) {
-            this.menuOption[this.menuSize] = this.spellCaption + ' @yel@' + tooltip;
-            this.menuAction[this.menuSize] = MenuAction.OPNPCT;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
+            this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip;
+            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC6;
+            this.menuParamA[this.menuNumEntries] = a;
+            this.menuParamB[this.menuNumEntries] = b;
+            this.menuParamC[this.menuNumEntries] = c;
+            this.menuNumEntries++;
+        } else if ((this.targetMask & 0x2) === 2) {
+            this.menuOption[this.menuNumEntries] = this.targetOp + ' @yel@' + tooltip;
+            this.menuAction[this.menuNumEntries] = MenuAction.OPNPCT;
+            this.menuParamA[this.menuNumEntries] = a;
+            this.menuParamB[this.menuNumEntries] = b;
+            this.menuParamC[this.menuNumEntries] = c;
+            this.menuNumEntries++;
         }
     }
 
     // jag::oldscape::minimenu::Minimenu::AddPlayerOptions
     private addPlayerOptions(player: ClientPlayer, a: number, b: number, c: number): void {
-        if (player === this.localPlayer || this.menuSize >= 400) {
+        if (player === this.localPlayer || this.menuNumEntries >= 400) {
             return;
         }
 
@@ -9544,21 +9544,21 @@ export class Client extends GameShell {
             tooltip = player.name + this.combatColourCode(this.localPlayer.combatLevel, player.combatLevel) + ' (level-' + player.combatLevel + ')';
         }
 
-        if (this.objSelected === 1) {
-            this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @whi@' + tooltip;
-            this.menuAction[this.menuSize] = MenuAction.OPPLAYERU;
-            this.menuParamA[this.menuSize] = a;
-            this.menuParamB[this.menuSize] = b;
-            this.menuParamC[this.menuSize] = c;
-            this.menuSize++;
-        } else if (this.spellSelected === 1) {
-            if ((this.activeSpellFlags & 0x8) === 8) {
-                this.menuOption[this.menuSize] = this.spellCaption + ' @whi@' + tooltip;
-                this.menuAction[this.menuSize] = MenuAction.OPPLAYERT;
-                this.menuParamA[this.menuSize] = a;
-                this.menuParamB[this.menuSize] = b;
-                this.menuParamC[this.menuSize] = c;
-                this.menuSize++;
+        if (this.useMode === 1) {
+            this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @whi@' + tooltip;
+            this.menuAction[this.menuNumEntries] = MenuAction.OPPLAYERU;
+            this.menuParamA[this.menuNumEntries] = a;
+            this.menuParamB[this.menuNumEntries] = b;
+            this.menuParamC[this.menuNumEntries] = c;
+            this.menuNumEntries++;
+        } else if (this.targetMode === 1) {
+            if ((this.targetMask & 0x8) === 8) {
+                this.menuOption[this.menuNumEntries] = this.targetOp + ' @whi@' + tooltip;
+                this.menuAction[this.menuNumEntries] = MenuAction.OPPLAYERT;
+                this.menuParamA[this.menuNumEntries] = a;
+                this.menuParamB[this.menuNumEntries] = b;
+                this.menuParamC[this.menuNumEntries] = c;
+                this.menuNumEntries++;
             }
         } else {
             for (let i = 4; i >= 0; i--) {
@@ -9567,7 +9567,7 @@ export class Client extends GameShell {
                     continue;
                 }
 
-                this.menuOption[this.menuSize] = op + ' @whi@' + tooltip;
+                this.menuOption[this.menuNumEntries] = op + ' @whi@' + tooltip;
 
                 let priority = 0;
                 if (op.toLowerCase() === 'attack') {
@@ -9579,25 +9579,25 @@ export class Client extends GameShell {
                 }
 
                 if (i === 0) {
-                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER1;
+                    this.menuAction[this.menuNumEntries] = priority + MenuAction.OPPLAYER1;
                 } else if (i === 1) {
-                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER2;
+                    this.menuAction[this.menuNumEntries] = priority + MenuAction.OPPLAYER2;
                 } else if (i === 2) {
-                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER3;
+                    this.menuAction[this.menuNumEntries] = priority + MenuAction.OPPLAYER3;
                 } else if (i === 3) {
-                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER4;
+                    this.menuAction[this.menuNumEntries] = priority + MenuAction.OPPLAYER4;
                 } else if (i === 4) {
-                    this.menuAction[this.menuSize] = priority + MenuAction.OPPLAYER5;
+                    this.menuAction[this.menuNumEntries] = priority + MenuAction.OPPLAYER5;
                 }
 
-                this.menuParamA[this.menuSize] = a;
-                this.menuParamB[this.menuSize] = b;
-                this.menuParamC[this.menuSize] = c;
-                this.menuSize++;
+                this.menuParamA[this.menuNumEntries] = a;
+                this.menuParamB[this.menuNumEntries] = b;
+                this.menuParamC[this.menuNumEntries] = c;
+                this.menuNumEntries++;
             }
         }
 
-        for (let i: number = 0; i < this.menuSize; i++) {
+        for (let i: number = 0; i < this.menuNumEntries; i++) {
             if (this.menuAction[i] === MenuAction.WALK) {
                 this.menuOption[i] = 'Walk here @whi@' + tooltip;
                 break;
@@ -9696,7 +9696,7 @@ export class Client extends GameShell {
 
                             if ((slotX > Pix2D.left - 32 && slotX < Pix2D.right && slotY > Pix2D.top - 32 && slotY < Pix2D.bottom) || (this.objDragArea !== 0 && this.objDragSlot === slot)) {
                                 let outline = 0;
-                                if (this.objSelected == 1 && this.objSelectedSlot == slot && this.objSelectedLayerId == child.id) {
+                                if (this.useMode == 1 && this.objSelectedSlot == slot && this.objSelectedLayerId == child.id) {
                                     outline = 16777215;
                                 }
 
@@ -9722,9 +9722,9 @@ export class Client extends GameShell {
                                         icon.transPlotSprite(128, slotX + dx, slotY + dy);
 
                                         if (slotY + dy < Pix2D.top && com.scrollPos > 0) {
-                                            let autoscroll = (Pix2D.top - slotY - dy) * this.sceneDelta / 3;
-                                            if (autoscroll > this.sceneDelta * 10) {
-                                                autoscroll = this.sceneDelta * 10;
+                                            let autoscroll = (Pix2D.top - slotY - dy) * this.worldUpdateNum / 3;
+                                            if (autoscroll > this.worldUpdateNum * 10) {
+                                                autoscroll = this.worldUpdateNum * 10;
                                             }
 
                                             if (autoscroll > com.scrollPos) {
@@ -9736,9 +9736,9 @@ export class Client extends GameShell {
                                         }
 
                                         if (slotY + dy + 32 > Pix2D.bottom && com.scrollPos < com.scrollSize - com.height) {
-                                            let autoscroll = (slotY + dy + 32 - Pix2D.bottom) * this.sceneDelta / 3;
-                                            if (autoscroll > this.sceneDelta * 10) {
-                                                autoscroll = this.sceneDelta * 10;
+                                            let autoscroll = (slotY + dy + 32 - Pix2D.bottom) * this.worldUpdateNum / 3;
+                                            if (autoscroll > this.worldUpdateNum * 10) {
+                                                autoscroll = this.worldUpdateNum * 10;
                                             }
 
                                             if (autoscroll > com.scrollSize - com.height - com.scrollPos) {
@@ -10328,77 +10328,77 @@ export class Client extends GameShell {
 
                         const obj: ObjType = ObjType.get(child.linkObjType[slot] - 1);
 
-                        if (this.objSelected === 1 && child.interactable) {
+                        if (this.useMode === 1 && child.interactable) {
                             if (child.id !== this.objSelectedLayerId || slot !== this.objSelectedSlot) {
-                                this.menuOption[this.menuSize] = 'Use ' + this.objSelectedName + ' with @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = MenuAction.OPHELDU;
-                                this.menuParamA[this.menuSize] = obj.id;
-                                this.menuParamB[this.menuSize] = slot;
-                                this.menuParamC[this.menuSize] = child.id;
-                                this.menuSize++;
+                                this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @lre@' + obj.name;
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPHELDU;
+                                this.menuParamA[this.menuNumEntries] = obj.id;
+                                this.menuParamB[this.menuNumEntries] = slot;
+                                this.menuParamC[this.menuNumEntries] = child.id;
+                                this.menuNumEntries++;
                             }
-                        } else if (this.spellSelected === 1 && child.interactable) {
-                            if ((this.activeSpellFlags & 0x10) === 16) {
-                                this.menuOption[this.menuSize] = this.spellCaption + ' @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = MenuAction.OPHELDT;
-                                this.menuParamA[this.menuSize] = obj.id;
-                                this.menuParamB[this.menuSize] = slot;
-                                this.menuParamC[this.menuSize] = child.id;
-                                this.menuSize++;
+                        } else if (this.targetMode === 1 && child.interactable) {
+                            if ((this.targetMask & 0x10) === 16) {
+                                this.menuOption[this.menuNumEntries] = this.targetOp + ' @lre@' + obj.name;
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPHELDT;
+                                this.menuParamA[this.menuNumEntries] = obj.id;
+                                this.menuParamB[this.menuNumEntries] = slot;
+                                this.menuParamC[this.menuNumEntries] = child.id;
+                                this.menuNumEntries++;
                             }
                         } else {
                             if (child.interactable) {
                                 for (let op: number = 4; op >= 3; op--) {
                                     if (obj.iop && obj.iop[op]) {
-                                        this.menuOption[this.menuSize] = obj.iop[op] + ' @lre@' + obj.name;
+                                        this.menuOption[this.menuNumEntries] = obj.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 3) {
-                                            this.menuAction[this.menuSize] = MenuAction.OPHELD4;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD4;
                                         } else if (op === 4) {
-                                            this.menuAction[this.menuSize] = MenuAction.OPHELD5;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD5;
                                         }
 
-                                        this.menuParamA[this.menuSize] = obj.id;
-                                        this.menuParamB[this.menuSize] = slot;
-                                        this.menuParamC[this.menuSize] = child.id;
-                                        this.menuSize++;
+                                        this.menuParamA[this.menuNumEntries] = obj.id;
+                                        this.menuParamB[this.menuNumEntries] = slot;
+                                        this.menuParamC[this.menuNumEntries] = child.id;
+                                        this.menuNumEntries++;
                                     } else if (op === 4) {
-                                        this.menuOption[this.menuSize] = 'Drop @lre@' + obj.name;
-                                        this.menuAction[this.menuSize] = MenuAction.OPHELD5;
-                                        this.menuParamA[this.menuSize] = obj.id;
-                                        this.menuParamB[this.menuSize] = slot;
-                                        this.menuParamC[this.menuSize] = child.id;
-                                        this.menuSize++;
+                                        this.menuOption[this.menuNumEntries] = 'Drop @lre@' + obj.name;
+                                        this.menuAction[this.menuNumEntries] = MenuAction.OPHELD5;
+                                        this.menuParamA[this.menuNumEntries] = obj.id;
+                                        this.menuParamB[this.menuNumEntries] = slot;
+                                        this.menuParamC[this.menuNumEntries] = child.id;
+                                        this.menuNumEntries++;
                                     }
                                 }
                             }
 
                             if (child.usable) {
-                                this.menuOption[this.menuSize] = 'Use @lre@' + obj.name;
-                                this.menuAction[this.menuSize] = MenuAction.OPHELDT_START;
-                                this.menuParamA[this.menuSize] = obj.id;
-                                this.menuParamB[this.menuSize] = slot;
-                                this.menuParamC[this.menuSize] = child.id;
-                                this.menuSize++;
+                                this.menuOption[this.menuNumEntries] = 'Use @lre@' + obj.name;
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPHELDT_START;
+                                this.menuParamA[this.menuNumEntries] = obj.id;
+                                this.menuParamB[this.menuNumEntries] = slot;
+                                this.menuParamC[this.menuNumEntries] = child.id;
+                                this.menuNumEntries++;
                             }
 
                             if (child.interactable && obj.iop) {
                                 for (let op: number = 2; op >= 0; op--) {
                                     if (obj.iop[op]) {
-                                        this.menuOption[this.menuSize] = obj.iop[op] + ' @lre@' + obj.name;
+                                        this.menuOption[this.menuNumEntries] = obj.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 0) {
-                                            this.menuAction[this.menuSize] = MenuAction.OPHELD1;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD1;
                                         } else if (op === 1) {
-                                            this.menuAction[this.menuSize] = MenuAction.OPHELD2;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD2;
                                         } else if (op === 2) {
-                                            this.menuAction[this.menuSize] = MenuAction.OPHELD3;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD3;
                                         }
 
-                                        this.menuParamA[this.menuSize] = obj.id;
-                                        this.menuParamB[this.menuSize] = slot;
-                                        this.menuParamC[this.menuSize] = child.id;
-                                        this.menuSize++;
+                                        this.menuParamA[this.menuNumEntries] = obj.id;
+                                        this.menuParamB[this.menuNumEntries] = slot;
+                                        this.menuParamC[this.menuNumEntries] = child.id;
+                                        this.menuNumEntries++;
                                     }
                                 }
                             }
@@ -10406,35 +10406,35 @@ export class Client extends GameShell {
                             if (child.iop) {
                                 for (let op: number = 4; op >= 0; op--) {
                                     if (child.iop[op]) {
-                                        this.menuOption[this.menuSize] = child.iop[op] + ' @lre@' + obj.name;
+                                        this.menuOption[this.menuNumEntries] = child.iop[op] + ' @lre@' + obj.name;
 
                                         if (op === 0) {
-                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON1;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.INV_BUTTON1;
                                         } else if (op === 1) {
-                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON2;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.INV_BUTTON2;
                                         } else if (op === 2) {
-                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON3;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.INV_BUTTON3;
                                         } else if (op === 3) {
-                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON4;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.INV_BUTTON4;
                                         } else if (op === 4) {
-                                            this.menuAction[this.menuSize] = MenuAction.INV_BUTTON5;
+                                            this.menuAction[this.menuNumEntries] = MenuAction.INV_BUTTON5;
                                         }
 
-                                        this.menuParamA[this.menuSize] = obj.id;
-                                        this.menuParamB[this.menuSize] = slot;
-                                        this.menuParamC[this.menuSize] = child.id;
-                                        this.menuSize++;
+                                        this.menuParamA[this.menuNumEntries] = obj.id;
+                                        this.menuParamB[this.menuNumEntries] = slot;
+                                        this.menuParamC[this.menuNumEntries] = child.id;
+                                        this.menuNumEntries++;
                                     }
                                 }
                             }
 
-                            this.menuOption[this.menuSize] = 'Examine @lre@' + obj.name;
-                            this.menuAction[this.menuSize] = MenuAction.OPHELD6;
-                            this.menuParamA[this.menuSize] = obj.id;
+                            this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPHELD6;
+                            this.menuParamA[this.menuNumEntries] = obj.id;
                             if (child.linkObjCount) {
-                                this.menuParamC[this.menuSize] = child.linkObjCount[slot];
+                                this.menuParamC[this.menuNumEntries] = child.linkObjCount[slot];
                             }
-                            this.menuSize++;
+                            this.menuNumEntries++;
                         }
 
                         slot++;
@@ -10448,41 +10448,41 @@ export class Client extends GameShell {
                     }
 
                     if (!override && child.option) {
-                        this.menuOption[this.menuSize] = child.option;
-                        this.menuAction[this.menuSize] = MenuAction.IF_BUTTON;
-                        this.menuParamC[this.menuSize] = child.id;
-                        this.menuSize++;
+                        this.menuOption[this.menuNumEntries] = child.option;
+                        this.menuAction[this.menuNumEntries] = MenuAction.IF_BUTTON;
+                        this.menuParamC[this.menuNumEntries] = child.id;
+                        this.menuNumEntries++;
                     }
-                } else if (child.buttonType === ButtonType.BUTTON_TARGET && this.spellSelected === 0) {
+                } else if (child.buttonType === ButtonType.BUTTON_TARGET && this.targetMode === 0) {
                     let prefix: string | null = child.targetVerb;
                     if (prefix && prefix.indexOf(' ') !== -1) {
                         prefix = prefix.substring(0, prefix.indexOf(' '));
                     }
 
-                    this.menuOption[this.menuSize] = prefix + ' @gre@' + child.targetText;
-                    this.menuAction[this.menuSize] = MenuAction.OPHELDT_SELECT;
-                    this.menuParamC[this.menuSize] = child.id;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = prefix + ' @gre@' + child.targetText;
+                    this.menuAction[this.menuNumEntries] = MenuAction.OPHELDT_SELECT;
+                    this.menuParamC[this.menuNumEntries] = child.id;
+                    this.menuNumEntries++;
                 } else if (child.buttonType === ButtonType.BUTTON_CLOSE) {
-                    this.menuOption[this.menuSize] = 'Close';
-                    this.menuAction[this.menuSize] = MenuAction.CLOSE_MODAL;
-                    this.menuParamC[this.menuSize] = child.id;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = 'Close';
+                    this.menuAction[this.menuNumEntries] = MenuAction.CLOSE_MODAL;
+                    this.menuParamC[this.menuNumEntries] = child.id;
+                    this.menuNumEntries++;
                 } else if (child.buttonType === ButtonType.BUTTON_TOGGLE && child.option) {
-                    this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = MenuAction.IF_BUTTON_TOGGLE;
-                    this.menuParamC[this.menuSize] = child.id;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = child.option;
+                    this.menuAction[this.menuNumEntries] = MenuAction.IF_BUTTON_TOGGLE;
+                    this.menuParamC[this.menuNumEntries] = child.id;
+                    this.menuNumEntries++;
                 } else if (child.buttonType === ButtonType.BUTTON_SELECT && child.option) {
-                    this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = MenuAction.IF_BUTTON_SELECT;
-                    this.menuParamC[this.menuSize] = child.id;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = child.option;
+                    this.menuAction[this.menuNumEntries] = MenuAction.IF_BUTTON_SELECT;
+                    this.menuParamC[this.menuNumEntries] = child.id;
+                    this.menuNumEntries++;
                 } else if (child.buttonType === ButtonType.BUTTON_CONTINUE && !this.resumedPauseButton && child.option) {
-                    this.menuOption[this.menuSize] = child.option;
-                    this.menuAction[this.menuSize] = MenuAction.RESUME_PAUSEBUTTON;
-                    this.menuParamC[this.menuSize] = child.id;
-                    this.menuSize++;
+                    this.menuOption[this.menuNumEntries] = child.option;
+                    this.menuAction[this.menuNumEntries] = MenuAction.RESUME_PAUSEBUTTON;
+                    this.menuParamC[this.menuNumEntries] = child.id;
+                    this.menuNumEntries++;
                 }
             }
         }
@@ -10502,25 +10502,26 @@ export class Client extends GameShell {
                 clientCode--;
             }
 
-            this.menuOption[this.menuSize] = 'Remove @whi@' + this.friendName[clientCode];
-            this.menuAction[this.menuSize] = MenuAction.FRIENDLIST_DEL;
-            this.menuSize++;
+            this.menuOption[this.menuNumEntries] = 'Remove @whi@' + this.friendName[clientCode];
+            this.menuAction[this.menuNumEntries] = MenuAction.FRIENDLIST_DEL;
+            this.menuNumEntries++;
 
-            this.menuOption[this.menuSize] = 'Message @whi@' + this.friendName[clientCode];
-            this.menuAction[this.menuSize] = MenuAction.MESSAGE_PRIVATE;
-            this.menuSize++;
+            this.menuOption[this.menuNumEntries] = 'Message @whi@' + this.friendName[clientCode];
+            this.menuAction[this.menuNumEntries] = MenuAction.MESSAGE_PRIVATE;
+            this.menuNumEntries++;
             return true;
         } else if (clientCode >= ClientCode.CC_IGNORES_START && clientCode <= ClientCode.CC_IGNORES_END) {
-            this.menuOption[this.menuSize] = 'Remove @whi@' + component.text;
-            this.menuAction[this.menuSize] = MenuAction.IGNORELIST_DEL;
-            this.menuSize++;
+            this.menuOption[this.menuNumEntries] = 'Remove @whi@' + component.text;
+            this.menuAction[this.menuNumEntries] = MenuAction.IGNORELIST_DEL;
+            this.menuNumEntries++;
             return true;
         }
 
         return false;
     }
 
-    private resetInterfaceAnimation(id: number): void {
+    // jag::oldscape::Client::IfAnimReset
+    private ifAnimReset(id: number): void {
         const parent: IfType = IfType.list[id];
         if (!parent.children) {
             return;
@@ -10530,7 +10531,7 @@ export class Client extends GameShell {
             const child: IfType = IfType.list[parent.children[i]];
 
             if (child.type === 1) {
-                this.resetInterfaceAnimation(child.id);
+                this.ifAnimReset(child.id);
             }
 
             child.animFrame = 0;
@@ -10924,7 +10925,8 @@ export class Client extends GameShell {
         }
     }
 
-    private handleInterfaceAction(com: IfType): boolean {
+    // jag::oldscape::Client::ClientButton
+    private clientButton(com: IfType): boolean {
         const clientCode: number = com.clientCode;
 
         if (this.friendListStatus === 2) {
