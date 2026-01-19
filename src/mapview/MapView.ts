@@ -8,6 +8,8 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 import { TypedArray1d, TypedArray2d } from '#/util/Arrays.js';
 import { downloadUrl, sleep } from '#/util/JsUtil.js';
+import { saveDataURL } from '#/graphics/Canvas.js';
+import PixMap from '#/graphics/PixMap.js';
 
 export class MapView extends GameShell {
     static shouldDrawBorders: boolean = false;
@@ -438,7 +440,26 @@ export class MapView extends GameShell {
                 this.showOverview = !this.showOverview;
                 this.redraw = true;
             } else if (key == 'e'.charCodeAt(0) || key == 'E'.charCodeAt(0)) {
-                // todo: export as png and prompt user to download file
+                const width = this.sizeX * 2;
+                const height = this.sizeZ * 2;
+
+                const fullRender = new Pix32(width, height);
+                fullRender.setPixels();
+                this.renderMap(0, 0, this.sizeX, this.sizeZ, 0, 0, width, height);
+
+                const canvas = document.createElement('canvas') as HTMLCanvasElement;
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d')!;
+                const out = new PixMap(this.sizeX * 2, this.sizeZ * 2, ctx);
+                out.bind();
+                fullRender.quickPlotSprite(0, 0);
+                out.draw(0, 0);
+
+                this.drawArea?.bind();
+
+                const map = canvas.toDataURL('image/png').replace(/^data:image\/[^;]/, 'data:application/octet-stream');
+                saveDataURL(map, 'worldmap.png');
             } else if (key == 'n'.charCodeAt(0) || key == 'N'.charCodeAt(0)) {
                 MapView.shouldDrawNpcs = !MapView.shouldDrawNpcs;
                 this.redraw = true;
