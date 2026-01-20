@@ -9,6 +9,7 @@ import { TypedArray1d, TypedArray2d } from '#/util/Arrays.js';
 import { downloadUrl, sleep } from '#/util/JsUtil.js';
 import { saveDataURL } from '#/graphics/Canvas.js';
 import PixMap from '#/graphics/PixMap.js';
+import WorldMapFontWeb from '#/mapview/WorldMapFontWeb.js';
 
 export class MapView extends GameShell {
     static shouldDrawBorders: boolean = false;
@@ -69,6 +70,14 @@ export class MapView extends GameShell {
     mapdot1: Pix32 | null = null;
 
     b12: PixFont | null = null;
+    f11: WorldMapFontWeb | null = null;
+    f12: WorldMapFontWeb | null = null;
+    f14: WorldMapFontWeb | null = null;
+    f17: WorldMapFontWeb | null = null;
+    f19: WorldMapFontWeb | null = null;
+    f22: WorldMapFontWeb | null = null;
+    f26: WorldMapFontWeb | null = null;
+    f30: WorldMapFontWeb | null = null;
 
     blendedGroundColour: number[][] = [];
 
@@ -257,15 +266,14 @@ export class MapView extends GameShell {
         this.mapdot1 = Pix32.load(worldmap, 'mapdots', 1);
 
         this.b12 = PixFont.fromArchive(worldmap, 'b12');
-        // todo:
-        // this.f11 = new WorldmapFont(11, true, this);
-        // this.f12 = new WorldmapFont(12, true, this);
-        // this.f14 = new WorldmapFont(14, true, this);
-        // this.f17 = new WorldmapFont(17, true, this);
-        // this.f19 = new WorldmapFont(19, true, this);
-        // this.f22 = new WorldmapFont(22, true, this);
-        // this.f26 = new WorldmapFont(26, true, this);
-        // this.f30 = new WorldmapFont(30, true, this);
+        this.f11 = new WorldMapFontWeb(11, false);
+        this.f12 = new WorldMapFontWeb(12, false);
+        this.f14 = new WorldMapFontWeb(14, false);
+        this.f17 = new WorldMapFontWeb(17, false);
+        this.f19 = new WorldMapFontWeb(19, false);
+        this.f22 = new WorldMapFontWeb(22, false);
+        this.f26 = new WorldMapFontWeb(26, false);
+        this.f30 = new WorldMapFontWeb(30, false);
 
         this.blendedGroundColour = new TypedArray2d(this.mapWidth, this.mapHeight, 0);
         this.getBlendedGroundColour();
@@ -1284,14 +1292,42 @@ export class MapView extends GameShell {
 
                 const drawX: number = (widthOffset + ((width - widthOffset) * (x - left)) / (right - left)) | 0;
                 let drawY: number = (heightOffset + ((height - heightOffset) * (y - top)) / (bottom - top)) | 0;
-                const fontType: number = this.mapLabelSize[i];
+                const labelSize: number = this.mapLabelSize[i];
 
-                // todo: WorldmapFont
-                let rgb = 0xffffff;
-                const font = this.b12;
-
-                if (fontType === 2) {
+                let rgb: number = 0xffffff;
+                let font: WorldMapFontWeb | null = null;
+                if (labelSize == 0) {
+                    if (this.zoom == 3.0) {
+                        font = this.f11;
+                    } else if (this.zoom == 4.0) {
+                        font = this.f12;
+                    } else if (this.zoom == 6.0) {
+                        font = this.f14;
+                    } else if (this.zoom == 8.0) {
+                        font = this.f17;
+                    }
+                } else if (labelSize == 1) {
+                    if (this.zoom == 3.0) {
+                        font = this.f14;
+                    } else if (this.zoom == 4.0) {
+                        font = this.f17;
+                    } else if (this.zoom == 6.0) {
+                        font = this.f19;
+                    } else if (this.zoom == 8.0) {
+                        font = this.f22;
+                    }
+                } else if (labelSize == 2) {
                     rgb = 0xffaa00;
+
+                    if (this.zoom == 3.0) {
+                        font = this.f19;
+                    } else if (this.zoom == 4.0) {
+                        font = this.f22;
+                    } else if (this.zoom == 6.0) {
+                        font = this.f26;
+                    } else if (this.zoom == 8.0) {
+                        font = this.f30;
+                    }
                 }
 
                 if (font !== null) {
@@ -1304,21 +1340,20 @@ export class MapView extends GameShell {
                         }
                     }
 
-                    drawY -= font.height2d * (lineCount - 1) / 2;
+                    drawY -= ((font.getHeight() * (lineCount - 1) / 2) | 0);
+                    drawY -= (font.getYOffset() / 2) | 0;
 
                     while (true) {
                         const newline = label.indexOf('/');
                         if (newline === -1) {
-                            font.centreString(drawX + 1, drawY + 1, label, 0);
-                            font.centreString(drawX, drawY, label, rgb);
+                            font.centreString(label, drawX, drawY, rgb, true);
                             break;
                         }
 
                         const part = label.substring(0, newline);
-                        font.centreString(drawX + 1, drawY + 1, part, 0);
-                        font.centreString(drawX, drawY, part, rgb);
+                        font.centreString(part, drawX, drawY, rgb, true);
 
-                        drawY += font.height2d;
+                        drawY += font.getHeight();
                         label = label.substring(newline + 1);
                     }
                 }
