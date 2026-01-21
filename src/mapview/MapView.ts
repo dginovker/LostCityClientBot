@@ -268,14 +268,28 @@ export class MapView extends GameShell {
         this.mapdot1 = Pix32.load(worldmap, 'mapdots', 1);
 
         this.b12 = PixFont.fromArchive(worldmap, 'b12');
-        this.f11 = new WorldMapFont(11, false);
-        this.f12 = new WorldMapFont(12, false);
-        this.f14 = new WorldMapFont(14, false);
-        this.f17 = new WorldMapFont(17, false);
-        this.f19 = new WorldMapFont(19, false);
-        this.f22 = new WorldMapFont(22, false);
-        this.f26 = new WorldMapFont(26, false);
-        this.f30 = new WorldMapFont(30, false);
+
+        // custom:
+        try {
+            this.f11 = WorldMapFont.load(worldmap, 'f11');
+            this.f12 = WorldMapFont.load(worldmap, 'f12');
+            this.f14 = WorldMapFont.load(worldmap, 'f14');
+            this.f17 = WorldMapFont.load(worldmap, 'f17');
+            this.f19 = WorldMapFont.load(worldmap, 'f19');
+            this.f22 = WorldMapFont.load(worldmap, 'f22');
+            this.f26 = WorldMapFont.load(worldmap, 'f26');
+            this.f30 = WorldMapFont.load(worldmap, 'f30');
+        } catch (err) {
+            console.error(err);
+            this.f11 = WorldMapFont.fromSystem(11, true);
+            this.f12 = WorldMapFont.fromSystem(12, true);
+            this.f14 = WorldMapFont.fromSystem(14, true);
+            this.f17 = WorldMapFont.fromSystem(17, true);
+            this.f19 = WorldMapFont.fromSystem(19, true);
+            this.f22 = WorldMapFont.fromSystem(22, true);
+            this.f26 = WorldMapFont.fromSystem(26, true);
+            this.f30 = WorldMapFont.fromSystem(30, true);
+        }
 
         this.blendedGroundColour = new TypedArray2d(this.mapWidth, this.mapHeight, 0);
         this.getBlendedGroundColour();
@@ -701,8 +715,8 @@ export class MapView extends GameShell {
         Pix2D.hline(xPad, yPad + heightPad - 1, borderBR, widthPad);
         Pix2D.vline(xPad + widthPad - 1, yPad, borderBR, heightPad);
 
-        this.b12?.centreString(xPad + widthPad / 2 + 1, yPad + heightPad / 2 + 1 + 4, str, 0);
-        this.b12?.centreString(xPad + widthPad / 2, yPad + heightPad / 2 + 4, str, 0xffffff);
+        this.b12?.centreString(xPad + ((widthPad / 2) | 0) + 1, yPad + ((heightPad / 2) | 0) + 1 + 4, str, 0);
+        this.b12?.centreString(xPad + ((widthPad / 2) | 0), yPad + ((heightPad / 2) | 0) + 4, str, 0xffffff);
     }
 
     // jag::oldscape::rs2lib::worldmap::RenderedMapSquare::GetBlendedGroundColour
@@ -999,6 +1013,10 @@ export class MapView extends GameShell {
             startX += widthOffset;
             endX += widthOffset;
 
+            const colours = this.blendedGroundColour[x + left];
+            const overlays = this.floort2[x + left];
+            const shapes = this.floorsr[x + left];
+
             for (let y: number = 0; y < visibleY; y++) {
                 let startY: number = (heightRatio * y) >> 16;
                 let endY: number = (heightRatio * (y + 1)) >> 16;
@@ -1007,23 +1025,19 @@ export class MapView extends GameShell {
                     continue;
                 }
 
-                if (typeof this.floort2[x + left] === 'undefined') {
-                    continue;
-                }
-
                 startY += heightOffset;
                 endY += heightOffset;
 
-                const overlay: number = this.floort2[x + left][y + top];
+                const overlay: number = overlays[y + top];
                 if (overlay === 0) {
-                    Pix2D.fillRect(startX, startY, endX - startX, endY - startY, this.blendedGroundColour[x + left][y + top]);
+                    Pix2D.fillRect(startX, startY, endX - startX, endY - startY, colours[y + top]);
                 } else {
-                    const info: number = this.floorsr[x + left][y + top];
+                    const info: number = shapes[y + top];
                     const shape: number = info & 0xfc;
                     if (shape == 0 || lengthX <= 1 || lengthY <= 1) {
                         Pix2D.fillRect(startX, startY, lengthX, lengthY, overlay);
                     } else {
-                        this.drawOverlayShape(Pix2D.pixels, startY * Pix2D.width + startX, this.blendedGroundColour[x + left][y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
+                        this.drawOverlayShape(Pix2D.pixels, startY * Pix2D.width + startX, colours[y + top], overlay, lengthX, lengthY, shape >> 2, info & 0x3);
                     }
                 }
             }
@@ -1042,8 +1056,9 @@ export class MapView extends GameShell {
                 continue;
             }
 
-            startX += widthOffset;
-            endX += widthOffset;
+            const walls = this.locWall[x + left];
+            const mapscenes = this.locMapscene[x + left];
+            const mapfunctions = this.locMapfunction[x + left];
 
             for (let y: number = 0; y < visibleY; y++) {
                 let startY: number = (heightRatio * y) >> 16;
@@ -1053,10 +1068,7 @@ export class MapView extends GameShell {
                     continue;
                 }
 
-                startY += heightOffset;
-                endY += heightOffset;
-
-                let wall: number = this.locWall[x + left][y + top] & 0xff;
+                let wall: number = walls[y + top] & 0xff;
                 if (wall != 0) {
                     let edgeX: number;
                     if (lengthX == 1) {
@@ -1122,16 +1134,16 @@ export class MapView extends GameShell {
                     }
                 }
 
-                const mapscene: number = this.locMapscene[x + left][y + top];
+                const mapscene: number = mapscenes[y + top];
                 if (mapscene != 0) {
-                    this.mapscene[mapscene - 1].scalePlotSprite(startX - lengthX / 2, startY - lengthY / 2, lengthX * 2, lengthY * 2);
+                    this.mapscene[mapscene - 1].scalePlotSprite(startX - ((lengthX / 2) | 0), startY - ((lengthY / 2) | 0), lengthX * 2, lengthY * 2);
                 }
 
-                const mapfunction: number = this.locMapfunction[x + left][y + top];
+                const mapfunction: number = mapfunctions[y + top];
                 if (mapfunction != 0) {
                     this.visibleMapFunctions[visibleMapFunctionCount] = mapfunction - 1;
-                    this.visibleMapFunctionsX[visibleMapFunctionCount] = startX + lengthX / 2;
-                    this.visibleMapFunctionsY[visibleMapFunctionCount] = startY + lengthY / 2;
+                    this.visibleMapFunctionsX[visibleMapFunctionCount] = startX + ((lengthX / 2) | 0);
+                    this.visibleMapFunctionsY[visibleMapFunctionCount] = startY + ((lengthY / 2) | 0);
                     visibleMapFunctionCount++;
                 }
             }
@@ -1212,10 +1224,6 @@ export class MapView extends GameShell {
                     continue;
                 }
 
-                if (typeof this.objPos[x + left] === 'undefined') {
-                    continue;
-                }
-
                 startX += widthOffset;
                 endX += widthOffset;
 
@@ -1243,10 +1251,6 @@ export class MapView extends GameShell {
                 let endX: number = (widthRatio * (x + 1)) >> 16;
                 const lengthX: number = endX - startX;
                 if (lengthX <= 0) {
-                    continue;
-                }
-
-                if (typeof this.npcPos[x + left] === 'undefined') {
                     continue;
                 }
 
@@ -1343,7 +1347,7 @@ export class MapView extends GameShell {
                     }
 
                     drawY -= ((font.getHeight() * (lineCount - 1) / 2) | 0);
-                    drawY -= (font.getYOffset() / 2) | 0;
+                    drawY += (font.getYOffset() / 2) | 0;
 
                     while (true) {
                         const newline = label.indexOf('/');
@@ -1384,9 +1388,9 @@ export class MapView extends GameShell {
                     this.b12?.drawStringRight(drawRight - 5, drawBottom - 5, mx + '_' + mz, 0xffffff, false);
 
                     if (mx == 33 && mz >= 71 && mz <= 73) {
-                        this.b12?.centreString((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xff0000);
+                        this.b12?.centreString(((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 'u_pass', 0xff0000);
                     } else if (mx >= 32 && mx <= 34 && mz >= 70 && mz <= 74) {
-                        this.b12?.centreString((drawRight + drawLeft) / 2, (drawBottom + drawTop) / 2, 'u_pass', 0xffff00);
+                        this.b12?.centreString(((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 'u_pass', 0xffff00);
                     }
                 }
             }
@@ -1641,7 +1645,7 @@ export class MapView extends GameShell {
             if (rotation == 0) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x <= width / 2) {
+                        if (x <= ((width / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1652,7 +1656,7 @@ export class MapView extends GameShell {
             } else if (rotation == 1) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (y <= height / 2) {
+                        if (y <= ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1663,7 +1667,7 @@ export class MapView extends GameShell {
             } else if (rotation == 2) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x >= width / 2) {
+                        if (x >= ((width / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1674,7 +1678,7 @@ export class MapView extends GameShell {
             } else if (rotation == 3) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (y >= height / 2) {
+                        if (y >= ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1687,7 +1691,7 @@ export class MapView extends GameShell {
             if (rotation == 0) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x <= y - height / 2) {
+                        if (x <= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1698,7 +1702,7 @@ export class MapView extends GameShell {
             } else if (rotation == 1) {
                 for (let y: number = height - 1; y >= 0; y--) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x <= y - height / 2) {
+                        if (x <= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1709,7 +1713,7 @@ export class MapView extends GameShell {
             } else if (rotation == 2) {
                 for (let y: number = height - 1; y >= 0; y--) {
                     for (let x: number = width - 1; x >= 0; x--) {
-                        if (x <= y - height / 2) {
+                        if (x <= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1720,7 +1724,7 @@ export class MapView extends GameShell {
             } else if (rotation == 3) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = width - 1; x >= 0; x--) {
-                        if (x <= y - height / 2) {
+                        if (x <= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1733,7 +1737,7 @@ export class MapView extends GameShell {
             if (rotation == 0) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x >= y - height / 2) {
+                        if (x >= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1744,7 +1748,7 @@ export class MapView extends GameShell {
             } else if (rotation == 1) {
                 for (let y: number = height - 1; y >= 0; y--) {
                     for (let x: number = 0; x < width; x++) {
-                        if (x >= y - height / 2) {
+                        if (x >= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1755,7 +1759,7 @@ export class MapView extends GameShell {
             } else if (rotation == 2) {
                 for (let y: number = height - 1; y >= 0; y--) {
                     for (let x: number = width - 1; x >= 0; x--) {
-                        if (x >= y - height / 2) {
+                        if (x >= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;
@@ -1766,7 +1770,7 @@ export class MapView extends GameShell {
             } else if (rotation == 3) {
                 for (let y: number = 0; y < height; y++) {
                     for (let x: number = width - 1; x >= 0; x--) {
-                        if (x >= y - height / 2) {
+                        if (x >= y - ((height / 2) | 0)) {
                             data[off++] = overlay;
                         } else {
                             data[off++] = underlay;

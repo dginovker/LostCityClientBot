@@ -1,4 +1,5 @@
 import Pix2D from '#/graphics/Pix2D.js';
+import type Jagfile from '#/io/Jagfile.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class WorldMapFont extends Pix2D {
@@ -17,50 +18,63 @@ export default class WorldMapFont extends Pix2D {
         }
     }
 
-    // this will always be true, because this detects antialiasing and browsers antialias text
-    private fontCharTrans: boolean = false;
+    private fontCharTrans: boolean = false; // detects antialiasing
     private fontCharPos: number = 0;
-    private fontCharInfo = new Uint8Array(100_000);
+    private fontCharInfo: Uint8Array<ArrayBufferLike> = new Uint8Array(100_000);
 
-    private canvas: HTMLCanvasElement;
-    private ctx: CanvasRenderingContext2D;
+    private canvas!: HTMLCanvasElement;
+    private ctx!: CanvasRenderingContext2D;
 
-    constructor(size: number, bold: boolean) {
-        super();
-
-        this.fontCharPos = 855;
-        this.fontCharTrans = false;
-
-        this.canvas = document.createElement('canvas');
-        this.canvas.width = size + 50;
-        this.canvas.height = size + 50;
-        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true })!;
-
-        const style = bold ? 'bold' : '';
-        this.ctx.font = `${style} ${size}px ${WorldMapFont.fonts}`;
-
-        for (let i = 0; i < 95; i++) {
-            this.loadGlyph(WorldMapFont.CHARSET[i], i, false);
+    // dumped from another system that guarantees no antialiasing was used
+    static load(jag: Jagfile, name: string) {
+        const font = new WorldMapFont();
+        const fm = jag.read(`${name}.dat`);
+        if (!fm) {
+            throw new Error();
         }
 
-        if (bold && this.fontCharTrans) {
-            this.ctx.font = `${size}px ${WorldMapFont.fonts}`;
+        font.fontCharTrans = false;
+        font.fontCharInfo = fm;
+        font.fontCharPos = fm.length;
+        return font;
+    }
+
+    static fromSystem(size: number, bold: boolean) {
+        const font = new WorldMapFont();
+        font.fontCharPos = 855;
+        font.fontCharTrans = false;
+
+        font.canvas = document.createElement('canvas');
+        font.canvas.width = size + 50;
+        font.canvas.height = size + 50;
+        font.ctx = font.canvas.getContext('2d', { willReadFrequently: true })!;
+
+        const style = bold ? 'bold' : '';
+        font.ctx.font = `${style} ${size}px ${WorldMapFont.fonts}`;
+
+        for (let i = 0; i < 95; i++) {
+            font.loadGlyph(WorldMapFont.CHARSET[i], i, false);
+        }
+
+        if (bold && font.fontCharTrans) {
+            font.ctx.font = `${size}px ${WorldMapFont.fonts}`;
 
             for (let i = 0; i < 95; i++) {
-                this.loadGlyph(WorldMapFont.CHARSET[i], i, false);
+                font.loadGlyph(WorldMapFont.CHARSET[i], i, false);
             }
 
-            if (!this.fontCharTrans) {
-                this.fontCharPos = 855;
-                this.fontCharTrans = false;
+            if (!font.fontCharTrans) {
+                font.fontCharPos = 855;
+                font.fontCharTrans = false;
 
                 for (let i = 0; i < 95; i++) {
-                    this.loadGlyph(WorldMapFont.CHARSET[i], i, true);
+                    font.loadGlyph(WorldMapFont.CHARSET[i], i, true);
                 }
             }
         }
 
-        this.fontCharInfo = this.fontCharInfo.slice(0, this.fontCharPos);
+        font.fontCharInfo = font.fontCharInfo.slice(0, font.fontCharPos);
+        return font;
     }
 
     private loadGlyph(c: string, id: number, offset: boolean) {
@@ -298,6 +312,6 @@ export default class WorldMapFont extends Pix2D {
     }
 
     getYOffset() {
-        return -this.fontCharInfo[6];
+        return this.fontCharInfo[6];
     }
 }
