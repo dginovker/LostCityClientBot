@@ -17,6 +17,7 @@ export default class WorldMapFont extends Pix2D {
         }
     }
 
+    // this will always be true, because this detects antialiasing and browsers antialias text
     private fontCharTrans: boolean = false;
     private fontCharPos: number = 0;
     private fontCharInfo = new Uint8Array(100_000);
@@ -296,8 +297,7 @@ export default class WorldMapFont extends Pix2D {
         return this.fontCharInfo[8] - 1;
     }
 
-    // todo: I don't think this is 100%
     getYOffset() {
-        return this.fontCharInfo[6];
+        return -this.fontCharInfo[6];
     }
 }

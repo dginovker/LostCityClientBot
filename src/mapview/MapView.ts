@@ -7,9 +7,9 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 import { TypedArray1d, TypedArray2d } from '#/util/Arrays.js';
 import { downloadUrl, sleep } from '#/util/JsUtil.js';
-import { saveDataURL } from '#/graphics/Canvas.js';
+import { canvas, saveDataURL } from '#/graphics/Canvas.js';
 import PixMap from '#/graphics/PixMap.js';
-import WorldMapFontWeb from '#/mapview/WorldMapFontWeb.js';
+import WorldMapFont from '#/mapview/WorldMapFont.js';
 
 export class MapView extends GameShell {
     static shouldDrawBorders: boolean = false;
@@ -70,14 +70,14 @@ export class MapView extends GameShell {
     mapdot1: Pix32 | null = null;
 
     b12: PixFont | null = null;
-    f11: WorldMapFontWeb | null = null;
-    f12: WorldMapFontWeb | null = null;
-    f14: WorldMapFontWeb | null = null;
-    f17: WorldMapFontWeb | null = null;
-    f19: WorldMapFontWeb | null = null;
-    f22: WorldMapFontWeb | null = null;
-    f26: WorldMapFontWeb | null = null;
-    f30: WorldMapFontWeb | null = null;
+    f11: WorldMapFont | null = null;
+    f12: WorldMapFont | null = null;
+    f14: WorldMapFont | null = null;
+    f17: WorldMapFont | null = null;
+    f19: WorldMapFont | null = null;
+    f22: WorldMapFont | null = null;
+    f26: WorldMapFont | null = null;
+    f30: WorldMapFont | null = null;
 
     blendedGroundColour: number[][] = [];
 
@@ -189,6 +189,8 @@ export class MapView extends GameShell {
         this.keyHeight = this.sHei - this.keyY - 20;
         this.overviewX = this.sWid - this.overviewWidth - 5;
         this.overviewY = this.sHei - this.overviewHeight - 20;
+        this.redrawScreen = true;
+        canvas.style.cursor = 'grab';
 
         const worldmap: Jagfile = await this.loadWorldmap();
 
@@ -266,14 +268,14 @@ export class MapView extends GameShell {
         this.mapdot1 = Pix32.load(worldmap, 'mapdots', 1);
 
         this.b12 = PixFont.fromArchive(worldmap, 'b12');
-        this.f11 = new WorldMapFontWeb(11, false);
-        this.f12 = new WorldMapFontWeb(12, false);
-        this.f14 = new WorldMapFontWeb(14, false);
-        this.f17 = new WorldMapFontWeb(17, false);
-        this.f19 = new WorldMapFontWeb(19, false);
-        this.f22 = new WorldMapFontWeb(22, false);
-        this.f26 = new WorldMapFontWeb(26, false);
-        this.f30 = new WorldMapFontWeb(30, false);
+        this.f11 = new WorldMapFont(11, false);
+        this.f12 = new WorldMapFont(12, false);
+        this.f14 = new WorldMapFont(14, false);
+        this.f17 = new WorldMapFont(17, false);
+        this.f19 = new WorldMapFont(19, false);
+        this.f22 = new WorldMapFont(22, false);
+        this.f26 = new WorldMapFont(26, false);
+        this.f30 = new WorldMapFont(30, false);
 
         this.blendedGroundColour = new TypedArray2d(this.mapWidth, this.mapHeight, 0);
         this.getBlendedGroundColour();
@@ -1295,7 +1297,7 @@ export class MapView extends GameShell {
                 const labelSize: number = this.mapLabelSize[i];
 
                 let rgb: number = 0xffffff;
-                let font: WorldMapFontWeb | null = null;
+                let font: WorldMapFont | null = null;
                 if (labelSize == 0) {
                     if (this.zoom == 3.0) {
                         font = this.f11;
@@ -1795,6 +1797,7 @@ export class MapView extends GameShell {
         this.dragFocusZ = -1;
         this.redraw = true;
 
+        Pix2D.cls();
         await this.maininit();
     }
 
@@ -1817,6 +1820,7 @@ export class MapView extends GameShell {
         this.dragFocusZ = -1;
         this.redraw = true;
 
+        Pix2D.cls();
         await this.maininit();
     }
 
@@ -1846,6 +1850,7 @@ export class MapView extends GameShell {
 
     override pointerDownInner(x: number, y: number, e: PointerEvent) {
         if (e.pointerType === 'mouse') {
+            canvas.style.cursor = 'grabbing';
             return;
         }
 
@@ -1860,6 +1865,7 @@ export class MapView extends GameShell {
 
     override pointerUpInner(_x: number, _y: number, e: PointerEvent) {
         if (e.pointerType === 'mouse') {
+            canvas.style.cursor = 'grab';
             return;
         }
 
