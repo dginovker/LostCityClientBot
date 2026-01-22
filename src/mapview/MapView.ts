@@ -1852,12 +1852,44 @@ export class MapView extends GameShell {
 
     // ----
 
-    override pointerDownInner(x: number, y: number, e: PointerEvent) {
-        if (e.pointerType === 'mouse') {
+    dragging = false;
+    activePointerId: number | null = null;
+
+    override mouseDown(x: number, y: number, e: MouseEvent) {
+        this.nextMouseClickX = x;
+        this.nextMouseClickY = y;
+
+        this.mouseX = x;
+        this.mouseY = y;
+
+        if (e.button === 2) {
+            this.nextMouseClickButton = 2;
+            this.mouseButton = 2;
+        } else {
+            this.nextMouseClickButton = 1;
+            this.mouseButton = 1;
             canvas.style.cursor = 'grabbing';
-            return;
+            this.dragging = true;
         }
 
+        // e.preventDefault();
+    }
+
+    override mouseUp(_x: number, _y: number, e: MouseEvent) {
+        this.dragging = false;
+        canvas.style.cursor = 'grab';
+
+        this.mouseX = -1;
+        this.mouseY = -1;
+        this.mouseButton = 0;
+        this.nextMouseClickX = -1;
+        this.nextMouseClickY = -1;
+        this.nextMouseClickButton = 0;
+
+        // e.preventDefault();
+    }
+
+    override pointerDown(x: number, y: number, e: PointerEvent) {
         this.idleTimer = performance.now();
         this.mouseX = x;
         this.mouseY = y;
@@ -1867,13 +1899,7 @@ export class MapView extends GameShell {
         this.nextMouseClickButton = 1;
     }
 
-    override pointerUpInner(_x: number, _y: number, e: PointerEvent) {
-        if (e.pointerType === 'mouse') {
-            canvas.style.cursor = 'grab';
-            return;
-        }
-
-        this.idleTimer = performance.now();
+    override pointerUp(_x: number, _y: number, e: PointerEvent) {
         this.mouseX = -1;
         this.mouseY = -1;
         this.mouseButton = 0;
@@ -1882,9 +1908,39 @@ export class MapView extends GameShell {
         this.nextMouseClickButton = 0;
     }
 
-    override pointerMoveInner(x: number, y: number, _e: PointerEvent) {
-        this.idleTimer = performance.now();
-        this.mouseX = x;
-        this.mouseY = y;
+    override pointerEnter() {
+    }
+
+    override pointerLeave() {
+    }
+
+    override pointerMove(x: number, y: number, _e: PointerEvent) {
+        if (!this.dragging) {
+            this.mouseX = x;
+            this.mouseY = y;
+        }
+    }
+
+    override windowMouseUp(e: MouseEvent) {
+        this.dragging = false;
+        canvas.style.cursor = 'grab';
+
+        this.mouseX = -1;
+        this.mouseY = -1;
+        this.mouseButton = 0;
+        this.nextMouseClickX = -1;
+        this.nextMouseClickY = -1;
+        this.nextMouseClickButton = 0;
+    }
+
+    override windowMouseMove(e: MouseEvent) {
+        if (this.dragging) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) | 0;
+            const y = (e.clientY - rect.top) | 0;
+
+            this.mouseX = x;
+            this.mouseY = y;
+        }
     }
 }

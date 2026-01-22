@@ -2896,41 +2896,45 @@ export class Client extends GameShell {
                     this.menuParamB[this.menuNumEntries] = x;
                     this.menuParamC[this.menuNumEntries] = z;
                     this.menuNumEntries++;
-                } else if (this.targetMode !== 1) {
+                } else if (this.targetMode === 1) {
+                    if ((this.targetMask & 0x4) === 4) {
+                        this.menuOption[this.menuNumEntries] = this.targetOp + ' @cya@' + loc.name;
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPLOCT;
+                        this.menuParamA[this.menuNumEntries] = typecode;
+                        this.menuParamB[this.menuNumEntries] = x;
+                        this.menuParamC[this.menuNumEntries] = z;
+                        this.menuNumEntries++;
+                    }
+                } else {
                     if (loc.op) {
                         for (let i: number = 4; i >= 0; i--) {
-                            if (loc.op[i]) {
-                                this.menuOption[this.menuNumEntries] = loc.op[i] + ' @cya@' + loc.name;
-
-                                if (i === 0) {
-                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC1;
-                                } else if (i === 1) {
-                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC2;
-                                } else if (i === 2) {
-                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC3;
-                                } else if (i === 3) {
-                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC4;
-                                } else if (i === 4) {
-                                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOC5;
-                                }
-
-                                this.menuParamA[this.menuNumEntries] = typecode;
-                                this.menuParamB[this.menuNumEntries] = x;
-                                this.menuParamC[this.menuNumEntries] = z;
-                                this.menuNumEntries++;
+                            if (loc.op[i] === null) {
+                                continue;
                             }
+
+                            this.menuOption[this.menuNumEntries] = loc.op[i] + ' @cya@' + loc.name;
+
+                            if (i === 0) {
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPLOC1;
+                            } else if (i === 1) {
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPLOC2;
+                            } else if (i === 2) {
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPLOC3;
+                            } else if (i === 3) {
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPLOC4;
+                            } else if (i === 4) {
+                                this.menuAction[this.menuNumEntries] = MenuAction.OPLOC5;
+                            }
+
+                            this.menuParamA[this.menuNumEntries] = typecode;
+                            this.menuParamB[this.menuNumEntries] = x;
+                            this.menuParamC[this.menuNumEntries] = z;
+                            this.menuNumEntries++;
                         }
                     }
 
                     this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name;
                     this.menuAction[this.menuNumEntries] = MenuAction.OPLOC6;
-                    this.menuParamA[this.menuNumEntries] = typecode;
-                    this.menuParamB[this.menuNumEntries] = x;
-                    this.menuParamC[this.menuNumEntries] = z;
-                    this.menuNumEntries++;
-                } else if ((this.targetMask & 0x4) === 4) {
-                    this.menuOption[this.menuNumEntries] = this.targetOp + ' @cya@' + loc.name;
-                    this.menuAction[this.menuNumEntries] = MenuAction.OPLOCT;
                     this.menuParamA[this.menuNumEntries] = typecode;
                     this.menuParamB[this.menuNumEntries] = x;
                     this.menuParamC[this.menuNumEntries] = z;
@@ -2991,7 +2995,16 @@ export class Client extends GameShell {
                         this.menuParamB[this.menuNumEntries] = x;
                         this.menuParamC[this.menuNumEntries] = z;
                         this.menuNumEntries++;
-                    } else if (this.targetMode !== 1) {
+                    } else if (this.targetMode === 1) {
+                        if ((this.targetMask & 0x1) === 1) {
+                            this.menuOption[this.menuNumEntries] = this.targetOp + ' @lre@' + type.name;
+                            this.menuAction[this.menuNumEntries] = MenuAction.OPOBJT;
+                            this.menuParamA[this.menuNumEntries] = obj.id;
+                            this.menuParamB[this.menuNumEntries] = x;
+                            this.menuParamC[this.menuNumEntries] = z;
+                            this.menuNumEntries++;
+                        }
+                    } else {
                         for (let op: number = 4; op >= 0; op--) {
                             if (type.op && type.op[op]) {
                                 this.menuOption[this.menuNumEntries] = type.op[op] + ' @lre@' + type.name;
@@ -3024,13 +3037,6 @@ export class Client extends GameShell {
 
                         this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name;
                         this.menuAction[this.menuNumEntries] = MenuAction.OPOBJ6;
-                        this.menuParamA[this.menuNumEntries] = obj.id;
-                        this.menuParamB[this.menuNumEntries] = x;
-                        this.menuParamC[this.menuNumEntries] = z;
-                        this.menuNumEntries++;
-                    } else if ((this.targetMask & 0x1) === 1) {
-                        this.menuOption[this.menuNumEntries] = this.targetOp + ' @lre@' + type.name;
-                        this.menuAction[this.menuNumEntries] = MenuAction.OPOBJT;
                         this.menuParamA[this.menuNumEntries] = obj.id;
                         this.menuParamB[this.menuNumEntries] = x;
                         this.menuParamC[this.menuNumEntries] = z;
@@ -9460,72 +9466,77 @@ export class Client extends GameShell {
             this.menuParamB[this.menuNumEntries] = b;
             this.menuParamC[this.menuNumEntries] = c;
             this.menuNumEntries++;
-        } else if (this.targetMode !== 1) {
-            let type: number;
+        } else if (this.targetMode === 1) {
+            if ((this.targetMask & 0x2) === 2) {
+                this.menuOption[this.menuNumEntries] = this.targetOp + ' @yel@' + tooltip;
+                this.menuAction[this.menuNumEntries] = MenuAction.OPNPCT;
+                this.menuParamA[this.menuNumEntries] = a;
+                this.menuParamB[this.menuNumEntries] = b;
+                this.menuParamC[this.menuNumEntries] = c;
+                this.menuNumEntries++;
+            }
+        } else {
             if (npc.op) {
-                for (type = 4; type >= 0; type--) {
-                    if (npc.op[type] && npc.op[type]?.toLowerCase() !== 'attack') {
-                        this.menuOption[this.menuNumEntries] = npc.op[type] + ' @yel@' + tooltip;
-
-                        if (type === 0) {
-                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC1;
-                        } else if (type === 1) {
-                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC2;
-                        } else if (type === 2) {
-                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC3;
-                        } else if (type === 3) {
-                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC4;
-                        } else if (type === 4) {
-                            this.menuAction[this.menuNumEntries] = MenuAction.OPNPC5;
-                        }
-
-                        this.menuParamA[this.menuNumEntries] = a;
-                        this.menuParamB[this.menuNumEntries] = b;
-                        this.menuParamC[this.menuNumEntries] = c;
-                        this.menuNumEntries++;
+                for (let i = 4; i >= 0; i--) {
+                    if (npc.op[i] === null || npc.op[i]?.toLowerCase() === 'attack') {
+                        continue;
                     }
+
+                    this.menuOption[this.menuNumEntries] = npc.op[i] + ' @yel@' + tooltip;
+
+                    if (i === 0) {
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPNPC1;
+                    } else if (i === 1) {
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPNPC2;
+                    } else if (i === 2) {
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPNPC3;
+                    } else if (i === 3) {
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPNPC4;
+                    } else if (i === 4) {
+                        this.menuAction[this.menuNumEntries] = MenuAction.OPNPC5;
+                    }
+
+                    this.menuParamA[this.menuNumEntries] = a;
+                    this.menuParamB[this.menuNumEntries] = b;
+                    this.menuParamC[this.menuNumEntries] = c;
+                    this.menuNumEntries++;
                 }
             }
 
             if (npc.op) {
-                for (type = 4; type >= 0; type--) {
-                    if (npc.op[type] && npc.op[type]?.toLowerCase() === 'attack') {
-                        let priority: number = 0;
-                        if (this.localPlayer && npc.vislevel > this.localPlayer.combatLevel) {
-                            priority = MenuAction._PRIORITY;
-                        }
-
-                        this.menuOption[this.menuNumEntries] = npc.op[type] + ' @yel@' + tooltip;
-
-                        if (type === 0) {
-                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC1;
-                        } else if (type === 1) {
-                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC2;
-                        } else if (type === 2) {
-                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC3;
-                        } else if (type === 3) {
-                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC4;
-                        } else if (type === 4) {
-                            this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC5;
-                        }
-
-                        this.menuParamA[this.menuNumEntries] = a;
-                        this.menuParamB[this.menuNumEntries] = b;
-                        this.menuParamC[this.menuNumEntries] = c;
-                        this.menuNumEntries++;
+                for (let i = 4; i >= 0; i--) {
+                    if (npc.op[i] === null || npc.op[i]?.toLowerCase() !== 'attack') {
+                        continue;
                     }
+
+                    let priority: number = 0;
+                    if (this.localPlayer && npc.vislevel > this.localPlayer.combatLevel) {
+                        priority = MenuAction._PRIORITY;
+                    }
+
+                    this.menuOption[this.menuNumEntries] = npc.op[i] + ' @yel@' + tooltip;
+
+                    if (i === 0) {
+                        this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC1;
+                    } else if (i === 1) {
+                        this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC2;
+                    } else if (i === 2) {
+                        this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC3;
+                    } else if (i === 3) {
+                        this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC4;
+                    } else if (i === 4) {
+                        this.menuAction[this.menuNumEntries] = priority + MenuAction.OPNPC5;
+                    }
+
+                    this.menuParamA[this.menuNumEntries] = a;
+                    this.menuParamB[this.menuNumEntries] = b;
+                    this.menuParamC[this.menuNumEntries] = c;
+                    this.menuNumEntries++;
                 }
             }
 
             this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip;
             this.menuAction[this.menuNumEntries] = MenuAction.OPNPC6;
-            this.menuParamA[this.menuNumEntries] = a;
-            this.menuParamB[this.menuNumEntries] = b;
-            this.menuParamC[this.menuNumEntries] = c;
-            this.menuNumEntries++;
-        } else if ((this.targetMask & 0x2) === 2) {
-            this.menuOption[this.menuNumEntries] = this.targetOp + ' @yel@' + tooltip;
-            this.menuAction[this.menuNumEntries] = MenuAction.OPNPCT;
             this.menuParamA[this.menuNumEntries] = a;
             this.menuParamB[this.menuNumEntries] = b;
             this.menuParamC[this.menuNumEntries] = c;
@@ -9656,7 +9667,7 @@ export class Client extends GameShell {
             childY += child.y;
 
             if (child.clientCode > 0) {
-                this.updateInterfaceContent(child);
+                this.clientComponent(child);
             }
 
             if (child.type === ComponentType.TYPE_LAYER) {
@@ -10050,7 +10061,7 @@ export class Client extends GameShell {
     }
 
     // jag::oldscape::Client::DoScrollbar
-    private doScrollbar(mouseX: number, mouseY: number, scrollableHeight: number, height: number, redraw: boolean, left: number, top: number, component: IfType): void {
+    private doScrollbar(x: number, y: number, scrollableHeight: number, height: number, redraw: boolean, left: number, top: number, com: IfType): void {
         if (this.scrollGrabbed) {
             this.scrollInputPadding = 32;
         } else {
@@ -10059,28 +10070,28 @@ export class Client extends GameShell {
 
         this.scrollGrabbed = false;
 
-        if (mouseX >= left && mouseX < left + 16 && mouseY >= top && mouseY < top + 16) {
-            component.scrollPos -= this.dragCycles * 4;
+        if (x >= left && x < left + 16 && y >= top && y < top + 16) {
+            com.scrollPos -= this.dragCycles * 4;
 
             if (redraw) {
                 this.redrawSidebar = true;
             }
-        } else if (mouseX >= left && mouseX < left + 16 && mouseY >= top + height - 16 && mouseY < top + height) {
-            component.scrollPos += this.dragCycles * 4;
+        } else if (x >= left && x < left + 16 && y >= top + height - 16 && y < top + height) {
+            com.scrollPos += this.dragCycles * 4;
 
             if (redraw) {
                 this.redrawSidebar = true;
             }
-        } else if (mouseX >= left - this.scrollInputPadding && mouseX < left + this.scrollInputPadding + 16 && mouseY >= top + 16 && mouseY < top + height - 16 && this.dragCycles > 0) {
+        } else if (x >= left - this.scrollInputPadding && x < left + this.scrollInputPadding + 16 && y >= top + 16 && y < top + height - 16 && this.dragCycles > 0) {
             let gripSize: number = (((height - 32) * height) / scrollableHeight) | 0;
             if (gripSize < 8) {
                 gripSize = 8;
             }
 
-            const gripY: number = mouseY - top - ((gripSize / 2) | 0) - 16;
+            const gripY: number = y - top - ((gripSize / 2) | 0) - 16;
             const maxY: number = height - gripSize - 32;
 
-            component.scrollPos = (((scrollableHeight - height) * gripY) / maxY) | 0;
+            com.scrollPos = (((scrollableHeight - height) * gripY) / maxY) | 0;
 
             if (redraw) {
                 this.redrawSidebar = true;
@@ -10678,7 +10689,8 @@ export class Client extends GameShell {
         }
     }
 
-    private updateInterfaceContent(com: IfType): void {
+    // jag::oldscape::Client::ClientComponent
+    private clientComponent(com: IfType): void {
         let clientCode: number = com.clientCode;
 
         if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_END) || (clientCode >= ClientCode.CC_FRIENDS2_START && clientCode <= ClientCode.CC_FRIENDS2_END)) {
@@ -11860,7 +11872,7 @@ export class Client extends GameShell {
     private dragging: boolean = false;
     private panning: boolean = false;
 
-    override pointerDownInner(x: number, y: number, e: PointerEvent) {
+    override pointerDown(x: number, y: number, e: PointerEvent) {
         if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
             MobileKeyboard.captureMouseDown(x, y);
             return;
@@ -11888,7 +11900,7 @@ export class Client extends GameShell {
         }
     }
 
-    override mouseUpInner(x: number, y: number, e: MouseEvent) {
+    override mouseUp(x: number, y: number, e: MouseEvent) {
         this.idleTimer = performance.now();
         this.mouseButton = 0;
 
@@ -11901,7 +11913,7 @@ export class Client extends GameShell {
         this.mouseY = y;
     }
 
-    override pointerUpInner(x: number, y: number, e: PointerEvent) {
+    override pointerUp(x: number, y: number, e: PointerEvent) {
         if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
             MobileKeyboard.captureMouseUp(x, y);
             return;
@@ -11976,7 +11988,7 @@ export class Client extends GameShell {
         }
     }
 
-    override pointerEnterInner(x: number, y: number, e: PointerEvent) {
+    override pointerEnter(x: number, y: number, e: PointerEvent) {
         if (e.pointerType === 'mouse') {
             this.mouseX = x;
             this.mouseY = y;
@@ -12004,7 +12016,7 @@ export class Client extends GameShell {
         }
     }
 
-    override pointerLeaveInner(e: PointerEvent) {
+    override pointerLeave(e: PointerEvent) {
         if (e.pointerType === 'mouse') {
             this.idleTimer = performance.now();
             this.mouseX = -1;
@@ -12031,7 +12043,7 @@ export class Client extends GameShell {
         }
     }
 
-    override pointerMoveInner(x: number, y: number, e: PointerEvent) {
+    override pointerMove(x: number, y: number, e: PointerEvent) {
         if (e.pointerType === 'mouse') {
             this.idleTimer = performance.now();
             this.mouseX = x;
@@ -12094,7 +12106,7 @@ export class Client extends GameShell {
     }
 
     // all mouse logic is done above, this is for controlling canvas behaviors
-    override touchStartInner(e: TouchEvent) {
+    override touchStart(e: TouchEvent) {
         if (e.touches.length < 2 || this.dragging) {
             // 1 touch - prevent natural browser behavior
             // 2+ touches - allow scrolling/zooming

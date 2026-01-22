@@ -244,7 +244,7 @@ export default class World {
         this.resetMap();
     }
 
-    // jag::oldscape::dash3d::world::ResetMap(void)
+    // jag::oldscape::dash3d::world::ResetMap
     resetMap(): void {
         for (let level: number = 0; level < this.maxLevel; level++) {
             for (let x: number = 0; x < this.maxTileX; x++) {

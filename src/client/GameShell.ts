@@ -99,6 +99,8 @@ export default abstract class GameShell {
         canvas.onpointerenter = this.onpointerenter.bind(this);
         canvas.onpointerleave = this.onpointerleave.bind(this);
         canvas.onpointermove = this.onpointermove.bind(this);
+        window.onmouseup = this.windowMouseUp.bind(this);
+        window.onmousemove = this.windowMouseMove.bind(this);
 
         if (this.isTouchDevice) {
             if (this.hasTouchEvents) {
@@ -293,10 +295,10 @@ export default abstract class GameShell {
 
         const { x, y } = this.getMousePos(e);
 
-        this.mouseDownInner(x, y, e);
+        this.mouseDown(x, y, e);
     }
 
-    protected mouseDownInner(x: number, y: number, e: MouseEvent) {
+    protected mouseDown(x: number, y: number, e: MouseEvent) {
         this.idleTimer = performance.now();
         this.nextMouseClickX = x;
         this.nextMouseClickY = y;
@@ -326,19 +328,19 @@ export default abstract class GameShell {
 
         const { x, y } = this.getMousePos(e);
 
-        this.pointerDownInner(x, y, e);
+        this.pointerDown(x, y, e);
     }
 
-    protected pointerDownInner(_x: number, _y: number, _e: PointerEvent) {
+    protected pointerDown(_x: number, _y: number, _e: PointerEvent) {
     }
 
     private onmouseup(e: MouseEvent) {
         const { x, y } = this.getMousePos(e);
 
-        this.mouseUpInner(x, y, e);
+        this.mouseUp(x, y, e);
     }
 
-    protected mouseUpInner(x: number, y: number, e: MouseEvent) {
+    protected mouseUp(x: number, y: number, e: MouseEvent) {
         this.idleTimer = performance.now();
         this.mouseButton = 0;
 
@@ -354,10 +356,10 @@ export default abstract class GameShell {
     private onpointerup(e: PointerEvent) {
         const { x, y } = this.getMousePos(e);
 
-        this.pointerUpInner(x, y, e);
+        this.pointerUp(x, y, e);
     }
 
-    protected pointerUpInner(_x: number, _y: number, _e: PointerEvent) {
+    protected pointerUp(_x: number, _y: number, _e: PointerEvent) {
     }
 
     private onpointerenter(e: PointerEvent) {
@@ -367,10 +369,10 @@ export default abstract class GameShell {
 
         const { x, y } = this.getMousePos(e);
 
-        this.pointerEnterInner(x, y, e);
+        this.pointerEnter(x, y, e);
     }
 
-    protected pointerEnterInner(x: number, y: number, _e: PointerEvent) {
+    protected pointerEnter(x: number, y: number, _e: PointerEvent) {
         this.mouseX = x;
         this.mouseY = y;
 
@@ -380,10 +382,10 @@ export default abstract class GameShell {
     }
 
     private onpointerleave(e: PointerEvent) {
-        this.pointerLeaveInner(e);
+        this.pointerLeave(e);
     }
 
-    protected pointerLeaveInner(_e: PointerEvent) {
+    protected pointerLeave(_e: PointerEvent) {
         this.idleTimer = performance.now();
         this.mouseX = -1;
         this.mouseY = -1;
@@ -406,10 +408,10 @@ export default abstract class GameShell {
 
         const { x, y } = this.getMousePos(e);
 
-        this.pointerMoveInner(x, y, e);
+        this.pointerMove(x, y, e);
     }
 
-    protected pointerMoveInner(x: number, y: number, e: PointerEvent) {
+    protected pointerMove(x: number, y: number, e: PointerEvent) {
         this.idleTimer = performance.now();
         this.mouseX = x;
         this.mouseY = y;
@@ -419,11 +421,17 @@ export default abstract class GameShell {
         }
     }
 
-    private ontouchstart(e: TouchEvent) {
-        this.touchStartInner(e);
+    protected windowMouseUp(e: MouseEvent) {
     }
 
-    protected touchStartInner(e: TouchEvent) {
+    protected windowMouseMove(e: MouseEvent) {
+    }
+
+    private ontouchstart(e: TouchEvent) {
+        this.touchStart(e);
+    }
+
+    protected touchStart(e: TouchEvent) {
         if (e.touches.length < 2) {
             // 1 touch - prevent natural browser behavior
             // 2+ touches - allow scrolling/zooming
