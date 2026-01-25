@@ -9173,10 +9173,11 @@ export class Client extends GameShell {
 
         if (action === MenuAction.OPHELD6) {
             const obj: ObjType = ObjType.get(a);
+            const com = IfType.list[c];
             let examine: string;
 
-            if (c >= 100000) {
-                examine = c + ' x ' + obj.name;
+            if (com && com.linkObjCount && com.linkObjCount[b] >= 100000) {
+                examine = com.linkObjCount[b] + ' x ' + obj.name;
             } else if (!obj.desc) {
                 examine = "It's a " + obj.name + '.';
             } else {
@@ -10444,9 +10445,8 @@ export class Client extends GameShell {
                             this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name;
                             this.menuAction[this.menuNumEntries] = MenuAction.OPHELD6;
                             this.menuParamA[this.menuNumEntries] = obj.id;
-                            if (child.linkObjCount) {
-                                this.menuParamC[this.menuNumEntries] = child.linkObjCount[slot];
-                            }
+                            this.menuParamB[this.menuNumEntries] = slot;
+                            this.menuParamC[this.menuNumEntries] = child.id;
                             this.menuNumEntries++;
                         }
 
