@@ -106,8 +106,8 @@ export class Client extends GameShell {
     private focusIn: boolean = false;
 
     private displayFps: boolean = false;
-
     private rebootTimer: number = 0;
+
     private hintType: number = 0;
     private hintNpc: number = 0;
     private hintPlayer: number = 0;
@@ -132,7 +132,7 @@ export class Client extends GameShell {
     private npcIds: Int32Array = new Int32Array(16384);
 
     private stream: ClientStream | null = null;
-    private serverSeed: bigint = 0n;
+    private loginSeed: bigint = 0n;
     private randomIn: Isaac | null = null;
     private out: Packet = Packet.alloc(1);
     private loginout: Packet = Packet.alloc(1);
@@ -344,37 +344,43 @@ export class Client extends GameShell {
     private crossMode: number = 0;
 
     private selectedArea: number = 0;
-    private selectedLayerId: number = 0;
+    private selectedComId: number = 0;
     private selectedItem: number = 0;
     private selectedCycle: number = 0;
 
     private objDragArea: number = 0;
-    private objDragLayerId: number = 0;
+    private objDragComId: number = 0;
     private objDragSlot: number = 0;
     private objGrabX: number = 0;
     private objGrabY: number = 0;
     private objGrabThreshold: boolean = false;
     private objDragCycles: number = 0;
 
-    private hoveredSlotParentId: number = 0;
+    private hoveredSlotComId: number = 0;
     private hoveredSlot: number = 0;
 
     private inMultizone: number = 0;
     private chatDisabled: number = 0;
+
     private players: (ClientPlayer | null)[] = new TypedArray1d(Constants.MAX_PLAYER_COUNT, null);
     private playerCount: number = 0;
     private playerIds: Int32Array = new Int32Array(Constants.MAX_PLAYER_COUNT);
+
     private entityUpdateCount: number = 0;
     private entityUpdateIds: Int32Array = new Int32Array(Constants.MAX_PLAYER_COUNT);
     private playerAppearanceBuffer: (Packet | null)[] = new TypedArray1d(Constants.MAX_PLAYER_COUNT, null);
+
     private minusedlevel: number = 0;
     private selfSlot: number = -1;
     private localPlayer: ClientPlayer | null = null;
     private membersAccount: number = 0;
+
     private entityRemovalCount: number = 0;
     private entityRemovalIds: Int32Array = new Int32Array(1000);
+
     private playerOp: (string | null)[] = new TypedArray1d(5, null);
     private playerOpPriority: boolean[] = new TypedArray1d(5, false);
+
     private groundObj: (LinkList<ClientObj> | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
     private locChanges: LinkList<LocChange> = new LinkList();
     private projectiles: LinkList<ClientProj> = new LinkList();
@@ -399,27 +405,24 @@ export class Client extends GameShell {
     private menuOption: string[] = [];
 
     private useMode: number = 0;
-    private objLayerId: number = 0;
+    private objComId: number = 0;
     private objSelectedName: string | null = null;
-    private objSelectedLayerId: number = 0;
+    private objSelectedComId: number = 0;
     private objSelectedSlot: number = 0;
 
     private targetMode: number = 0;
-    private targetCom: number = 0;
+    private targetComId: number = 0;
     private targetMask: number = 0;
     private targetOp: string | null = null;
 
-    private tutLayerId: number = -1;
-    private chatModalId: number = -1;
+    private chatComId: number = -1;
     private mainModalId: number = -1;
     private sideModalId: number = -1;
     private mainOverlayId: number = -1;
-    private lastOverLayerId: number = 0;
-    private overChatLayerId: number = 0;
-    private overMainLayerId: number = 0;
-    private overSideLayerId: number = 0;
-    private modalMessage: string | null = null;
-    private flashingTab: number = -1;
+    private lastOverComId: number = 0;
+    private overChatComId: number = 0;
+    private overMainComId: number = 0;
+    private overSideComId: number = 0;
     private sideTab: number = 3;
     private sideOverlayId: number[] = [
         -1, -1, -1,
@@ -428,10 +431,14 @@ export class Client extends GameShell {
         -1, -1, -1,
         -1, -1, -1
     ];
+    private tutComId: number = -1;
+    private tutComMessage: string | null = null;
+    private tutFlashingTab: number = -1;
 
     private chatEffects: number = 0;
     private splitPrivateChat: number = 0;
     private bankArrangeMode: number = 0;
+
     private resumedPauseButton: boolean = false;
     private runenergy: number = 0;
     private runweight: number = 0;
@@ -441,30 +448,30 @@ export class Client extends GameShell {
 
     private chatInterface: IfType = new IfType();
     private chatScrollHeight: number = 78;
-    private chatScrollOffset: number = 0;
-    private chatTyped: string = '';
-    private messageType: Int32Array = new Int32Array(100);
-    private messageSender: (string | null)[] = new TypedArray1d(100, null);
-    private messageText: (string | null)[] = new TypedArray1d(100, null);
+    private chatScrollPos: number = 0;
+    private chatInput: string = '';
+    private chatType: Int32Array = new Int32Array(100);
+    private chatUsername: (string | null)[] = new TypedArray1d(100, null);
+    private chatText: (string | null)[] = new TypedArray1d(100, null);
     static readonly CHAT_COLORS = Int32Array.of(Colour.YELLOW, Colour.RED, Colour.GREEN, Colour.CYAN, Colour.MAGENTA, Colour.WHITE);
     private chatPublicMode: number = 0;
     private chatPrivateMode: number = 0;
     private chatTradeMode: number = 0;
-    private messageTextIds: Int32Array = new Int32Array(100);
+    private privateMessageIds: Int32Array = new Int32Array(100);
     private privateMessageCount: number = 0;
 
-    private socialName37: bigint | null = null;
+    private socialUserhash: bigint | null = null;
     private socialInputOpen: boolean = false;
     private socialInput: string = '';
     private socialInputType: number = 0;
-    private socialMessage: string = '';
+    private socialInputHeader: string = '';
 
     private dialogInputOpen: boolean = false;
     private dialogInput: string = '';
 
     private reportAbuseInput: string = '';
     private reportAbuseMuteOption: boolean = false;
-    private reportAbuseLayerId: number = -1;
+    private reportAbuseComId: number = -1;
 
     private minimapLevel: number = -1;
     private activeMapFunctionCount: number = 0;
@@ -478,8 +485,8 @@ export class Client extends GameShell {
     private midiVolume: number = 64;
     private midiSong: number = -1;
     private nextMidiSong: number = -1;
-    private midiFading: boolean = false;
     private nextMusicDelay: number = 0;
+    private midiFading: boolean = false;
 
     private waveEnabled: boolean = true;
     private waveVolume: number = 64;
@@ -511,12 +518,12 @@ export class Client extends GameShell {
 
     private friendCount: number = 0;
     private friendListStatus: number = 0;
-    private friendName: (string | null)[] = new TypedArray1d(200, null);
-    private friendName37: BigInt64Array = new BigInt64Array(200);
-    private friendWorld: Int32Array = new Int32Array(200);
+    private friendUsername: (string | null)[] = new TypedArray1d(200, null);
+    private friendUserhash: BigInt64Array = new BigInt64Array(200);
+    private friendNodeId: Int32Array = new Int32Array(200);
 
     private ignoreCount: number = 0;
-    private ignoreName37: bigint[] = [];
+    private ignoreUserhash: bigint[] = [];
 
     private idkGender: boolean = true;
     private idkDesignRedraw: boolean = false;
@@ -1255,7 +1262,7 @@ export class Client extends GameShell {
                 if ((this.onDemand.getModelUse(req.file) & 0x62) != 0) {
                     this.redrawSidebar = true;
 
-                    if (this.chatModalId !== -1) {
+                    if (this.chatComId !== -1) {
                         this.redrawChatback = true;
                     }
                 }
@@ -1941,8 +1948,8 @@ export class Client extends GameShell {
 
             this.stream = new ClientStream(await ClientStream.openSocket(window.location.host, window.location.protocol === 'https:'));
 
-            const username37 = JString.toUserhash(username);
-            const loginServer = Number(username37 >> 16n) & 0x1F;
+            const userhash = JString.toUserhash(username);
+            const loginServer = Number(userhash >> 16n) & 0x1F;
 
             this.out.pos = 0;
             this.out.p1(14);
@@ -1958,12 +1965,12 @@ export class Client extends GameShell {
                 await this.stream.readBytes(this.in.data, 0, 8);
                 this.in.pos = 0;
 
-                this.serverSeed = this.in.g8();
+                this.loginSeed = this.in.g8();
                 const seed: Int32Array = new Int32Array([
                     Math.floor(Math.random() * 99999999),
                     Math.floor(Math.random() * 99999999),
-                    Number(this.serverSeed >> 32n),
-                    Number(this.serverSeed & BigInt(0xffffffff))
+                    Number(this.loginSeed >> 32n),
+                    Number(this.loginSeed & BigInt(0xffffffff))
                 ]);
 
                 this.out.pos = 0;
@@ -2033,7 +2040,7 @@ export class Client extends GameShell {
                 this.idleTimer = performance.now();
 
                 for (let i: number = 0; i < 100; i++) {
-                    this.messageText[i] = null;
+                    this.chatText[i] = null;
                 }
 
                 this.useMode = 0;
@@ -2080,8 +2087,8 @@ export class Client extends GameShell {
                 this.locChanges = new LinkList();
                 this.friendListStatus = 0;
                 this.friendCount = 0;
-                this.tutLayerId = -1;
-                this.chatModalId = -1;
+                this.tutComId = -1;
+                this.chatComId = -1;
                 this.mainModalId = -1;
                 this.sideModalId = -1;
                 this.mainOverlayId = -1;
@@ -2090,9 +2097,9 @@ export class Client extends GameShell {
                 this.dialogInputOpen = false;
                 this.isMenuOpen = false;
                 this.socialInputOpen = false;
-                this.modalMessage = null;
+                this.tutComMessage = null;
                 this.inMultizone = 0;
-                this.flashingTab = -1;
+                this.tutFlashingTab = -1;
 
                 this.idkGender = true;
                 this.validateIdkDesign();
@@ -2483,11 +2490,11 @@ export class Client extends GameShell {
                 this.objDragArea = 0;
 
                 if (this.objGrabThreshold && this.objDragCycles >= 5) {
-                    this.hoveredSlotParentId = -1;
+                    this.hoveredSlotComId = -1;
                     this.buildMinimenu();
 
-                    if (this.hoveredSlotParentId === this.objDragLayerId && this.hoveredSlot !== this.objDragSlot) {
-                        const com: IfType = IfType.list[this.objDragLayerId];
+                    if (this.hoveredSlotComId === this.objDragComId && this.hoveredSlot !== this.objDragSlot) {
+                        const com: IfType = IfType.list[this.objDragComId];
 
                         let mode = 0;
                         if (this.bankArrangeMode == 1 && com.clientCode == ClientCode.CC_BANKMODE) {
@@ -2523,7 +2530,7 @@ export class Client extends GameShell {
                         }
 
                         this.out.pIsaac(ClientProt.INV_BUTTOND);
-                        this.out.p2(this.objDragLayerId);
+                        this.out.p2(this.objDragComId);
                         this.out.p2(this.objDragSlot);
                         this.out.p2(this.hoveredSlot);
                         this.out.p1(mode);
@@ -2562,8 +2569,8 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.mouseClickButton === 1 && this.modalMessage) {
-            this.modalMessage = null;
+        if (this.mouseClickButton === 1 && this.tutComMessage) {
+            this.tutComMessage = null;
             this.redrawChatback = true;
             this.mouseClickButton = 0;
         }
@@ -2758,7 +2765,7 @@ export class Client extends GameShell {
         this.menuNumEntries = 1;
 
         this.addPrivateChatOptions();
-        this.lastOverLayerId = 0;
+        this.lastOverComId = 0;
 
         // the main viewport area
         if (this.mouseX > 4 && this.mouseY > 4 && this.mouseX < 516 && this.mouseY < 338) {
@@ -2769,11 +2776,11 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.lastOverLayerId !== this.overMainLayerId) {
-            this.overMainLayerId = this.lastOverLayerId;
+        if (this.lastOverComId !== this.overMainComId) {
+            this.overMainComId = this.lastOverComId;
         }
 
-        this.lastOverLayerId = 0;
+        this.lastOverComId = 0;
 
         // the sidebar/tabs area
         if (this.mouseX > 553 && this.mouseY > 205 && this.mouseX < 743 && this.mouseY < 466) {
@@ -2784,25 +2791,25 @@ export class Client extends GameShell {
             }
         }
 
-        if (this.lastOverLayerId !== this.overSideLayerId) {
+        if (this.lastOverComId !== this.overSideComId) {
             this.redrawSidebar = true;
-            this.overSideLayerId = this.lastOverLayerId;
+            this.overSideComId = this.lastOverComId;
         }
 
-        this.lastOverLayerId = 0;
+        this.lastOverComId = 0;
 
         // the chatbox area
         if (this.mouseX > 17 && this.mouseY > 357 && this.mouseX < 426 && this.mouseY < 453) {
-            if (this.chatModalId !== -1) {
-                this.addComponentOptions(IfType.list[this.chatModalId], this.mouseX, this.mouseY, 17, 357, 0);
+            if (this.chatComId !== -1) {
+                this.addComponentOptions(IfType.list[this.chatComId], this.mouseX, this.mouseY, 17, 357, 0);
             } else if (this.mouseY < 434) {
                 this.addChatOptions(this.mouseX - 17, this.mouseY - 357);
             }
         }
 
-        if (this.chatModalId !== -1 && this.lastOverLayerId !== this.overChatLayerId) {
+        if (this.chatComId !== -1 && this.lastOverComId !== this.overChatComId) {
             this.redrawChatback = true;
-            this.overChatLayerId = this.lastOverLayerId;
+            this.overChatComId = this.lastOverComId;
         }
 
         let sorted: boolean = false;
@@ -2849,9 +2856,9 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < 100; i++) {
-            if (this.messageText[i] !== null) {
-                const type: number = this.messageType[i];
-                let sender = this.messageSender[i];
+            if (this.chatText[i] !== null) {
+                const type: number = this.chatType[i];
+                let sender = this.chatUsername[i];
 
                 let _mod = false;
                 if (sender && sender.startsWith('@cr1@')) {
@@ -2899,17 +2906,17 @@ export class Client extends GameShell {
     private addChatOptions(_mouseX: number, mouseY: number): void {
         let line: number = 0;
         for (let i: number = 0; i < 100; i++) {
-            if (!this.messageText[i]) {
+            if (!this.chatText[i]) {
                 continue;
             }
 
-            const type: number = this.messageType[i];
-            const y: number = this.chatScrollOffset + 70 + 4 - line * 14;
+            const type: number = this.chatType[i];
+            const y: number = this.chatScrollPos + 70 + 4 - line * 14;
             if (y < -20) {
                 break;
             }
 
-            let sender = this.messageSender[i];
+            let sender = this.chatUsername[i];
             let _mod = false;
             if (sender && sender.startsWith('@cr1@')) {
                 sender = sender.substring(5);
@@ -3129,7 +3136,7 @@ export class Client extends GameShell {
 
             for (let i: number = 0; i < IfType.list.length; i++) {
                 if (IfType.list[i] && IfType.list[i].clientCode === ClientCode.CC_REPORT_INPUT) {
-                    this.reportAbuseLayerId = this.mainModalId = IfType.list[i].layerId;
+                    this.reportAbuseComId = this.mainModalId = IfType.list[i].layerId;
                     break;
                 }
             }
@@ -3192,7 +3199,7 @@ export class Client extends GameShell {
                         return;
                     }
 
-                    if (this.mainModalId !== -1 && this.mainModalId === this.reportAbuseLayerId) {
+                    if (this.mainModalId !== -1 && this.mainModalId === this.reportAbuseComId) {
                         if (key === 8 && this.reportAbuseInput.length > 0) {
                             this.reportAbuseInput = this.reportAbuseInput.substring(0, this.reportAbuseInput.length - 1);
                         }
@@ -3214,29 +3221,29 @@ export class Client extends GameShell {
                             this.socialInputOpen = false;
                             this.redrawChatback = true;
 
-                            let username: bigint;
+                            let userhash: bigint;
                             if (this.socialInputType === 1) {
-                                username = JString.toUserhash(this.socialInput);
-                                this.addFriend(username);
+                                userhash = JString.toUserhash(this.socialInput);
+                                this.addFriend(userhash);
                             }
 
                             if (this.socialInputType === 2 && this.friendCount > 0) {
-                                username = JString.toUserhash(this.socialInput);
-                                this.delFriend(username);
+                                userhash = JString.toUserhash(this.socialInput);
+                                this.delFriend(userhash);
                             }
 
-                            if (this.socialInputType === 3 && this.socialInput.length > 0 && this.socialName37) {
+                            if (this.socialInputType === 3 && this.socialInput.length > 0 && this.socialUserhash) {
                                 this.out.pIsaac(ClientProt.MESSAGE_PRIVATE);
                                 this.out.p1(0);
                                 const start: number = this.out.pos;
 
-                                this.out.p8(this.socialName37);
+                                this.out.p8(this.socialUserhash);
                                 WordPack.pack(this.out, this.socialInput);
                                 this.out.psize1(this.out.pos - start);
 
                                 this.socialInput = JString.toSentenceCase(this.socialInput);
                                 this.socialInput = WordFilter.filter(this.socialInput);
-                                this.addChat(6, this.socialInput, JString.toScreenName(JString.toRawUsername(this.socialName37)));
+                                this.addChat(6, this.socialInput, JString.toScreenName(JString.toRawUsername(this.socialUserhash)));
 
                                 if (this.chatPrivateMode === 2) {
                                     this.chatPrivateMode = 1;
@@ -3250,13 +3257,13 @@ export class Client extends GameShell {
                             }
 
                             if (this.socialInputType === 4 && this.ignoreCount < 100) {
-                                username = JString.toUserhash(this.socialInput);
-                                this.addIgnore(username);
+                                userhash = JString.toUserhash(this.socialInput);
+                                this.addIgnore(userhash);
                             }
 
                             if (this.socialInputType === 5 && this.ignoreCount > 0) {
-                                username = JString.toUserhash(this.socialInput);
-                                this.delIgnore(username);
+                                userhash = JString.toUserhash(this.socialInput);
+                                this.delIgnore(userhash);
                             }
                         }
                     } else if (this.dialogInputOpen) {
@@ -3286,100 +3293,100 @@ export class Client extends GameShell {
                             this.dialogInputOpen = false;
                             this.redrawChatback = true;
                         }
-                    } else if (this.chatModalId === -1) {
+                    } else if (this.chatComId === -1) {
                         // custom: when typing a command, you can use the debugproc character (tilde)
-                        if (key >= 32 && (key <= 122 || (this.chatTyped.startsWith('::') && key <= 126)) && this.chatTyped.length < 80) {
-                            this.chatTyped = this.chatTyped + String.fromCharCode(key);
+                        if (key >= 32 && (key <= 122 || (this.chatInput.startsWith('::') && key <= 126)) && this.chatInput.length < 80) {
+                            this.chatInput = this.chatInput + String.fromCharCode(key);
                             this.redrawChatback = true;
                         }
 
-                        if (key === 8 && this.chatTyped.length > 0) {
-                            this.chatTyped = this.chatTyped.substring(0, this.chatTyped.length - 1);
+                        if (key === 8 && this.chatInput.length > 0) {
+                            this.chatInput = this.chatInput.substring(0, this.chatInput.length - 1);
                             this.redrawChatback = true;
                         }
 
-                        if ((key === 13 || key === 10) && this.chatTyped.length > 0) {
+                        if ((key === 13 || key === 10) && this.chatInput.length > 0) {
                             if (this.staffmodlevel === 2) {
-                                if (this.chatTyped === '::clientdrop') {
+                                if (this.chatInput === '::clientdrop') {
                                     await this.lostCon();
-                                } else if (this.chatTyped === '::prefetchmusic') {
+                                } else if (this.chatInput === '::prefetchmusic') {
                                     if (this.onDemand) {
                                         for (let i = 0; i < this.onDemand.getFileCount(2); i++) {
                                             this.onDemand.prefetchPriority(2, i, 1);
                                         }
                                     }
-                                } else if (this.chatTyped === '::lag') {
+                                } else if (this.chatInput === '::lag') {
                                     this.lag();
                                 }
                             }
 
                             // custom: player-facing commands
-                            if (this.chatTyped === '::fpson') {
+                            if (this.chatInput === '::fpson') {
                                 // authentic in later revs
                                 this.displayFps = true;
-                            } else if (this.chatTyped === '::fpsoff') {
+                            } else if (this.chatInput === '::fpsoff') {
                                 // authentic in later revs
                                 this.displayFps = false;
-                            } else if (this.chatTyped.startsWith('::fps ')) {
+                            } else if (this.chatInput.startsWith('::fps ')) {
                                 // custom ::fps command for setting a target framerate
                                 try {
-                                    const desiredFps = parseInt(this.chatTyped.substring(6)) || 50;
+                                    const desiredFps = parseInt(this.chatInput.substring(6)) || 50;
                                     this.setTargetedFramerate(desiredFps);
                                 } catch (_e) {
                                     // empty
                                 }
-                            } else if (this.chatTyped.startsWith('::')) {
+                            } else if (this.chatInput.startsWith('::')) {
                                 this.out.pIsaac(ClientProt.CLIENT_CHEAT);
-                                this.out.p1(this.chatTyped.length - 2 + 1);
-                                this.out.pjstr(this.chatTyped.substring(2));
+                                this.out.p1(this.chatInput.length - 2 + 1);
+                                this.out.pjstr(this.chatInput.substring(2));
                             } else {
                                 let colour: number = 0;
-                                if (this.chatTyped.startsWith('yellow:')) {
+                                if (this.chatInput.startsWith('yellow:')) {
                                     colour = 0;
-                                    this.chatTyped = this.chatTyped.substring(7);
-                                } else if (this.chatTyped.startsWith('red:')) {
+                                    this.chatInput = this.chatInput.substring(7);
+                                } else if (this.chatInput.startsWith('red:')) {
                                     colour = 1;
-                                    this.chatTyped = this.chatTyped.substring(4);
-                                } else if (this.chatTyped.startsWith('green:')) {
+                                    this.chatInput = this.chatInput.substring(4);
+                                } else if (this.chatInput.startsWith('green:')) {
                                     colour = 2;
-                                    this.chatTyped = this.chatTyped.substring(6);
-                                } else if (this.chatTyped.startsWith('cyan:')) {
+                                    this.chatInput = this.chatInput.substring(6);
+                                } else if (this.chatInput.startsWith('cyan:')) {
                                     colour = 3;
-                                    this.chatTyped = this.chatTyped.substring(5);
-                                } else if (this.chatTyped.startsWith('purple:')) {
+                                    this.chatInput = this.chatInput.substring(5);
+                                } else if (this.chatInput.startsWith('purple:')) {
                                     colour = 4;
-                                    this.chatTyped = this.chatTyped.substring(7);
-                                } else if (this.chatTyped.startsWith('white:')) {
+                                    this.chatInput = this.chatInput.substring(7);
+                                } else if (this.chatInput.startsWith('white:')) {
                                     colour = 5;
-                                    this.chatTyped = this.chatTyped.substring(6);
-                                } else if (this.chatTyped.startsWith('flash1:')) {
+                                    this.chatInput = this.chatInput.substring(6);
+                                } else if (this.chatInput.startsWith('flash1:')) {
                                     colour = 6;
-                                    this.chatTyped = this.chatTyped.substring(7);
-                                } else if (this.chatTyped.startsWith('flash2:')) {
+                                    this.chatInput = this.chatInput.substring(7);
+                                } else if (this.chatInput.startsWith('flash2:')) {
                                     colour = 7;
-                                    this.chatTyped = this.chatTyped.substring(7);
-                                } else if (this.chatTyped.startsWith('flash3:')) {
+                                    this.chatInput = this.chatInput.substring(7);
+                                } else if (this.chatInput.startsWith('flash3:')) {
                                     colour = 8;
-                                    this.chatTyped = this.chatTyped.substring(7);
-                                } else if (this.chatTyped.startsWith('glow1:')) {
+                                    this.chatInput = this.chatInput.substring(7);
+                                } else if (this.chatInput.startsWith('glow1:')) {
                                     colour = 9;
-                                    this.chatTyped = this.chatTyped.substring(6);
-                                } else if (this.chatTyped.startsWith('glow2:')) {
+                                    this.chatInput = this.chatInput.substring(6);
+                                } else if (this.chatInput.startsWith('glow2:')) {
                                     colour = 10;
-                                    this.chatTyped = this.chatTyped.substring(6);
-                                } else if (this.chatTyped.startsWith('glow3:')) {
+                                    this.chatInput = this.chatInput.substring(6);
+                                } else if (this.chatInput.startsWith('glow3:')) {
                                     colour = 11;
-                                    this.chatTyped = this.chatTyped.substring(6);
+                                    this.chatInput = this.chatInput.substring(6);
                                 }
 
                                 let effect: number = 0;
-                                if (this.chatTyped.startsWith('wave:')) {
+                                if (this.chatInput.startsWith('wave:')) {
                                     effect = 1;
-                                    this.chatTyped = this.chatTyped.substring(5);
+                                    this.chatInput = this.chatInput.substring(5);
                                 }
-                                if (this.chatTyped.startsWith('scroll:')) {
+                                if (this.chatInput.startsWith('scroll:')) {
                                     effect = 2;
-                                    this.chatTyped = this.chatTyped.substring(7);
+                                    this.chatInput = this.chatInput.substring(7);
                                 }
 
                                 this.out.pIsaac(ClientProt.MESSAGE_PUBLIC);
@@ -3388,14 +3395,14 @@ export class Client extends GameShell {
 
                                 this.out.p1(colour);
                                 this.out.p1(effect);
-                                WordPack.pack(this.out, this.chatTyped);
+                                WordPack.pack(this.out, this.chatInput);
                                 this.out.psize1(this.out.pos - start);
 
-                                this.chatTyped = JString.toSentenceCase(this.chatTyped);
-                                this.chatTyped = WordFilter.filter(this.chatTyped);
+                                this.chatInput = JString.toSentenceCase(this.chatInput);
+                                this.chatInput = WordFilter.filter(this.chatInput);
 
                                 if (this.localPlayer && this.localPlayer.name) {
-                                    this.localPlayer.chatMessage = this.chatTyped;
+                                    this.localPlayer.chatMessage = this.chatInput;
                                     this.localPlayer.chatColour = colour;
                                     this.localPlayer.chatEffect = effect;
                                     this.localPlayer.chatTimer = 150;
@@ -3420,7 +3427,7 @@ export class Client extends GameShell {
                                 }
                             }
 
-                            this.chatTyped = '';
+                            this.chatInput = '';
                             this.redrawChatback = true;
                         }
                     }
@@ -4174,8 +4181,8 @@ export class Client extends GameShell {
             this.redrawSidebar = false;
         }
 
-        if (this.chatModalId === -1) {
-            this.chatInterface.scrollPos = this.chatScrollHeight - this.chatScrollOffset - 77;
+        if (this.chatComId === -1) {
+            this.chatInterface.scrollPos = this.chatScrollHeight - this.chatScrollPos - 77;
 
             if (this.mouseX > 448 && this.mouseX < 560 && this.mouseY > 332) {
                 this.doScrollbar(this.mouseX - 17, this.mouseY - 357, this.chatScrollHeight, 77, false, 463, 0, this.chatInterface);
@@ -4190,14 +4197,14 @@ export class Client extends GameShell {
                 offset = this.chatScrollHeight - 77;
             }
 
-            if (this.chatScrollOffset !== offset) {
-                this.chatScrollOffset = offset;
+            if (this.chatScrollPos !== offset) {
+                this.chatScrollPos = offset;
                 this.redrawChatback = true;
             }
         }
 
-        if (this.chatModalId !== -1) {
-            const redraw = this.animateInterface(this.chatModalId, this.worldUpdateNum);
+        if (this.chatComId !== -1) {
+            const redraw = this.animateInterface(this.chatComId, this.worldUpdateNum);
             if (redraw) {
                 this.redrawChatback = true;
             }
@@ -4211,7 +4218,7 @@ export class Client extends GameShell {
             this.redrawChatback = true;
         }
 
-        if (this.modalMessage) {
+        if (this.tutComMessage) {
             this.redrawChatback = true;
         }
 
@@ -4229,13 +4236,13 @@ export class Client extends GameShell {
             this.areaMapback?.draw(550, 4);
         }
 
-        if (this.flashingTab !== -1) {
+        if (this.tutFlashingTab !== -1) {
             this.redrawSideicons = true;
         }
 
         if (this.redrawSideicons) {
-            if (this.flashingTab !== -1 && this.flashingTab === this.sideTab) {
-                this.flashingTab = -1;
+            if (this.tutFlashingTab !== -1 && this.tutFlashingTab === this.sideTab) {
+                this.tutFlashingTab = -1;
                 this.out.pIsaac(ClientProt.TUT_CLICKSIDE);
                 this.out.p1(this.sideTab);
             }
@@ -4263,31 +4270,31 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (this.sideOverlayId[0] !== -1 && (this.flashingTab !== 0 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[0] !== -1 && (this.tutFlashingTab !== 0 || this.loopCycle % 20 < 10)) {
                     this.sideicons[0]?.plotSprite(29, 13);
                 }
 
-                if (this.sideOverlayId[1] !== -1 && (this.flashingTab !== 1 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[1] !== -1 && (this.tutFlashingTab !== 1 || this.loopCycle % 20 < 10)) {
                     this.sideicons[1]?.plotSprite(53, 11);
                 }
 
-                if (this.sideOverlayId[2] !== -1 && (this.flashingTab !== 2 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[2] !== -1 && (this.tutFlashingTab !== 2 || this.loopCycle % 20 < 10)) {
                     this.sideicons[2]?.plotSprite(82, 11);
                 }
 
-                if (this.sideOverlayId[3] !== -1 && (this.flashingTab !== 3 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[3] !== -1 && (this.tutFlashingTab !== 3 || this.loopCycle % 20 < 10)) {
                     this.sideicons[3]?.plotSprite(115, 12);
                 }
 
-                if (this.sideOverlayId[4] !== -1 && (this.flashingTab !== 4 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[4] !== -1 && (this.tutFlashingTab !== 4 || this.loopCycle % 20 < 10)) {
                     this.sideicons[4]?.plotSprite(153, 13);
                 }
 
-                if (this.sideOverlayId[5] !== -1 && (this.flashingTab !== 5 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[5] !== -1 && (this.tutFlashingTab !== 5 || this.loopCycle % 20 < 10)) {
                     this.sideicons[5]?.plotSprite(180, 11);
                 }
 
-                if (this.sideOverlayId[6] !== -1 && (this.flashingTab !== 6 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[6] !== -1 && (this.tutFlashingTab !== 6 || this.loopCycle % 20 < 10)) {
                     this.sideicons[6]?.plotSprite(208, 13);
                 }
             }
@@ -4316,27 +4323,27 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (this.sideOverlayId[8] !== -1 && (this.flashingTab !== 8 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[8] !== -1 && (this.tutFlashingTab !== 8 || this.loopCycle % 20 < 10)) {
                     this.sideicons[7]?.plotSprite(74, 2);
                 }
 
-                if (this.sideOverlayId[9] !== -1 && (this.flashingTab !== 9 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[9] !== -1 && (this.tutFlashingTab !== 9 || this.loopCycle % 20 < 10)) {
                     this.sideicons[8]?.plotSprite(102, 3);
                 }
 
-                if (this.sideOverlayId[10] !== -1 && (this.flashingTab !== 10 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[10] !== -1 && (this.tutFlashingTab !== 10 || this.loopCycle % 20 < 10)) {
                     this.sideicons[9]?.plotSprite(137, 4);
                 }
 
-                if (this.sideOverlayId[11] !== -1 && (this.flashingTab !== 11 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[11] !== -1 && (this.tutFlashingTab !== 11 || this.loopCycle % 20 < 10)) {
                     this.sideicons[10]?.plotSprite(174, 2);
                 }
 
-                if (this.sideOverlayId[12] !== -1 && (this.flashingTab !== 12 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[12] !== -1 && (this.tutFlashingTab !== 12 || this.loopCycle % 20 < 10)) {
                     this.sideicons[11]?.plotSprite(201, 2);
                 }
 
-                if (this.sideOverlayId[13] !== -1 && (this.flashingTab !== 13 || this.loopCycle % 20 < 10)) {
+                if (this.sideOverlayId[13] !== -1 && (this.tutFlashingTab !== 13 || this.loopCycle % 20 < 10)) {
                     this.sideicons[12]?.plotSprite(226, 2);
                 }
             }
@@ -5152,12 +5159,12 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < 100; i++) {
-            if (!this.messageText[i]) {
+            if (!this.chatText[i]) {
                 continue;
             }
 
-            const type: number = this.messageType[i];
-            let sender = this.messageSender[i];
+            const type: number = this.chatType[i];
+            let sender = this.chatUsername[i];
 
             let modlevel = 0;
             if (sender && sender.startsWith('@cr1@')) {
@@ -5184,8 +5191,8 @@ export class Client extends GameShell {
                     x += 14;
                 }
 
-                font?.drawString(x, y, sender + ': ' + this.messageText[i], Colour.BLACK);
-                font?.drawString(x, y - 1, sender + ': ' + this.messageText[i], Colour.CYAN);
+                font?.drawString(x, y, sender + ': ' + this.chatText[i], Colour.BLACK);
+                font?.drawString(x, y - 1, sender + ': ' + this.chatText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5194,8 +5201,8 @@ export class Client extends GameShell {
             } else if (type === 5 && this.chatPrivateMode < 2) {
                 const y = 329 - lineOffset * 13;
 
-                font?.drawString(4, y, this.messageText[i], Colour.BLACK);
-                font?.drawString(4, y - 1, this.messageText[i], Colour.CYAN);
+                font?.drawString(4, y, this.chatText[i], Colour.BLACK);
+                font?.drawString(4, y - 1, this.chatText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5204,8 +5211,8 @@ export class Client extends GameShell {
             } else if (type === 6 && this.chatPrivateMode < 2) {
                 const y = 329 - lineOffset * 13;
 
-                font?.drawString(4, y, 'To ' + sender + ': ' + this.messageText[i], Colour.BLACK);
-                font?.drawString(4, y - 1, 'To ' + sender + ': ' + this.messageText[i], Colour.CYAN);
+                font?.drawString(4, y, 'To ' + sender + ': ' + this.chatText[i], Colour.BLACK);
+                font?.drawString(4, y - 1, 'To ' + sender + ': ' + this.chatText[i], Colour.CYAN);
 
                 lineOffset++;
                 if (lineOffset >= 5) {
@@ -5315,7 +5322,7 @@ export class Client extends GameShell {
             const status = this.checkScene();
             if (status != 0 && performance.now() - this.sceneLoadStartTime > 360000) {
                 // "game look check ..."
-                console.log(`${this.loginUser} glcfb ${this.serverSeed},${status},${Client.lowMem},${this.db !== null},${this.onDemand?.remaining()},${this.minusedlevel},${this.mapBuildCenterZoneX},${this.mapBuildCenterZoneZ}`);
+                console.log(`${this.loginUser} glcfb ${this.loginSeed},${status},${Client.lowMem},${this.db !== null},${this.onDemand?.remaining()},${this.minusedlevel},${this.mapBuildCenterZoneX},${this.mapBuildCenterZoneZ}`);
                 this.sceneLoadStartTime = performance.now();
             }
         }
@@ -6161,7 +6168,7 @@ export class Client extends GameShell {
                     this.redrawSideicons = true;
                 }
 
-                this.chatModalId = com;
+                this.chatComId = com;
                 this.redrawChatback = true;
                 this.mainModalId = -1;
                 this.resumedPauseButton = false;
@@ -6174,8 +6181,8 @@ export class Client extends GameShell {
                 const main: number = this.in.g2();
                 const side: number = this.in.g2();
 
-                if (this.chatModalId !== -1) {
-                    this.chatModalId = -1;
+                if (this.chatComId !== -1) {
+                    this.chatComId = -1;
                     this.redrawChatback = true;
                 }
 
@@ -6201,8 +6208,8 @@ export class Client extends GameShell {
                     this.redrawSideicons = true;
                 }
 
-                if (this.chatModalId !== -1) {
-                    this.chatModalId = -1;
+                if (this.chatComId !== -1) {
+                    this.chatComId = -1;
                     this.redrawChatback = true;
                 }
 
@@ -6245,8 +6252,8 @@ export class Client extends GameShell {
                     this.redrawSideicons = true;
                 }
 
-                if (this.chatModalId !== -1) {
-                    this.chatModalId = -1;
+                if (this.chatComId !== -1) {
+                    this.chatComId = -1;
                     this.redrawChatback = true;
                 }
 
@@ -6267,8 +6274,8 @@ export class Client extends GameShell {
 
                 this.ifAnimReset(com);
 
-                if (this.chatModalId !== -1) {
-                    this.chatModalId = -1;
+                if (this.chatComId !== -1) {
+                    this.chatComId = -1;
                     this.redrawChatback = true;
                 }
 
@@ -6435,10 +6442,10 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.TUT_FLASH) {
-                this.flashingTab = this.in.g1();
+                this.tutFlashingTab = this.in.g1();
 
-                if (this.flashingTab === this.sideTab) {
-                    if (this.flashingTab === 3) {
+                if (this.tutFlashingTab === this.sideTab) {
+                    if (this.tutFlashingTab === 3) {
                         this.sideTab = 1;
                     } else {
                         this.sideTab = 3;
@@ -6452,7 +6459,7 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.TUT_OPEN) {
-                this.tutLayerId = this.in.g2b();
+                this.tutComId = this.in.g2b();
                 this.redrawChatback = true;
 
                 this.ptype = -1;
@@ -6660,7 +6667,7 @@ export class Client extends GameShell {
 
                     let ignored: boolean = false;
                     for (let i: number = 0; i < this.ignoreCount; i++) {
-                        if (this.ignoreName37[i] === username) {
+                        if (this.ignoreUserhash[i] === username) {
                             ignored = true;
                             break;
                         }
@@ -6675,7 +6682,7 @@ export class Client extends GameShell {
 
                     let ignored: boolean = false;
                     for (let i: number = 0; i < this.ignoreCount; i++) {
-                        if (this.ignoreName37[i] === username) {
+                        if (this.ignoreUserhash[i] === username) {
                             ignored = true;
                             break;
                         }
@@ -6695,7 +6702,7 @@ export class Client extends GameShell {
             if (this.ptype === ServerProt.UPDATE_IGNORELIST) {
                 this.ignoreCount = (this.psize / 8) | 0;
                 for (let i: number = 0; i < this.ignoreCount; i++) {
-                    this.ignoreName37[i] = this.in.g8();
+                    this.ignoreUserhash[i] = this.in.g8();
                 }
 
                 this.ptype = -1;
@@ -6721,7 +6728,7 @@ export class Client extends GameShell {
 
                 let ignored: boolean = false;
                 for (let i: number = 0; i < 100; i++) {
-                    if (this.messageTextIds[i] === messageId) {
+                    if (this.privateMessageIds[i] === messageId) {
                         ignored = true;
                         break;
                     }
@@ -6729,7 +6736,7 @@ export class Client extends GameShell {
 
                 if (staffModLevel <= 1) {
                     for (let i: number = 0; i < this.ignoreCount; i++) {
-                        if (this.ignoreName37[i] === from) {
+                        if (this.ignoreUserhash[i] === from) {
                             ignored = true;
                             break;
                         }
@@ -6738,8 +6745,9 @@ export class Client extends GameShell {
 
                 if (!ignored && this.chatDisabled === 0) {
                     try {
-                        this.messageTextIds[this.privateMessageCount] = messageId;
+                        this.privateMessageIds[this.privateMessageCount] = messageId;
                         this.privateMessageCount = (this.privateMessageCount + 1) % 100;
+
                         const uncompressed: string = WordPack.unpack(this.in, this.psize - 13);
                         const filtered: string = WordFilter.filter(uncompressed);
 
@@ -6773,9 +6781,9 @@ export class Client extends GameShell {
 
                 let displayName: string | null = JString.toScreenName(JString.toRawUsername(username));
                 for (let i: number = 0; i < this.friendCount; i++) {
-                    if (username === this.friendName37[i]) {
-                        if (this.friendWorld[i] !== world) {
-                            this.friendWorld[i] = world;
+                    if (username === this.friendUserhash[i]) {
+                        if (this.friendNodeId[i] !== world) {
+                            this.friendNodeId[i] = world;
                             this.redrawSidebar = true;
                             if (world > 0) {
                                 this.addChat(5, displayName + ' has logged in.', '');
@@ -6791,9 +6799,9 @@ export class Client extends GameShell {
                 }
 
                 if (displayName && this.friendCount < 200) {
-                    this.friendName37[this.friendCount] = username;
-                    this.friendName[this.friendCount] = displayName;
-                    this.friendWorld[this.friendCount] = world;
+                    this.friendUserhash[this.friendCount] = username;
+                    this.friendUsername[this.friendCount] = displayName;
+                    this.friendNodeId[this.friendCount] = world;
                     this.friendCount++;
                     this.redrawSidebar = true;
                 }
@@ -6803,18 +6811,18 @@ export class Client extends GameShell {
                     sorted = true;
 
                     for (let i: number = 0; i < this.friendCount - 1; i++) {
-                        if ((this.friendWorld[i] !== Client.nodeId && this.friendWorld[i + 1] === Client.nodeId) || (this.friendWorld[i] === 0 && this.friendWorld[i + 1] !== 0)) {
-                            const oldWorld: number = this.friendWorld[i];
-                            this.friendWorld[i] = this.friendWorld[i + 1];
-                            this.friendWorld[i + 1] = oldWorld;
+                        if ((this.friendNodeId[i] !== Client.nodeId && this.friendNodeId[i + 1] === Client.nodeId) || (this.friendNodeId[i] === 0 && this.friendNodeId[i + 1] !== 0)) {
+                            const oldWorld: number = this.friendNodeId[i];
+                            this.friendNodeId[i] = this.friendNodeId[i + 1];
+                            this.friendNodeId[i + 1] = oldWorld;
 
-                            const oldName: string | null = this.friendName[i];
-                            this.friendName[i] = this.friendName[i + 1];
-                            this.friendName[i + 1] = oldName;
+                            const oldName: string | null = this.friendUsername[i];
+                            this.friendUsername[i] = this.friendUsername[i + 1];
+                            this.friendUsername[i + 1] = oldName;
 
-                            const oldName37: bigint = this.friendName37[i];
-                            this.friendName37[i] = this.friendName37[i + 1];
-                            this.friendName37[i + 1] = oldName37;
+                            const oldUserhash: bigint = this.friendUserhash[i];
+                            this.friendUserhash[i] = this.friendUserhash[i + 1];
+                            this.friendUserhash[i + 1] = oldUserhash;
                             this.redrawSidebar = true;
                             sorted = false;
                         }
@@ -7193,7 +7201,7 @@ export class Client extends GameShell {
 
                     this.redrawSidebar = true;
 
-                    if (this.tutLayerId !== -1) {
+                    if (this.tutComId !== -1) {
                         this.redrawChatback = true;
                     }
                 }
@@ -7214,7 +7222,7 @@ export class Client extends GameShell {
 
                     this.redrawSidebar = true;
 
-                    if (this.tutLayerId !== -1) {
+                    if (this.tutComId !== -1) {
                         this.redrawChatback = true;
                     }
                 }
@@ -8137,7 +8145,7 @@ export class Client extends GameShell {
 
                 if (type <= 1) {
                     for (let i: number = 0; i < this.ignoreCount; i++) {
-                        if (this.ignoreName37[i] === username) {
+                        if (this.ignoreUserhash[i] === username) {
                             ignored = true;
                             break;
                         }
@@ -8572,7 +8580,7 @@ export class Client extends GameShell {
                     if (com.objSwap || com.objReplace) {
                         this.objGrabThreshold = false;
                         this.objDragCycles = 0;
-                        this.objDragLayerId = comId;
+                        this.objDragComId = comId;
                         this.objDragSlot = slot;
                         this.objDragArea = 2;
                         this.objGrabX = this.mouseClickX;
@@ -8582,7 +8590,7 @@ export class Client extends GameShell {
                             this.objDragArea = 1;
                         }
 
-                        if (IfType.list[comId].layerId === this.chatModalId) {
+                        if (IfType.list[comId].layerId === this.chatComId) {
                             this.objDragArea = 3;
                         }
 
@@ -8875,7 +8883,7 @@ export class Client extends GameShell {
                 this.out.p2(b + this.mapBuildBaseX);
                 this.out.p2(c + this.mapBuildBaseZ);
                 this.out.p2(a);
-                this.out.p2(this.targetCom);
+                this.out.p2(this.targetComId);
             }
         }
 
@@ -8895,9 +8903,9 @@ export class Client extends GameShell {
                 this.out.p2(b + this.mapBuildBaseX);
                 this.out.p2(c + this.mapBuildBaseZ);
                 this.out.p2(a);
-                this.out.p2(this.objLayerId);
+                this.out.p2(this.objComId);
                 this.out.p2(this.objSelectedSlot);
-                this.out.p2(this.objSelectedLayerId);
+                this.out.p2(this.objSelectedComId);
             }
         }
 
@@ -8962,7 +8970,7 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPNPCT);
                 this.out.p2(a);
-                this.out.p2(this.targetCom);
+                this.out.p2(this.targetComId);
             }
         }
 
@@ -8979,9 +8987,9 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPNPCU);
                 this.out.p2(a);
-                this.out.p2(this.objLayerId);
+                this.out.p2(this.objComId);
                 this.out.p2(this.objSelectedSlot);
-                this.out.p2(this.objSelectedLayerId);
+                this.out.p2(this.objSelectedComId);
             }
         }
 
@@ -9033,15 +9041,15 @@ export class Client extends GameShell {
 
         if (action === MenuAction.OPLOCT) {
             if (this.interactWithLoc(ClientProt.OPLOCT, b, c, a)) {
-                this.out.p2(this.targetCom);
+                this.out.p2(this.targetComId);
             }
         }
 
         if (action === MenuAction.OPLOCU) {
             if (this.interactWithLoc(ClientProt.OPLOCU, b, c, a)) {
-                this.out.p2(this.objLayerId);
+                this.out.p2(this.objComId);
                 this.out.p2(this.objSelectedSlot);
-                this.out.p2(this.objSelectedLayerId);
+                this.out.p2(this.objSelectedComId);
             }
         }
 
@@ -9151,7 +9159,7 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPPLAYERT);
                 this.out.p2(a);
-                this.out.p2(this.targetCom);
+                this.out.p2(this.targetComId);
             }
         }
 
@@ -9167,9 +9175,9 @@ export class Client extends GameShell {
 
                 this.out.pIsaac(ClientProt.OPPLAYERU);
                 this.out.p2(a);
-                this.out.p2(this.objLayerId);
+                this.out.p2(this.objComId);
                 this.out.p2(this.objSelectedSlot);
-                this.out.p2(this.objSelectedLayerId);
+                this.out.p2(this.objSelectedComId);
             }
         }
 
@@ -9205,7 +9213,7 @@ export class Client extends GameShell {
             this.out.p2(c);
 
             this.selectedCycle = 0;
-            this.selectedLayerId = c;
+            this.selectedComId = c;
             this.selectedItem = b;
             this.selectedArea = 2;
 
@@ -9213,7 +9221,7 @@ export class Client extends GameShell {
                 this.selectedArea = 1;
             }
 
-            if (IfType.list[c].layerId === this.chatModalId) {
+            if (IfType.list[c].layerId === this.chatComId) {
                 this.selectedArea = 3;
             }
         }
@@ -9237,8 +9245,8 @@ export class Client extends GameShell {
         if (action === MenuAction.OPHELDT_START) {
             this.useMode = 1;
             this.objSelectedSlot = b;
-            this.objSelectedLayerId = c;
-            this.objLayerId = a;
+            this.objSelectedComId = c;
+            this.objComId = a;
             this.objSelectedName = ObjType.list(a).name;
             this.targetMode = 0;
             this.redrawSidebar = true;
@@ -9248,7 +9256,7 @@ export class Client extends GameShell {
         if (action === MenuAction.OPHELDT_SELECT) {
             const com: IfType = IfType.list[c];
             this.targetMode = 1;
-            this.targetCom = c;
+            this.targetComId = c;
             this.targetMask = com.targetMask;
             this.useMode = 0;
             this.redrawSidebar = true;
@@ -9279,10 +9287,10 @@ export class Client extends GameShell {
             this.out.p2(a);
             this.out.p2(b);
             this.out.p2(c);
-            this.out.p2(this.targetCom);
+            this.out.p2(this.targetComId);
 
             this.selectedCycle = 0;
-            this.selectedLayerId = c;
+            this.selectedComId = c;
             this.selectedItem = b;
             this.selectedArea = 2;
 
@@ -9290,7 +9298,7 @@ export class Client extends GameShell {
                 this.selectedArea = 1;
             }
 
-            if (IfType.list[c].layerId === this.chatModalId) {
+            if (IfType.list[c].layerId === this.chatComId) {
                 this.selectedArea = 3;
             }
         }
@@ -9300,12 +9308,12 @@ export class Client extends GameShell {
             this.out.p2(a);
             this.out.p2(b);
             this.out.p2(c);
-            this.out.p2(this.objLayerId);
+            this.out.p2(this.objComId);
             this.out.p2(this.objSelectedSlot);
-            this.out.p2(this.objSelectedLayerId);
+            this.out.p2(this.objSelectedComId);
 
             this.selectedCycle = 0;
-            this.selectedLayerId = c;
+            this.selectedComId = c;
             this.selectedItem = b;
             this.selectedArea = 2;
 
@@ -9313,7 +9321,7 @@ export class Client extends GameShell {
                 this.selectedArea = 1;
             }
 
-            if (IfType.list[c].layerId === this.chatModalId) {
+            if (IfType.list[c].layerId === this.chatComId) {
                 this.selectedArea = 3;
             }
         }
@@ -9352,7 +9360,7 @@ export class Client extends GameShell {
             this.out.p2(c);
 
             this.selectedCycle = 0;
-            this.selectedLayerId = c;
+            this.selectedComId = c;
             this.selectedItem = b;
             this.selectedArea = 2;
 
@@ -9360,7 +9368,7 @@ export class Client extends GameShell {
                 this.selectedArea = 1;
             }
 
-            if (IfType.list[c].layerId === this.chatModalId) {
+            if (IfType.list[c].layerId === this.chatComId) {
                 this.selectedArea = 3;
             }
         }
@@ -9431,7 +9439,7 @@ export class Client extends GameShell {
 
                 for (let i: number = 0; i < IfType.list.length; i++) {
                     if (IfType.list[i] && IfType.list[i].clientCode === ClientCode.CC_REPORT_INPUT) {
-                        this.reportAbuseLayerId = this.mainModalId = IfType.list[i].layerId;
+                        this.reportAbuseComId = this.mainModalId = IfType.list[i].layerId;
                         break;
                     }
                 }
@@ -9469,24 +9477,24 @@ export class Client extends GameShell {
             const tag: number = option.indexOf('@whi@');
 
             if (tag !== -1) {
-                const name37: bigint = JString.toUserhash(option.substring(tag + 5).trim());
+                const userhash: bigint = JString.toUserhash(option.substring(tag + 5).trim());
                 let friend: number = -1;
 
                 for (let i: number = 0; i < this.friendCount; i++) {
-                    if (this.friendName37[i] === name37) {
+                    if (this.friendUserhash[i] === userhash) {
                         friend = i;
                         break;
                     }
                 }
 
-                if (friend !== -1 && this.friendWorld[friend] > 0) {
+                if (friend !== -1 && this.friendNodeId[friend] > 0) {
                     this.redrawChatback = true;
                     this.dialogInputOpen = false;
                     this.socialInputOpen = true;
                     this.socialInput = '';
                     this.socialInputType = 3;
-                    this.socialName37 = this.friendName37[friend];
-                    this.socialMessage = 'Enter message to send to ' + this.friendName[friend];
+                    this.socialUserhash = this.friendUserhash[friend];
+                    this.socialInputHeader = 'Enter message to send to ' + this.friendUsername[friend];
                 }
             }
         }
@@ -9863,9 +9871,9 @@ export class Client extends GameShell {
 
             if ((child.overLayerId >= 0 || child.colourOver !== 0) && mouseX >= childX && mouseY >= childY && mouseX < childX + child.width && mouseY < childY + child.height) {
                 if (child.overLayerId >= 0) {
-                    this.lastOverLayerId = child.overLayerId;
+                    this.lastOverComId = child.overLayerId;
                 } else {
-                    this.lastOverLayerId = child.id;
+                    this.lastOverComId = child.id;
                 }
             }
 
@@ -9894,7 +9902,7 @@ export class Client extends GameShell {
                         }
 
                         this.hoveredSlot = slot;
-                        this.hoveredSlotParentId = child.id;
+                        this.hoveredSlotComId = child.id;
 
                         if (!child.linkObjType || child.linkObjType[slot] <= 0) {
                             slot++;
@@ -9904,7 +9912,7 @@ export class Client extends GameShell {
                         const obj: ObjType = ObjType.list(child.linkObjType[slot] - 1);
 
                         if (this.useMode === 1 && child.objOps) {
-                            if (child.id !== this.objSelectedLayerId || slot !== this.objSelectedSlot) {
+                            if (child.id !== this.objSelectedComId || slot !== this.objSelectedSlot) {
                                 this.menuOption[this.menuNumEntries] = 'Use ' + this.objSelectedName + ' with @lre@' + obj.name;
                                 this.menuAction[this.menuNumEntries] = MenuAction.OPHELDU;
                                 this.menuParamA[this.menuNumEntries] = obj.id;
@@ -10077,11 +10085,11 @@ export class Client extends GameShell {
                 clientCode--;
             }
 
-            this.menuOption[this.menuNumEntries] = 'Remove @whi@' + this.friendName[clientCode];
+            this.menuOption[this.menuNumEntries] = 'Remove @whi@' + this.friendUsername[clientCode];
             this.menuAction[this.menuNumEntries] = MenuAction.FRIENDLIST_DEL;
             this.menuNumEntries++;
 
-            this.menuOption[this.menuNumEntries] = 'Message @whi@' + this.friendName[clientCode];
+            this.menuOption[this.menuNumEntries] = 'Message @whi@' + this.friendUsername[clientCode];
             this.menuAction[this.menuNumEntries] = MenuAction.MESSAGE_PRIVATE;
             this.menuNumEntries++;
             return true;
@@ -10120,7 +10128,7 @@ export class Client extends GameShell {
     }
 
     private drawInterface(com: IfType, x: number, y: number, scrollY: number): void {
-        if (com.type !== 0 || !com.children || (com.hide && this.overMainLayerId !== com.id && this.overSideLayerId !== com.id && this.overChatLayerId !== com.id)) {
+        if (com.type !== 0 || !com.children || (com.hide && this.overMainComId !== com.id && this.overSideComId !== com.id && this.overChatComId !== com.id)) {
             return;
         }
 
@@ -10186,13 +10194,13 @@ export class Client extends GameShell {
 
                             if ((slotX > Pix2D.clipMinX - 32 && slotX < Pix2D.clipMaxX && slotY > Pix2D.clipMinY - 32 && slotY < Pix2D.clipMaxY) || (this.objDragArea !== 0 && this.objDragSlot === slot)) {
                                 let outline = 0;
-                                if (this.useMode == 1 && this.objSelectedSlot == slot && this.objSelectedLayerId == child.id) {
+                                if (this.useMode == 1 && this.objSelectedSlot == slot && this.objSelectedComId == child.id) {
                                     outline = 16777215;
                                 }
 
                                 const icon: Pix32 | null = ObjType.getSprite(id, child.linkObjNumber[slot], outline);
                                 if (icon) {
-                                    if (this.objDragArea !== 0 && this.objDragSlot === slot && this.objDragLayerId === child.id) {
+                                    if (this.objDragArea !== 0 && this.objDragSlot === slot && this.objDragComId === child.id) {
                                         dx = this.mouseX - this.objGrabX;
                                         dy = this.mouseY - this.objGrabY;
 
@@ -10238,7 +10246,7 @@ export class Client extends GameShell {
                                             com.scrollPos += autoscroll;
                                             this.objGrabY -= autoscroll;
                                         }
-                                    } else if (this.selectedArea !== 0 && this.selectedItem === slot && this.selectedLayerId === child.id) {
+                                    } else if (this.selectedArea !== 0 && this.selectedItem === slot && this.selectedComId === child.id) {
                                         icon.transPlotSprite(128, slotX, slotY);
                                     } else {
                                         icon.plotSprite(slotX, slotY);
@@ -10261,7 +10269,7 @@ export class Client extends GameShell {
                 }
             } else if (child.type === ComponentType.TYPE_RECT) {
                 let hovered: boolean = false;
-                if (this.overChatLayerId === child.id || this.overSideLayerId === child.id || this.overMainLayerId === child.id) {
+                if (this.overChatComId === child.id || this.overSideComId === child.id || this.overMainComId === child.id) {
                     hovered = true;
                 }
 
@@ -10297,7 +10305,7 @@ export class Client extends GameShell {
                 let text: string | null = child.text;
 
                 let hovered: boolean = false;
-                if (this.overChatLayerId === child.id || this.overSideLayerId === child.id || this.overMainLayerId === child.id) {
+                if (this.overChatComId === child.id || this.overSideComId === child.id || this.overMainComId === child.id) {
                     hovered = true;
                 }
 
@@ -10938,7 +10946,7 @@ export class Client extends GameShell {
                     com.text = '';
                     com.buttonType = 0;
                 } else {
-                    com.text = this.friendName[clientCode];
+                    com.text = this.friendUsername[clientCode];
                     com.buttonType = 1;
                 }
             }
@@ -10958,12 +10966,12 @@ export class Client extends GameShell {
                 com.text = '';
                 com.buttonType = 0;
             } else {
-                if (this.friendWorld[clientCode] === 0) {
+                if (this.friendNodeId[clientCode] === 0) {
                     com.text = '@red@Offline';
-                } else if (this.friendWorld[clientCode] === Client.nodeId) {
-                    com.text = '@gre@World-' + (this.friendWorld[clientCode] - 9);
+                } else if (this.friendNodeId[clientCode] === Client.nodeId) {
+                    com.text = '@gre@World-' + (this.friendNodeId[clientCode] - 9);
                 } else {
-                    com.text = '@yel@World-' + (this.friendWorld[clientCode] - 9);
+                    com.text = '@yel@World-' + (this.friendNodeId[clientCode] - 9);
                 }
 
                 com.buttonType = 1;
@@ -10986,7 +10994,7 @@ export class Client extends GameShell {
                 com.text = '';
                 com.buttonType = 0;
             } else {
-                com.text = JString.toScreenName(JString.toRawUsername(this.ignoreName37[clientCode]));
+                com.text = JString.toScreenName(JString.toRawUsername(this.ignoreUserhash[clientCode]));
                 com.buttonType = 1;
             }
         } else if (clientCode === ClientCode.CC_IGNORES_SIZE) {
@@ -11169,8 +11177,8 @@ export class Client extends GameShell {
             this.redrawSideicons = true;
         }
 
-        if (this.chatModalId !== -1) {
-            this.chatModalId = -1;
+        if (this.chatComId !== -1) {
+            this.chatComId = -1;
             this.redrawChatback = true;
             this.resumedPauseButton = false;
         }
@@ -11188,14 +11196,14 @@ export class Client extends GameShell {
                 this.socialInputOpen = true;
                 this.socialInput = '';
                 this.socialInputType = 1;
-                this.socialMessage = 'Enter name of friend to add to list';
+                this.socialInputHeader = 'Enter name of friend to add to list';
             } else if (clientCode === ClientCode.CC_DEL_FRIEND) {
                 this.redrawChatback = true;
                 this.dialogInputOpen = false;
                 this.socialInputOpen = true;
                 this.socialInput = '';
                 this.socialInputType = 2;
-                this.socialMessage = 'Enter name of friend to delete from list';
+                this.socialInputHeader = 'Enter name of friend to delete from list';
             }
         }
 
@@ -11208,14 +11216,14 @@ export class Client extends GameShell {
             this.socialInputOpen = true;
             this.socialInput = '';
             this.socialInputType = 4;
-            this.socialMessage = 'Enter name of player to add to list';
+            this.socialInputHeader = 'Enter name of player to add to list';
         } else if (clientCode === ClientCode.CC_DEL_IGNORE) {
             this.redrawChatback = true;
             this.dialogInputOpen = false;
             this.socialInputOpen = true;
             this.socialInput = '';
             this.socialInputType = 5;
-            this.socialMessage = 'Enter name of player to delete from list';
+            this.socialInputHeader = 'Enter name of player to delete from list';
         } else if (clientCode >= ClientCode.CC_CHANGE_HEAD_L && clientCode <= ClientCode.CC_CHANGE_FEET_R) {
             const part: number = ((clientCode - 300) / 2) | 0;
             const direction: number = clientCode & 0x1;
@@ -11352,18 +11360,18 @@ export class Client extends GameShell {
         this.chatback?.plotSprite(0, 0);
 
         if (this.socialInputOpen) {
-            this.b12?.centreString(239, 40, this.socialMessage, Colour.BLACK);
+            this.b12?.centreString(239, 40, this.socialInputHeader, Colour.BLACK);
             this.b12?.centreString(239, 60, this.socialInput + '*', Colour.DARKBLUE);
         } else if (this.dialogInputOpen) {
             this.b12?.centreString(239, 40, 'Enter amount:', Colour.BLACK);
             this.b12?.centreString(239, 60, this.dialogInput + '*', Colour.DARKBLUE);
-        } else if (this.modalMessage) {
-            this.b12?.centreString(239, 40, this.modalMessage, Colour.BLACK);
+        } else if (this.tutComMessage) {
+            this.b12?.centreString(239, 40, this.tutComMessage, Colour.BLACK);
             this.b12?.centreString(239, 60, 'Click to continue', Colour.DARKBLUE);
-        } else if (this.chatModalId !== -1) {
-            this.drawInterface(IfType.list[this.chatModalId], 0, 0, 0);
-        } else if (this.tutLayerId !== -1) {
-            this.drawInterface(IfType.list[this.tutLayerId], 0, 0, 0);
+        } else if (this.chatComId !== -1) {
+            this.drawInterface(IfType.list[this.chatComId], 0, 0, 0);
+        } else if (this.tutComId !== -1) {
+            this.drawInterface(IfType.list[this.tutComId], 0, 0, 0);
         } else {
             const font: PixFont | null = this.p12;
             let line: number = 0;
@@ -11371,15 +11379,15 @@ export class Client extends GameShell {
             Pix2D.setClipping(0, 0, 463, 77);
 
             for (let i: number = 0; i < 100; i++) {
-                const message: string | null = this.messageText[i];
+                const message: string | null = this.chatText[i];
                 if (!message) {
                     continue;
                 }
 
-                const type: number = this.messageType[i];
-                const y: number = this.chatScrollOffset + 70 - line * 14;
+                const type: number = this.chatType[i];
+                const y: number = this.chatScrollPos + 70 - line * 14;
 
-                let sender = this.messageSender[i];
+                let sender = this.chatUsername[i];
                 let modlevel = 0;
                 if (sender && sender.startsWith('@cr1@')) {
                     sender = sender.substring(5);
@@ -11437,7 +11445,7 @@ export class Client extends GameShell {
                     line++;
                 } else if (type === 4 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, sender + ' ' + this.messageText[i], 0x800080);
+                        font?.drawString(4, y, sender + ' ' + this.chatText[i], 0x800080);
                     }
 
                     line++;
@@ -11456,7 +11464,7 @@ export class Client extends GameShell {
                     line++;
                 } else if (type === 8 && (this.chatTradeMode === 0 || (this.chatTradeMode === 1 && this.isFriend(sender)))) {
                     if (y > 0 && y < 110) {
-                        font?.drawString(4, y, sender + ' ' + this.messageText[i], 0x7e3200);
+                        font?.drawString(4, y, sender + ' ' + this.chatText[i], 0x7e3200);
                     }
 
                     line++;
@@ -11470,7 +11478,7 @@ export class Client extends GameShell {
                 this.chatScrollHeight = 78;
             }
 
-            this.drawScrollbar(463, 0, this.chatScrollHeight - this.chatScrollOffset - 77, this.chatScrollHeight, 77);
+            this.drawScrollbar(463, 0, this.chatScrollHeight - this.chatScrollPos - 77, this.chatScrollHeight, 77);
 
             let username;
             if (this.localPlayer == null || this.localPlayer.name == null) {
@@ -11480,7 +11488,7 @@ export class Client extends GameShell {
             }
 
             font?.drawString(4, 90, username + ':', Colour.BLACK);
-            font?.drawString(font.stringWid(username + ': ') + 6, 90, this.chatTyped + '*', Colour.BLUE);
+            font?.drawString(font.stringWid(username + ': ') + 6, 90, this.chatInput + '*', Colour.BLUE);
 
             Pix2D.hline(0, 77, Colour.BLACK, 479);
         }
@@ -11544,9 +11552,9 @@ export class Client extends GameShell {
                 anchorY = ((player.z / 32) | 0) - ((this.localPlayer.z / 32) | 0);
 
                 let friend: boolean = false;
-                const name37: bigint = JString.toUserhash(player.name);
+                const userhash: bigint = JString.toUserhash(player.name);
                 for (let j: number = 0; j < this.friendCount; j++) {
-                    if (name37 === this.friendName37[j] && this.friendWorld[j] !== 0) {
+                    if (userhash === this.friendUserhash[j] && this.friendNodeId[j] !== 0) {
                         friend = true;
                         break;
                     }
@@ -11654,24 +11662,24 @@ export class Client extends GameShell {
     }
 
     private addChat(type: number, text: string, sender: string): void {
-        if (type === 0 && this.tutLayerId !== -1) {
-            this.modalMessage = text;
+        if (type === 0 && this.tutComId !== -1) {
+            this.tutComMessage = text;
             this.mouseClickButton = 0;
         }
 
-        if (this.chatModalId === -1) {
+        if (this.chatComId === -1) {
             this.redrawChatback = true;
         }
 
         for (let i: number = 99; i > 0; i--) {
-            this.messageType[i] = this.messageType[i - 1];
-            this.messageSender[i] = this.messageSender[i - 1];
-            this.messageText[i] = this.messageText[i - 1];
+            this.chatType[i] = this.chatType[i - 1];
+            this.chatUsername[i] = this.chatUsername[i - 1];
+            this.chatText[i] = this.chatText[i - 1];
         }
 
-        this.messageType[0] = type;
-        this.messageSender[0] = sender;
-        this.messageText[0] = text;
+        this.chatType[0] = type;
+        this.chatUsername[0] = sender;
+        this.chatText[0] = text;
     }
 
     private isFriend(username: string | null): boolean {
@@ -11680,7 +11688,7 @@ export class Client extends GameShell {
         }
 
         for (let i: number = 0; i < this.friendCount; i++) {
-            if (username.toLowerCase() === this.friendName[i]?.toLowerCase()) {
+            if (username.toLowerCase() === this.friendUsername[i]?.toLowerCase()) {
                 return true;
             }
         }
@@ -11692,8 +11700,8 @@ export class Client extends GameShell {
         return username.toLowerCase() === this.localPlayer.name?.toLowerCase();
     }
 
-    private addFriend(username: bigint): void {
-        if (username === 0n) {
+    private addFriend(userhash: bigint): void {
+        if (userhash === 0n) {
             return;
         }
 
@@ -11705,16 +11713,16 @@ export class Client extends GameShell {
             return;
         }
 
-        const displayName: string = JString.toScreenName(JString.toRawUsername(username));
+        const displayName: string = JString.toScreenName(JString.toRawUsername(userhash));
         for (let i: number = 0; i < this.friendCount; i++) {
-            if (this.friendName37[i] === username) {
+            if (this.friendUserhash[i] === userhash) {
                 this.addChat(0, displayName + ' is already on your friend list', '');
                 return;
             }
         }
 
         for (let i: number = 0; i < this.ignoreCount; i++) {
-            if (this.ignoreName37[i] === username) {
+            if (this.ignoreUserhash[i] === userhash) {
                 this.addChat(0, 'Please remove ' + displayName + ' from your ignore list first', '');
                 return;
             }
@@ -11725,20 +11733,20 @@ export class Client extends GameShell {
         }
 
         if (displayName !== this.localPlayer.name) {
-            this.friendName[this.friendCount] = displayName;
-            this.friendName37[this.friendCount] = username;
-            this.friendWorld[this.friendCount] = 0;
+            this.friendUsername[this.friendCount] = displayName;
+            this.friendUserhash[this.friendCount] = userhash;
+            this.friendNodeId[this.friendCount] = 0;
             this.friendCount++;
 
             this.redrawSidebar = true;
 
             this.out.pIsaac(ClientProt.FRIENDLIST_ADD);
-            this.out.p8(username);
+            this.out.p8(userhash);
         }
     }
 
-    private addIgnore(username: bigint): void {
-        if (username === 0n) {
+    private addIgnore(userhash: bigint): void {
+        if (userhash === 0n) {
             return;
         }
 
@@ -11747,67 +11755,67 @@ export class Client extends GameShell {
             return;
         }
 
-        const displayName: string = JString.toScreenName(JString.toRawUsername(username));
+        const displayName: string = JString.toScreenName(JString.toRawUsername(userhash));
         for (let i: number = 0; i < this.ignoreCount; i++) {
-            if (this.ignoreName37[i] === username) {
+            if (this.ignoreUserhash[i] === userhash) {
                 this.addChat(0, displayName + ' is already on your ignore list', '');
                 return;
             }
         }
 
         for (let i: number = 0; i < this.friendCount; i++) {
-            if (this.friendName37[i] === username) {
+            if (this.friendUserhash[i] === userhash) {
                 this.addChat(0, 'Please remove ' + displayName + ' from your friend list first', '');
                 return;
             }
         }
 
-        this.ignoreName37[this.ignoreCount++] = username;
+        this.ignoreUserhash[this.ignoreCount++] = userhash;
         this.redrawSidebar = true;
 
         this.out.pIsaac(ClientProt.IGNORELIST_ADD);
-        this.out.p8(username);
+        this.out.p8(userhash);
     }
 
-    private delFriend(username: bigint): void {
-        if (username === 0n) {
+    private delFriend(userhash: bigint): void {
+        if (userhash === 0n) {
             return;
         }
 
         for (let i: number = 0; i < this.friendCount; i++) {
-            if (this.friendName37[i] === username) {
+            if (this.friendUserhash[i] === userhash) {
                 this.friendCount--;
                 this.redrawSidebar = true;
 
                 for (let j: number = i; j < this.friendCount; j++) {
-                    this.friendName[j] = this.friendName[j + 1];
-                    this.friendWorld[j] = this.friendWorld[j + 1];
-                    this.friendName37[j] = this.friendName37[j + 1];
+                    this.friendUsername[j] = this.friendUsername[j + 1];
+                    this.friendNodeId[j] = this.friendNodeId[j + 1];
+                    this.friendUserhash[j] = this.friendUserhash[j + 1];
                 }
 
                 this.out.pIsaac(ClientProt.FRIENDLIST_DEL);
-                this.out.p8(username);
+                this.out.p8(userhash);
                 return;
             }
         }
     }
 
-    private delIgnore(username: bigint): void {
-        if (username === 0n) {
+    private delIgnore(userhash: bigint): void {
+        if (userhash === 0n) {
             return;
         }
 
         for (let i: number = 0; i < this.ignoreCount; i++) {
-            if (this.ignoreName37[i] === username) {
+            if (this.ignoreUserhash[i] === userhash) {
                 this.ignoreCount--;
                 this.redrawSidebar = true;
 
                 for (let j: number = i; j < this.ignoreCount; j++) {
-                    this.ignoreName37[j] = this.ignoreName37[j + 1];
+                    this.ignoreUserhash[j] = this.ignoreUserhash[j + 1];
                 }
 
                 this.out.pIsaac(ClientProt.IGNORELIST_DEL);
-                this.out.p8(username);
+                this.out.p8(userhash);
                 return;
             }
         }
@@ -12125,7 +12133,7 @@ export class Client extends GameShell {
         const chatInputAreaY2: number = chatInputAreaY1 + 26;
         return (
             this.ingame &&
-            this.chatModalId === -1 &&
+            this.chatComId === -1 &&
             !this.dialogInputOpen &&
             !this.socialInputOpen &&
             this.mouseX >= chatInputAreaX1 &&
@@ -12159,12 +12167,12 @@ export class Client extends GameShell {
         }
 
         // either viewport or report-abuse interface Ids are bad
-        if (this.mainModalId === -1 || this.reportAbuseLayerId === -1) {
+        if (this.mainModalId === -1 || this.reportAbuseComId === -1) {
             return false;
         }
 
         // active viewport interface Id does not match
-        if (this.mainModalId !== this.reportAbuseLayerId) {
+        if (this.mainModalId !== this.reportAbuseComId) {
             return false;
         }
 
