@@ -6,23 +6,23 @@ import Packet from '#/io/Packet.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class IdkType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static list: IdkType[] = [];
 
-    type: number = -1;
-    models: Int32Array | null = null;
+    part: number = -1;
+    model: Int32Array | null = null;
     recol_s: Int32Array = new Int32Array(6);
     recol_d: Int32Array = new Int32Array(6);
-    heads: Int32Array = new Int32Array(5).fill(-1);
+    head: Int32Array = new Int32Array(5).fill(-1);
     disable: boolean = false;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('idk.dat'));
 
-        this.count = dat.g2();
-        this.list = new Array(this.count);
+        this.numDefinitions = dat.g2();
+        this.list = new Array(this.numDefinitions);
 
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             if (!this.list[id]) {
                 this.list[id] = new IdkType();
             }
@@ -39,13 +39,13 @@ export default class IdkType {
             }
 
             if (code === 1) {
-                this.type = dat.g1();
+                this.part = dat.g1();
             } else if (code === 2) {
                 const count: number = dat.g1();
-                this.models = new Int32Array(count);
+                this.model = new Int32Array(count);
 
                 for (let i: number = 0; i < count; i++) {
-                    this.models[i] = dat.g2();
+                    this.model[i] = dat.g2();
                 }
             } else if (code === 3) {
                 this.disable = true;
@@ -54,23 +54,22 @@ export default class IdkType {
             } else if (code >= 50 && code < 60) {
                 this.recol_d[code - 50] = dat.g2();
             } else if (code >= 60 && code < 70) {
-                this.heads[code - 60] = dat.g2();
+                this.head[code - 60] = dat.g2();
             } else {
                 console.log('Error unrecognised config code: ', code);
             }
         }
     }
 
-    // jag::oldscape::configdecoder::IdkType::CheckModel
     checkModel(): boolean {
-        if (!this.models) {
+        if (!this.model) {
             return true;
         }
 
         let ready = true;
 
-        for (let i = 0; i < this.models.length; i++) {
-            if (!Model.requestDownload(this.models[i])) {
+        for (let i = 0; i < this.model.length; i++) {
+            if (!Model.requestDownload(this.model[i])) {
                 ready = false;
             }
         }
@@ -78,15 +77,14 @@ export default class IdkType {
         return ready;
     }
 
-    // jag::oldscape::configdecoder::IdkType::GetModelNoCheck
     getModelNoCheck(): Model | null {
-        if (!this.models) {
+        if (!this.model) {
             return null;
         }
 
-        const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
-        for (let i: number = 0; i < this.models.length; i++) {
-            models[i] = Model.load(this.models[i]);
+        const models: (Model | null)[] = new TypedArray1d(this.model.length, null);
+        for (let i: number = 0; i < this.model.length; i++) {
+            models[i] = Model.load(this.model[i]);
         }
 
         let model: Model | null;
@@ -103,12 +101,11 @@ export default class IdkType {
         return model;
     }
 
-    // jag::oldscape::configdecoder::IdkType::CheckHead
     checkHead(): boolean {
         let ready = true;
 
-        for (let i = 0; i < this.heads.length; i++) {
-            if (this.heads[i] != -1 && !Model.requestDownload(this.heads[i])) {
+        for (let i = 0; i < this.head.length; i++) {
+            if (this.head[i] != -1 && !Model.requestDownload(this.head[i])) {
                 ready = false;
             }
         }
@@ -116,14 +113,13 @@ export default class IdkType {
         return ready;
     }
 
-    // jag::oldscape::configdecoder::IdkType::GetHeadNoCheck
     getHeadNoCheck(): Model {
         let count: number = 0;
 
         const models: (Model | null)[] = new TypedArray1d(5, null);
         for (let i: number = 0; i < 5; i++) {
-            if (this.heads[i] !== -1) {
-                models[count++] = Model.load(this.heads[i]);
+            if (this.head[i] !== -1) {
+                models[count++] = Model.load(this.head[i]);
             }
         }
 

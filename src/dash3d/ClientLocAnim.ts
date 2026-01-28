@@ -38,7 +38,6 @@ export default class ClientLocAnim extends ModelSource {
         }
     }
 
-    // jag::oldscape::ClientLocAnim::GetTempModel
     override getTempModel(loopCycle: number): Model | null {
         if (this.anim) {
             let delta = loopCycle - this.animCycle;
@@ -70,7 +69,7 @@ export default class ClientLocAnim extends ModelSource {
             frame = this.anim.frames[this.animFrame];
         }
 
-        const loc = LocType.get(this.index);
+        const loc = LocType.list(this.index);
         return loc.getModel(this.shape, this.angle, this.heightSW, this.heightSE, this.heightNE, this.heightNW, frame);
     }
 }

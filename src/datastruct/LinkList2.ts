@@ -1,8 +1,8 @@
-import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
+import Linkable2 from '#/datastruct/Linkable2.js';
 
-export default class DoublyLinkList<T extends DoublyLinkable> {
-    readonly sentinel: DoublyLinkable = new DoublyLinkable();
-    cursor: DoublyLinkable | null = null;
+export default class LinkList2<T extends Linkable2> {
+    readonly sentinel: Linkable2 = new Linkable2();
+    cursor: Linkable2 | null = null;
 
     constructor() {
         this.sentinel.next2 = this.sentinel;
@@ -22,7 +22,7 @@ export default class DoublyLinkList<T extends DoublyLinkable> {
         node.next2.prev2 = node;
     }
 
-    pop(): T | null {
+    popFront(): T | null {
         const node: T | null = this.sentinel.next2 as T | null;
         if (node === this.sentinel) {
             return null;

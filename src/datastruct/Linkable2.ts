@@ -1,8 +1,8 @@
 import Linkable from '#/datastruct/Linkable.js';
 
-export default class DoublyLinkable extends Linkable {
-    next2: DoublyLinkable | null = null;
-    prev2: DoublyLinkable | null = null;
+export default class Linkable2 extends Linkable {
+    next2: Linkable2 | null = null;
+    prev2: Linkable2 | null = null;
 
     unlink2(): void {
         if (this.prev2 !== null) {

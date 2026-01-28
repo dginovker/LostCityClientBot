@@ -10,11 +10,11 @@ export default class Decor {
     readonly typecode: number;
     readonly typecode2: number;
 
-    constructor(y: number, x: number, z: number, type: number, angle: number, model: ModelSource, typecode: number, info: number) {
+    constructor(y: number, x: number, z: number, wshape: number, angle: number, model: ModelSource, typecode: number, info: number) {
         this.y = y;
         this.x = x;
         this.z = z;
-        this.wshape = type;
+        this.wshape = wshape;
         this.angle = angle;
         this.model = model;
         this.typecode = typecode;

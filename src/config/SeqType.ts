@@ -21,31 +21,31 @@ export const enum RestartMode {
 }
 
 export default class SeqType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static list: SeqType[] = [];
 
-    numFrames: number = 0; // jag::oldscape::configdecoder::SeqType::GetNumFrames
+    numFrames: number = 0;
     frames: Int16Array | null = null;
     iframes: Int16Array | null = null;
     delay: Int16Array | null = null;
-    loops: number = -1; // jag::game::SeqType::GetLoops
+    loops: number = -1;
     walkmerge: Int32Array | null = null;
     stretches: boolean = false;
-    priority: number = 5; // jag::game::SeqType::GetPriority
-    replaceheldleft: number = -1; // jag::game::SeqType::GetReplaceHeldLeft
-    replaceheldright: number = -1; // jag::game::SeqType::GetReplaceHeldRight
-    maxloops: number = 99; // jag::game::SeqType::GetMaxLoops
-    preanim_move: number = -1; // jag::game::SeqType::GetPreanimMove
-    postanim_move: number = -1; // jag::game::SeqType::GetPostanimMove
-    duplicatebehavior: number = -1; // jag::game::SeqType::GetDuplicateBehaviour
+    priority: number = 5;
+    replaceheldleft: number = -1;
+    replaceheldright: number = -1;
+    maxloops: number = 99;
+    preanim_move: number = -1;
+    postanim_move: number = -1;
+    duplicatebehaviour: number = -1;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('seq.dat'));
 
-        this.count = dat.g2();
-        this.list = new Array(this.count);
+        this.numDefinitions = dat.g2();
+        this.list = new Array(this.numDefinitions);
 
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             if (!this.list[id]) {
                 this.list[id] = new SeqType();
             }
@@ -54,7 +54,6 @@ export default class SeqType {
         }
     }
 
-    // jag::oldscape::configdecoder::SeqType::GetDuration
     getDuration(frame: number) {
         if (!this.delay || !this.frames) {
             return 0;
@@ -125,7 +124,7 @@ export default class SeqType {
             } else if (code === 10) {
                 this.postanim_move = dat.g1();
             } else if (code === 11) {
-                this.duplicatebehavior = dat.g1();
+                this.duplicatebehaviour = dat.g1();
             } else {
                 console.log('Error unrecognised seq config code: ', code);
             }

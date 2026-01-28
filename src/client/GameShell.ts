@@ -9,14 +9,14 @@ import { sleep } from '#/util/JsUtil.js';
 
 export default abstract class GameShell {
     protected state: number = 0;
-    protected deltime: number = 20; // jag::oldscape::javapal::GameShell::m_delTime
-    protected mindel: number = 1; // jag::oldscape::javapal::GameShell::m_minDel
+    protected deltime: number = 20;
+    protected mindel: number = 1;
     protected otim: number[] = new Array(10);
-    protected fps: number = 0; // jag::oldscape::javapal::GameShell::m_fps
+    protected fps: number = 0;
     protected debug: boolean = false;
     protected drawArea: PixMap | null = null;
     protected redrawScreen: boolean = true;
-    protected focus: boolean = true; // jag::oldscape::javapal::GameShell::m_focus
+    protected focus: boolean = true;
 
     public idleTimer: number = performance.now();
     public mouseButton: number = 0;
@@ -31,7 +31,7 @@ export default abstract class GameShell {
     protected nextMouseClickTime: number = 0;
     public mouseClickTime: number = 0;
 
-    public keyHeld: number[] = []; // jag::oldscape::ClientInputHandler::KeyHeld
+    public keyHeld: number[] = [];
     protected keyQueue: number[] = [];
     protected keyQueueReadPos: number = 0;
     protected keyQueueWritePos: number = 0;
@@ -58,12 +58,10 @@ export default abstract class GameShell {
         }
     }
 
-    // jag::oldscape::javapal::GameShell::m_sWid
     protected get sWid(): number {
         return canvas.width;
     }
 
-    // jag::oldscape::javapal::GameShell::m_sHei
     protected get sHei(): number {
         return canvas.height;
     }
@@ -122,7 +120,7 @@ export default abstract class GameShell {
             e.preventDefault();
         };
 
-        await this.drawProgress(0, 'Loading...');
+        await this.messageBox(0, 'Loading...');
         await this.maininit();
 
         let ntime: number = 0;
@@ -255,7 +253,7 @@ export default abstract class GameShell {
         }
     }
 
-    protected async drawProgress(progress: number, message: string): Promise<void> {
+    protected async messageBox(progress: number, message: string): Promise<void> {
         const width: number = this.sWid;
         const height: number = this.sHei;
 

@@ -2,21 +2,21 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
 export default class VarBitType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static list: VarBitType[] = [];
 
-    debugname: string = '';
     basevar: number = -1;
     startbit: number = 0;
     endbit: number = 0;
+    debugname: string = '';
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('varbit.dat'));
 
-        this.count = dat.g2();
-        this.list = new Array(this.count);
+        this.numDefinitions = dat.g2();
+        this.list = new Array(this.numDefinitions);
 
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             if (!this.list[id]) {
                 this.list[id] = new VarBitType();
             }

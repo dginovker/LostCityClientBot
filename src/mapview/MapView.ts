@@ -26,6 +26,9 @@ export class MapView extends GameShell {
     mapHeight: number = 19 << 6;
     mapOriginX: number = 36 << 6;
     mapOriginZ: number = 44 << 6;
+    focusX: number = this.mapStartX - this.mapOriginX;
+    focusZ: number = this.mapOriginZ + this.mapHeight - this.mapStartZ;
+
     // custom:
     mapArea: number = 0;
 
@@ -123,9 +126,6 @@ export class MapView extends GameShell {
     zoom: number = 4;
     targetZoom: number = 4;
 
-    focusX: number = this.mapStartX - this.mapOriginX;
-    focusZ: number = this.mapOriginZ + this.mapHeight - this.mapStartZ;
-
     readonly keyNames: string[] = [
         'General Store',
         'Sword Shop',
@@ -194,7 +194,15 @@ export class MapView extends GameShell {
 
         const worldmap: Jagfile = await this.loadWorldmap();
 
-        await this.drawProgress(100, 'Please wait... Rendering Map');
+        await this.messageBox(100, 'Please wait... Rendering Map');
+
+        // const size: Packet = new Packet(worldmap.read('size.dat'));
+        // this.mapOriginX = size.g2();
+        // this.mapOriginZ = size.g2();
+        // this.mapWidth = size.g2();
+        // this.mapHeight = size.g2();
+        // this.focusX = this.mapStartX - this.mapOriginX;
+        // this.focusZ = this.mapOriginZ + this.mapHeight - this.mapStartZ;
 
         const labels: Packet = new Packet(worldmap.read('labels.dat'));
         this.mapLabelCount = labels.g2();
@@ -227,45 +235,51 @@ export class MapView extends GameShell {
         this.locMapfunction = new TypedArray2d(this.mapWidth, this.mapHeight, 0);
         this.loadLoc(loc);
 
-        // custom:
-        const obj: Packet = new Packet(worldmap.read('obj.dat'));
-        this.objPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
-        this.loadObj(obj);
+        try {
+            // custom:
+            const obj: Packet = new Packet(worldmap.read('obj.dat'));
+            this.objPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
+            this.loadObj(obj);
 
-        // custom:
-        const npc: Packet = new Packet(worldmap.read('npc.dat'));
-        this.npcPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
-        this.loadNpc(npc);
+            // custom:
+            const npc: Packet = new Packet(worldmap.read('npc.dat'));
+            this.npcPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
+            this.loadNpc(npc);
 
-        // custom:
-        const multi: Packet = new Packet(worldmap.read('multi.dat'));
-        this.multiPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
-        this.loadMulti(multi);
+            // custom:
+            const multi: Packet = new Packet(worldmap.read('multi.dat'));
+            this.multiPos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
+            this.loadMulti(multi);
 
-        // custom:
-        const free: Packet = new Packet(worldmap.read('free.dat'));
-        this.freePos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
-        this.loadFree(free);
+            // custom:
+            const free: Packet = new Packet(worldmap.read('free.dat'));
+            this.freePos = new TypedArray2d(this.mapWidth, this.mapHeight, false);
+            this.loadFree(free);
+        } catch (_e) {
+        }
 
         try {
-            for (let i: number = 0; i < 50; i++) {
-                this.mapscene[i] = Pix8.load(worldmap, 'mapscene', i);
+            for (let i: number = 0; i < 100; i++) {
+                this.mapscene[i] = Pix8.depack(worldmap, 'mapscene', i);
             }
         } catch (_e) {
             // empty
         }
 
         try {
-            for (let i: number = 0; i < 50; i++) {
-                this.mapfunction[i] = Pix32.load(worldmap, 'mapfunction', i);
+            for (let i: number = 0; i < 100; i++) {
+                this.mapfunction[i] = Pix32.depack(worldmap, 'mapfunction', i);
             }
         } catch (_e) {
             // empty
         }
 
         // custom:
-        this.mapdot0 = Pix32.load(worldmap, 'mapdots', 0);
-        this.mapdot1 = Pix32.load(worldmap, 'mapdots', 1);
+        try {
+            this.mapdot0 = Pix32.depack(worldmap, 'mapdots', 0);
+            this.mapdot1 = Pix32.depack(worldmap, 'mapdots', 1);
+        } catch (_e) {
+        }
 
         this.b12 = PixFont.fromArchive(worldmap, 'b12');
 
@@ -300,7 +314,7 @@ export class MapView extends GameShell {
         Pix2D.drawRect(0, 0, this.overviewWidth, this.overviewHeight, 0);
         Pix2D.drawRect(1, 1, this.overviewWidth - 2, this.overviewHeight - 2, this.INACTIVE_BORDER_TL);
 
-        this.drawArea?.bind();
+        this.drawArea?.setPixels();
     }
 
     override async maindraw(): Promise<void> {
@@ -473,12 +487,12 @@ export class MapView extends GameShell {
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d')!;
-                const out = new PixMap(this.mapWidth * 2, this.mapHeight * 2, ctx);
-                out.bind();
+                const out = new PixMap(width, height, ctx);
+                out.setPixels();
                 fullRender.quickPlotSprite(0, 0);
                 out.draw(0, 0);
 
-                this.drawArea?.bind();
+                this.drawArea?.setPixels();
 
                 const map = canvas.toDataURL('image/png').replace(/^data:image\/[^;]/, 'data:application/octet-stream');
                 saveDataURL(map, 'worldmap.png');
@@ -674,14 +688,14 @@ export class MapView extends GameShell {
 
         let retry: number = 5;
         while (!data) {
-            await this.drawProgress(0, 'Requesting map');
+            await this.messageBox(0, 'Requesting map');
 
             try {
                 data = await downloadUrl('/worldmap.jag');
             } catch (_e) {
                 data = undefined;
                 for (let i: number = retry; i > 0; i--) {
-                    await this.drawProgress(0, `Error loading - Will retry in ${i} secs.`);
+                    await this.messageBox(0, `Error loading - Will retry in ${i} secs.`);
                     await sleep(1000);
                 }
 

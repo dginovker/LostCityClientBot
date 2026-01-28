@@ -5,9 +5,10 @@ export default class PixMap {
     readonly data: Int32Array;
     private readonly width: number;
     private readonly height: number;
+    private readonly img: ImageData;
+
     private readonly ctx: CanvasRenderingContext2D;
     private readonly paint: Uint32Array;
-    private readonly img: ImageData;
 
     constructor(width: number, height: number, ctx: CanvasRenderingContext2D = canvas2d) {
         this.width = width;
@@ -18,10 +19,10 @@ export default class PixMap {
         this.img = this.ctx.getImageData(0, 0, width, height);
         this.paint = new Uint32Array(this.img.data.buffer);
 
-        this.bind();
+        this.setPixels();
     }
 
-    bind(): void {
+    setPixels(): void {
         Pix2D.setPixels(this.data, this.width, this.height);
     }
 

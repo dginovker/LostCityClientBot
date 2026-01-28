@@ -7,10 +7,10 @@ import Model from '#/dash3d/Model.js';
 import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
-export default class SpotAnimType {
-    static count: number = 0;
-    static list: SpotAnimType[] = [];
-    static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::SpotType::m_modelCache
+export default class SpotType {
+    static numDefinitions: number = 0;
+    static list: SpotType[] = [];
+    static modelCache: LruCache<Model> = new LruCache(30);
 
     id: number = 0;
 
@@ -25,15 +25,15 @@ export default class SpotAnimType {
     ambient: number = 0;
     contrast: number = 0;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('spotanim.dat'));
 
-        this.count = dat.g2();
-        this.list = new Array(this.count);
+        this.numDefinitions = dat.g2();
+        this.list = new Array(this.numDefinitions);
 
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             if (!this.list[id]) {
-                this.list[id] = new SpotAnimType();
+                this.list[id] = new SpotType();
             }
 
             this.list[id].id = id;
@@ -41,7 +41,6 @@ export default class SpotAnimType {
         }
     }
 
-    // jag::oldscape::configdecoder::SpotType::Decode
     decode(dat: Packet): void {
         while (true) {
             const code = dat.g1();
@@ -77,9 +76,8 @@ export default class SpotAnimType {
         }
     }
 
-    // jag::oldscape::configdecoder::SpotType::GetTempModel2 [sic]
-    getTempModel(): Model | null {
-        let model = SpotAnimType.modelCache.get(BigInt(this.id));
+    getTempModel2(): Model | null {
+        let model = SpotType.modelCache.find(BigInt(this.id));
         if (model) {
             return model;
         }
@@ -95,7 +93,7 @@ export default class SpotAnimType {
             }
         }
 
-        SpotAnimType.modelCache.put(BigInt(this.id), model);
+        SpotType.modelCache.put(BigInt(this.id), model);
         return model;
     }
 }

@@ -9,6 +9,17 @@ export default class LinkList<T extends Linkable> {
         this.sentinel.prev = this.sentinel;
     }
 
+    clear(): void {
+        while (true) {
+            const node: T | null = this.sentinel.next as T | null;
+            if (node === this.sentinel) {
+                return;
+            }
+
+            node?.unlink();
+        }
+    }
+
     push(node: T): void {
         if (node.prev) {
             node.unlink();
@@ -22,7 +33,7 @@ export default class LinkList<T extends Linkable> {
         node.next.prev = node;
     }
 
-    addHead(node: T): void {
+    pushFront(node: T): void {
         if (node.prev) {
             node.unlink();
         }
@@ -35,7 +46,7 @@ export default class LinkList<T extends Linkable> {
         }
     }
 
-    pop(): T | null {
+    popFront(): T | null {
         const node: T | null = this.sentinel.next as T | null;
         if (node === this.sentinel) {
             return null;
@@ -87,16 +98,5 @@ export default class LinkList<T extends Linkable> {
 
         this.cursor = node?.prev ?? null;
         return node;
-    }
-
-    clear(): void {
-        while (true) {
-            const node: T | null = this.sentinel.next as T | null;
-            if (node === this.sentinel) {
-                return;
-            }
-
-            node?.unlink();
-        }
     }
 }

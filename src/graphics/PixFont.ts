@@ -1,4 +1,4 @@
-import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
+import Linkable2 from '#/datastruct/Linkable2.js';
 
 import { Colour } from '#/graphics/Colour.js';
 import Pix2D from '#/graphics/Pix2D.js';
@@ -8,7 +8,7 @@ import Packet from '#/io/Packet.js';
 
 import JavaRandom from '#/util/JavaRandom.js';
 
-export default class PixFont extends DoublyLinkable {
+export default class PixFont extends Linkable2 {
     static readonly CHARSET: string = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!"£$%^&*()-_=+[{]};:\'@#~,<.>/?\\| ';
     static readonly CHARCODESET: number[] = [];
 
@@ -19,7 +19,7 @@ export default class PixFont extends DoublyLinkable {
     readonly charOffsetY: Int32Array = new Int32Array(94);
     readonly charAdvance: Int32Array = new Int32Array(95);
     readonly drawWidth: Int32Array = new Int32Array(256);
-    private readonly rand: JavaRandom = new JavaRandom(Date.now()); // jag::oldscape::jstring::PixfontGeneric::m_rand
+    private readonly rand: JavaRandom = new JavaRandom(Date.now());
     strikeout: boolean = false;
     height2d: number = 0;
 
@@ -323,7 +323,6 @@ export default class PixFont extends DoublyLinkable {
         this.drawString(x - this.stringWid(str), y, str, rgb);
     }
 
-    // jag::oldscape::jstring::PixfontGeneric::PlotLetter
     plotLetter(data: Int8Array, x: number, y: number, w: number, h: number, rgb: number): void {
         x |= 0;
         y |= 0;

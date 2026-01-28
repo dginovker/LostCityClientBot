@@ -2,7 +2,7 @@ import Jagfile from '#/io/Jagfile.js';
 import Packet from '#/io/Packet.js';
 
 export default class FloType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static list: FloType[] = [];
 
     rgb: number = 0;
@@ -18,13 +18,13 @@ export default class FloType {
     chroma: number = 0;
     hsl: number = 0;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('flo.dat'));
 
-        this.count = dat.g2();
-        this.list = new Array(this.count);
+        this.numDefinitions = dat.g2();
+        this.list = new Array(this.numDefinitions);
 
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             if (!this.list[id]) {
                 this.list[id] = new FloType();
             }
@@ -57,7 +57,6 @@ export default class FloType {
         }
     }
 
-    // jag::oldscape::configdecoder::FloType::GetHsl
     private getHsl(rgb: number): void {
         const red: number = ((rgb >> 16) & 0xff) / 256.0;
         const green: number = ((rgb >> 8) & 0xff) / 256.0;

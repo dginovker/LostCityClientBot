@@ -1,11 +1,11 @@
-import SpotAnimType from '#/config/SpotAnimType.js';
+import SpotType from '#/config/SpotType.js';
 
 import AnimFrame from '#/dash3d/AnimFrame.js';
 import Model from '#/dash3d/Model.js';
 import ModelSource from '#/dash3d/ModelSource.js';
 
 export default class ClientProj extends ModelSource {
-    readonly spotanim: SpotAnimType;
+    readonly spotanim: SpotType;
     readonly level: number;
     readonly srcX: number;
     readonly srcZ: number;
@@ -33,7 +33,8 @@ export default class ClientProj extends ModelSource {
 
     constructor(spotanim: number, level: number, srcX: number, h1: number, srcZ: number, t1: number, t2: number, angle: number, startpos: number, target: number, h2: number) {
         super();
-        this.spotanim = SpotAnimType.list[spotanim];
+
+        this.spotanim = SpotType.list[spotanim];
         this.level = level;
         this.srcX = srcX;
         this.srcZ = srcZ;
@@ -47,7 +48,6 @@ export default class ClientProj extends ModelSource {
         this.mobile = false;
     }
 
-    // jag::oldscape::ClientProj::SetTarget
     setTarget(dstX: number, dstY: number, dstZ: number, cycle: number): void {
         if (!this.mobile) {
             const dx: number = dstX - this.srcX;
@@ -69,7 +69,6 @@ export default class ClientProj extends ModelSource {
         this.accelerationY = ((dstY - this.y - this.velocityY * dt) * 2.0) / (dt * dt);
     }
 
-    // jag::oldscape::ClientProj::Move
     move(delta: number): void {
         this.mobile = true;
         this.x += this.velocityX * delta;
@@ -92,9 +91,8 @@ export default class ClientProj extends ModelSource {
         }
     }
 
-    // jag::oldscape::ClientProj::GetTempModel
     override getTempModel(): Model | null {
-        const spotModel: Model | null = this.spotanim.getTempModel();
+        const spotModel: Model | null = this.spotanim.getTempModel2();
         if (!spotModel) {
             return null;
         }

@@ -6,7 +6,7 @@ import Pix3D from '#/dash3d/Pix3D.js';
 import Packet from '#/io/Packet.js';
 
 import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
-import VertexNormal from '#/dash3d/VertexNormal.js';
+import PointNormal from '#/dash3d/PointNormal.js';
 import ModelSource from '#/dash3d/ModelSource.js';
 import type OnDemandProvider from '#/io/OnDemandProvider.js';
 
@@ -64,8 +64,8 @@ type ModelType = {
     faceLabel?: Int32Array | null;
     labelVertices?: (Int32Array | null)[] | null;
     labelFaces?: (Int32Array | null)[] | null;
-    vertexNormal?: (VertexNormal | null)[] | null;
-    vertexNormalOriginal?: (VertexNormal | null)[] | null;
+    vertexNormal?: (PointNormal | null)[] | null;
+    vertexNormalOriginal?: (PointNormal | null)[] | null;
 };
 
 export default class Model extends ModelSource {
@@ -82,8 +82,8 @@ export default class Model extends ModelSource {
     faceLabel: Int32Array | null = null;
     labelVertices: (Int32Array | null)[] | null = null;
     labelFaces: (Int32Array | null)[] | null = null;
-    useAABBMouseCheck: boolean = false; // jag::oldscape::dash3d::ModelLit::m_useAABBMouseCheck
-    vertexNormalOriginal: (VertexNormal | null)[] | null = null;
+    useAABBMouseCheck: boolean = false;
+    vertexNormalOriginal: (PointNormal | null)[] | null = null;
     static meta: (Metadata | null)[] = [];
     static provider: OnDemandProvider;
     static faceClippedX: boolean[] | null = new TypedArray1d(4096, false);
@@ -131,9 +131,9 @@ export default class Model extends ModelSource {
     static clippedY: Int32Array = new Int32Array(10);
     static clippedColour: Int32Array = new Int32Array(10);
     static pickedBitsets: Int32Array = new Int32Array(1000);
-    static oX: number = 0; // jag::oldscape::dash3d::ModelUnlitImpl::m_oX (animation origin x)
-    static oY: number = 0; // jag::oldscape::dash3d::ModelUnlitImpl::m_oY (animation origin y)
-    static oZ: number = 0; // jag::oldscape::dash3d::ModelUnlitImpl::m_oZ (animation origin z)
+    static oX: number = 0; // animation origin x
+    static oY: number = 0; // animation origin y
+    static oZ: number = 0; // animation origin z
     static mouseX: number = 0;
     static mouseY: number = 0;
     static pickedCount: number = 0;
@@ -242,7 +242,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlit::Load
     static load(id: number): Model | null {
         const meta = Model.meta[id];
         if (!meta) {
@@ -431,7 +430,6 @@ export default class Model extends ModelSource {
         return model;
     }
 
-    // jag::oldscape::jagex3::Js5::RequestDownload
     static requestDownload(id: number): boolean {
         const meta = Model.meta[id];
         if (!meta) {
@@ -484,7 +482,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::HillSkewCopy
     static hillSkewCopy(src: Model, copyVertexY: boolean, copyFaces: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
@@ -504,8 +501,8 @@ export default class Model extends ModelSource {
         let faceColourB: Int32Array | null;
         let faceColourC: Int32Array | null;
         let faceInfo: Int32Array | null;
-        let vertexNormal: (VertexNormal | null)[] | null = null;
-        let vertexNormalOriginal: (VertexNormal | null)[] | null = null;
+        let vertexNormal: (PointNormal | null)[] | null = null;
+        let vertexNormalOriginal: (PointNormal | null)[] | null = null;
         if (copyFaces) {
             faceColourA = new Int32Array(faceCount);
             faceColourB = new Int32Array(faceCount);
@@ -535,9 +532,9 @@ export default class Model extends ModelSource {
 
             vertexNormal = new TypedArray1d(vertexCount, null);
             for (let v: number = 0; v < vertexCount; v++) {
-                const copy: VertexNormal = (vertexNormal[v] = new VertexNormal());
+                const copy: PointNormal = (vertexNormal[v] = new PointNormal());
                 if (src.vertexNormal) {
-                    const original: VertexNormal | null = src.vertexNormal[v];
+                    const original: PointNormal | null = src.vertexNormal[v];
                     if (original) {
                         copy.x = original.x;
                         copy.y = original.y;
@@ -589,7 +586,6 @@ export default class Model extends ModelSource {
         });
     }
 
-    // jag::oldscape::dash3d::ModelLitImpl::CopyForAnim
     static copyForAnim(src: Model, shareColours: boolean, shareAlpha: boolean, shareVertices: boolean): Model {
         const vertexCount: number = src.vertexCount;
         const faceCount: number = src.faceCount;
@@ -849,7 +845,6 @@ export default class Model extends ModelSource {
         return model;
     }
 
-    // jag::oldscape::dash3d::ModelUnlit::Combine
     static combine(models: (Model | null)[], count: number): Model {
         let copyInfo: boolean = false;
         let copyPriorities: boolean = false;
@@ -1127,7 +1122,6 @@ export default class Model extends ModelSource {
         return { vertex: identical, vertexCount };
     };
 
-    // jag::oldscape::dash3d::ModelLitImpl::CalcBoundingCylinder
     calcBoundingCylinder(): void {
         this.minY = 0;
         this.radius = 0;
@@ -1157,7 +1151,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + ((Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) + 0.99) | 0);
     }
 
-    calcHeight(): void {
+    calcAABB(): void {
         this.minY = 0;
         this.maxY = 0;
 
@@ -1177,8 +1171,7 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + ((Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) + 0.99) | 0);
     }
 
-    // jag::oldscape::dash3d::ModelLitImpl::CalcAABB
-    private calcAABB(): void {
+    private calcBoundingCube(): void {
         this.minY = 0;
         this.radius = 0;
         this.maxY = 0;
@@ -1227,7 +1220,6 @@ export default class Model extends ModelSource {
         this.maxDepth = this.minDepth + (Math.sqrt(this.radius * this.radius + this.maxY * this.maxY) | 0);
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::PrepareAnim
     prepareAnim(): void {
         if (this.vertexLabel) {
             const labelVertexCount: Int32Array = new Int32Array(256);
@@ -1293,7 +1285,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Animate
     animate(id: number): void {
         if (!this.labelVertices || id === -1) {
             return;
@@ -1319,7 +1310,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelLitImpl::MaskAnimate
     maskAnimate(primaryId: number, secondaryId: number, mask: Int32Array | null): void {
         if (primaryId === -1) {
             return;
@@ -1388,7 +1378,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Animate2
     private animate2(x: number, y: number, z: number, labels: Uint8Array | null, type: number): void {
         if (!labels) {
             return;
@@ -1551,7 +1540,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Rotate90
     rotate90(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             const tmp: number = this.vertexX![v];
@@ -1560,7 +1548,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::RotateXAxis
     rotateXAxis(angle: number): void {
         const sin: number = Pix3D.sinTable[angle];
         const cos: number = Pix3D.cosTable[angle];
@@ -1572,7 +1559,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Translate
     translate(y: number, x: number, z: number): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexX![v] += x;
@@ -1581,7 +1567,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Recolour
     recolour(src: number, dst: number): void {
         if (!this.faceColour) {
             return;
@@ -1594,8 +1579,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Rotate180
-    rotate180(): void {
+    mirror(): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexZ![v] = -this.vertexZ![v];
         }
@@ -1607,7 +1591,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::Resize
     resize(x: number, y: number, z: number): void {
         for (let v: number = 0; v < this.vertexCount; v++) {
             this.vertexX![v] = ((this.vertexX![v] * x) / 128) | 0;
@@ -1616,7 +1599,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::ModelUnlitImpl::CalculateNormals
     calculateNormals(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number, doNotShareLight: boolean): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
         const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
@@ -1631,7 +1613,7 @@ export default class Model extends ModelSource {
             this.vertexNormal = new TypedArray1d(this.vertexCount, null);
 
             for (let v: number = 0; v < this.vertexCount; v++) {
-                this.vertexNormal[v] = new VertexNormal();
+                this.vertexNormal[v] = new PointNormal();
             }
         }
 
@@ -1668,7 +1650,7 @@ export default class Model extends ModelSource {
             nz = ((nz * 256) / length) | 0;
 
             if (!this.faceInfo || (this.faceInfo[f] & 0x1) === 0) {
-                let n: VertexNormal | null = this.vertexNormal[a];
+                let n: PointNormal | null = this.vertexNormal[a];
                 if (n) {
                     n.x += nx;
                     n.y += ny;
@@ -1705,8 +1687,8 @@ export default class Model extends ModelSource {
             this.vertexNormalOriginal = new TypedArray1d(this.vertexCount, null);
 
             for (let v: number = 0; v < this.vertexCount; v++) {
-                const normal: VertexNormal | null = this.vertexNormal[v];
-                const copy: VertexNormal = new VertexNormal();
+                const normal: PointNormal | null = this.vertexNormal[v];
+                const copy: PointNormal = new PointNormal();
 
                 if (normal) {
                     copy.x = normal.x;
@@ -1722,7 +1704,7 @@ export default class Model extends ModelSource {
         if (doNotShareLight) {
             this.calcBoundingCylinder();
         } else {
-            this.calcAABB();
+            this.calcBoundingCube();
         }
     }
 
@@ -1735,17 +1717,17 @@ export default class Model extends ModelSource {
             if (!this.faceInfo && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
                 const colour: number = this.faceColour[f];
 
-                const va: VertexNormal | null = this.vertexNormal[a];
+                const va: PointNormal | null = this.vertexNormal[a];
                 if (va) {
                     this.faceColourA[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * va.x + lightSrcY * va.y + lightSrcZ * va.z) / (lightAttenuation * va.w)) | 0), 0);
                 }
 
-                const vb: VertexNormal | null = this.vertexNormal[b];
+                const vb: PointNormal | null = this.vertexNormal[b];
                 if (vb) {
                     this.faceColourB[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vb.x + lightSrcY * vb.y + lightSrcZ * vb.z) / (lightAttenuation * vb.w)) | 0), 0);
                 }
 
-                const vc: VertexNormal | null = this.vertexNormal[c];
+                const vc: PointNormal | null = this.vertexNormal[c];
                 if (vc) {
                     this.faceColourC[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vc.x + lightSrcY * vc.y + lightSrcZ * vc.z) / (lightAttenuation * vc.w)) | 0), 0);
                 }
@@ -1753,17 +1735,17 @@ export default class Model extends ModelSource {
                 const colour: number = this.faceColour[f];
                 const info: number = this.faceInfo[f];
 
-                const va: VertexNormal | null = this.vertexNormal[a];
+                const va: PointNormal | null = this.vertexNormal[a];
                 if (va) {
                     this.faceColourA[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * va.x + lightSrcY * va.y + lightSrcZ * va.z) / (lightAttenuation * va.w)) | 0), info);
                 }
 
-                const vb: VertexNormal | null = this.vertexNormal[b];
+                const vb: PointNormal | null = this.vertexNormal[b];
                 if (vb) {
                     this.faceColourB[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vb.x + lightSrcY * vb.y + lightSrcZ * vb.z) / (lightAttenuation * vb.w)) | 0), info);
                 }
 
-                const vc: VertexNormal | null = this.vertexNormal[c];
+                const vc: PointNormal | null = this.vertexNormal[c];
                 if (vc) {
                     this.faceColourC[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vc.x + lightSrcY * vc.y + lightSrcZ * vc.z) / (lightAttenuation * vc.w)) | 0), info);
                 }
@@ -1808,7 +1790,6 @@ export default class Model extends ModelSource {
         return (hsl & 0xff80) + scalar;
     }
 
-    // jag::oldscape::dash3d::SoftwareModelLitRenderer::ObjRender
     objRender(pitch: number, yaw: number, roll: number, eyePitch: number, eyeX: number, eyeY: number, eyeZ: number): void {
         const sinPitch: number = Pix3D.sinTable[pitch];
         const cosPitch: number = Pix3D.cosTable[pitch];
@@ -1877,7 +1858,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwareModelLitRenderer::WorldRender
     override worldRender(_loopCycle: number, yaw: number, sinEyePitch: number, cosEyePitch: number, sinEyeYaw: number, cosEyeYaw: number, relativeX: number, relativeY: number, relativeZ: number, typecode: number): void {
         const zPrime: number = (relativeZ * cosEyeYaw - relativeX * sinEyeYaw) >> 16;
         const midZ: number = (relativeY * sinEyePitch + zPrime * cosEyePitch) >> 16;
@@ -2012,7 +1992,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwareModelLitRenderer::Render2
     private render2(clipped: boolean, picking: boolean, typecode: number): void {
         for (let depth: number = 0; depth < this.maxDepth; depth++) {
             if (Model.tmpDepthFaceCount) {
@@ -2273,7 +2252,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwareModelLitRenderer::Render3
     private render3(face: number): void {
         if (Model.faceNearClipped && Model.faceNearClipped[face]) {
             this.render3ZClip(face);
@@ -2370,7 +2348,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwareModelLitRenderer::Render3ZClip
     private render3ZClip(face: number): void {
         let elements: number = 0;
 
@@ -2660,7 +2637,6 @@ export default class Model extends ModelSource {
         }
     }
 
-    // jag::oldscape::dash3d::MousePickingHelper::IsMouseRoughlyInsideTriangle
     private isMouseRoughlyInsideTriangle(x: number, y: number, yA: number, yB: number, yC: number, xA: number, xB: number, xC: number): boolean {
         if (y < yA && y < yB && y < yC) {
             return false;

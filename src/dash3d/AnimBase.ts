@@ -2,11 +2,10 @@ import Packet from '#/io/Packet.js';
 
 import { TypedArray1d } from '#/util/Arrays.js';
 
-// jag::oldscape::dash3d::AnimBase
 export default class AnimBase {
     size: number = 0;
-    type: Uint8Array | null = null; // jag::graphics::AnimBase::GetTransformType
-    labels: (Uint8Array | null)[] | null = null; // jag::graphics::AnimBase::GetTransformLabels
+    type: Uint8Array | null = null;
+    labels: (Uint8Array | null)[] | null = null;
 
     constructor(buf: Packet) {
         this.size = buf.g1();

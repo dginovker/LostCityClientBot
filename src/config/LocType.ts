@@ -13,19 +13,19 @@ import { TypedArray1d } from '#/util/Arrays.js';
 import type OnDemand from '#/io/OnDemand.js';
 
 export default class LocType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static idx: Int32Array | null = null;
     static dat: Packet | null = null;
-    static cache: (LocType | null)[] | null = null;
-    static cachePos: number = 0;
-    static mc1: LruCache<Model> = new LruCache(500); // jag::oldscape::configdecoder::LocType::m_mc1
-    static mc2: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::LocType::m_mc2
+    static recent: (LocType | null)[] | null = null;
+    static recentPos: number = 0;
+    static mc1: LruCache<Model> = new LruCache(500);
+    static mc2: LruCache<Model> = new LruCache(30);
     static temp: Model[] = new Array(4);
 
     id: number = -1;
 
-    models: Int32Array | null = null;
-    shapes: Int32Array | null = null;
+    model: Int32Array | null = null;
+    shape: Int32Array | null = null;
     name: string | null = null;
     desc: string | null = null;
     recol_s: Uint16Array | null = null;
@@ -42,8 +42,11 @@ export default class LocType {
     wallwidth: number = 16;
     ambient: number = 0;
     contrast: number = 0;
+    op: (string | null)[] | null = null;
     mapfunction: number = -1;
     mapscene: number = -1;
+    mirror: boolean = false;
+    shadow: boolean = true;
     resizex: number = 128;
     resizey: number = 128;
     resizez: number = 128;
@@ -51,47 +54,44 @@ export default class LocType {
     offsety: number = 0;
     offsetz: number = 0;
     forceapproach: number = 0;
-    raiseobject: number = 0;
-    mirror: boolean = false;
-    shadow: boolean = true;
     forcedecor: boolean = false;
     breakroutefinding: boolean = false;
-    op: (string | null)[] | null = null;
+    raiseobject: number = 0;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         this.dat = new Packet(config.read('loc.dat'));
         const idx: Packet = new Packet(config.read('loc.idx'));
 
-        this.count = idx.g2();
-        this.idx = new Int32Array(this.count);
+        this.numDefinitions = idx.g2();
+        this.idx = new Int32Array(this.numDefinitions);
 
         let offset: number = 2;
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             this.idx[id] = offset;
             offset += idx.g2();
         }
 
-        this.cache = new TypedArray1d(10, null);
+        this.recent = new TypedArray1d(10, null);
         for (let id: number = 0; id < 10; id++) {
-            this.cache[id] = new LocType();
+            this.recent[id] = new LocType();
         }
     }
 
-    static get(id: number): LocType {
-        if (!this.cache || !this.idx || !this.dat) {
+    static list(id: number): LocType {
+        if (!this.recent || !this.idx || !this.dat) {
             throw new Error();
         }
 
         for (let i: number = 0; i < 10; i++) {
-            const type: LocType | null = this.cache[i];
+            const type: LocType | null = this.recent[i];
             if (type && type.id === id) {
                 return type;
             }
         }
 
-        this.cachePos = (this.cachePos + 1) % 10;
+        this.recentPos = (this.recentPos + 1) % 10;
 
-        const loc: LocType = this.cache[this.cachePos]!;
+        const loc: LocType = this.recent[this.recentPos]!;
         this.dat.pos = this.idx[id];
         loc.id = id;
         loc.reset();
@@ -101,8 +101,8 @@ export default class LocType {
     }
 
     private reset(): void {
-        this.models = null;
-        this.shapes = null;
+        this.model = null;
+        this.shape = null;
         this.name = null;
         this.desc = null;
         this.recol_s = null;
@@ -146,12 +146,12 @@ export default class LocType {
 
             if (code === 1) {
                 const count: number = dat.g1();
-                this.models = new Int32Array(count);
-                this.shapes = new Int32Array(count);
+                this.model = new Int32Array(count);
+                this.shape = new Int32Array(count);
 
                 for (let i: number = 0; i < count; i++) {
-                    this.models[i] = dat.g2();
-                    this.shapes[i] = dat.g1();
+                    this.model[i] = dat.g2();
+                    this.shape[i] = dat.g1();
                 }
             } else if (code === 2) {
                 this.name = dat.gjstr();
@@ -159,11 +159,11 @@ export default class LocType {
                 this.desc = dat.gjstr();
             } else if (code === 5) {
                 const count: number = dat.g1();
-                this.models = new Int32Array(count);
-                this.shapes = null;
+                this.model = new Int32Array(count);
+                this.shape = null;
 
                 for (let i: number = 0; i < count; i++) {
-                    this.models[i] = dat.g2();
+                    this.model[i] = dat.g2();
                 }
             } else if (code === 14) {
                 this.width = dat.g1();
@@ -248,7 +248,7 @@ export default class LocType {
         if (active === -1) {
             this.active = false;
 
-            if (this.models && (!this.shapes || (this.shapes && this.shapes[0] === LocShape.CENTREPIECE_STRAIGHT.id))) {
+            if (this.model && (!this.shape || (this.shape && this.shape[0] === LocShape.CENTREPIECE_STRAIGHT.id))) {
                 this.active = true;
             }
 
@@ -267,23 +267,22 @@ export default class LocType {
         }
     }
 
-    // jag::oldscape::configdecoder::LocType::CheckModel
     checkModel(shape: number): boolean {
-        if (this.models === null) {
+        if (this.model === null) {
             return true;
         }
 
-        if (this.shapes !== null) {
-            for (let i = 0; i < this.shapes.length; i++) {
-                if (this.shapes[i] === shape) {
-                    return Model.requestDownload(this.models[i] & 0xFFFF);
+        if (this.shape !== null) {
+            for (let i = 0; i < this.shape.length; i++) {
+                if (this.shape[i] === shape) {
+                    return Model.requestDownload(this.model[i] & 0xFFFF);
                 }
             }
             return true;
         } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id) {
             let ready = true;
-            for (let i = 0; i < this.models.length; i++) {
-                const model = this.models[i];
+            for (let i = 0; i < this.model.length; i++) {
+                const model = this.model[i];
                 if (!Model.requestDownload(model & 0xFFFF)) {
                     ready = false;
                 }
@@ -294,15 +293,14 @@ export default class LocType {
         return true;
     }
 
-    // jag::oldscape::configdecoder::LocType::CheckModelAll
     checkModelAll(): boolean {
-        if (this.models == null) {
+        if (this.model == null) {
             return true;
         }
 
         let ready = true;
-        for (let i = 0; i < this.models.length; i++) {
-            const model = this.models[i];
+        for (let i = 0; i < this.model.length; i++) {
+            const model = this.model[i];
             if (!Model.requestDownload(model & 0xFFFF)) {
                 ready = false;
             }
@@ -310,20 +308,20 @@ export default class LocType {
         return ready;
     }
 
+    // custom name
     prefetchModelAll(od: OnDemand) {
-        if (this.models == null) {
+        if (this.model == null) {
             return;
         }
 
-        for (let i = 0; i < this.models.length; i++) {
-            const model = this.models[i];
+        for (let i = 0; i < this.model.length; i++) {
+            const model = this.model[i];
             if (model != -1) {
                 od.prefetch(0, model & 0xFFFF);
             }
         }
     }
 
-    // jag::oldscape::configdecoder::LocType::GetModel
     getModel(shape: number, angle: number, heightSW: number, heightSE: number, heightNE: number, heightNW: number, transformId: number): Model | null {
         let modified = this.buildModel(shape, angle, transformId);
         if (!modified) {
@@ -348,43 +346,42 @@ export default class LocType {
                 modified.vertexY![i] += y - groundY;
             }
 
-            modified.calcHeight();
+            modified.calcAABB();
         }
 
         return modified;
     }
 
-    // jag::oldscape::configdecoder::LocType::BuildModel
     buildModel(shape: number, angle: number, transformId: number): Model | null {
         let model: Model | null = null;
         let typecode: bigint = 0n;
 
-        if (this.shapes === null) {
+        if (this.shape === null) {
             if (shape !== LocShape.CENTREPIECE_STRAIGHT.id) {
                 return null;
             }
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + BigInt(angle);
 
-            const cached = LocType.mc2.get(typecode);
+            const cached = LocType.mc2.find(typecode);
             if (cached) {
                 return cached;
             }
 
-            if (!this.models) {
+            if (!this.model) {
                 return null;
             }
 
             const flip: boolean = this.mirror !== angle > 3;
-            const modelCount: number = this.models.length;
+            const modelCount: number = this.model.length;
 
             for (let i = 0; i < modelCount; i++) {
-                let modelId = this.models[i];
+                let modelId = this.model[i];
                 if (flip) {
                     modelId += 65536;
                 }
 
-                model = LocType.mc1.get(BigInt(modelId));
+                model = LocType.mc1.find(BigInt(modelId));
                 if (!model) {
                     model = Model.load(modelId & 0xffff);
                     if (!model) {
@@ -392,7 +389,7 @@ export default class LocType {
                     }
 
                     if (flip) {
-                        model.rotate180();
+                        model.mirror();
                     }
 
                     LocType.mc1.put(BigInt(modelId), model);
@@ -408,8 +405,8 @@ export default class LocType {
             }
         } else {
             let index: number = -1;
-            for (let i: number = 0; i < this.shapes.length; i++) {
-                if (this.shapes[i] === shape) {
+            for (let i: number = 0; i < this.shape.length; i++) {
+                if (this.shape[i] === shape) {
                     index = i;
                     break;
                 }
@@ -420,16 +417,16 @@ export default class LocType {
 
             typecode = ((BigInt(transformId) + 1n) << 32n) + (BigInt(this.id) << 6n) + (BigInt(index) << 3n) + BigInt(angle);
 
-            const cached = LocType.mc2.get(typecode);
+            const cached = LocType.mc2.find(typecode);
             if (cached) {
                 return cached;
             }
 
-            if (!this.models || index >= this.models.length) {
+            if (!this.model || index >= this.model.length) {
                 return null;
             }
 
-            let modelId: number = this.models[index];
+            let modelId: number = this.model[index];
             if (modelId === -1) {
                 return null;
             }
@@ -439,7 +436,7 @@ export default class LocType {
                 modelId += 65536;
             }
 
-            model = LocType.mc1.get(BigInt(modelId));
+            model = LocType.mc1.find(BigInt(modelId));
             if (!model) {
                 model = Model.load(modelId & 0xffff);
                 if (!model) {
@@ -447,7 +444,7 @@ export default class LocType {
                 }
 
                 if (flip) {
-                    model.rotate180();
+                    model.mirror();
                 }
 
                 LocType.mc1.put(BigInt(modelId), model);

@@ -1,11 +1,11 @@
-import SpotAnimType from '#/config/SpotAnimType.js';
+import SpotType from '#/config/SpotType.js';
 import Model from '#/dash3d/Model.js';
 
 import AnimFrame from '#/dash3d/AnimFrame.js';
 import ModelSource from '#/dash3d/ModelSource.js';
 
 export default class MapSpotAnim extends ModelSource {
-    readonly type: SpotAnimType;
+    readonly type: SpotType;
     readonly level: number;
     readonly x: number;
     readonly z: number;
@@ -19,7 +19,7 @@ export default class MapSpotAnim extends ModelSource {
     constructor(id: number, level: number, x: number, z: number, y: number, cycle: number, delay: number) {
         super();
 
-        this.type = SpotAnimType.list[id];
+        this.type = SpotType.list[id];
         this.level = level;
         this.x = x;
         this.z = z;
@@ -44,7 +44,7 @@ export default class MapSpotAnim extends ModelSource {
     }
 
     override getTempModel(): Model | null {
-        const tmp: Model | null = this.type.getTempModel();
+        const tmp: Model | null = this.type.getTempModel2();
         if (!tmp) {
             return null;
         }

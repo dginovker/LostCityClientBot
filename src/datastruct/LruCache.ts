@@ -1,11 +1,11 @@
-import DoublyLinkable from '#/datastruct/DoublyLinkable.js';
+import Linkable2 from '#/datastruct/Linkable2.js';
 import HashTable from '#/datastruct/HashTable.js';
-import DoublyLinkList from '#/datastruct/DoublyLinkList.js';
+import LinkList2 from '#/datastruct/LinkList2.js';
 
-export default class LruCache<T extends DoublyLinkable> {
+export default class LruCache<T extends Linkable2> {
     readonly capacity: number;
     readonly table: HashTable<T> = new HashTable(1024);
-    readonly history: DoublyLinkList<T> = new DoublyLinkList();
+    readonly history: LinkList2<T> = new LinkList2();
     available: number;
 
     constructor(size: number) {
@@ -13,8 +13,8 @@ export default class LruCache<T extends DoublyLinkable> {
         this.available = size;
     }
 
-    get(key: bigint): T | null {
-        const node = this.table.get(key);
+    find(key: bigint): T | null {
+        const node = this.table.find(key);
         if (node) {
             this.history.push(node);
         }
@@ -23,19 +23,20 @@ export default class LruCache<T extends DoublyLinkable> {
 
     put(key: bigint, value: T): void {
         if (this.available === 0) {
-            const node = this.history.pop();
+            const node = this.history.popFront();
             node?.unlink();
             node?.unlink2();
         } else {
             this.available--;
         }
+
         this.table.put(key, value);
         this.history.push(value);
     }
 
     clear(): void {
         while (true) {
-            const node: T | null = this.history.pop();
+            const node: T | null = this.history.popFront();
             if (!node) {
                 this.available = this.capacity;
                 return;

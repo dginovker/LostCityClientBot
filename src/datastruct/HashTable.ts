@@ -15,7 +15,7 @@ export default class HashTable<T extends Linkable> {
         }
     }
 
-    get(key: bigint): T | null {
+    find(key: bigint): T | null {
         const start = this.buckets[Number(key & BigInt(this.bucketCount - 1))];
 
         for (let node = start.next; node !== start; node = node?.next ?? null) {

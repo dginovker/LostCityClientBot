@@ -4,16 +4,15 @@ import Pix8 from '#/graphics/Pix8.js';
 import Jagfile from '#/io/Jagfile.js';
 import { Int32Array2d, TypedArray1d } from '#/util/Arrays.js';
 
-// jag::oldscape::dash3d::Pix3D
 export default class Pix3D extends Pix2D {
     static lowMem: boolean = false;
-    static lowDetail: boolean = true; // jag::oldscape::dash3d::Pix3D::SetLowDetail
+    static lowDetail: boolean = true;
 
-    static divTable: Int32Array = new Int32Array(512); // jag::oldscape::dash3d::Pix3D::m_divTable
-    static divTable2: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_divTable2
-    static sinTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_sinTable
-    static cosTable: Int32Array = new Int32Array(2048); // jag::oldscape::dash3d::Pix3D::m_cosTable
-    static colourTable: Int32Array = new Int32Array(65536); // jag::oldscape::dash3d::Pix3D::m_colourTable
+    static divTable: Int32Array = new Int32Array(512);
+    static divTable2: Int32Array = new Int32Array(2048);
+    static sinTable: Int32Array = new Int32Array(2048);
+    static cosTable: Int32Array = new Int32Array(2048);
+    static colourTable: Int32Array = new Int32Array(65536);
 
     static textures: (Pix8 | null)[] = new TypedArray1d(50, null);
     private static textureTranslucent: boolean[] = new TypedArray1d(50, false);
@@ -30,8 +29,8 @@ export default class Pix3D extends Pix2D {
 
     static cycle: number = 0;
     static scanline: Int32Array = new Int32Array();
-    static hclip: boolean = false; // jag::oldscape::dash3d::Pix3D::SetHClip
-    static trans: number = 0; // jag::oldscape::dash3d::Pix3D::SetTrans
+    static hclip: boolean = false;
+    static trans: number = 0;
 
     static {
         for (let i: number = 1; i < 512; i++) {
@@ -50,7 +49,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::Pix3D::SetRenderClipping
     static setRenderClipping(): void {
         this.scanline = new Int32Array(Pix2D.height);
         for (let y: number = 0; y < Pix2D.height; y++) {
@@ -60,7 +58,6 @@ export default class Pix3D extends Pix2D {
         this.originY = (Pix2D.height / 2) | 0;
     }
 
-    // jag::oldscape::dash3d::Pix3D::SetClipping
     static override setClipping(width: number, height: number): void {
         this.scanline = new Int32Array(height);
         for (let y: number = 0; y < height; y++) {
@@ -96,12 +93,14 @@ export default class Pix3D extends Pix2D {
 
         for (let i: number = 0; i < 50; i++) {
             try {
-                this.textures[i] = Pix8.load(textures, i.toString());
+                this.textures[i] = Pix8.depack(textures, i.toString());
+
                 if (this.lowMem && this.textures[i]?.owi === 128) {
                     this.textures[i]?.halveSize();
                 } else {
                     this.textures[i]?.trim();
                 }
+
                 this.textureCount++;
             } catch (_e) {
                 // empty
@@ -216,7 +215,6 @@ export default class Pix3D extends Pix2D {
         return texels;
     }
 
-    // jag::oldscape::dash3d::Pix3D::InitColourTable
     static initColourTable(brightness: number): void {
         const randomBrightness: number = brightness + Math.random() * 0.03 - 0.015;
 
@@ -312,7 +310,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::math::RunetekColour::GammaCorrectOSRS
     private static gammaCorrect(rgb: number, gamma: number): number {
         const r: number = (rgb >> 16) / 256.0;
         const g: number = ((rgb >> 8) & 0xff) / 256.0;
@@ -328,7 +325,6 @@ export default class Pix3D extends Pix2D {
         return (intR << 16) + (intG << 8) + intB;
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::GouraudTriangle
     static gouraudTriangle(
         xA: number, xB: number, xC: number,
         yA: number, yB: number, yC: number,
@@ -904,7 +900,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::GouraudRaster
     private static gouraudRaster(
         xA: number, xB: number,
         colourA: number, colourB: number,
@@ -1055,7 +1050,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::FlatTriangle
     static flatTriangle(
         xA: number, xB: number, xC: number,
         yA: number, yB: number, yC: number,
@@ -1547,7 +1541,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::FlatRaster
     private static flatRaster(
         xA: number, xB: number,
         dst: Int32Array, off: number,
@@ -1623,7 +1616,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::TextureTriangle
     static textureTriangle(
         xA: number, xB: number, xC: number,
         yA: number, yB: number, yC: number,
@@ -2419,7 +2411,6 @@ export default class Pix3D extends Pix2D {
         }
     }
 
-    // jag::oldscape::dash3d::SoftwarePix3D::TextureRaster
     private static textureRaster(
         xA: number, xB: number,
         dst: Int32Array, off: number,

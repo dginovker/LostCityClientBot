@@ -1,7 +1,7 @@
 import IdkType from '#/config/IdkType.js';
 import NpcType from '#/config/NpcType.js';
 import ObjType from '#/config/ObjType.js';
-import SpotAnimType from '#/config/SpotAnimType.js';
+import SpotType from '#/config/SpotType.js';
 import SeqType from '#/config/SeqType.js';
 
 import LruCache from '#/datastruct/LruCache.js';
@@ -121,7 +121,7 @@ export default class ClientPlayer extends ClientEntity {
         BodyColourDest.BODY_RECOLOR_LIME,
         BodyColourDest.BODY_RECOLOR_CYAN,
         BodyColourDest.BODY_RECOLOR_EMERALD
-    ]; // jag::oldscape::rs2lib::PlayerModel::m_recol2d
+    ];
 
     // prettier-ignore
     static readonly recol1d: number[][] = [
@@ -193,19 +193,19 @@ export default class ClientPlayer extends ClientEntity {
             SkinColour.SKIN_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER_DARKER,
             SkinColour.SKIN
         ]
-    ]; // jag::oldscape::rs2lib::PlayerModel::m_recol1d
+    ];
 
     name: string | null = null;
-    ready: boolean = false; // jag::oldscape::ClientPlayer::Ready
+    ready: boolean = false;
     gender: number = 0;
     headicons: number = 0;
     appearance: Uint16Array = new Uint16Array(12);
     colour: Uint16Array = new Uint16Array(5);
     combatLevel: number = 0;
-    baseId: bigint = 0n; // jag::oldscape::rs2lib::PlayerModel::CalcBaseId
+    baseId: bigint = 0n;
     lowMemory: boolean = false;
     modelCacheKey: bigint = -1n;
-    static modelCache: LruCache<Model> = new LruCache(200); // jag::oldscape::rs2lib::PlayerModel::m_modelCache
+    static modelCache: LruCache<Model> = new LruCache(200);
     y: number = 0;
     locStartCycle: number = 0;
     locStopCycle: number = 0;
@@ -219,7 +219,6 @@ export default class ClientPlayer extends ClientEntity {
     maxTileZ: number = 0;
     transmog: NpcType | null = null;
 
-    // jag::oldscape::ClientPlayer::SetAppearance
     setAppearance(buf: Packet): void {
         buf.pos = 0;
 
@@ -234,7 +233,7 @@ export default class ClientPlayer extends ClientEntity {
             } else {
                 this.appearance[part] = (msb << 8) + buf.g1();
                 if (part === 0 && this.appearance[0] === 65535) {
-                    this.transmog = NpcType.get(buf.g2());
+                    this.transmog = NpcType.list(buf.g2());
                     break;
                 }
             }
@@ -283,7 +282,7 @@ export default class ClientPlayer extends ClientEntity {
             this.runanim = -1;
         }
 
-        this.name = JString.formatName(JString.fromBase37(buf.g8()));
+        this.name = JString.toScreenName(JString.toRawUsername(buf.g8()));
         this.combatLevel = buf.g1();
         this.ready = true;
 
@@ -308,7 +307,6 @@ export default class ClientPlayer extends ClientEntity {
         this.baseId += BigInt(this.gender);
     }
 
-    // jag::oldscape::ClientPlayer::GetTempModel
     override getTempModel(loopCycle: number): Model | null {
         if (!this.ready) {
             return null;
@@ -327,8 +325,8 @@ export default class ClientPlayer extends ClientEntity {
         }
 
         if (this.spotanimId != -1 && this.spotanimFrame != -1) {
-            const spot = SpotAnimType.list[this.spotanimId];
-            const spotModel = spot.getTempModel();
+            const spot = SpotType.list[this.spotanimId];
+            const spotModel = spot.getTempModel2();
 
             if (spotModel != null) {
                 const temp: Model = Model.copyForAnim(spotModel, true, AnimFrame.shareAlpha(this.spotanimFrame), false);
@@ -451,7 +449,7 @@ export default class ClientPlayer extends ClientEntity {
             }
         }
 
-        let model = ClientPlayer.modelCache.get(hash);
+        let model = ClientPlayer.modelCache.find(hash);
         if (!model) {
             let needsModel = false;
 
@@ -470,14 +468,14 @@ export default class ClientPlayer extends ClientEntity {
                     needsModel = true;
                 }
 
-                if (value >= 0x200 && !ObjType.get(value - 0x200).checkWearModel(this.gender)) {
+                if (value >= 0x200 && !ObjType.list(value - 0x200).checkWearModel(this.gender)) {
                     needsModel = true;
                 }
             }
 
             if (needsModel) {
                 if (this.modelCacheKey !== -1n) {
-                    model = ClientPlayer.modelCache.get(this.baseId);
+                    model = ClientPlayer.modelCache.find(this.baseId);
                 }
 
                 if (model == null) {
@@ -509,7 +507,7 @@ export default class ClientPlayer extends ClientEntity {
                 }
 
                 if (value >= 512) {
-                    const obj: ObjType = ObjType.get(value - 512);
+                    const obj: ObjType = ObjType.list(value - 512);
                     const wornModel: Model | null = obj.getWearModelNoCheck(this.gender);
                     if (wornModel) {
                         models[modelCount++] = wornModel;
@@ -555,7 +553,6 @@ export default class ClientPlayer extends ClientEntity {
         return tmp;
     }
 
-    // jag::oldscape::rs2lib::PlayerModel::GetHeadModel
     getHeadModel(): Model | null {
         if (!this.ready) {
             return null;
@@ -570,7 +567,7 @@ export default class ClientPlayer extends ClientEntity {
                 needsModel = true;
             }
 
-            if (part >= 0x200 && !ObjType.get(part - 0x200).checkHeadModel(this.gender)) {
+            if (part >= 0x200 && !ObjType.list(part - 0x200).checkHeadModel(this.gender)) {
                 needsModel = true;
             }
         }
@@ -592,7 +589,7 @@ export default class ClientPlayer extends ClientEntity {
             }
 
             if (value >= 512) {
-                const headModel: Model | null = ObjType.get(value - 512).getHeadModelNoCheck(this.gender);
+                const headModel: Model | null = ObjType.list(value - 512).getHeadModelNoCheck(this.gender);
                 if (headModel) {
                     models[modelCount++] = headModel;
                 }
@@ -615,7 +612,6 @@ export default class ClientPlayer extends ClientEntity {
         return tmp;
     }
 
-    // jag::oldscape::ClientPlayer::Ready
     isReady(): boolean {
         return this.ready;
     }

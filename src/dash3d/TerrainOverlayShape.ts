@@ -1,4 +1,3 @@
-// jag::graphics::TerrainOverlayShape
 export const enum TerrainOverlayShape {
     PLAIN = 0,
     DIAGONAL = 1,

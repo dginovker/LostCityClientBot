@@ -61,11 +61,8 @@ export default abstract class ClientEntity extends ModelSource {
     preanimRouteLength: number = 0;
     turnspeed: number = 32;
 
-    // jag::oldscape::ClientEntity::Ready
     abstract isReady(): boolean;
 
-    // jag::oldscape::ClientNpc::Teleport
-    // jag::oldscape::ClientPlayer::InstantMove (GPI)
     teleport(jump: boolean, x: number, z: number): void {
         if (this.primaryAnim !== -1 && SeqType.list[this.primaryAnim].postanim_move === PostanimMove.ABORTANIM) {
             this.primaryAnim = -1;
@@ -102,8 +99,6 @@ export default abstract class ClientEntity extends ModelSource {
         this.z = this.routeZ[0] * 128 + this.size * 64;
     }
 
-    // jag::oldscape::ClientNpc::MoveCode
-    // jag::oldscape::ClientPlayer::AddToRoute (GPI)
     moveCode(running: boolean, direction: number): void {
         let nextX: number = this.routeX[0];
         let nextZ: number = this.routeZ[0];
@@ -149,13 +144,11 @@ export default abstract class ClientEntity extends ModelSource {
         this.routeRun[0] = running;
     }
 
-    // jag::oldscape::ClientEntity::AbortRoute
     abortRoute() {
         this.routeLength = 0;
         this.preanimRouteLength = 0;
     }
 
-    // jag::oldscape::ClientEntity::AddHitmark
     addHitmark(loopCycle: number, type: number, value: number) {
         for (let i = 0; i < 4; i++) {
             if (this.damageCycles[i] <= loopCycle) {

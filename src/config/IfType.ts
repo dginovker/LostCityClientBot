@@ -35,9 +35,9 @@ export const enum ButtonType {
 };
 
 export default class IfType {
-    static list: IfType[] = []; // jag::oldscape::rs2lib::IfType::m_list
-    static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::rs2lib::IfType::m_modelCache
-    static spriteCache: LruCache<Pix32> | null = null; // jag::oldscape::rs2lib::IfType::m_spriteCache
+    static list: IfType[] = [];
+    static modelCache: LruCache<Model> = new LruCache(30);
+    static spriteCache: LruCache<Pix32> | null = null;
 
     animFrame: number = 0;
     animCycle: number = 0;
@@ -48,35 +48,35 @@ export default class IfType {
     clientCode: number = 0;
     width: number = 0;
     height: number = 0;
-    transparency: number = 0;
-    overlayer: number = -1;
+    trans: number = 0;
+    overLayerId: number = -1;
     x: number = 0;
     y: number = 0;
     scripts: (Uint16Array | null)[] | null = null;
     scriptComparator: Uint8Array | null = null;
     scriptOperand: Uint16Array | null = null;
-    scrollSize: number = 0;
+    scrollHeight: number = 0;
     scrollPos: number = 0;
-    hidden: boolean = false;
+    hide: boolean = false;
     children: number[] | null = null;
     childX: number[] | null = null;
     childY: number[] | null = null;
     linkObjType: Int32Array | null = null;
-    linkObjCount: Int32Array | null = null;
-    draggable: boolean = false;
-    interactable: boolean = false;
-    usable: boolean = false;
-    swappable: boolean = false;
+    linkObjNumber: Int32Array | null = null;
+    objSwap: boolean = false;
+    objOps: boolean = false;
+    objUse: boolean = false;
+    objReplace: boolean = false;
     marginX: number = 0;
     marginY: number = 0;
-    invSlotOffsetX: Int16Array | null = null;
-    invSlotOffsetY: Int16Array | null = null;
-    invSlotGraphic: (Pix32 | null)[] | null = null;
+    invBackgroundX: Int16Array | null = null;
+    invBackgroundY: Int16Array | null = null;
+    invBackground: (Pix32 | null)[] | null = null;
     iop: (string | null)[] | null = null;
     fill: boolean = false;
     center: boolean = false;
     font: PixFont | null = null;
-    shadowed: boolean = false;
+    shadow: boolean = false;
     text: string | null = null;
     text2: string | null = null;
     colour: number = 0;
@@ -85,21 +85,21 @@ export default class IfType {
     colour2Over: number = 0;
     graphic: Pix32 | null = null;
     graphic2: Pix32 | null = null;
-    modelType: number = 0;
-    modelId: number = 0;
+    model1Type: number = 0;
+    model1Id: number = 0;
     model2Id: number = 0;
     model2Type: number = 0;
     modelAnim: number = -1;
-    model2Anim: number = -1;
+    modelAnim2: number = -1;
     modelZoom: number = 0;
     modelXAn: number = 0;
     modelYAn: number = 0;
     targetVerb: string | null = null;
-    targetText: string | null = null;
+    targetBase: string | null = null;
     targetMask: number = -1;
-    option: string | null = null;
+    buttonText: string | null = null;
 
-    static unpack(interfaces: Jagfile, media: Jagfile | null, fonts: PixFont[]): void {
+    static init(interfaces: Jagfile, media: Jagfile | null, fonts: PixFont[]): void {
         this.spriteCache = new LruCache(50000);
 
         const data: Packet = new Packet(interfaces.read('data'));
@@ -118,26 +118,27 @@ export default class IfType {
             const com: IfType = (this.list[id] = new IfType());
             com.id = id;
             com.layerId = layer;
+
             com.type = data.g1();
             com.buttonType = data.g1();
             com.clientCode = data.g2();
             com.width = data.g2();
             com.height = data.g2();
-            com.transparency = data.g1();
+            com.trans = data.g1();
 
-            com.overlayer = data.g1();
-            if (com.overlayer === 0) {
-                com.overlayer = -1;
+            com.overLayerId = data.g1();
+            if (com.overLayerId === 0) {
+                com.overLayerId = -1;
             } else {
-                com.overlayer = ((com.overlayer - 1) << 8) + data.g1();
+                com.overLayerId = ((com.overLayerId - 1) << 8) + data.g1();
             }
 
-            const comparatorCount: number = data.g1();
-            if (comparatorCount > 0) {
-                com.scriptComparator = new Uint8Array(comparatorCount);
-                com.scriptOperand = new Uint16Array(comparatorCount);
+            const scriptStackCount: number = data.g1();
+            if (scriptStackCount > 0) {
+                com.scriptComparator = new Uint8Array(scriptStackCount);
+                com.scriptOperand = new Uint16Array(scriptStackCount);
 
-                for (let i: number = 0; i < comparatorCount; i++) {
+                for (let i: number = 0; i < scriptStackCount; i++) {
                     com.scriptComparator[i] = data.g1();
                     com.scriptOperand[i] = data.g2();
                 }
@@ -159,8 +160,8 @@ export default class IfType {
             }
 
             if (com.type === ComponentType.TYPE_LAYER) {
-                com.scrollSize = data.g2();
-                com.hidden = data.g1() === 1;
+                com.scrollHeight = data.g2();
+                com.hide = data.g1() === 1;
 
                 const childCount: number = data.g2();
                 com.children = new Array(childCount);
@@ -180,28 +181,29 @@ export default class IfType {
 
             if (com.type === ComponentType.TYPE_INV) {
                 com.linkObjType = new Int32Array(com.width * com.height);
-                com.linkObjCount = new Int32Array(com.width * com.height);
+                com.linkObjNumber = new Int32Array(com.width * com.height);
 
-                com.draggable = data.g1() === 1;
-                com.interactable = data.g1() === 1;
-                com.usable = data.g1() === 1;
-                com.swappable = data.g1() === 1;
+                com.objSwap = data.g1() === 1;
+                com.objOps = data.g1() === 1;
+                com.objUse = data.g1() === 1;
+                com.objReplace = data.g1() === 1;
+
                 com.marginX = data.g1();
                 com.marginY = data.g1();
 
-                com.invSlotOffsetX = new Int16Array(20);
-                com.invSlotOffsetY = new Int16Array(20);
-                com.invSlotGraphic = new TypedArray1d(20, null);
+                com.invBackgroundX = new Int16Array(20);
+                com.invBackgroundY = new Int16Array(20);
+                com.invBackground = new TypedArray1d(20, null);
 
                 for (let i: number = 0; i < 20; i++) {
                     if (data.g1() === 1) {
-                        com.invSlotOffsetX[i] = data.g2b();
-                        com.invSlotOffsetY[i] = data.g2b();
+                        com.invBackgroundX[i] = data.g2b();
+                        com.invBackgroundY[i] = data.g2b();
 
                         const graphic: string = data.gjstr();
                         if (media && graphic.length > 0) {
                             const spriteIndex: number = graphic.lastIndexOf(',');
-                            com.invSlotGraphic[i] = this.getImage(media, graphic.substring(0, spriteIndex), parseInt(graphic.substring(spriteIndex + 1)));
+                            com.invBackground[i] = this.getSprite(media, graphic.substring(0, spriteIndex), parseInt(graphic.substring(spriteIndex + 1)));
                         }
                     }
                 }
@@ -221,11 +223,13 @@ export default class IfType {
 
             if (com.type === ComponentType.TYPE_TEXT || com.type === ComponentType.TYPE_UNUSED) {
                 com.center = data.g1() === 1;
+
                 const font: number = data.g1();
                 if (fonts) {
                     com.font = fonts[font];
                 }
-                com.shadowed = data.g1() === 1;
+
+                com.shadow = data.g1() === 1;
             }
 
             if (com.type === ComponentType.TYPE_TEXT) {
@@ -247,21 +251,21 @@ export default class IfType {
                 const graphic: string = data.gjstr();
                 if (media && graphic.length > 0) {
                     const index: number = graphic.lastIndexOf(',');
-                    com.graphic = this.getImage(media, graphic.substring(0, index), parseInt(graphic.substring(index + 1), 10));
+                    com.graphic = this.getSprite(media, graphic.substring(0, index), parseInt(graphic.substring(index + 1), 10));
                 }
 
                 const activeGraphic: string = data.gjstr();
                 if (media && activeGraphic.length > 0) {
                     const index: number = activeGraphic.lastIndexOf(',');
-                    com.graphic2 = this.getImage(media, activeGraphic.substring(0, index), parseInt(activeGraphic.substring(index + 1), 10));
+                    com.graphic2 = this.getSprite(media, activeGraphic.substring(0, index), parseInt(activeGraphic.substring(index + 1), 10));
                 }
             }
 
             if (com.type === ComponentType.TYPE_MODEL) {
                 const model: number = data.g1();
                 if (model !== 0) {
-                    com.modelType = 1;
-                    com.modelId = ((model - 1) << 8) + data.g1();
+                    com.model1Type = 1;
+                    com.model1Id = ((model - 1) << 8) + data.g1();
                 }
 
                 const activeModel: number = data.g1();
@@ -277,11 +281,11 @@ export default class IfType {
                     com.modelAnim = ((com.modelAnim - 1) << 8) + data.g1();
                 }
 
-                com.model2Anim = data.g1();
-                if (com.model2Anim === 0) {
-                    com.model2Anim = -1;
+                com.modelAnim2 = data.g1();
+                if (com.modelAnim2 === 0) {
+                    com.modelAnim2 = -1;
                 } else {
-                    com.model2Anim = ((com.model2Anim - 1) << 8) + data.g1();
+                    com.modelAnim2 = ((com.modelAnim2 - 1) << 8) + data.g1();
                 }
 
                 com.modelZoom = data.g2();
@@ -291,18 +295,21 @@ export default class IfType {
 
             if (com.type === ComponentType.TYPE_INV_TEXT) {
                 com.linkObjType = new Int32Array(com.width * com.height);
-                com.linkObjCount = new Int32Array(com.width * com.height);
+                com.linkObjNumber = new Int32Array(com.width * com.height);
 
                 com.center = data.g1() === 1;
+
                 const font: number = data.g1();
                 if (fonts) {
                     com.font = fonts[font];
                 }
-                com.shadowed = data.g1() === 1;
+
+                com.shadow = data.g1() === 1;
                 com.colour = data.g4();
                 com.marginX = data.g2b();
                 com.marginY = data.g2b();
-                com.interactable = data.g1() === 1;
+
+                com.objOps = data.g1() === 1;
 
                 com.iop = new TypedArray1d(5, null);
                 for (let i: number = 0; i < 5; i++) {
@@ -315,22 +322,22 @@ export default class IfType {
 
             if (com.buttonType === ButtonType.BUTTON_TARGET || com.type === ComponentType.TYPE_INV) {
                 com.targetVerb = data.gjstr();
-                com.targetText = data.gjstr();
+                com.targetBase = data.gjstr();
                 com.targetMask = data.g2();
             }
 
             if (com.buttonType === ButtonType.BUTTON_OK || com.buttonType === ButtonType.BUTTON_TOGGLE || com.buttonType === ButtonType.BUTTON_SELECT || com.buttonType === ButtonType.BUTTON_CONTINUE) {
-                com.option = data.gjstr();
+                com.buttonText = data.gjstr();
 
-                if (com.option.length === 0) {
+                if (com.buttonText.length === 0) {
                     if (com.buttonType === ButtonType.BUTTON_OK) {
-                        com.option = 'Ok';
+                        com.buttonText = 'Ok';
                     } else if (com.buttonType === ButtonType.BUTTON_TOGGLE) {
-                        com.option = 'Select';
+                        com.buttonText = 'Select';
                     } else if (com.buttonType === ButtonType.BUTTON_SELECT) {
-                        com.option = 'Select';
+                        com.buttonText = 'Select';
                     } else if (com.buttonType === ButtonType.BUTTON_CONTINUE) {
-                        com.option = 'Continue';
+                        com.buttonText = 'Continue';
                     }
                 }
             }
@@ -339,8 +346,8 @@ export default class IfType {
         this.spriteCache = null;
     }
 
-    swapObj(src: number, dst: number) {
-        if (!this.linkObjType || !this.linkObjCount) {
+    swapSlots(src: number, dst: number) {
+        if (!this.linkObjType || !this.linkObjNumber) {
             return;
         }
 
@@ -348,18 +355,17 @@ export default class IfType {
         this.linkObjType[src] = this.linkObjType[dst];
         this.linkObjType[dst] = tmp;
 
-        tmp = this.linkObjCount[src];
-        this.linkObjCount[src] = this.linkObjCount[dst];
-        this.linkObjCount[dst] = tmp;
+        tmp = this.linkObjNumber[src];
+        this.linkObjNumber[src] = this.linkObjNumber[dst];
+        this.linkObjNumber[dst] = tmp;
     }
 
-    // jag::oldscape::rs2lib::IfType::GetTempModel
     getTempModel(primaryFrame: number, secondaryFrame: number, active: boolean, localPlayer: ClientPlayer | null): Model | null {
         let model: Model | null = null;
         if (active) {
-            model = this.loadModel(this.model2Type, this.model2Id, localPlayer);
+            model = this.getModel(this.model2Type, this.model2Id, localPlayer);
         } else {
-            model = this.loadModel(this.modelType, this.modelId, localPlayer);
+            model = this.getModel(this.model1Type, this.model1Id, localPlayer);
         }
 
         if (!model) {
@@ -387,8 +393,8 @@ export default class IfType {
         return tmp;
     }
 
-    loadModel(type: number, id: number, localPlayer: ClientPlayer | null): Model | null {
-        let model = IfType.modelCache.get(BigInt((type << 16) + id));
+    private getModel(type: number, id: number, localPlayer: ClientPlayer | null): Model | null {
+        let model = IfType.modelCache.find(BigInt((type << 16) + id));
         if (model) {
             return model;
         }
@@ -396,13 +402,13 @@ export default class IfType {
         if (type === 1) {
             model = Model.load(id);
         } else if (type === 2) {
-            model = NpcType.get(id).getHead();
+            model = NpcType.list(id).getHead();
         } else if (type === 3) {
             if (localPlayer) {
                 model = localPlayer.getHeadModel();
             }
         } else if (type === 4) {
-            model = ObjType.get(id).getInvModel(50);
+            model = ObjType.list(id).getModelUnlit(50);
         } else if (type === 5) {
             model = null;
         }
@@ -422,18 +428,18 @@ export default class IfType {
         }
     }
 
-    private static getImage(media: Jagfile, name: string, spriteIndex: number): Pix32 | null {
+    private static getSprite(media: Jagfile, name: string, spriteIndex: number): Pix32 | null {
         const uid: bigint = (JString.hashCode(name) << 8n) | BigInt(spriteIndex);
 
         if (this.spriteCache) {
-            const image = this.spriteCache.get(uid);
+            const image = this.spriteCache.find(uid);
             if (image) {
                 return image;
             }
         }
 
         try {
-            const image = Pix32.load(media, name, spriteIndex);
+            const image = Pix32.depack(media, name, spriteIndex);
             this.spriteCache?.put(uid, image);
             return image;
         } catch (_e) {

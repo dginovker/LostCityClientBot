@@ -12,23 +12,23 @@ import Pix32 from '#/graphics/Pix32.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class ObjType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static idx: Int32Array | null = null;
     static dat: Packet | null = null;
-    static cache: (ObjType | null)[] | null = null;
-    static cachePos: number = 0;
-    static membersWorld: boolean = true;
+    static recent: (ObjType | null)[] | null = null;
+    static recentPos: number = 0;
+    static memServer: boolean = true;
     static modelCache: LruCache<Model> = new LruCache(50);
     static spriteCache: LruCache<Pix32> = new LruCache(200);
 
     id: number = -1;
 
     model: number = 0;
-    name: string | null = null; // jag::game::ObjType::GetName
+    name: string | null = null;
     desc: string | null = null;
     recol_s: Uint16Array | null = null;
     recol_d: Uint16Array | null = null;
-    zoom2d: number = 2000; // jag::game::ObjType::GetZoom2D
+    zoom2d: number = 2000;
     xan2d: number = 0;
     yan2d: number = 0;
     zan2d: number = 0;
@@ -37,66 +37,66 @@ export default class ObjType {
     stackable: boolean = false;
     cost: number = 1;
     members: boolean = false;
-    manwearOffsetY: number = 0;
-    womanwearOffsetY: number = 0;
+    op: (string | null)[] | null = null;
+    iop: (string | null)[] | null = null;
     manwear: number = -1;
     manwear2: number = -1;
+    manwearOffsetY: number = 0;
     womanwear: number = -1;
     womanwear2: number = -1;
+    womanwearOffsetY: number = 0;
     manwear3: number = -1;
     womanwear3: number = -1;
     manhead: number = -1;
     manhead2: number = -1;
     womanhead: number = -1;
     womanhead2: number = -1;
-    certlink: number = -1; // jag::game::ObjType::GetCertLink
-    certtemplate: number = -1; // jag::game::ObjType::GetCertTemplate
+    countobj: Uint16Array | null = null;
+    countco: Uint16Array | null = null;
+    certlink: number = -1;
+    certtemplate: number = -1;
     resizex: number = 0;
     resizey: number = 0;
     resizez: number = 0;
     ambient: number = 0;
     contrast: number = 0;
-    countobj: Uint16Array | null = null;
-    countco: Uint16Array | null = null;
-    op: (string | null)[] | null = null;
-    iop: (string | null)[] | null = null;
 
-    static unpack(config: Jagfile, members: boolean): void {
-        this.membersWorld = members;
+    static init(config: Jagfile, members: boolean): void {
+        this.memServer = members;
 
         this.dat = new Packet(config.read('obj.dat'));
         const idx: Packet = new Packet(config.read('obj.idx'));
 
-        this.count = idx.g2();
-        this.idx = new Int32Array(this.count);
+        this.numDefinitions = idx.g2();
+        this.idx = new Int32Array(this.numDefinitions);
 
         let offset: number = 2;
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             this.idx[id] = offset;
             offset += idx.g2();
         }
 
-        this.cache = new TypedArray1d(10, null);
+        this.recent = new TypedArray1d(10, null);
         for (let id: number = 0; id < 10; id++) {
-            this.cache[id] = new ObjType();
+            this.recent[id] = new ObjType();
         }
     }
 
-    static get(id: number): ObjType {
-        if (!this.cache || !this.idx || !this.dat) {
+    static list(id: number): ObjType {
+        if (!this.recent || !this.idx || !this.dat) {
             throw new Error();
         }
 
         for (let i: number = 0; i < 10; i++) {
-            const type: ObjType | null = this.cache[i];
+            const type: ObjType | null = this.recent[i];
             if (type && type.id === id) {
                 return type;
             }
         }
 
-        this.cachePos = (this.cachePos + 1) % 10;
+        this.recentPos = (this.recentPos + 1) % 10;
 
-        const obj: ObjType = this.cache[this.cachePos]!;
+        const obj: ObjType = this.recent[this.recentPos]!;
         this.dat.pos = this.idx[id];
         obj.id = id;
         obj.reset();
@@ -106,7 +106,7 @@ export default class ObjType {
             obj.genCert();
         }
 
-        if (!this.membersWorld && obj.members) {
+        if (!this.memServer && obj.members) {
             obj.name = 'Members Object';
             obj.desc = "Login to a members' server to use this object.";
             obj.op = null;
@@ -266,9 +266,8 @@ export default class ObjType {
         }
     }
 
-    // jag::oldscape::configdecoder::ObjType::GenCert
     private genCert(): void {
-        const template: ObjType = ObjType.get(this.certtemplate);
+        const template: ObjType = ObjType.list(this.certtemplate);
         this.model = template.model;
         this.zoom2d = template.zoom2d;
         this.xan2d = template.xan2d;
@@ -279,7 +278,7 @@ export default class ObjType {
         this.recol_s = template.recol_s;
         this.recol_d = template.recol_d;
 
-        const link: ObjType = ObjType.get(this.certlink);
+        const link: ObjType = ObjType.list(this.certlink);
         this.name = link.name;
         this.members = link.members;
         this.cost = link.cost;
@@ -294,7 +293,7 @@ export default class ObjType {
         this.stackable = true;
     }
 
-    getModel(count: number): Model | null {
+    getModelUnlit(count: number): Model | null {
         if (this.countobj && this.countco && count > 1) {
             let id: number = -1;
             for (let i: number = 0; i < 10; i++) {
@@ -304,11 +303,39 @@ export default class ObjType {
             }
 
             if (id !== -1) {
-                return ObjType.get(id).getModel(1);
+                return ObjType.list(id).getModelUnlit(1);
             }
         }
 
-        let model = ObjType.modelCache.get(BigInt(this.id));
+        const model = Model.load(this.model);
+        if (!model) {
+            return null;
+        }
+
+        if (this.recol_s && this.recol_d) {
+            for (let i: number = 0; i < this.recol_s.length; i++) {
+                model.recolour(this.recol_s[i], this.recol_d[i]);
+            }
+        }
+
+        return model;
+    }
+
+    getModelLit(count: number): Model | null {
+        if (this.countobj && this.countco && count > 1) {
+            let id: number = -1;
+            for (let i: number = 0; i < 10; i++) {
+                if (count >= this.countco[i] && this.countco[i] !== 0) {
+                    id = this.countobj[i];
+                }
+            }
+
+            if (id !== -1) {
+                return ObjType.list(id).getModelLit(1);
+            }
+        }
+
+        let model = ObjType.modelCache.find(BigInt(this.id));
         if (model) {
             return model;
         }
@@ -335,38 +362,9 @@ export default class ObjType {
         return model;
     }
 
-    getInvModel(count: number): Model | null {
-        if (this.countobj && this.countco && count > 1) {
-            let id: number = -1;
-            for (let i: number = 0; i < 10; i++) {
-                if (count >= this.countco[i] && this.countco[i] !== 0) {
-                    id = this.countobj[i];
-                }
-            }
-
-            if (id !== -1) {
-                return ObjType.get(id).getInvModel(1);
-            }
-        }
-
-        const model = Model.load(this.model);
-        if (!model) {
-            return null;
-        }
-
-        if (this.recol_s && this.recol_d) {
-            for (let i: number = 0; i < this.recol_s.length; i++) {
-                model.recolour(this.recol_s[i], this.recol_d[i]);
-            }
-        }
-
-        return model;
-    }
-
-    // jag::oldscape::configdecoder::ObjType::GetSprite
     static getSprite(id: number, count: number, outlineRgb: number): Pix32 | null {
         if (outlineRgb === 0) {
-            let icon = ObjType.spriteCache.get(BigInt(id));
+            let icon = ObjType.spriteCache.find(BigInt(id));
 
             if (icon && icon.ohi !== count && icon.ohi !== -1) {
                 icon.unlink();
@@ -378,7 +376,7 @@ export default class ObjType {
             }
         }
 
-        let obj: ObjType = ObjType.get(id);
+        let obj: ObjType = ObjType.list(id);
 
         if (!obj.countobj) {
             count = -1;
@@ -393,11 +391,11 @@ export default class ObjType {
             }
 
             if (countobj !== -1) {
-                obj = ObjType.get(countobj);
+                obj = ObjType.list(countobj);
             }
         }
 
-        const model = obj.getModel(1);
+        const model = obj.getModelLit(1);
         if (!model) {
             return null;
         }
@@ -521,7 +519,6 @@ export default class ObjType {
         return icon;
     }
 
-    // jag::oldscape::configdecoder::ObjType::CheckWearModel
     checkWearModel(gender: number): boolean {
         let wear = this.manwear;
         let wear2 = this.manwear2;
@@ -549,7 +546,6 @@ export default class ObjType {
         return ready;
     }
 
-    // jag::oldscape::configdecoder::ObjType::GetWearModelNoCheck
     getWearModelNoCheck(gender: number): Model | null {
         let id1: number = this.manwear;
         if (gender === 1) {
@@ -607,7 +603,6 @@ export default class ObjType {
         return model;
     }
 
-    // jag::oldscape::configdecoder::ObjType::CheckHeadModel
     checkHeadModel(gender: number): boolean {
         let head = this.manhead;
         let head2 = this.manhead2;
@@ -630,7 +625,6 @@ export default class ObjType {
         return ready;
     }
 
-    // jag::oldscape::configdecoder::ObjType::GetHeadModelNoCheck
     getHeadModelNoCheck(gender: number): Model | null {
         let head1: number = this.manhead;
         if (gender === 1) {

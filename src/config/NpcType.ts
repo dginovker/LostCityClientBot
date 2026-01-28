@@ -9,19 +9,19 @@ import Packet from '#/io/Packet.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class NpcType {
-    static count: number = 0;
+    static numDefinitions: number = 0;
     static idx: Int32Array | null = null;
     static dat: Packet | null = null;
-    static cache: (NpcType | null)[] | null = null;
-    static cachePos: number = 0;
-    static modelCache: LruCache<Model> = new LruCache(30); // jag::oldscape::configdecoder::NpcType::m_modelCache
+    static recent: (NpcType | null)[] | null = null;
+    static recentPos: number = 0;
+    static modelCache: LruCache<Model> = new LruCache(30);
 
     id: number = -1;
 
     name: string | null = null;
     desc: string | null = null;
     size: number = 1;
-    models: Uint16Array | null = null;
+    model: Uint16Array | null = null;
     head: Uint16Array | null = null;
     readyanim: number = -1;
     walkanim: number = -1;
@@ -36,45 +36,45 @@ export default class NpcType {
     resizeh: number = 128;
     resizev: number = 128;
     alwaysontop: boolean = false;
-    headicon: number = -1;
-    turnspeed: number = 32;
     ambient: number = 0;
     contrast: number = 0;
+    headicon: number = -1;
+    turnspeed: number = 32;
 
-    static unpack(config: Jagfile): void {
+    static init(config: Jagfile): void {
         this.dat = new Packet(config.read('npc.dat'));
         const idx: Packet = new Packet(config.read('npc.idx'));
 
-        this.count = idx.g2();
-        this.idx = new Int32Array(this.count);
+        this.numDefinitions = idx.g2();
+        this.idx = new Int32Array(this.numDefinitions);
 
         let offset: number = 2;
-        for (let id: number = 0; id < this.count; id++) {
+        for (let id: number = 0; id < this.numDefinitions; id++) {
             this.idx[id] = offset;
             offset += idx.g2();
         }
 
-        this.cache = new TypedArray1d(20, null);
+        this.recent = new TypedArray1d(20, null);
         for (let id: number = 0; id < 20; id++) {
-            this.cache[id] = new NpcType();
+            this.recent[id] = new NpcType();
         }
     }
 
-    static get(id: number): NpcType {
-        if (!this.cache || !this.idx || !this.dat) {
+    static list(id: number): NpcType {
+        if (!this.recent || !this.idx || !this.dat) {
             throw new Error();
         }
 
         for (let i: number = 0; i < 20; i++) {
-            const type: NpcType | null = this.cache[i];
+            const type: NpcType | null = this.recent[i];
             if (type && type.id === id) {
                 return type;
             }
         }
 
-        this.cachePos = (this.cachePos + 1) % 20;
+        this.recentPos = (this.recentPos + 1) % 20;
 
-        const npc: NpcType = (this.cache[this.cachePos] = new NpcType());
+        const npc: NpcType = (this.recent[this.recentPos] = new NpcType());
         this.dat.pos = this.idx[id];
         npc.id = id;
         npc.decode(this.dat);
@@ -91,10 +91,10 @@ export default class NpcType {
 
             if (code === 1) {
                 const count: number = dat.g1();
-                this.models = new Uint16Array(count);
+                this.model = new Uint16Array(count);
 
                 for (let i: number = 0; i < count; i++) {
-                    this.models[i] = dat.g2();
+                    this.model[i] = dat.g2();
                 }
             } else if (code === 2) {
                 this.name = dat.gjstr();
@@ -164,14 +164,13 @@ export default class NpcType {
         }
     }
 
-    // jag::oldscape::configdecoder::NpcType::GetTempModel
     getTempModel(primaryTransformId: number, secondaryTransformId: number, seqMask: Int32Array | null): Model | null {
-        let model = NpcType.modelCache.get(BigInt(this.id));
+        let model = NpcType.modelCache.find(BigInt(this.id));
 
-        if (!model && this.models) {
+        if (!model && this.model) {
             let ready = false;
-            for (let i = 0; i < this.models.length; i++) {
-                if (!Model.requestDownload(this.models[i])) {
+            for (let i = 0; i < this.model.length; i++) {
+                if (!Model.requestDownload(this.model[i])) {
                     ready = true;
                 }
             }
@@ -179,9 +178,9 @@ export default class NpcType {
                 return null;
             }
 
-            const models: (Model | null)[] = new TypedArray1d(this.models.length, null);
-            for (let i: number = 0; i < this.models.length; i++) {
-                models[i] = Model.load(this.models[i]);
+            const models: (Model | null)[] = new TypedArray1d(this.model.length, null);
+            for (let i: number = 0; i < this.model.length; i++) {
+                models[i] = Model.load(this.model[i]);
             }
 
             if (models.length === 1) {
@@ -231,7 +230,6 @@ export default class NpcType {
         return tmp;
     }
 
-    // jag::oldscape::configdecoder::NpcType::GetHead
     getHead(): Model | null {
         if (!this.head) {
             return null;

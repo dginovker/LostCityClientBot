@@ -3,7 +3,7 @@ import { gunzipSync, unzipSync } from 'fflate';
 
 import type { Client } from '#/client/Client.js';
 
-import DoublyLinkList from '#/datastruct/DoublyLinkList.js';
+import LinkList2 from '#/datastruct/LinkList2.js';
 import LinkList from '#/datastruct/LinkList.js';
 
 import ClientStream from '#/io/ClientStream.js';
@@ -34,7 +34,7 @@ export default class OnDemand extends OnDemandProvider {
     active: boolean = false;
     importantCount: number = 0;
     requestCount: number = 0;
-    requests: DoublyLinkList<OnDemandRequest> = new DoublyLinkList();
+    requests: LinkList2<OnDemandRequest> = new LinkList2();
     queue: LinkList<OnDemandRequest> = new LinkList();
     missing: LinkList<OnDemandRequest> = new LinkList();
     pending: LinkList<OnDemandRequest> = new LinkList();
@@ -235,7 +235,7 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     loop(): OnDemandRequest | null {
-        const req = this.completed.pop();
+        const req = this.completed.popFront();
         if (req === null) {
             return null;
         }
@@ -367,7 +367,7 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     async handleQueue() {
-        let req = this.queue.pop();
+        let req = this.queue.popFront();
 
         while (req !== null) {
             this.active = true;
@@ -388,7 +388,7 @@ export default class OnDemand extends OnDemandProvider {
                 this.completed.push(req);
             }
 
-            req = this.queue.pop();
+            req = this.queue.popFront();
         }
     }
 
@@ -405,7 +405,7 @@ export default class OnDemand extends OnDemandProvider {
         }
 
         while (this.importantCount < 10) {
-            const req = this.missing.pop();
+            const req = this.missing.popFront();
             if (req === null) {
                 break;
             }
@@ -428,7 +428,7 @@ export default class OnDemand extends OnDemandProvider {
                 return;
             }
 
-            let extra = this.prefetches.pop();
+            let extra = this.prefetches.popFront();
             while (extra !== null) {
                 if (this.priorities[extra.archive][extra.file] !== 0) {
                     this.priorities[extra.archive][extra.file] = 0;
@@ -448,7 +448,7 @@ export default class OnDemand extends OnDemandProvider {
                     }
                 }
 
-                extra = this.prefetches.pop();
+                extra = this.prefetches.popFront();
             }
 
             for (let archive = 0; archive < 4; archive++) {

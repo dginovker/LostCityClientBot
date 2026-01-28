@@ -20,7 +20,7 @@ export default class Ground {
         Int8Array.of(1, 3, 5, 7, 11, 12),
         Int8Array.of(1, 3, 5, 7, 11, 12),
         Int8Array.of(1, 3, 5, 7, 13, 14)
-    ]; // jag::oldscape::dash3d::Ground::m_defShapeP
+    ]; // shape points
 
     // prettier-ignore
     private static readonly defShapeF: Int8Array[] = [
@@ -37,7 +37,7 @@ export default class Ground {
         Int8Array.of(0, 0, 1, 5, 0, 1, 4, 5, 0, 1, 2, 4, 1, 0, 5, 3, 1, 5, 4, 3, 1, 4, 2, 3),
         Int8Array.of(1, 0, 1, 5, 1, 1, 4, 5, 1, 1, 2, 4, 0, 0, 5, 3, 0, 5, 4, 3, 0, 4, 2, 3),
         Int8Array.of(1, 0, 5, 4, 1, 0, 1, 5, 0, 0, 4, 3, 0, 4, 5, 3, 0, 5, 2, 3, 0, 1, 2, 5)
-    ]; // jag::oldscape::dash3d::Ground::m_defShapeF
+    ]; // shape faces
 
     private static readonly FULL_SQUARE: number = 128;
     private static readonly HALF_SQUARE: number = (this.FULL_SQUARE / 2) | 0;
