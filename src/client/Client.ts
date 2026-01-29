@@ -105,7 +105,7 @@ export class Client extends GameShell {
     private mouseTrackedDelta: number = 0;
     private focusIn: boolean = false;
 
-    private displayFps: boolean = false;
+    private showFps: boolean = false;
     private rebootTimer: number = 0;
 
     private hintType: number = 0;
@@ -140,7 +140,7 @@ export class Client extends GameShell {
     private psize: number = 0;
     private ptype: number = 0;
     private timeoutTimer: number = 0;
-    private noTimeoutCycle: number = 0;
+    private noTimeoutTimer: number = 0;
     private logoutTimer: number = 0;
     private ptype0: number = 0;
     private ptype1: number = 0;
@@ -350,14 +350,13 @@ export class Client extends GameShell {
 
     private objDragArea: number = 0;
     private objDragComId: number = 0;
+    private hoveredSlotComId: number = 0;
     private objDragSlot: number = 0;
     private objGrabX: number = 0;
     private objGrabY: number = 0;
+    private hoveredSlot: number = 0;
     private objGrabThreshold: boolean = false;
     private objDragCycles: number = 0;
-
-    private hoveredSlotComId: number = 0;
-    private hoveredSlot: number = 0;
 
     private inMultizone: number = 0;
     private chatDisabled: number = 0;
@@ -517,7 +516,7 @@ export class Client extends GameShell {
     private camLookAtRate2: number = 0;
 
     private friendCount: number = 0;
-    private friendListStatus: number = 0;
+    private friendServerStatus: number = 0;
     private friendUsername: (string | null)[] = new TypedArray1d(200, null);
     private friendUserhash: BigInt64Array = new BigInt64Array(200);
     private friendNodeId: Int32Array = new Int32Array(200);
@@ -525,12 +524,12 @@ export class Client extends GameShell {
     private ignoreCount: number = 0;
     private ignoreUserhash: bigint[] = [];
 
-    private idkGender: boolean = true;
+    private idkDesignGender: boolean = true;
     private idkDesignRedraw: boolean = false;
-    private idkDesign: Int32Array = new Int32Array(7);
-    private designColours: Int32Array = new Int32Array(5);
-    private genderButton1: Pix32 | null = null;
-    private genderButton2: Pix32 | null = null;
+    private idkDesignPart: Int32Array = new Int32Array(7);
+    private idkDesignColour: Int32Array = new Int32Array(5);
+    private idkDesignButton1: Pix32 | null = null;
+    private idkDesignButton2: Pix32 | null = null;
 
     static cyclelogic1: number = 0;
     static cyclelogic2: number = 0;
@@ -2085,7 +2084,7 @@ export class Client extends GameShell {
                 }
 
                 this.locChanges = new LinkList();
-                this.friendListStatus = 0;
+                this.friendServerStatus = 0;
                 this.friendCount = 0;
                 this.tutComId = -1;
                 this.chatComId = -1;
@@ -2101,10 +2100,10 @@ export class Client extends GameShell {
                 this.inMultizone = 0;
                 this.tutFlashingTab = -1;
 
-                this.idkGender = true;
+                this.idkDesignGender = true;
                 this.validateIdkDesign();
                 for (let i: number = 0; i < 5; i++) {
-                    this.designColours[i] = 0;
+                    this.idkDesignColour[i] = 0;
                 }
 
                 for (let i = 0; i < 5; i++) {
@@ -2673,7 +2672,7 @@ export class Client extends GameShell {
             this.macroMinimapZoomModifier = -1;
         }
 
-        if (now - this.noTimeoutCycle > 1_000) {
+        if (now - this.noTimeoutTimer > 1_000) {
             // nothing sent in the last 1s, keep the client connected
             this.out.pIsaac(ClientProt.NO_TIMEOUT);
         }
@@ -2682,7 +2681,7 @@ export class Client extends GameShell {
             if (this.stream && this.out.pos > 0) {
                 this.stream.write(this.out.data, this.out.pos);
                 this.out.pos = 0;
-                this.noTimeoutCycle = now;
+                this.noTimeoutTimer = now;
             }
         } catch (e) {
             if (e instanceof WebSocket && e.readyState === 3) {
@@ -3323,10 +3322,10 @@ export class Client extends GameShell {
                             // custom: player-facing commands
                             if (this.chatInput === '::fpson') {
                                 // authentic in later revs
-                                this.displayFps = true;
+                                this.showFps = true;
                             } else if (this.chatInput === '::fpsoff') {
                                 // authentic in later revs
-                                this.displayFps = false;
+                                this.showFps = false;
                             } else if (this.chatInput.startsWith('::fps ')) {
                                 // custom ::fps command for setting a target framerate
                                 try {
@@ -5109,7 +5108,7 @@ export class Client extends GameShell {
             this.headicons[1]?.plotSprite(472, 296);
         }
 
-        if (this.displayFps) {
+        if (this.showFps) {
             const x: number = 507;
             let y: number = 20;
 
@@ -6768,7 +6767,7 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.FRIENDLIST_LOADED) {
-                this.friendListStatus = this.in.g1();
+                this.friendServerStatus = this.in.g1();
                 this.redrawSidebar = true;
 
                 this.ptype = -1;
@@ -10921,18 +10920,18 @@ export class Client extends GameShell {
         let clientCode: number = com.clientCode;
 
         if ((clientCode >= ClientCode.CC_FRIENDS_START && clientCode <= ClientCode.CC_FRIENDS_END) || (clientCode >= ClientCode.CC_FRIENDS2_START && clientCode <= ClientCode.CC_FRIENDS2_END)) {
-            if (clientCode === ClientCode.CC_FRIENDS_START && this.friendListStatus === 0) {
+            if (clientCode === ClientCode.CC_FRIENDS_START && this.friendServerStatus === 0) {
                 com.text = 'Loading friend list';
                 com.buttonType = 0;
-            } else if (clientCode === ClientCode.CC_FRIENDS_START && this.friendListStatus === 1) {
+            } else if (clientCode === ClientCode.CC_FRIENDS_START && this.friendServerStatus === 1) {
                 com.text = 'Connecting to friendserver';
                 com.buttonType = 0;
-            } else if (clientCode === 2 && this.friendListStatus !== 2) {
+            } else if (clientCode === 2 && this.friendServerStatus !== 2) {
                 com.text = 'Please wait...';
                 com.buttonType = 0;
             } else {
                 let count = this.friendCount;
-                if (this.friendListStatus != 2) {
+                if (this.friendServerStatus != 2) {
                     count = 0;
                 }
 
@@ -10952,7 +10951,7 @@ export class Client extends GameShell {
             }
         } else if ((clientCode >= ClientCode.CC_FRIENDS_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS_UPDATE_END) || (clientCode >= ClientCode.CC_FRIENDS2_UPDATE_START && clientCode <= ClientCode.CC_FRIENDS2_UPDATE_END)) {
             let count = this.friendCount;
-            if (this.friendListStatus != 2) {
+            if (this.friendServerStatus != 2) {
                 count = 0;
             }
 
@@ -10978,7 +10977,7 @@ export class Client extends GameShell {
             }
         } else if (clientCode === ClientCode.CC_FRIENDS_SIZE) {
             let count = this.friendCount;
-            if (this.friendListStatus != 2) {
+            if (this.friendServerStatus != 2) {
                 count = 0;
             }
 
@@ -11009,7 +11008,7 @@ export class Client extends GameShell {
 
             if (this.idkDesignRedraw) {
                 for (let i = 0; i < 7; i++) {
-                    const kit = this.idkDesign[i];
+                    const kit = this.idkDesignPart[i];
                     if (kit >= 0 && !IdkType.list[kit].checkModel()) {
                         return;
                     }
@@ -11020,7 +11019,7 @@ export class Client extends GameShell {
                 const models: (Model | null)[] = new TypedArray1d(7, null);
                 let modelCount: number = 0;
                 for (let part: number = 0; part < 7; part++) {
-                    const kit: number = this.idkDesign[part];
+                    const kit: number = this.idkDesignPart[part];
                     if (kit >= 0) {
                         models[modelCount++] = IdkType.list[kit].getModelNoCheck();
                     }
@@ -11028,11 +11027,11 @@ export class Client extends GameShell {
 
                 const model: Model = Model.combine(models, modelCount);
                 for (let part: number = 0; part < 5; part++) {
-                    if (this.designColours[part] !== 0) {
-                        model.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.designColours[part]]);
+                    if (this.idkDesignColour[part] !== 0) {
+                        model.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.idkDesignColour[part]]);
 
                         if (part === 1) {
-                            model.recolour(ClientPlayer.recol2d[0], ClientPlayer.recol2d[this.designColours[part]]);
+                            model.recolour(ClientPlayer.recol2d[0], ClientPlayer.recol2d[this.idkDesignColour[part]]);
                         }
                     }
                 }
@@ -11052,26 +11051,26 @@ export class Client extends GameShell {
                 IfType.cacheModel(model, 5, 0);
             }
         } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE) {
-            if (!this.genderButton1) {
-                this.genderButton1 = com.graphic;
-                this.genderButton2 = com.graphic2;
+            if (!this.idkDesignButton1) {
+                this.idkDesignButton1 = com.graphic;
+                this.idkDesignButton2 = com.graphic2;
             }
 
-            if (this.idkGender) {
-                com.graphic = this.genderButton2;
+            if (this.idkDesignGender) {
+                com.graphic = this.idkDesignButton2;
             } else {
-                com.graphic = this.genderButton1;
+                com.graphic = this.idkDesignButton1;
             }
         } else if (clientCode === ClientCode.CC_SWITCH_TO_FEMALE) {
-            if (!this.genderButton1) {
-                this.genderButton1 = com.graphic;
-                this.genderButton2 = com.graphic2;
+            if (!this.idkDesignButton1) {
+                this.idkDesignButton1 = com.graphic;
+                this.idkDesignButton2 = com.graphic2;
             }
 
-            if (this.idkGender) {
-                com.graphic = this.genderButton1;
+            if (this.idkDesignGender) {
+                com.graphic = this.idkDesignButton1;
             } else {
-                com.graphic = this.genderButton2;
+                com.graphic = this.idkDesignButton2;
             }
         } else if (clientCode === ClientCode.CC_REPORT_INPUT) {
             com.text = this.reportAbuseInput;
@@ -11189,7 +11188,7 @@ export class Client extends GameShell {
     private clientButton(com: IfType): boolean {
         const clientCode: number = com.clientCode;
 
-        if (this.friendListStatus === 2) {
+        if (this.friendServerStatus === 2) {
             if (clientCode === ClientCode.CC_ADD_FRIEND) {
                 this.redrawChatback = true;
                 this.dialogInputOpen = false;
@@ -11227,7 +11226,7 @@ export class Client extends GameShell {
         } else if (clientCode >= ClientCode.CC_CHANGE_HEAD_L && clientCode <= ClientCode.CC_CHANGE_FEET_R) {
             const part: number = ((clientCode - 300) / 2) | 0;
             const direction: number = clientCode & 0x1;
-            let kit: number = this.idkDesign[part];
+            let kit: number = this.idkDesignPart[part];
 
             if (kit !== -1) {
                 while (true) {
@@ -11245,8 +11244,8 @@ export class Client extends GameShell {
                         }
                     }
 
-                    if (!IdkType.list[kit].disable && IdkType.list[kit].part === part + (this.idkGender ? 0 : 7)) {
-                        this.idkDesign[part] = kit;
+                    if (!IdkType.list[kit].disable && IdkType.list[kit].part === part + (this.idkDesignGender ? 0 : 7)) {
+                        this.idkDesignPart[part] = kit;
                         this.idkDesignRedraw = true;
                         break;
                     }
@@ -11255,7 +11254,7 @@ export class Client extends GameShell {
         } else if (clientCode >= ClientCode.CC_RECOLOUR_HAIR_L && clientCode <= ClientCode.CC_RECOLOUR_SKIN_R) {
             const part: number = ((clientCode - 314) / 2) | 0;
             const direction: number = clientCode & 0x1;
-            let colour: number = this.designColours[part];
+            let colour: number = this.idkDesignColour[part];
 
             if (direction === 0) {
                 colour--;
@@ -11271,24 +11270,24 @@ export class Client extends GameShell {
                 }
             }
 
-            this.designColours[part] = colour;
+            this.idkDesignColour[part] = colour;
             this.idkDesignRedraw = true;
-        } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE && !this.idkGender) {
-            this.idkGender = true;
+        } else if (clientCode === ClientCode.CC_SWITCH_TO_MALE && !this.idkDesignGender) {
+            this.idkDesignGender = true;
             this.validateIdkDesign();
-        } else if (clientCode === ClientCode.CC_SWITCH_TO_FEMALE && this.idkGender) {
-            this.idkGender = false;
+        } else if (clientCode === ClientCode.CC_SWITCH_TO_FEMALE && this.idkDesignGender) {
+            this.idkDesignGender = false;
             this.validateIdkDesign();
         } else if (clientCode === ClientCode.CC_ACCEPT_DESIGN) {
             this.out.pIsaac(ClientProt.IDK_SAVEDESIGN);
-            this.out.p1(this.idkGender ? 0 : 1);
+            this.out.p1(this.idkDesignGender ? 0 : 1);
 
             for (let i: number = 0; i < 7; i++) {
-                this.out.p1(this.idkDesign[i]);
+                this.out.p1(this.idkDesignPart[i]);
             }
 
             for (let i: number = 0; i < 5; i++) {
-                this.out.p1(this.designColours[i]);
+                this.out.p1(this.idkDesignColour[i]);
             }
 
             return true;
@@ -11312,11 +11311,11 @@ export class Client extends GameShell {
         this.idkDesignRedraw = true;
 
         for (let i: number = 0; i < 7; i++) {
-            this.idkDesign[i] = -1;
+            this.idkDesignPart[i] = -1;
 
             for (let j: number = 0; j < IdkType.numDefinitions; j++) {
-                if (!IdkType.list[j].disable && IdkType.list[j].part === i + (this.idkGender ? 0 : 7)) {
-                    this.idkDesign[i] = j;
+                if (!IdkType.list[j].disable && IdkType.list[j].part === i + (this.idkDesignGender ? 0 : 7)) {
+                    this.idkDesignPart[i] = j;
                     break;
                 }
             }
