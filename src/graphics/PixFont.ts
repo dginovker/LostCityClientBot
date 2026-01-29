@@ -45,7 +45,7 @@ export default class PixFont extends Linkable2 {
         }
     }
 
-    static fromArchive(archive: Jagfile, name: string): PixFont {
+    static depack(archive: Jagfile, name: string): PixFont {
         const dat: Packet = new Packet(archive.read(name + '.dat'));
         const idx: Packet = new Packet(archive.read('index.dat'));
 

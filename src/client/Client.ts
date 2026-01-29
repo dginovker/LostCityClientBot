@@ -788,10 +788,10 @@ export class Client extends GameShell {
             }
 
             this.title = await this.getJagFile('title', 'title screen', 1, 25);
-            this.p11 = PixFont.fromArchive(this.title, 'p11');
-            this.p12 = PixFont.fromArchive(this.title, 'p12');
-            this.b12 = PixFont.fromArchive(this.title, 'b12');
-            this.q8 = PixFont.fromArchive(this.title, 'q8');
+            this.p11 = PixFont.depack(this.title, 'p11');
+            this.p12 = PixFont.depack(this.title, 'p12');
+            this.b12 = PixFont.depack(this.title, 'b12');
+            this.q8 = PixFont.depack(this.title, 'q8');
 
             await this.loadTitleBackground();
             this.loadTitleImages();
