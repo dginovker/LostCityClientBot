@@ -144,7 +144,7 @@ class TinyMidiPCM {
 // controlling tinymidipcm:
 (async () => {
     const channels = 2;
-    const sampleRate = 44100;
+    const sampleRate = 22050;
     const flushTime = 250;
     const renderInterval = 30;
     const fadeseconds = 2;
@@ -175,7 +175,8 @@ class TinyMidiPCM {
         onRenderEnd: ms => {
             // renderEndSeconds = Math.floor(startTime + Math.floor(ms / 1000));
         },
-        bufferSize: 1024 * 100
+        bufferSize: 1024 * 100,
+        sampleRate
     });
 
     await tinyMidiPCM.init();
