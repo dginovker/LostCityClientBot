@@ -12,21 +12,25 @@ import type OnDemandProvider from '#/io/OnDemandProvider.js';
 
 class Metadata {
     src: Uint8Array | null = null;
+
     vertexCount: number = 0;
     faceCount: number = 0;
     faceTextureCount: number = 0;
+
     vertexOrderOffset: number = -1;
     vertexXOffset: number = -1;
     vertexYOffset: number = -1;
     vertexZOffset: number = -1;
     vertexLabelOffset: number = -1;
+
     faceIndexOffset: number = -1;
     faceIndexOrderOffset: number = -1;
     faceColourOffset: number = -1;
-    faceInfoOffset: number = -1;
+    faceRenderTypeOffset: number = -1;
     facePriorityOffset: number = 0;
     faceAlphaOffset: number = -1;
     faceLabelOffset: number = -1;
+
     faceTextureAxisOffset: number = -1;
 }
 
@@ -137,26 +141,26 @@ export default class Model extends ModelSource {
             return;
         }
 
-        const buf = new Packet(src);
-        buf.pos = src.length - 18;
+        const trailer = new Packet(src);
+        trailer.pos = src.length - 18;
 
         const meta = (Model.meta[id] = new Metadata());
         meta.src = src;
-        meta.vertexCount = buf.g2();
-        meta.faceCount = buf.g2();
-        meta.faceTextureCount = buf.g1();
+        meta.vertexCount = trailer.g2();
+        meta.faceCount = trailer.g2();
+        meta.faceTextureCount = trailer.g1();
 
-        const hasFaceInfo = buf.g1();
+        const hasRenderType = trailer.g1();
 
-        const priority = buf.g1();
-        const hasFaceAlpha = buf.g1();
-        const hasFaceLabels = buf.g1();
-        const hasVertexLabels = buf.g1();
+        const priority = trailer.g1();
+        const hasAlpha = trailer.g1();
+        const hasFaceLabels = trailer.g1();
+        const hasVertexLabels = trailer.g1();
 
-        const dataLengthX = buf.g2();
-        const dataLengthY = buf.g2();
-        const dataLengthZ = buf.g2();
-        const dataLengthFaceIndex = buf.g2();
+        const dataLengthX = trailer.g2();
+        const dataLengthY = trailer.g2();
+        const dataLengthZ = trailer.g2();
+        const dataLengthFaceIndex = trailer.g2();
 
         let pos = 0;
 
@@ -180,11 +184,11 @@ export default class Model extends ModelSource {
             meta.faceLabelOffset = -1;
         }
 
-        meta.faceInfoOffset = pos;
-        if (hasFaceInfo == 1) {
+        meta.faceRenderTypeOffset = pos;
+        if (hasRenderType == 1) {
             pos += meta.faceCount;
         } else {
-            meta.faceInfoOffset = -1;
+            meta.faceRenderTypeOffset = -1;
         }
 
         meta.vertexLabelOffset = pos;
@@ -195,7 +199,7 @@ export default class Model extends ModelSource {
         }
 
         meta.faceAlphaOffset = pos;
-        if (hasFaceAlpha == 1) {
+        if (hasAlpha == 1) {
             pos += meta.faceCount;
         } else {
             meta.faceAlphaOffset = -1;
@@ -257,7 +261,7 @@ export default class Model extends ModelSource {
             model.vertexLabel = new Int32Array(model.vertexCount);
         }
 
-        if (meta.faceInfoOffset >= 0) {
+        if (meta.faceRenderTypeOffset >= 0) {
             model.faceRenderType = new Int32Array(model.faceCount);
         }
 
@@ -330,7 +334,7 @@ export default class Model extends ModelSource {
         face1.pos = meta.faceColourOffset;
 
         const face2 = new Packet(meta.src);
-        face2.pos = meta.faceInfoOffset;
+        face2.pos = meta.faceRenderTypeOffset;
 
         const face3 = new Packet(meta.src);
         face3.pos = meta.facePriorityOffset;
@@ -1455,9 +1459,9 @@ export default class Model extends ModelSource {
         }
     }
 
-    calculateNormals(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number, doNotShareLight: boolean): void {
-        const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
-        const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
+    calculateNormals(ambient: number, contrast: number, x: number, y: number, z: number, doNotShareLight: boolean): void {
+        const lightMagnitude: number = Math.sqrt(x * x + y * y + z * z) | 0;
+        const scale: number = (contrast * lightMagnitude) >> 8;
 
         if (!this.faceColourA || !this.faceColourB || !this.faceColourC) {
             this.faceColourA = new Int32Array(this.faceCount);
@@ -1530,15 +1534,16 @@ export default class Model extends ModelSource {
                     n.w++;
                 }
             } else {
-                const lightness: number = lightAmbient + (((lightSrcX * nx + lightSrcY * ny + lightSrcZ * nz) / (attenuation + ((attenuation / 2) | 0))) | 0);
+                // face normal
+                const lightness: number = ambient + (((x * nx + y * ny + z * nz) / (scale + ((scale / 2) | 0))) | 0);
                 if (this.faceColour) {
-                    this.faceColourA[f] = Model.mulColourLightness(this.faceColour[f], lightness, this.faceRenderType[f]);
+                    this.faceColourA[f] = Model.getColour(this.faceColour[f], lightness, this.faceRenderType[f]);
                 }
             }
         }
 
         if (doNotShareLight) {
-            this.light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+            this.light(ambient, scale, x, y, z);
         } else {
             this.vertexNormalOriginal = new TypedArray1d(this.vertexCount, null);
 
@@ -1564,7 +1569,7 @@ export default class Model extends ModelSource {
         }
     }
 
-    light(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
+    light(ambient: number, contrast: number, x: number, y: number, z: number): void {
         for (let f: number = 0; f < this.faceCount; f++) {
             const a: number = this.faceVertexA![f];
             const b: number = this.faceVertexB![f];
@@ -1575,17 +1580,17 @@ export default class Model extends ModelSource {
 
                 const va: PointNormal | null = this.vertexNormal[a];
                 if (va) {
-                    this.faceColourA[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * va.x + lightSrcY * va.y + lightSrcZ * va.z) / (lightAttenuation * va.w)) | 0), 0);
+                    this.faceColourA[f] = Model.getColour(colour, ambient + (((x * va.x + y * va.y + z * va.z) / (contrast * va.w)) | 0), 0);
                 }
 
                 const vb: PointNormal | null = this.vertexNormal[b];
                 if (vb) {
-                    this.faceColourB[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vb.x + lightSrcY * vb.y + lightSrcZ * vb.z) / (lightAttenuation * vb.w)) | 0), 0);
+                    this.faceColourB[f] = Model.getColour(colour, ambient + (((x * vb.x + y * vb.y + z * vb.z) / (contrast * vb.w)) | 0), 0);
                 }
 
                 const vc: PointNormal | null = this.vertexNormal[c];
                 if (vc) {
-                    this.faceColourC[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vc.x + lightSrcY * vc.y + lightSrcZ * vc.z) / (lightAttenuation * vc.w)) | 0), 0);
+                    this.faceColourC[f] = Model.getColour(colour, ambient + (((x * vc.x + y * vc.y + z * vc.z) / (contrast * vc.w)) | 0), 0);
                 }
             } else if (this.faceRenderType && (this.faceRenderType[f] & 0x1) === 0 && this.faceColour && this.vertexNormal && this.faceColourA && this.faceColourB && this.faceColourC) {
                 const colour: number = this.faceColour[f];
@@ -1593,17 +1598,17 @@ export default class Model extends ModelSource {
 
                 const va: PointNormal | null = this.vertexNormal[a];
                 if (va) {
-                    this.faceColourA[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * va.x + lightSrcY * va.y + lightSrcZ * va.z) / (lightAttenuation * va.w)) | 0), info);
+                    this.faceColourA[f] = Model.getColour(colour, ambient + (((x * va.x + y * va.y + z * va.z) / (contrast * va.w)) | 0), info);
                 }
 
                 const vb: PointNormal | null = this.vertexNormal[b];
                 if (vb) {
-                    this.faceColourB[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vb.x + lightSrcY * vb.y + lightSrcZ * vb.z) / (lightAttenuation * vb.w)) | 0), info);
+                    this.faceColourB[f] = Model.getColour(colour, ambient + (((x * vb.x + y * vb.y + z * vb.z) / (contrast * vb.w)) | 0), info);
                 }
 
                 const vc: PointNormal | null = this.vertexNormal[c];
                 if (vc) {
-                    this.faceColourC[f] = Model.mulColourLightness(colour, lightAmbient + (((lightSrcX * vc.x + lightSrcY * vc.y + lightSrcZ * vc.z) / (lightAttenuation * vc.w)) | 0), info);
+                    this.faceColourC[f] = Model.getColour(colour, ambient + (((x * vc.x + y * vc.y + z * vc.z) / (contrast * vc.w)) | 0), info);
                 }
             }
         }
@@ -1624,8 +1629,9 @@ export default class Model extends ModelSource {
         this.faceColour = null;
     }
 
-    static mulColourLightness(hsl: number, scalar: number, faceRenderType: number): number {
+    static getColour(hsl: number, scalar: number, faceRenderType: number): number {
         if ((faceRenderType & 0x2) === 2) {
+            // getTexLight
             if (scalar < 0) {
                 scalar = 0;
             } else if (scalar > 127) {
@@ -1633,17 +1639,18 @@ export default class Model extends ModelSource {
             }
 
             return 127 - scalar;
+        } else {
+            // getColour
+            scalar = (scalar * (hsl & 0x7f)) >> 7;
+
+            if (scalar < 2) {
+                scalar = 2;
+            } else if (scalar > 126) {
+                scalar = 126;
+            }
+
+            return (hsl & 0xff80) + scalar;
         }
-
-        scalar = (scalar * (hsl & 0x7f)) >> 7;
-
-        if (scalar < 2) {
-            scalar = 2;
-        } else if (scalar > 126) {
-            scalar = 126;
-        }
-
-        return (hsl & 0xff80) + scalar;
     }
 
     objRender(pitch: number, yaw: number, roll: number, eyePitch: number, eyeX: number, eyeY: number, eyeZ: number): void {
@@ -2119,7 +2126,7 @@ export default class Model extends ModelSource {
                 Pix3D.colourTable[this.faceColourA![face]]
             );
         } else if (type === 2) {
-            const texturedFace: number = this.faceRenderType[face] >> 2;
+            const texturedFace: number = this.faceRenderType![face] >> 2;
             const tA: number = this.faceTextureP![texturedFace];
             const tB: number = this.faceTextureM![texturedFace];
             const tC: number = this.faceTextureN![texturedFace];

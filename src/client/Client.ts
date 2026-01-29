@@ -92,7 +92,7 @@ export class Client extends GameShell {
     private lastProgressPercent: number = 0;
     private lastProgressMessage: string = '';
 
-    private ingame: boolean = false;
+    ingame: boolean = false;
     private loopCycle: number = 0;
     private drawCycle: number = 0;
     private flameCycle: number = 0;
