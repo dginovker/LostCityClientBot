@@ -16,7 +16,7 @@ export default class PixMap {
         this.data = new Int32Array(width * height);
 
         this.ctx = ctx;
-        this.img = this.ctx.getImageData(0, 0, width, height);
+        this.img = this.ctx.createImageData(width, height);
         this.paint = new Uint32Array(this.img.data.buffer);
 
         this.setPixels();
@@ -32,9 +32,28 @@ export default class PixMap {
     }
 
     private prepareCanvas(): void {
-        for (let i: number = 0; i < this.data.length; i++) {
-            const pixel: number = this.data[i];
-            this.paint[i] = ((pixel >> 16) & 0xff) | (((pixel >> 8) & 0xff) << 8) | ((pixel & 0xff) << 16) | 0xff000000;
+        const data = this.data;
+        const paint = this.paint;
+        const len = data.length;
+
+        let i = 0;
+        const unroll = len - (len % 4);
+
+        for (; i < unroll; i += 4) {
+            const p0 = data[i];
+            const p1 = data[i + 1];
+            const p2 = data[i + 2];
+            const p3 = data[i + 3];
+
+            paint[i] = ((p0 & 0xff0000) >> 16) | (p0 & 0xff00) | ((p0 & 0xff) << 16) | 0xff000000;
+            paint[i + 1] = ((p1 & 0xff0000) >> 16) | (p1 & 0xff00) | ((p1 & 0xff) << 16) | 0xff000000;
+            paint[i + 2] = ((p2 & 0xff0000) >> 16) | (p2 & 0xff00) | ((p2 & 0xff) << 16) | 0xff000000;
+            paint[i + 3] = ((p3 & 0xff0000) >> 16) | (p3 & 0xff00) | ((p3 & 0xff) << 16) | 0xff000000;
+        }
+
+        for (; i < len; i++) {
+            const pixel = data[i];
+            paint[i] = ((pixel & 0xff0000) >> 16) | (pixel & 0xff00) | ((pixel & 0xff) << 16) | 0xff000000;
         }
     }
 }
