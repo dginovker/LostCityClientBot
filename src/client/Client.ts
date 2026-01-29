@@ -481,14 +481,14 @@ export class Client extends GameShell {
     private minimapFlagZ: number = 0;
 
     private midiActive: boolean = true;
-    private midiVolume: number = 64;
+    private midiVolume: number = 0;
     private midiSong: number = -1;
     private nextMidiSong: number = -1;
     private nextMusicDelay: number = 0;
     private midiFading: boolean = false;
 
     private waveEnabled: boolean = true;
-    private waveVolume: number = 64;
+    private waveVolume: number = 0;
     private waveCount: number = 0;
     private waveIds: Int32Array = new Int32Array(50);
     private waveLoops: Int32Array = new Int32Array(50);
@@ -10854,23 +10854,23 @@ export class Client extends GameShell {
             const lastMidiActive: boolean = this.midiActive;
 
             if (value === 0) {
-                this.midiVolume = 128;
-                setMidiVolume(128);
+                this.midiVolume = 0; // +0 dB
                 this.midiActive = true;
             } else if (value === 1) {
-                this.midiVolume = 96;
-                setMidiVolume(96);
+                this.midiVolume = -4; // -4 dB
                 this.midiActive = true;
             } else if (value === 2) {
-                this.midiVolume = 64;
-                setMidiVolume(64);
+                this.midiVolume = -8; // -8 dB
                 this.midiActive = true;
             } else if (value === 3) {
-                this.midiVolume = 32;
-                setMidiVolume(32);
+                this.midiVolume = -12; // -12 dB
                 this.midiActive = true;
             } else if (value === 4) {
                 this.midiActive = false;
+            }
+
+            if (this.midiActive) {
+                setMidiVolume(this.midiVolume);
             }
 
             if (this.midiActive !== lastMidiActive) {
@@ -10886,23 +10886,23 @@ export class Client extends GameShell {
             }
         } else if (clientcode === 4) {
             if (value === 0) {
-                this.waveVolume = 128;
-                setWaveVolume(128);
+                this.waveVolume = 0; // +0 dB
                 this.waveEnabled = true;
             } else if (value === 1) {
-                this.waveVolume = 96;
-                setWaveVolume(96);
+                this.waveVolume = -4; // -4 dB
                 this.waveEnabled = true;
             } else if (value === 2) {
-                this.waveVolume = 64;
-                setWaveVolume(64);
+                this.waveVolume = -8; // -8 dB
                 this.waveEnabled = true;
             } else if (value === 3) {
-                this.waveVolume = 32;
-                setWaveVolume(32);
+                this.waveVolume = -12; // -12 dB
                 this.waveEnabled = true;
             } else if (value === 4) {
                 this.waveEnabled = false;
+            }
+
+            if (this.waveEnabled) {
+                setWaveVolume(this.waveVolume);
             }
         } else if (clientcode === 5) {
             this.oneMouseButton = value;

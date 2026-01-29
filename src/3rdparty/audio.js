@@ -56,11 +56,11 @@ export async function playWave(data) {
     }
 }
 
-export function setWaveVolume(vol) {
+export function setWaveVolume(dB) {
     if (!waveGain) {
         waveGain = window.audioContext.createGain();
         waveGain.connect(window.audioContext.destination);
     }
 
-    waveGain.gain.value = vol / 128;
+    waveGain.gain.value = Math.pow(10, dB / 20);
 }

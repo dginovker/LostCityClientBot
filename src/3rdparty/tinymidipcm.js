@@ -304,15 +304,15 @@ class TinyMidiPCM {
     };
 })();
 
-export function playMidi(data, vol, fade) {
+export function playMidi(data, dB, fade) {
     if (window._tinyMidiPlay) {
-        window._tinyMidiPlay(data, vol / 128, fade);
+        window._tinyMidiPlay(data, Math.pow(10, dB / 20), fade);
     }
 }
 
-export function setMidiVolume(vol) {
+export function setMidiVolume(dB) {
     if (window._tinyMidiVolume) {
-        window._tinyMidiVolume(vol / 128);
+        window._tinyMidiVolume(Math.pow(10, dB / 20));
     }
 }
 
