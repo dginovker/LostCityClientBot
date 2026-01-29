@@ -151,7 +151,6 @@ export default class Model extends ModelSource {
         meta.faceTextureCount = trailer.g1();
 
         const hasRenderType = trailer.g1();
-
         const priority = trailer.g1();
         const hasAlpha = trailer.g1();
         const hasFaceLabels = trailer.g1();
@@ -171,35 +170,35 @@ export default class Model extends ModelSource {
         pos += meta.faceCount;
 
         meta.facePriorityOffset = pos;
-        if (priority == 255) {
+        if (priority === 255) {
             pos += meta.faceCount;
         } else {
             meta.facePriorityOffset = -priority - 1;
         }
 
         meta.faceLabelOffset = pos;
-        if (hasFaceLabels == 1) {
+        if (hasFaceLabels === 1) {
             pos += meta.faceCount;
         } else {
             meta.faceLabelOffset = -1;
         }
 
         meta.faceRenderTypeOffset = pos;
-        if (hasRenderType == 1) {
+        if (hasRenderType === 1) {
             pos += meta.faceCount;
         } else {
             meta.faceRenderTypeOffset = -1;
         }
 
         meta.vertexLabelOffset = pos;
-        if (hasVertexLabels == 1) {
+        if (hasVertexLabels === 1) {
             pos += meta.vertexCount;
         } else {
             meta.vertexLabelOffset = -1;
         }
 
         meta.faceAlphaOffset = pos;
-        if (hasAlpha == 1) {
+        if (hasAlpha === 1) {
             pos += meta.faceCount;
         } else {
             meta.faceAlphaOffset = -1;
@@ -225,9 +224,7 @@ export default class Model extends ModelSource {
     }
 
     static unload(id: number) {
-        if (Model.meta) {
-            Model.meta[id] = null;
-        }
+        Model.meta[id] = null;
     }
 
     static load(id: number): Model | null {
@@ -237,9 +234,8 @@ export default class Model extends ModelSource {
             return null;
         }
 
-        Model.loaded++;
-
         const model = new Model();
+        Model.loaded++;
 
         model.vertexCount = meta.vertexCount;
         model.faceCount = meta.faceCount;
@@ -303,17 +299,17 @@ export default class Model extends ModelSource {
             const order = point1.g1();
 
             let x = 0;
-            if ((order & 0x1) != 0) {
+            if ((order & 0x1) !== 0) {
                 x = point2.gsmart();
             }
 
             let y = 0;
-            if ((order & 0x2) != 0) {
+            if ((order & 0x2) !== 0) {
                 y = point3.gsmart();
             }
 
             let z = 0;
-            if ((order & 0x4) != 0) {
+            if ((order & 0x4) !== 0) {
                 z = point4.gsmart();
             }
 
@@ -325,7 +321,7 @@ export default class Model extends ModelSource {
             dy = model.vertexY[v];
             dz = model.vertexZ[v];
 
-            if (model.vertexLabel != null) {
+            if (model.vertexLabel !== null) {
                 model.vertexLabel[v] = point5.g1();
             }
         }
@@ -348,19 +344,19 @@ export default class Model extends ModelSource {
         for (let f = 0; f < model.faceCount; f++) {
             model.faceColour[f] = face1.g2();
 
-            if (model.faceRenderType != null) {
+            if (model.faceRenderType !== null) {
                 model.faceRenderType[f] = face2.g1();
             }
 
-            if (model.facePriority != null) {
+            if (model.facePriority !== null) {
                 model.facePriority[f] = face3.g1();
             }
 
-            if (model.faceAlpha != null) {
+            if (model.faceAlpha !== null) {
                 model.faceAlpha[f] = face4.g1();
             }
 
-            if (model.faceLabel != null) {
+            if (model.faceLabel !== null) {
                 model.faceLabel[f] = face5.g1();
             }
         }
@@ -564,9 +560,9 @@ export default class Model extends ModelSource {
                 }
 
                 for (let f: number = 0; f < model.faceTextureCount; f++) {
-                    combined.faceTextureP[combined.faceCount] = combined.addPoint(model, model.faceTextureP![f]);
-                    combined.faceTextureM[combined.faceCount] = combined.addPoint(model, model.faceTextureM![f]);
-                    combined.faceTextureN[combined.faceCount] = combined.addPoint(model, model.faceTextureN![f]);
+                    combined.faceTextureP[combined.faceTextureCount] = combined.addPoint(model, model.faceTextureP![f]);
+                    combined.faceTextureM[combined.faceTextureCount] = combined.addPoint(model, model.faceTextureM![f]);
+                    combined.faceTextureN[combined.faceTextureCount] = combined.addPoint(model, model.faceTextureN![f]);
                     combined.faceTextureCount++;
                 }
             }
