@@ -576,7 +576,7 @@ export default class ObjType {
 
             if (id3 === -1) {
                 const models: Model[] = [model, model2];
-                model = Model.combine(models, 2);
+                model = Model.combineForAnim(models, 2);
             } else {
                 const model3: Model | null = Model.load(id3);
                 if (!model3) {
@@ -584,7 +584,7 @@ export default class ObjType {
                 }
 
                 const models: Model[] = [model, model2, model3];
-                model = Model.combine(models, 3);
+                model = Model.combineForAnim(models, 3);
             }
         }
 
@@ -652,7 +652,7 @@ export default class ObjType {
             }
 
             const models: Model[] = [model, model2];
-            model = Model.combine(models, 2);
+            model = Model.combineForAnim(models, 2);
         }
 
         if (this.recol_s && this.recol_d) {

@@ -346,7 +346,7 @@ export default class LocType {
                 modified.vertexY![i] += y - groundY;
             }
 
-            modified.calcAABB();
+            modified.recalcBoundingCylinder();
         }
 
         return modified;
@@ -401,7 +401,7 @@ export default class LocType {
             }
 
             if (modelCount > 1) {
-                model = Model.combine(LocType.temp, modelCount);
+                model = Model.combineForAnim(LocType.temp, modelCount);
             }
         } else {
             let index: number = -1;

@@ -348,7 +348,7 @@ export default class ClientPlayer extends ClientEntity {
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
 
                 const models: Model[] = [model, temp];
-                model = Model.append(models, 2);
+                model = Model.combine(models, 2);
             }
         }
 
@@ -374,7 +374,7 @@ export default class ClientPlayer extends ClientEntity {
                     }
 
                     const models: Model[] = [model, loc];
-                    model = Model.append(models, 2);
+                    model = Model.combine(models, 2);
 
                     if (this.dstYaw == 512) {
                         loc.rotate90();
@@ -515,7 +515,7 @@ export default class ClientPlayer extends ClientEntity {
                 }
             }
 
-            model = Model.combine(models, modelCount);
+            model = Model.combineForAnim(models, modelCount);
             for (let part: number = 0; part < 5; part++) {
                 if (this.colour[part] === 0) {
                     continue;
@@ -538,7 +538,7 @@ export default class ClientPlayer extends ClientEntity {
             return model;
         }
 
-        const tmp = Model.empty;
+        const tmp = Model.tempModel;
         tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) && AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
@@ -596,7 +596,7 @@ export default class ClientPlayer extends ClientEntity {
             }
         }
 
-        const tmp: Model = Model.combine(models, modelCount);
+        const tmp: Model = Model.combineForAnim(models, modelCount);
         for (let part: number = 0; part < 5; part++) {
             if (this.colour[part] === 0) {
                 continue;

@@ -186,7 +186,7 @@ export default class NpcType {
             if (models.length === 1) {
                 model = models[0];
             } else {
-                model = Model.combine(models, models.length);
+                model = Model.combineForAnim(models, models.length);
             }
 
             if (model) {
@@ -206,7 +206,7 @@ export default class NpcType {
             return null;
         }
 
-        const tmp = Model.empty;
+        const tmp = Model.tempModel;
         tmp.set(model, AnimFrame.shareAlpha(primaryTransformId) && AnimFrame.shareAlpha(secondaryTransformId));
 
         if (primaryTransformId !== -1 && secondaryTransformId !== -1) {
@@ -254,7 +254,7 @@ export default class NpcType {
         if (models.length === 1) {
             model = models[0];
         } else {
-            model = Model.combine(models, models.length);
+            model = Model.combineForAnim(models, models.length);
         }
 
         if (model && this.recol_s && this.recol_d) {

@@ -4471,7 +4471,7 @@ export class Client extends GameShell {
         }
 
         const cycle = Pix3D.cycle;
-        Model.checkHover = true;
+        Model.mouseCheck = true;
         Model.pickedCount = 0;
         Model.mouseX = this.mouseX - 4;
         Model.mouseY = this.mouseY - 4;
@@ -9514,7 +9514,7 @@ export class Client extends GameShell {
 
         let lastTypecode: number = -1;
         for (let picked: number = 0; picked < Model.pickedCount; picked++) {
-            const typecode: number = Model.pickedBitsets[picked];
+            const typecode: number = Model.pickedEntityTypecode[picked];
             const x: number = typecode & 0x7f;
             const z: number = (typecode >> 7) & 0x7f;
             const entityType: number = (typecode >> 29) & 0x3;
@@ -11025,7 +11025,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                const model: Model = Model.combine(models, modelCount);
+                const model: Model = Model.combineForAnim(models, modelCount);
                 for (let part: number = 0; part < 5; part++) {
                     if (this.idkDesignColour[part] !== 0) {
                         model.recolour(ClientPlayer.recol1d[part][0], ClientPlayer.recol1d[part][this.idkDesignColour[part]]);

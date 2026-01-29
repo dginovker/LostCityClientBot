@@ -220,12 +220,12 @@ export default class World {
     private readonly levelTiles: (Square | null)[][][];
     private readonly dynamicSprites: (Sprite | null)[];
     private readonly occlusionCycle: Int32Array[][];
-    private readonly mergeIndexA: Int32Array;
-    private readonly mergeIndexB: Int32Array;
+    private readonly shareTickA: Int32Array;
+    private readonly shareTickB: Int32Array;
 
     private dynamicCount: number = 0;
     private minLevel: number = 0;
-    private tmpMergeIndex: number = 0;
+    private shareTic: number = 0;
 
     constructor(levelHeightmaps: Int32Array[][], maxTileZ: number, maxLevel: number, maxTileX: number) {
         this.maxTileLevel = maxLevel;
@@ -236,8 +236,8 @@ export default class World {
         this.groundh = levelHeightmaps;
 
         this.dynamicSprites = new TypedArray1d(5000, null);
-        this.mergeIndexA = new Int32Array(10000);
-        this.mergeIndexB = new Int32Array(10000);
+        this.shareTickA = new Int32Array(10000);
+        this.shareTickB = new Int32Array(10000);
 
         this.resetMap();
     }
@@ -862,7 +862,7 @@ export default class World {
     }
 
     private modelShareLight(modelA: Model, modelB: Model, offsetX: number, offsetY: number, offsetZ: number, allowFaceRemoval: boolean): void {
-        this.tmpMergeIndex++;
+        this.shareTic++;
 
         let merged: number = 0;
         const vertexX: Int32Array = modelB.vertexX!;
@@ -909,8 +909,8 @@ export default class World {
                                 merged++;
                             }
 
-                            this.mergeIndexA[vertexA] = this.tmpMergeIndex;
-                            this.mergeIndexB[vertexB] = this.tmpMergeIndex;
+                            this.shareTickA[vertexA] = this.shareTic;
+                            this.shareTickB[vertexB] = this.shareTic;
                         }
                     }
                 }
@@ -921,18 +921,18 @@ export default class World {
             return;
         }
 
-        if (modelA.faceInfo) {
+        if (modelA.faceRenderType) {
             for (let i: number = 0; i < modelA.faceCount; i++) {
-                if (this.mergeIndexA[modelA.faceVertexA![i]] === this.tmpMergeIndex && this.mergeIndexA[modelA.faceVertexB![i]] === this.tmpMergeIndex && this.mergeIndexA[modelA.faceVertexC![i]] === this.tmpMergeIndex) {
-                    modelA.faceInfo[i] = -1;
+                if (this.shareTickA[modelA.faceVertexA![i]] === this.shareTic && this.shareTickA[modelA.faceVertexB![i]] === this.shareTic && this.shareTickA[modelA.faceVertexC![i]] === this.shareTic) {
+                    modelA.faceRenderType[i] = -1;
                 }
             }
         }
 
-        if (modelB.faceInfo) {
+        if (modelB.faceRenderType) {
             for (let i: number = 0; i < modelB.faceCount; i++) {
-                if (this.mergeIndexB[modelB.faceVertexA![i]] === this.tmpMergeIndex && this.mergeIndexB[modelB.faceVertexB![i]] === this.tmpMergeIndex && this.mergeIndexB[modelB.faceVertexC![i]] === this.tmpMergeIndex) {
-                    modelB.faceInfo[i] = -1;
+                if (this.shareTickB[modelB.faceVertexA![i]] === this.shareTic && this.shareTickB[modelB.faceVertexB![i]] === this.shareTic && this.shareTickB[modelB.faceVertexC![i]] === this.shareTic) {
+                    modelB.faceRenderType[i] = -1;
                 }
             }
         }

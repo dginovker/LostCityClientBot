@@ -55,7 +55,7 @@ export default class ClientNpc extends ClientEntity {
                 temp.calculateNormals(spot.ambient + 64, spot.contrast + 850, -30, -50, -30, true);
 
                 const models: Model[] = [model, temp];
-                model = Model.append(models, 2);
+                model = Model.combine(models, 2);
             }
         }
 

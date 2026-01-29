@@ -91,7 +91,7 @@ export default class IdkType {
         if (models.length === 1) {
             model = models[0];
         } else {
-            model = Model.combine(models, models.length);
+            model = Model.combineForAnim(models, models.length);
         }
 
         for (let i: number = 0; i < 6 && this.recol_s[i] !== 0; i++) {
@@ -123,7 +123,7 @@ export default class IdkType {
             }
         }
 
-        const model: Model = Model.combine(models, count);
+        const model: Model = Model.combineForAnim(models, count);
         for (let i: number = 0; i < 6 && this.recol_s[i] !== 0; i++) {
             model.recolour(this.recol_s[i], this.recol_d[i]);
         }
