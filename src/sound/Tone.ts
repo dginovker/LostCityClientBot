@@ -5,7 +5,7 @@ import Envelope from '#/sound/Envelope.js';
 import JavaRandom from '#/util/JavaRandom.js';
 
 export default class Tone {
-    frequencyBase: Envelope = new Envelope()
+    frequencyBase: Envelope = new Envelope();
     amplitudeBase: Envelope = new Envelope();
 
     frequencyModRate: Envelope | null = null;

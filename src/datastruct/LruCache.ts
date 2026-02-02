@@ -21,17 +21,17 @@ export default class LruCache<T extends Linkable2> {
         return node;
     }
 
-    put(key: bigint, value: T): void {
+    put(node: T, key: bigint): void {
         if (this.available === 0) {
-            const node = this.history.popFront();
-            node?.unlink();
-            node?.unlink2();
+            const first = this.history.popFront();
+            first?.unlink();
+            first?.unlink2();
         } else {
             this.available--;
         }
 
-        this.table.put(key, value);
-        this.history.push(value);
+        this.table.put(node, key);
+        this.history.push(node);
     }
 
     clear(): void {

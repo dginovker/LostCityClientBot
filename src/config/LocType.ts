@@ -392,7 +392,7 @@ export default class LocType {
                         model.mirror();
                     }
 
-                    LocType.mc1.put(BigInt(modelId), model);
+                    LocType.mc1.put(model, BigInt(modelId));
                 }
 
                 if (modelCount > 1) {
@@ -447,7 +447,7 @@ export default class LocType {
                     model.mirror();
                 }
 
-                LocType.mc1.put(BigInt(modelId), model);
+                LocType.mc1.put(model, BigInt(modelId));
             }
         }
 
@@ -490,7 +490,7 @@ export default class LocType {
             modified.objRaise = modified.minY;
         }
 
-        LocType.mc2.put(typecode, modified);
+        LocType.mc2.put(modified, typecode);
         return modified;
     }
 }

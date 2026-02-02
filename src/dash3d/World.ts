@@ -122,97 +122,6 @@ export default class World {
     private static viewportCentreX: number = 0;
     private static viewportCentreY: number = 0;
 
-    static init(viewportWidth: number, viewportHeight: number, frustumStart: number, frustumEnd: number, pitchDistance: Int32Array): void {
-        this.viewportLeft = 0;
-        this.viewportTop = 0;
-        this.viewportRight = viewportWidth;
-        this.viewportBottom = viewportHeight;
-        this.viewportCentreX = (viewportWidth / 2) | 0;
-        this.viewportCentreY = (viewportHeight / 2) | 0;
-
-        const matrix: boolean[][][][] = new TypedArray4d(9, 32, 53, 53, false);
-        for (let pitch: number = 128; pitch <= 384; pitch += 32) {
-            for (let yaw: number = 0; yaw < 2048; yaw += 64) {
-                this.cameraSinX = Pix3D.sinTable[pitch];
-                this.cameraCosX = Pix3D.cosTable[pitch];
-                this.cameraSinY = Pix3D.sinTable[yaw];
-                this.cameraCosY = Pix3D.cosTable[yaw];
-
-                const pitchLevel: number = ((pitch - 128) / 32) | 0;
-                const yawLevel: number = (yaw / 64) | 0;
-                for (let dx: number = -26; dx <= 26; dx++) {
-                    for (let dz: number = -26; dz <= 26; dz++) {
-                        const x: number = dx * 128;
-                        const z: number = dz * 128;
-
-                        let visible: boolean = false;
-                        for (let y: number = -frustumStart; y <= frustumEnd; y += 128) {
-                            if (this.testPoint(x, z, pitchDistance[pitchLevel] + y)) {
-                                visible = true;
-                                break;
-                            }
-                        }
-
-                        matrix[pitchLevel][yawLevel][dx + 25 + 1][dz + 25 + 1] = visible;
-                    }
-                }
-            }
-        }
-
-        for (let pitchLevel: number = 0; pitchLevel < 8; pitchLevel++) {
-            for (let yawLevel: number = 0; yawLevel < 32; yawLevel++) {
-                for (let x: number = -25; x < 25; x++) {
-                    for (let z: number = -25; z < 25; z++) {
-                        let visible: boolean = false;
-                        check_areas: for (let dx: number = -1; dx <= 1; dx++) {
-                            for (let dz: number = -1; dz <= 1; dz++) {
-                                if (matrix[pitchLevel][yawLevel][x + dx + 25 + 1][z + dz + 25 + 1]) {
-                                    visible = true;
-                                    break check_areas;
-                                }
-
-                                if (matrix[pitchLevel][(yawLevel + 1) % 31][x + dx + 25 + 1][z + dz + 25 + 1]) {
-                                    visible = true;
-                                    break check_areas;
-                                }
-
-                                if (matrix[pitchLevel + 1][yawLevel][x + dx + 25 + 1][z + dz + 25 + 1]) {
-                                    visible = true;
-                                    break check_areas;
-                                }
-
-                                if (matrix[pitchLevel + 1][(yawLevel + 1) % 31][x + dx + 25 + 1][z + dz + 25 + 1]) {
-                                    visible = true;
-                                    break check_areas;
-                                }
-                            }
-                        }
-                        this.visibilityMatrix[pitchLevel][yawLevel][x + 25][z + 25] = visible;
-                    }
-                }
-            }
-        }
-    }
-
-    static setOcclude(level: number, type: number, minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): void {
-        World.levelOccluders[level][World.levelOccluderCount[level]++] = new Occlude((minX / 128) | 0, (maxX / 128) | 0, (minZ / 128) | 0, (maxZ / 128) | 0, type, minX, maxX, minZ, maxZ, minY, maxY);
-    }
-
-    private static testPoint(x: number, z: number, y: number): boolean {
-        const px: number = (z * this.cameraSinY + x * this.cameraCosY) >> 16;
-        const tmp: number = (z * this.cameraCosY - x * this.cameraSinY) >> 16;
-        const pz: number = (y * this.cameraSinX + tmp * this.cameraCosX) >> 16;
-        const py: number = (y * this.cameraCosX - tmp * this.cameraSinX) >> 16;
-
-        if (pz < 50 || pz > 3500) {
-            return false;
-        }
-
-        const viewportX: number = this.viewportCentreX + (((px << 9) / pz) | 0);
-        const viewportY: number = this.viewportCentreY + (((py << 9) / pz) | 0);
-        return viewportX >= this.viewportLeft && viewportX <= this.viewportRight && viewportY >= this.viewportTop && viewportY <= this.viewportBottom;
-    }
-
     private readonly maxTileLevel: number;
     private readonly maxTileX: number;
     private readonly maxTileZ: number;
@@ -300,6 +209,10 @@ export default class World {
         }
 
         this.levelTiles[3][stx][stz] = null;
+    }
+
+    static setOcclude(level: number, type: number, minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number): void {
+        World.levelOccluders[level][World.levelOccluderCount[level]++] = new Occlude((minX / 128) | 0, (maxX / 128) | 0, (minZ / 128) | 0, (maxZ / 128) | 0, type, minX, maxX, minZ, maxZ, minY, maxY);
     }
 
     setLayer(level: number, stx: number, stz: number, drawLevel: number): void {
@@ -729,9 +642,9 @@ export default class World {
         }
     }
 
-    shareLight(lightAmbient: number, lightAttenuation: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
+    shareLight(ambient: number, contrast: number, lightSrcX: number, lightSrcY: number, lightSrcZ: number): void {
         const lightMagnitude: number = Math.sqrt(lightSrcX * lightSrcX + lightSrcY * lightSrcY + lightSrcZ * lightSrcZ) | 0;
-        const attenuation: number = (lightAttenuation * lightMagnitude) >> 8;
+        const attenuation: number = (contrast * lightMagnitude) >> 8;
 
         for (let level: number = 0; level < this.maxTileLevel; level++) {
             for (let tileX: number = 0; tileX < this.maxTileX; tileX++) {
@@ -743,27 +656,27 @@ export default class World {
 
                     const wall: Wall | null = tile.wall;
                     if (wall && wall.model1 && wall.model1.vertexNormal) {
-                        this.shareLightLoc(level, tileX, tileZ, 1, 1, (wall.model1 as Model));
+                        this.shareLightLoc(level, tileX, tileZ, 1, 1, wall.model1 as Model);
                         if (wall.model2 && wall.model2.vertexNormal) {
-                            this.shareLightLoc(level, tileX, tileZ, 1, 1, (wall.model2 as Model));
-                            this.modelShareLight((wall.model1 as Model), (wall.model2 as Model), 0, 0, 0, false);
-                            (wall.model2 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                            this.shareLightLoc(level, tileX, tileZ, 1, 1, wall.model2 as Model);
+                            this.modelShareLight(wall.model1 as Model, wall.model2 as Model, 0, 0, 0, false);
+                            (wall.model2 as Model).light(ambient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
-                        (wall.model1 as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                        (wall.model1 as Model).light(ambient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
 
                     for (let i: number = 0; i < tile.spriteCount; i++) {
                         const sprite: Sprite | null = tile.sprites[i];
                         if (sprite && sprite.model && sprite.model.vertexNormal) {
-                            this.shareLightLoc(level, tileX, tileZ, sprite.maxTileX + 1 - sprite.minTileX, sprite.maxTileZ - sprite.minTileZ + 1, (sprite.model as Model));
-                            (sprite.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                            this.shareLightLoc(level, tileX, tileZ, sprite.maxTileX + 1 - sprite.minTileX, sprite.maxTileZ - sprite.minTileZ + 1, sprite.model as Model);
+                            (sprite.model as Model).light(ambient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                         }
                     }
 
                     const decor: GroundDecor | null = tile.groundDecor;
                     if (decor && decor.model && decor.model.vertexNormal) {
-                        this.shareLightGd(level, tileX, tileZ, (decor.model as Model));
-                        (decor.model as Model).light(lightAmbient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
+                        this.shareLightGd(level, tileX, tileZ, decor.model as Model);
+                        (decor.model as Model).light(ambient, attenuation, lightSrcX, lightSrcY, lightSrcZ);
                     }
                 }
             }
@@ -996,6 +909,93 @@ export default class World {
                 offset += step;
             }
         }
+    }
+
+    static init(pitchDistance: Int32Array, frustumStart: number, frustumEnd: number, viewportWidth: number, viewportHeight: number): void {
+        this.viewportLeft = 0;
+        this.viewportTop = 0;
+        this.viewportRight = viewportWidth;
+        this.viewportBottom = viewportHeight;
+        this.viewportCentreX = (viewportWidth / 2) | 0;
+        this.viewportCentreY = (viewportHeight / 2) | 0;
+
+        const matrix: boolean[][][][] = new TypedArray4d(9, 32, 53, 53, false);
+        for (let pitch: number = 128; pitch <= 384; pitch += 32) {
+            for (let yaw: number = 0; yaw < 2048; yaw += 64) {
+                this.cameraSinX = Pix3D.sinTable[pitch];
+                this.cameraCosX = Pix3D.cosTable[pitch];
+                this.cameraSinY = Pix3D.sinTable[yaw];
+                this.cameraCosY = Pix3D.cosTable[yaw];
+
+                const pitchLevel: number = ((pitch - 128) / 32) | 0;
+                const yawLevel: number = (yaw / 64) | 0;
+                for (let dx: number = -26; dx <= 26; dx++) {
+                    for (let dz: number = -26; dz <= 26; dz++) {
+                        const x: number = dx * 128;
+                        const z: number = dz * 128;
+
+                        let visible: boolean = false;
+                        for (let y: number = -frustumStart; y <= frustumEnd; y += 128) {
+                            if (this.testPoint(x, z, pitchDistance[pitchLevel] + y)) {
+                                visible = true;
+                                break;
+                            }
+                        }
+
+                        matrix[pitchLevel][yawLevel][dx + 25 + 1][dz + 25 + 1] = visible;
+                    }
+                }
+            }
+        }
+
+        for (let pitchLevel: number = 0; pitchLevel < 8; pitchLevel++) {
+            for (let yawLevel: number = 0; yawLevel < 32; yawLevel++) {
+                for (let x: number = -25; x < 25; x++) {
+                    for (let z: number = -25; z < 25; z++) {
+                        let visible: boolean = false;
+                        check_areas: for (let dx: number = -1; dx <= 1; dx++) {
+                            for (let dz: number = -1; dz <= 1; dz++) {
+                                if (matrix[pitchLevel][yawLevel][x + dx + 25 + 1][z + dz + 25 + 1]) {
+                                    visible = true;
+                                    break check_areas;
+                                }
+
+                                if (matrix[pitchLevel][(yawLevel + 1) % 31][x + dx + 25 + 1][z + dz + 25 + 1]) {
+                                    visible = true;
+                                    break check_areas;
+                                }
+
+                                if (matrix[pitchLevel + 1][yawLevel][x + dx + 25 + 1][z + dz + 25 + 1]) {
+                                    visible = true;
+                                    break check_areas;
+                                }
+
+                                if (matrix[pitchLevel + 1][(yawLevel + 1) % 31][x + dx + 25 + 1][z + dz + 25 + 1]) {
+                                    visible = true;
+                                    break check_areas;
+                                }
+                            }
+                        }
+                        this.visibilityMatrix[pitchLevel][yawLevel][x + 25][z + 25] = visible;
+                    }
+                }
+            }
+        }
+    }
+
+    private static testPoint(x: number, z: number, y: number): boolean {
+        const px: number = (z * this.cameraSinY + x * this.cameraCosY) >> 16;
+        const tmp: number = (z * this.cameraCosY - x * this.cameraSinY) >> 16;
+        const pz: number = (y * this.cameraSinX + tmp * this.cameraCosX) >> 16;
+        const py: number = (y * this.cameraCosX - tmp * this.cameraSinX) >> 16;
+
+        if (pz < 50 || pz > 3500) {
+            return false;
+        }
+
+        const viewportX: number = this.viewportCentreX + (((px << 9) / pz) | 0);
+        const viewportY: number = this.viewportCentreY + (((py << 9) / pz) | 0);
+        return viewportX >= this.viewportLeft && viewportX <= this.viewportRight && viewportY >= this.viewportTop && viewportY <= this.viewportBottom;
     }
 
     updateMousePicking(mouseX: number, mouseY: number): void {

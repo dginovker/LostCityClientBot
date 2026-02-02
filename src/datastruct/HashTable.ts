@@ -27,18 +27,18 @@ export default class HashTable<T extends Linkable> {
         return null;
     }
 
-    put(key: bigint, value: T): void {
-        if (value.prev) {
-            value.unlink();
+    put(node: T, key: bigint): void {
+        if (node.prev) {
+            node.unlink();
         }
 
         const sentinel: Linkable = this.buckets[Number(key & BigInt(this.bucketCount - 1))];
-        value.prev = sentinel.prev;
-        value.next = sentinel;
-        if (value.prev) {
-            value.prev.next = value;
+        node.prev = sentinel.prev;
+        node.next = sentinel;
+        if (node.prev) {
+            node.prev.next = node;
         }
-        value.next.prev = value;
-        value.key = key;
+        node.next.prev = node;
+        node.key = key;
     }
 }

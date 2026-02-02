@@ -67,7 +67,7 @@ export default class Packet extends Linkable2 {
         super();
 
         if (src instanceof Int8Array) {
-            this.data = new Uint8Array(src);
+            this.data = new Uint8Array(src.buffer, src.byteOffset, src.byteLength);
         } else {
             this.data = src;
         }

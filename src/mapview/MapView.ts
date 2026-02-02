@@ -194,7 +194,7 @@ export class MapView extends GameShell {
 
         const worldmap: Jagfile = await this.loadWorldmap();
 
-        await this.messageBox(100, 'Please wait... Rendering Map');
+        await this.messageBox('Please wait... Rendering Map', 100);
 
         // const size: Packet = new Packet(worldmap.read('size.dat'));
         // this.mapOriginX = size.g2();
@@ -375,7 +375,7 @@ export class MapView extends GameShell {
                         }
 
                         this.mapfunction[row + this.lastKeyPage].plotSprite(this.keyX + 3, y);
-                        this.b12?.drawString(this.keyX + 21, y + 14, this.keyNames[row + this.lastKeyPage], 0);
+                        this.b12?.drawString(this.keyNames[row + this.lastKeyPage], this.keyX + 21, y + 14, 0);
 
                         let rgb: number = 0xffffff;
                         if (this.currentKeyHover == row + this.lastKeyPage) {
@@ -385,7 +385,7 @@ export class MapView extends GameShell {
                             rgb = 0xffff00;
                         }
 
-                        this.b12?.drawString(this.keyX + 20, y + 13, this.keyNames[row + this.lastKeyPage], rgb);
+                        this.b12?.drawString(this.keyNames[row + this.lastKeyPage], this.keyX + 20, y + 13, rgb);
                     }
 
                     y += 17;
@@ -688,14 +688,14 @@ export class MapView extends GameShell {
 
         let retry: number = 5;
         while (!data) {
-            await this.messageBox(0, 'Requesting map');
+            await this.messageBox('Requesting map', 0);
 
             try {
                 data = await downloadUrl('/worldmap.jag');
             } catch (_e) {
                 data = undefined;
                 for (let i: number = retry; i > 0; i--) {
-                    await this.messageBox(0, `Error loading - Will retry in ${i} secs.`);
+                    await this.messageBox(`Error loading - Will retry in ${i} secs.`, 0);
                     await sleep(1000);
                 }
 
@@ -724,13 +724,13 @@ export class MapView extends GameShell {
         const heightPad: number = height - 2;
 
         Pix2D.fillRect(xPad, yPad, widthPad, heightPad, fill);
-        Pix2D.hline(xPad, yPad, borderTL, widthPad);
-        Pix2D.vline(xPad, yPad, borderTL, heightPad);
-        Pix2D.hline(xPad, yPad + heightPad - 1, borderBR, widthPad);
-        Pix2D.vline(xPad + widthPad - 1, yPad, borderBR, heightPad);
+        Pix2D.hline(xPad, yPad, widthPad, borderTL);
+        Pix2D.vline(xPad, yPad, heightPad, borderTL);
+        Pix2D.hline(xPad, yPad + heightPad - 1, widthPad, borderBR);
+        Pix2D.vline(xPad + widthPad - 1, yPad, heightPad, borderBR);
 
-        this.b12?.centreString(xPad + ((widthPad / 2) | 0) + 1, yPad + ((heightPad / 2) | 0) + 1 + 4, str, 0);
-        this.b12?.centreString(xPad + ((widthPad / 2) | 0), yPad + ((heightPad / 2) | 0) + 4, str, 0xffffff);
+        this.b12?.centreString(str, xPad + ((widthPad / 2) | 0) + 1, yPad + ((heightPad / 2) | 0) + 1 + 4, 0);
+        this.b12?.centreString(str, xPad + ((widthPad / 2) | 0), yPad + ((heightPad / 2) | 0) + 4, 0xffffff);
     }
 
     // jag::oldscape::rs2lib::worldmap::RenderedMapSquare::GetBlendedGroundColour
@@ -1110,40 +1110,40 @@ export class MapView extends GameShell {
                     }
 
                     if (wall == 1) {
-                        Pix2D.vline(startX, startY, rgb, lengthY);
+                        Pix2D.vline(startX, startY, lengthY, rgb);
                     } else if (wall == 2) {
-                        Pix2D.hline(startX, startY, rgb, lengthX);
+                        Pix2D.hline(startX, startY, lengthX, rgb);
                     } else if (wall == 3) {
-                        Pix2D.vline(edgeX, startY, rgb, lengthY);
+                        Pix2D.vline(edgeX, startY, lengthY, rgb);
                     } else if (wall == 4) {
-                        Pix2D.hline(startX, edgeY, rgb, lengthX);
+                        Pix2D.hline(startX, edgeY, lengthX, rgb);
                     } else if (wall == 9) {
-                        Pix2D.vline(startX, startY, 0xffffff, lengthY);
-                        Pix2D.hline(startX, startY, rgb, lengthX);
+                        Pix2D.vline(startX, startY, lengthY, 0xffffff);
+                        Pix2D.hline(startX, startY, lengthX, rgb);
                     } else if (wall == 10) {
-                        Pix2D.vline(edgeX, startY, 0xffffff, lengthY);
-                        Pix2D.hline(startX, startY, rgb, lengthX);
+                        Pix2D.vline(edgeX, startY, lengthY, 0xffffff);
+                        Pix2D.hline(startX, startY, lengthX, rgb);
                     } else if (wall == 11) {
-                        Pix2D.vline(edgeX, startY, 0xffffff, lengthY);
-                        Pix2D.hline(startX, edgeY, rgb, lengthX);
+                        Pix2D.vline(edgeX, startY, lengthY, 0xffffff);
+                        Pix2D.hline(startX, edgeY, lengthX, rgb);
                     } else if (wall == 12) {
-                        Pix2D.vline(startX, startY, 0xffffff, lengthY);
-                        Pix2D.hline(startX, edgeY, rgb, lengthX);
+                        Pix2D.vline(startX, startY, lengthY, 0xffffff);
+                        Pix2D.hline(startX, edgeY, lengthX, rgb);
                     } else if (wall == 17) {
-                        Pix2D.hline(startX, startY, rgb, 1);
+                        Pix2D.hline(startX, startY, 1, rgb);
                     } else if (wall == 18) {
-                        Pix2D.hline(edgeX, startY, rgb, 1);
+                        Pix2D.hline(edgeX, startY, 1, rgb);
                     } else if (wall == 19) {
-                        Pix2D.hline(edgeX, edgeY, rgb, 1);
+                        Pix2D.hline(edgeX, edgeY, 1, rgb);
                     } else if (wall == 20) {
-                        Pix2D.hline(startX, edgeY, rgb, 1);
+                        Pix2D.hline(startX, edgeY, 1, rgb);
                     } else if (wall == 25) {
                         for (let i: number = 0; i < lengthY; i++) {
-                            Pix2D.hline(startX + i, edgeY - i, rgb, 1);
+                            Pix2D.hline(startX + i, edgeY - i, 1, rgb);
                         }
                     } else if (wall == 26) {
                         for (let i: number = 0; i < lengthY; i++) {
-                            Pix2D.hline(startX + i, startY + i, rgb, 1);
+                            Pix2D.hline(startX + i, startY + i, 1, rgb);
                         }
                     }
                 }
@@ -1399,12 +1399,12 @@ export class MapView extends GameShell {
                     }
 
                     Pix2D.drawRect(drawLeft, drawTop, drawRight - drawLeft, drawBottom - drawTop, 0xffffff);
-                    this.b12?.drawStringRight(drawRight - 5, drawBottom - 5, mx + '_' + mz, 0xffffff, false);
+                    this.b12?.drawStringRight(mx + '_' + mz, drawRight - 5, drawBottom - 5, 0xffffff, false);
 
                     if (mx == 33 && mz >= 71 && mz <= 73) {
-                        this.b12?.centreString(((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 'u_pass', 0xff0000);
+                        this.b12?.centreString('u_pass', ((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 0xff0000);
                     } else if (mx >= 32 && mx <= 34 && mz >= 70 && mz <= 74) {
-                        this.b12?.centreString(((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 'u_pass', 0xffff00);
+                        this.b12?.centreString('u_pass', ((drawRight + drawLeft) / 2) | 0, ((drawBottom + drawTop) / 2) | 0, 0xffff00);
                     }
                 }
             }

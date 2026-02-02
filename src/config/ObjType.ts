@@ -358,7 +358,7 @@ export default class ObjType {
         model.calculateNormals(this.ambient + 64, this.contrast + 768, -50, -10, -50, true);
         model.useAABBMouseCheck = true;
 
-        ObjType.modelCache.put(BigInt(this.id), model);
+        ObjType.modelCache.put(model, BigInt(this.id));
         return model;
     }
 
@@ -499,7 +499,7 @@ export default class ObjType {
         }
 
         if (outlineRgb === 0) {
-            ObjType.spriteCache.put(BigInt(id), icon);
+            ObjType.spriteCache.put(icon, BigInt(id));
         }
 
         Pix2D.setPixels(_data, _w, _h);

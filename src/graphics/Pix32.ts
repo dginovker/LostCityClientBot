@@ -354,7 +354,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    transPlotSprite(alpha: number, x: number, y: number): void {
+    transPlotSprite(x: number, y: number, alpha: number): void {
         x |= 0;
         y |= 0;
 
@@ -398,11 +398,11 @@ export default class Pix32 extends Pix2D {
         }
 
         if (w > 0 && h > 0) {
-            this.tranSprite(w, h, this.data, srcStep, srcOff, Pix2D.pixels, dstStep, dstOff, alpha);
+            this.tranSprite(Pix2D.pixels, this.data, srcStep, dstStep, w, h, dstOff, srcOff, alpha);
         }
     }
 
-    private tranSprite(w: number, h: number, src: Int32Array, srcOff: number, srcStep: number, dst: Int32Array, dstOff: number, dstStep: number, alpha: number): void {
+    private tranSprite(dst: Int32Array, src: Int32Array, srcOff: number, dstOff: number, w: number, h: number, dstStep: number, srcStep: number, alpha: number): void {
         const invAlpha: number = 256 - alpha;
 
         for (let y: number = -h; y < 0; y++) {
@@ -421,7 +421,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    scanlineRotatePlotSprite(x: number, y: number, w: number, h: number, lineStart: Int32Array, lineWidth: Int32Array, anchorX: number, anchorY: number, theta: number, zoom: number): void {
+    scanlineRotatePlotSprite(x: number, y: number, w: number, h: number, anchorX: number, anchorY: number, theta: number, zoom: number, lineStart: Int32Array, lineWidth: Int32Array): void {
         x |= 0;
         y |= 0;
         w |= 0;
@@ -462,7 +462,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    rotatePlotSprite(y: number, theta: number, zoom: number, anchorX: number, anchorY: number, w: number, h: number, x: number): void {
+    rotatePlotSprite(x: number, y: number, w: number, h: number, anchorX: number, anchorY: number, theta: number, zoom: number): void {
         x |= 0;
         y |= 0;
         w |= 0;
@@ -507,7 +507,7 @@ export default class Pix32 extends Pix2D {
         }
     }
 
-    scanlinePlotSprite(x: number, y: number, mask: Pix8): void {
+    scanlinePlotSprite(mask: Pix8, x: number, y: number): void {
         x |= 0;
         y |= 0;
 
@@ -551,11 +551,11 @@ export default class Pix32 extends Pix2D {
         }
 
         if (w > 0 && h > 0) {
-            this.plotScanline(w, h, this.data, srcOff, srcStep, Pix2D.pixels, dstStep, dstOff, mask.data);
+            this.plotScanline(Pix2D.pixels, this.data, srcStep, dstStep, w, h, dstOff, srcOff, mask.data);
         }
     }
 
-    private plotScanline(w: number, h: number, src: Int32Array, srcStep: number, srcOff: number, dst: Int32Array, dstOff: number, dstStep: number, mask: Int8Array): void {
+    private plotScanline(dst: Int32Array, src: Int32Array, srcOff: number, dstOff: number, w: number, h: number, dstStep: number, srcStep: number, mask: Int8Array): void {
         const qw: number = -(w >> 2);
         w = -(w & 0x3);
 

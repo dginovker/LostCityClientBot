@@ -93,7 +93,7 @@ export default class SpotType {
             }
         }
 
-        SpotType.modelCache.put(BigInt(this.id), model);
+        SpotType.modelCache.put(model, BigInt(this.id));
         return model;
     }
 }

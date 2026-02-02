@@ -25,8 +25,8 @@ export default class Envelope {
         this.form = dat.g1();
         this.start = dat.g4();
         this.end = dat.g4();
-        this.length = dat.g1();
 
+        this.length = dat.g1();
         this.shapeDelta = new Int32Array(this.length);
         this.shapePeak = new Int32Array(this.length);
 
@@ -45,7 +45,7 @@ export default class Envelope {
     }
 
     genNext(delta: number): number {
-        if (this.ticks >= this.threshold && this.shapePeak && this.shapeDelta) {
+        if (this.ticks >= this.threshold) {
             this.amplitude = this.shapePeak[this.position++] << 15;
 
             if (this.position >= this.length) {

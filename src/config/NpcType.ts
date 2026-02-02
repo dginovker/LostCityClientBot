@@ -198,7 +198,7 @@ export default class NpcType {
 
                 model.prepareAnim();
                 model.calculateNormals(64, 850, -30, -50, -30, true);
-                NpcType.modelCache.put(BigInt(this.id), model);
+                NpcType.modelCache.put(model, BigInt(this.id));
             }
         }
 

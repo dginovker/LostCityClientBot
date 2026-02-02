@@ -120,7 +120,7 @@ export default abstract class GameShell {
             e.preventDefault();
         };
 
-        await this.messageBox(0, 'Loading...');
+        await this.messageBox('Loading...', 0);
         await this.maininit();
 
         let ntime: number = 0;
@@ -253,7 +253,7 @@ export default abstract class GameShell {
         }
     }
 
-    protected async messageBox(progress: number, message: string): Promise<void> {
+    protected async messageBox(message: string, progress: number): Promise<void> {
         const width: number = this.sWid;
         const height: number = this.sHei;
 
@@ -549,10 +549,11 @@ export default abstract class GameShell {
     }
 
     private get isTouchDevice() {
-        return (this.hasTouchEvents ||
-            (navigator.maxTouchPoints > 0) ||
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ((navigator as any).msMaxTouchPoints > 0));
+        return (
+            this.hasTouchEvents ||
+            navigator.maxTouchPoints > 0 ||
+            (navigator as any).msMaxTouchPoints > 0
+        );
     }
 
     protected get isMobile(): boolean {
@@ -567,7 +568,7 @@ export default abstract class GameShell {
         return document.fullscreenElement !== null;
     }
 
-    private getMousePos(e: MouseEvent): { x: number, y: number } {
+    private getMousePos(e: MouseEvent): { x: number; y: number } {
         const fixedWidth: number = this.sWid;
         const fixedHeight: number = this.sHei;
 

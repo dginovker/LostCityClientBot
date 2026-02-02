@@ -31,27 +31,27 @@ export default class Pix2D extends Linkable2 {
         this.maxX = (this.clipMaxX / 2) | 0;
     }
 
-    static setClipping(left: number, top: number, right: number, bottom: number): void {
-        if (left < 0) {
-            left = 0;
+    static setClipping(x1: number, y1: number, x2: number, y2: number): void {
+        if (x1 < 0) {
+            x1 = 0;
         }
 
-        if (top < 0) {
-            top = 0;
+        if (y1 < 0) {
+            y1 = 0;
         }
 
-        if (right > this.width) {
-            right = this.width;
+        if (x2 > this.width) {
+            x2 = this.width;
         }
 
-        if (bottom > this.height) {
-            bottom = this.height;
+        if (y2 > this.height) {
+            y2 = this.height;
         }
 
-        this.clipMinY = top;
-        this.clipMaxY = bottom;
-        this.clipMinX = left;
-        this.clipMaxX = right;
+        this.clipMinY = y1;
+        this.clipMaxY = y2;
+        this.clipMinX = x1;
+        this.clipMaxX = x2;
 
         this.sizeX = this.clipMaxX - 1;
         this.maxX = (this.clipMaxX / 2) | 0;
@@ -133,22 +133,22 @@ export default class Pix2D extends Linkable2 {
     }
 
     static drawRect(x: number, y: number, w: number, h: number, rgb: number): void {
-        this.hline(x, y, rgb, w);
-        this.hline(x, y + h - 1, rgb, w);
-        this.vline(x, y, rgb, h);
-        this.vline(x + w - 1, y, rgb, h);
+        this.hline(x, y, w, rgb);
+        this.hline(x, y + h - 1, w, rgb);
+        this.vline(x, y, h, rgb);
+        this.vline(x + w - 1, y, h, rgb);
     }
 
     static drawRectTrans(x: number, y: number, w: number, h: number, rgb: number, alpha: number): void {
-        this.hlineTrans(x, y, rgb, w, alpha);
-        this.hlineTrans(x, y + h - 1, rgb, w, alpha);
+        this.hlineTrans(x, y, w, rgb, alpha);
+        this.hlineTrans(x, y + h - 1, w, rgb, alpha);
         if (h >= 3) {
-            this.vlineTrans(x, y, rgb, h, alpha);
-            this.vlineTrans(x + w - 1, y, rgb, h, alpha);
+            this.vlineTrans(x, y, h, rgb, alpha);
+            this.vlineTrans(x + w - 1, y, h, rgb, alpha);
         }
     }
 
-    static hline(x: number, y: number, rgb: number, width: number): void {
+    static hline(x: number, y: number, width: number, rgb: number): void {
         if (y < this.clipMinY || y >= this.clipMaxY) {
             return;
         }
@@ -168,7 +168,7 @@ export default class Pix2D extends Linkable2 {
         }
     }
 
-    static hlineTrans(x: number, y: number, rgb: number, width: number, alpha: number): void {
+    static hlineTrans(x: number, y: number, width: number, rgb: number, alpha: number): void {
         if (y < this.clipMinY || y >= this.clipMaxY) {
             return;
         }
@@ -197,7 +197,7 @@ export default class Pix2D extends Linkable2 {
         }
     }
 
-    static vline(x: number, y: number, rgb: number, height: number): void {
+    static vline(x: number, y: number, height: number, rgb: number): void {
         if (x < this.clipMinX || x >= this.clipMaxX) {
             return;
         }
@@ -217,7 +217,7 @@ export default class Pix2D extends Linkable2 {
         }
     }
 
-    static vlineTrans(x: number, y: number, rgb: number, height: number, alpha: number): void {
+    static vlineTrans(x: number, y: number, height: number, rgb: number, alpha: number): void {
         if (x < this.clipMinX || x >= this.clipMaxX) {
             return;
         }

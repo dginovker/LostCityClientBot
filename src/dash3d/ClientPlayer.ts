@@ -530,7 +530,7 @@ export default class ClientPlayer extends ClientEntity {
 
             model.prepareAnim();
             model.calculateNormals(64, 850, -30, -50, -30, true);
-            ClientPlayer.modelCache.put(hash, model);
+            ClientPlayer.modelCache.put(model, hash);
             this.modelCacheKey = hash;
         }
 

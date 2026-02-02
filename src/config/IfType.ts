@@ -414,7 +414,7 @@ export default class IfType {
         }
 
         if (model) {
-            IfType.modelCache.put(BigInt((type << 16) + id), model);
+            IfType.modelCache.put(model, BigInt((type << 16) + id));
         }
 
         return model;
@@ -424,7 +424,7 @@ export default class IfType {
         IfType.modelCache.clear();
 
         if (model && type != 4) {
-            IfType.modelCache.put(BigInt((type << 16) + id), model);
+            IfType.modelCache.put(model, BigInt((type << 16) + id));
         }
     }
 
@@ -440,7 +440,7 @@ export default class IfType {
 
         try {
             const image = Pix32.depack(media, name, spriteIndex);
-            this.spriteCache?.put(uid, image);
+            this.spriteCache?.put(image, uid);
             return image;
         } catch (_e) {
             return null;
