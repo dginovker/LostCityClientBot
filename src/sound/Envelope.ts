@@ -1,17 +1,25 @@
 import Packet from '#/io/Packet.js';
 
 export default class Envelope {
-    private length: number = 0;
-    private shapeDelta: Int32Array | null = null;
-    private shapePeak: Int32Array | null = null;
+    length: number = 2;
+    shapeDelta: Int32Array = new Int32Array(2);
+    shapePeak: Int32Array = new Int32Array(2);
+
     start: number = 0;
     end: number = 0;
     form: number = 0;
-    private threshold: number = 0;
-    private position: number = 0;
-    private delta: number = 0;
-    private amplitude: number = 0;
-    private ticks: number = 0;
+    threshold: number = 0;
+    position: number = 0;
+    delta: number = 0;
+    amplitude: number = 0;
+    ticks: number = 0;
+
+    constructor() {
+        this.shapeDelta[0] = 0;
+        this.shapeDelta[1] = 65535;
+        this.shapePeak[0] = 0;
+        this.shapePeak[1] = 65535;
+    }
 
     load(dat: Packet): void {
         this.form = dat.g1();
@@ -22,7 +30,7 @@ export default class Envelope {
         this.shapeDelta = new Int32Array(this.length);
         this.shapePeak = new Int32Array(this.length);
 
-        for (let i: number = 0; i < this.length; i++) {
+        for (let i = 0; i < this.length; i++) {
             this.shapeDelta[i] = dat.g2();
             this.shapePeak[i] = dat.g2();
         }

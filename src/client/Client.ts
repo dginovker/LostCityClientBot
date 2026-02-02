@@ -1114,7 +1114,8 @@ export class Client extends GameShell {
 
             if (!Client.lowMem) {
                 await this.messageBox(90, 'Unpacking sounds');
-                JagFX.unpack(sounds);
+                const soundsDat = sounds.read('sounds.dat');
+                JagFX.unpack(new Packet(soundsDat));
             }
 
             await this.messageBox(95, 'Unpacking interfaces');
