@@ -66,7 +66,7 @@ export default class Tone {
             return Tone.buf!;
         }
 
-        const samplesPerStep: number = (sampleCount / length) | 0;
+        const samplesPerStep: number = sampleCount / length;
 
         this.frequencyBase.genInit();
         this.amplitudeBase.genInit();
@@ -163,7 +163,7 @@ export default class Tone {
         }
 
         if (this.reverbDelay > 0 && this.reverbVolume > 0) {
-            const start: number = this.reverbDelay * samplesPerStep;
+            const start: number = (this.reverbDelay * samplesPerStep) | 0;
 
             for (let sample: number = start; sample < sampleCount; sample++) {
                 Tone.buf![sample] += ((Tone.buf![sample - start] * this.reverbVolume) / 100) | 0;
