@@ -1,4 +1,8 @@
-import { jpeg2d, jpegCanvas, jpegImg } from '#/graphics/Canvas.js';
+const jpegCanvas: HTMLCanvasElement = document.createElement('canvas');
+const jpegImg: HTMLImageElement = document.createElement('img');
+const jpeg2d: CanvasRenderingContext2D = jpegCanvas.getContext('2d', {
+    willReadFrequently: true
+})!;
 
 export async function decodeJpeg(data: Uint8Array): Promise<ImageData> {
     if (data[0] !== 0xff) {
