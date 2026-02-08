@@ -149,10 +149,10 @@ export default class ClientBuild {
 
                         if (t1 > 0) {
                             const flo: FloType = FloType.list[t1 - 1];
-                            this.huetot[z0] += flo.chroma;
+                            this.huetot[z0] += flo.underlayHue;
                             this.sattot[z0] += flo.saturation;
                             this.ligtot[z0] += flo.lightness;
-                            this.comtot[z0] += flo.luminance;
+                            this.comtot[z0] += flo.chroma;
                             this.tot[z0]++;
                         }
                     }
@@ -163,39 +163,39 @@ export default class ClientBuild {
 
                         if (t1 > 0) {
                             const flo: FloType = FloType.list[t1 - 1];
-                            this.huetot[z0] -= flo.chroma;
+                            this.huetot[z0] -= flo.underlayHue;
                             this.sattot[z0] -= flo.saturation;
                             this.ligtot[z0] -= flo.lightness;
-                            this.comtot[z0] -= flo.luminance;
+                            this.comtot[z0] -= flo.chroma;
                             this.tot[z0]--;
                         }
                     }
                 }
 
                 if (x0 >= 1 && x0 < this.maxTileX - 1) {
-                    let hueAccumulator: number = 0;
-                    let saturationAccumulator: number = 0;
-                    let lightnessAccumulator: number = 0;
-                    let luminanceAccumulator: number = 0;
-                    let magnitudeAccumulator: number = 0;
+                    let blendHue: number = 0;
+                    let blendSat: number = 0;
+                    let blendLig: number = 0;
+                    let blendCom: number = 0;
+                    let blendTot: number = 0;
 
                     for (let z0: number = -5; z0 < this.maxTileZ + 5; z0++) {
                         const dz1: number = z0 + 5;
                         if (dz1 >= 0 && dz1 < this.maxTileZ) {
-                            hueAccumulator += this.huetot[dz1];
-                            saturationAccumulator += this.sattot[dz1];
-                            lightnessAccumulator += this.ligtot[dz1];
-                            luminanceAccumulator += this.comtot[dz1];
-                            magnitudeAccumulator += this.tot[dz1];
+                            blendHue += this.huetot[dz1];
+                            blendSat += this.sattot[dz1];
+                            blendLig += this.ligtot[dz1];
+                            blendCom += this.comtot[dz1];
+                            blendTot += this.tot[dz1];
                         }
 
                         const dz2: number = z0 - 5;
                         if (dz2 >= 0 && dz2 < this.maxTileZ) {
-                            hueAccumulator -= this.huetot[dz2];
-                            saturationAccumulator -= this.sattot[dz2];
-                            lightnessAccumulator -= this.ligtot[dz2];
-                            luminanceAccumulator -= this.comtot[dz2];
-                            magnitudeAccumulator -= this.tot[dz2];
+                            blendHue -= this.huetot[dz2];
+                            blendSat -= this.sattot[dz2];
+                            blendLig -= this.ligtot[dz2];
+                            blendCom -= this.comtot[dz2];
+                            blendTot -= this.tot[dz2];
                         }
 
                         if (z0 >= 1 && z0 < this.maxTileZ - 1 && (!ClientBuild.lowMem || ((this.mapl[level][x0][z0] & MapFlag.ForceHighDetail) === 0 && this.getVisBelowLevel(level, x0, z0) === ClientBuild.minusedlevel))) {
@@ -214,22 +214,22 @@ export default class ClientBuild {
                                 const lightNW: number = this.lightmap[x0][z0 + 1];
 
                                 let t1Colour: number = -1;
-                                let t1OffColour: number = -1;
+                                let t1RandColour: number = -1;
 
                                 if (t1 > 0) {
-                                    const hue: number = ((hueAccumulator * 256) / luminanceAccumulator) | 0;
-                                    const saturation: number = (saturationAccumulator / magnitudeAccumulator) | 0;
-                                    let lightness: number = (lightnessAccumulator / magnitudeAccumulator) | 0;
-                                    t1Colour = ClientBuild.getTable(hue, saturation, lightness);
+                                    const hue: number = ((blendHue * 256) / blendCom) | 0;
+                                    const sat: number = (blendSat / blendTot) | 0;
+                                    let lig: number = (blendLig / blendTot) | 0;
+                                    t1Colour = ClientBuild.getTable(hue, sat, lig);
 
                                     const randomHue: number = (hue + ClientBuild.hueOff) & 0xff;
-                                    lightness += ClientBuild.ligOff;
-                                    if (lightness < 0) {
-                                        lightness = 0;
-                                    } else if (lightness > 255) {
-                                        lightness = 255;
+                                    let randomLig = lig + ClientBuild.ligOff;
+                                    if (randomLig < 0) {
+                                        randomLig = 0;
+                                    } else if (randomLig > 255) {
+                                        randomLig = 255;
                                     }
-                                    t1OffColour = ClientBuild.getTable(randomHue, saturation, lightness);
+                                    t1RandColour = ClientBuild.getTable(randomHue, sat, randomLig);
                                 }
 
                                 if (level > 0) {
@@ -247,7 +247,7 @@ export default class ClientBuild {
 
                                 let underlay: number = 0;
                                 if (t1Colour !== -1) {
-                                    underlay = Pix3D.colourTable[ClientBuild.getUCol(t1OffColour, 96)];
+                                    underlay = Pix3D.colourTable[ClientBuild.getUCol(t1RandColour, 96)];
                                 }
 
                                 if (t2 === 0) {
@@ -277,8 +277,8 @@ export default class ClientBuild {
                                     const shape: number = this.floors[level][x0][z0] + 1;
                                     const rotation: number = this.floorr[level][x0][z0];
                                     const flo: FloType = FloType.list[t2 - 1];
-                                    let texture: number = flo.texture;
 
+                                    let texture: number = flo.texture;
                                     let t2Colour: number;
                                     let overlay: number;
                                     if (texture >= 0) {
@@ -290,7 +290,7 @@ export default class ClientBuild {
                                         texture = -1;
                                     } else {
                                         t2Colour = ClientBuild.getTable(flo.hue, flo.saturation, flo.lightness);
-                                        overlay = Pix3D.colourTable[ClientBuild.getOCol(flo.hsl, 96)];
+                                        overlay = Pix3D.colourTable[ClientBuild.getOCol(flo.overlayHsl, 96)];
                                     }
 
                                     world?.setGround(

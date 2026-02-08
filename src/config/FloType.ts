@@ -14,9 +14,10 @@ export default class FloType {
     hue: number = 0;
     saturation: number = 0;
     lightness: number = 0;
-    luminance: number = 0;
+
     chroma: number = 0;
-    hsl: number = 0;
+    underlayHue: number = 0;
+    overlayHsl: number = 0;
 
     static init(config: Jagfile): void {
         const dat: Packet = new Packet(config.read('flo.dat'));
@@ -118,16 +119,16 @@ export default class FloType {
         }
 
         if (l > 0.5) {
-            this.luminance = ((1.0 - l) * s * 512.0) | 0;
+            this.chroma = ((1.0 - l) * s * 512.0) | 0;
         } else {
-            this.luminance = (l * s * 512.0) | 0;
+            this.chroma = (l * s * 512.0) | 0;
         }
 
-        if (this.luminance < 1) {
-            this.luminance = 1;
+        if (this.chroma < 1) {
+            this.chroma = 1;
         }
 
-        this.chroma = (h * this.luminance) | 0;
+        this.underlayHue = (h * this.chroma) | 0;
 
         let hue: number = this.hue + ((Math.random() * 16.0) | 0) - 8;
         if (hue < 0) {
@@ -150,7 +151,7 @@ export default class FloType {
             lightness = 255;
         }
 
-        this.hsl = FloType.getTable(hue, saturation, lightness);
+        this.overlayHsl = FloType.getTable(hue, saturation, lightness);
     }
 
     static getTable(hue: number, saturation: number, lightness: number): number {
