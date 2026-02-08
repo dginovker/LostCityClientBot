@@ -3,13 +3,14 @@ import { DirectionFlag } from '#/dash3d/DirectionFlag.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 import { LocShape } from '#/dash3d/LocShape.js';
 
-export const enum CollisionConstants {
+// a standard build area is 4x13x13 zones, or 4x104x104 tiles
+export const enum BuildArea {
     LEVELS = 4,
-    SIZE = 104
+    SIZE = 13 << 3
 }
 
 export default class CollisionMap {
-    static index = (x: number, z: number): number => x * CollisionConstants.SIZE + z;
+    static index = (x: number, z: number): number => x * BuildArea.SIZE + z;
 
     readonly startX: number = 0;
     readonly startZ: number = 0;
@@ -18,8 +19,8 @@ export default class CollisionMap {
     readonly flags: Int32Array;
 
     constructor() {
-        this.sizeX = CollisionConstants.SIZE;
-        this.sizeZ = CollisionConstants.SIZE;
+        this.sizeX = BuildArea.SIZE;
+        this.sizeZ = BuildArea.SIZE;
         this.flags = new Int32Array(this.sizeX * this.sizeZ);
         this.reset();
     }

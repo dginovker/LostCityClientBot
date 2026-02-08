@@ -2,7 +2,7 @@ import FloType from '#/config/FloType.js';
 import LocType from '#/config/LocType.js';
 
 import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
-import CollisionMap, { CollisionConstants } from '#/dash3d/CollisionMap.js';
+import CollisionMap, { BuildArea } from '#/dash3d/CollisionMap.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 import { LocShape } from '#/dash3d/LocShape.js';
 import { MapFlag } from '#/dash3d/MapFlag.js';
@@ -56,13 +56,13 @@ export default class ClientBuild {
         this.groundh = groundh;
         this.mapl = mapl;
 
-        this.floort1 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.floort2 = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.floors = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
-        this.floorr = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX, maxTileZ);
+        this.floort1 = new Uint8Array3d(BuildArea.LEVELS, maxTileX, maxTileZ);
+        this.floort2 = new Uint8Array3d(BuildArea.LEVELS, maxTileX, maxTileZ);
+        this.floors = new Uint8Array3d(BuildArea.LEVELS, maxTileX, maxTileZ);
+        this.floorr = new Uint8Array3d(BuildArea.LEVELS, maxTileX, maxTileZ);
 
-        this.mapo = new Int32Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
-        this.shadow = new Uint8Array3d(CollisionConstants.LEVELS, maxTileX + 1, maxTileZ + 1);
+        this.mapo = new Int32Array3d(BuildArea.LEVELS, maxTileX + 1, maxTileZ + 1);
+        this.shadow = new Uint8Array3d(BuildArea.LEVELS, maxTileX + 1, maxTileZ + 1);
         this.lightmap = new Int32Array2d(maxTileX + 1, maxTileZ + 1);
 
         this.huetot = new Int32Array(maxTileZ);
@@ -73,9 +73,9 @@ export default class ClientBuild {
     }
 
     finishBuild(world: World | null, collision: (CollisionMap | null)[]): void {
-        for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
-            for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
-                for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
+        for (let level: number = 0; level < BuildArea.LEVELS; level++) {
+            for (let x: number = 0; x < BuildArea.SIZE; x++) {
+                for (let z: number = 0; z < BuildArea.SIZE; z++) {
                     if ((this.mapl[level][x][z] & MapFlag.Block) !== 0) {
                         let trueLevel: number = level;
 
@@ -105,7 +105,7 @@ export default class ClientBuild {
             ClientBuild.ligOff = 16;
         }
 
-        for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
+        for (let level: number = 0; level < BuildArea.LEVELS; level++) {
             const shademap: Uint8Array[] = this.shadow[level];
             const lightAmbient: number = 96;
             const lightAttenuation: number = 768;
@@ -343,7 +343,7 @@ export default class ClientBuild {
         let wall1: number = 0x2; // this flag is set by walls with rotation 1 or 3
         let floor: number = 0x4; // this flag is set by floors which are flat
 
-        for (let topLevel: number = 0; topLevel < CollisionConstants.LEVELS; topLevel++) {
+        for (let topLevel: number = 0; topLevel < BuildArea.LEVELS; topLevel++) {
             if (topLevel > 0) {
                 wall0 <<= 0x3;
                 wall1 <<= 0x3;
@@ -569,14 +569,14 @@ export default class ClientBuild {
     loadGround(src: Uint8Array, originX: number, originZ: number, xOffset: number, zOffset: number): void {
         const buf: Packet = new Packet(src);
 
-        for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
+        for (let level: number = 0; level < BuildArea.LEVELS; level++) {
             for (let x: number = 0; x < 64; x++) {
                 for (let z: number = 0; z < 64; z++) {
                     const stx: number = x + xOffset;
                     const stz: number = z + zOffset;
                     let opcode: number;
 
-                    if (stx >= 0 && stx < CollisionConstants.SIZE && stz >= 0 && stz < CollisionConstants.SIZE) {
+                    if (stx >= 0 && stx < BuildArea.SIZE && stz >= 0 && stz < BuildArea.SIZE) {
                         this.mapl[level][stx][stz] = 0;
 
                         while (true) {
@@ -745,7 +745,7 @@ export default class ClientBuild {
                 const stx: number = x + xOffset;
                 const stz: number = z + zOffset;
 
-                if (stx > 0 && stz > 0 && stx < CollisionConstants.SIZE - 1 && stz < CollisionConstants.SIZE - 1) {
+                if (stx > 0 && stz > 0 && stx < BuildArea.SIZE - 1 && stz < BuildArea.SIZE - 1) {
                     let currentLevel: number = level;
                     if ((this.mapl[1][stx][stz] & MapFlag.LinkBelow) !== 0) {
                         currentLevel = level - 1;

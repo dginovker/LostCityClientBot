@@ -8,7 +8,7 @@ export default class JagFX {
     static synth: (JagFX | null)[] = new TypedArray1d(1000, null);
     static delays: Int32Array = new Int32Array(1000);
 
-    static waveBytes: Uint8Array = new Uint8Array(22050 * 10 * 2);
+    static waveBytes: Uint8Array = new Uint8Array(22050 * 20);
     static waveBuffer: Packet = new Packet(this.waveBytes);
 
     tones: (Tone | null)[] = new TypedArray1d(10, null);

@@ -27,7 +27,7 @@ import ClientNpc, { NpcUpdate } from '#/dash3d/ClientNpc.js';
 import ClientObj from '#/dash3d/ClientObj.js';
 import ClientPlayer, { PlayerUpdate } from '#/dash3d/ClientPlayer.js';
 import ClientProj from '#/dash3d/ClientProj.js';
-import CollisionMap, { CollisionConstants } from '#/dash3d/CollisionMap.js';
+import CollisionMap, { BuildArea } from '#/dash3d/CollisionMap.js';
 import { CollisionFlag } from '#/dash3d/CollisionFlag.js';
 import { DirectionFlag } from '#/dash3d/DirectionFlag.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
@@ -69,12 +69,18 @@ import WordPack from '#/wordenc/WordPack.js';
 
 import JagFX from '#/sound/JagFX.js';
 
-const enum Constants {
-    CLIENT_VERSION = 254,
-    MAX_CHATS = 50,
-    MAX_PLAYER_COUNT = 2048,
-    LOCAL_PLAYER_INDEX = 2047
-}
+const CLIENT_VERSION = 254;
+
+const MAX_PLAYER_COUNT = 2048;
+const LOCAL_PLAYER_INDEX = 2047;
+
+const MAX_CHATS = 50;
+const CHAT_COLOURS = [Colour.YELLOW, Colour.RED, Colour.GREEN, Colour.CYAN, Colour.MAGENTA, Colour.WHITE];
+
+const SCROLLBAR_TRACK = 0x23201b;
+const SCROLLBAR_GRIP_FOREGROUND = 0x4d4233;
+const SCROLLBAR_GRIP_HIGHLIGHT = 0x766654;
+const SCROLLBAR_GRIP_LOWLIGHT = 0x332d25;
 
 export class Client extends GameShell {
     static levelExperience: number[] = [];
@@ -170,15 +176,15 @@ export class Client extends GameShell {
     private world: World | null = null;
     private mapl: Uint8Array[][] | null = null;
     private groundh: Int32Array[][] | null = null;
-    private levelCollisionMap: (CollisionMap | null)[] = new TypedArray1d(CollisionConstants.LEVELS, null);
+    private levelCollisionMap: (CollisionMap | null)[] = new TypedArray1d(BuildArea.LEVELS, null);
     private textureBuffer: Int8Array = new Int8Array(16384);
 
     private zoneUpdateX: number = 0;
     private zoneUpdateZ: number = 0;
 
     private tryMoveNearest: number = 0;
-    private dirMap: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE);
-    private distMap: Int32Array = new Int32Array(CollisionConstants.SIZE * CollisionConstants.SIZE);
+    private dirMap: Int32Array = new Int32Array(BuildArea.SIZE * BuildArea.SIZE);
+    private distMap: Int32Array = new Int32Array(BuildArea.SIZE * BuildArea.SIZE);
     private routeX: Int32Array = new Int32Array(4000);
     private routeZ: Int32Array = new Int32Array(4000);
 
@@ -251,7 +257,7 @@ export class Client extends GameShell {
     private flameCycle0: number = 0;
     private flameGradientCycle0: number = 0;
     private flameGradientCycle1: number = 0;
-    private flamesInterval: Timer | null = null;
+    private flamesInterval: ReturnType<typeof setInterval> | null = null;
 
     private areaSidebar: PixMap | null = null;
     private areaMapback: PixMap | null = null;
@@ -299,10 +305,6 @@ export class Client extends GameShell {
     private minimapMaskLineOffsets: Int32Array = new Int32Array(151);
     private minimapMaskLineLengths: Int32Array = new Int32Array(151);
 
-    private SCROLLBAR_TRACK = 0x23201b;
-    private SCROLLBAR_GRIP_FOREGROUND = 0x4d4233;
-    private SCROLLBAR_GRIP_HIGHLIGHT = 0x766654;
-    private SCROLLBAR_GRIP_LOWLIGHT = 0x332d25;
     private scrollGrabbed: boolean = false;
     private scrollInputPadding: number = 0;
     private scrollCycle: number = 0;
@@ -323,16 +325,16 @@ export class Client extends GameShell {
     private cameraPitchClamp: number = 0;
 
     private chatCount: number = 0;
-    private chatX: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatY: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatHeight: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatWidth: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatColour: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatEffect: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chatTimer: Int32Array = new Int32Array(Constants.MAX_CHATS);
-    private chats: (string | null)[] = new TypedArray1d(Constants.MAX_CHATS, null);
+    private chatX: Int32Array = new Int32Array(MAX_CHATS);
+    private chatY: Int32Array = new Int32Array(MAX_CHATS);
+    private chatHeight: Int32Array = new Int32Array(MAX_CHATS);
+    private chatWidth: Int32Array = new Int32Array(MAX_CHATS);
+    private chatColour: Int32Array = new Int32Array(MAX_CHATS);
+    private chatEffect: Int32Array = new Int32Array(MAX_CHATS);
+    private chatTimer: Int32Array = new Int32Array(MAX_CHATS);
+    private chats: (string | null)[] = new TypedArray1d(MAX_CHATS, null);
 
-    private tileLastOccupiedCycle: Int32Array[] = new Int32Array2d(CollisionConstants.SIZE, CollisionConstants.SIZE);
+    private tileLastOccupiedCycle: Int32Array[] = new Int32Array2d(BuildArea.SIZE, BuildArea.SIZE);
     private sceneCycle: number = 0;
 
     private projectX: number = 0;
@@ -361,13 +363,13 @@ export class Client extends GameShell {
     private inMultizone: number = 0;
     private chatDisabled: number = 0;
 
-    private players: (ClientPlayer | null)[] = new TypedArray1d(Constants.MAX_PLAYER_COUNT, null);
+    private players: (ClientPlayer | null)[] = new TypedArray1d(MAX_PLAYER_COUNT, null);
     private playerCount: number = 0;
-    private playerIds: Int32Array = new Int32Array(Constants.MAX_PLAYER_COUNT);
+    private playerIds: Int32Array = new Int32Array(MAX_PLAYER_COUNT);
 
     private entityUpdateCount: number = 0;
-    private entityUpdateIds: Int32Array = new Int32Array(Constants.MAX_PLAYER_COUNT);
-    private playerAppearanceBuffer: (Packet | null)[] = new TypedArray1d(Constants.MAX_PLAYER_COUNT, null);
+    private entityUpdateIds: Int32Array = new Int32Array(MAX_PLAYER_COUNT);
+    private playerAppearanceBuffer: (Packet | null)[] = new TypedArray1d(MAX_PLAYER_COUNT, null);
 
     private minusedlevel: number = 0;
     private selfSlot: number = -1;
@@ -380,7 +382,7 @@ export class Client extends GameShell {
     private playerOp: (string | null)[] = new TypedArray1d(5, null);
     private playerOpPriority: boolean[] = new TypedArray1d(5, false);
 
-    private groundObj: (LinkList<ClientObj> | null)[][][] = new TypedArray3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE, null);
+    private groundObj: (LinkList<ClientObj> | null)[][][] = new TypedArray3d(BuildArea.LEVELS, BuildArea.SIZE, BuildArea.SIZE, null);
     private locChanges: LinkList<LocChange> = new LinkList();
     private projectiles: LinkList<ClientProj> = new LinkList();
     private spotanims: LinkList<MapSpotAnim> = new LinkList();
@@ -452,7 +454,6 @@ export class Client extends GameShell {
     private chatType: Int32Array = new Int32Array(100);
     private chatUsername: (string | null)[] = new TypedArray1d(100, null);
     private chatText: (string | null)[] = new TypedArray1d(100, null);
-    static readonly CHAT_COLORS = Int32Array.of(Colour.YELLOW, Colour.RED, Colour.GREEN, Colour.CYAN, Colour.MAGENTA, Colour.WHITE);
     private chatPublicMode: number = 0;
     private chatPrivateMode: number = 0;
     private chatTradeMode: number = 0;
@@ -578,7 +579,7 @@ export class Client extends GameShell {
             return;
         }
 
-        console.log(`RS2 user client - release #${Constants.CLIENT_VERSION}`);
+        console.log(`RS2 user client - release #${CLIENT_VERSION}`);
 
         Client.nodeId = nodeid;
         Client.memServer = members;
@@ -803,10 +804,10 @@ export class Client extends GameShell {
             const wordenc: Jagfile = await this.getJagFile('chat system', 50, 'wordenc', 7);
             const sounds: Jagfile = await this.getJagFile('sound effects', 55, 'sounds', 8);
 
-            this.mapl = new Uint8Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE, CollisionConstants.SIZE);
-            this.groundh = new Int32Array3d(CollisionConstants.LEVELS, CollisionConstants.SIZE + 1, CollisionConstants.SIZE + 1);
-            this.world = new World(this.groundh, CollisionConstants.SIZE, CollisionConstants.LEVELS, CollisionConstants.SIZE);
-            for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
+            this.mapl = new Uint8Array3d(BuildArea.LEVELS, BuildArea.SIZE, BuildArea.SIZE);
+            this.groundh = new Int32Array3d(BuildArea.LEVELS, BuildArea.SIZE + 1, BuildArea.SIZE + 1);
+            this.world = new World(this.groundh, BuildArea.SIZE, BuildArea.LEVELS, BuildArea.SIZE);
+            for (let level: number = 0; level < BuildArea.LEVELS; level++) {
                 this.levelCollisionMap[level] = new CollisionMap();
             }
             this.minimap = new Pix32(512, 512);
@@ -1992,7 +1993,7 @@ export class Client extends GameShell {
                 }
 
                 this.loginout.p1(this.out.pos + 36 + 1 + 1);
-                this.loginout.p1(Constants.CLIENT_VERSION);
+                this.loginout.p1(CLIENT_VERSION);
                 this.loginout.p1(Client.lowMem ? 1 : 0);
 
                 for (let i: number = 0; i < 9; i++) {
@@ -2062,7 +2063,7 @@ export class Client extends GameShell {
                 this.playerCount = 0;
                 this.npcCount = 0;
 
-                for (let i: number = 0; i < Constants.MAX_PLAYER_COUNT; i++) {
+                for (let i: number = 0; i < MAX_PLAYER_COUNT; i++) {
                     this.players[i] = null;
                     this.playerAppearanceBuffer[i] = null;
                 }
@@ -2071,14 +2072,14 @@ export class Client extends GameShell {
                     this.npc[i] = null;
                 }
 
-                this.localPlayer = this.players[Constants.LOCAL_PLAYER_INDEX] = new ClientPlayer();
+                this.localPlayer = this.players[LOCAL_PLAYER_INDEX] = new ClientPlayer();
 
                 this.projectiles.clear();
                 this.spotanims.clear();
 
-                for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
-                    for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
-                        for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
+                for (let level: number = 0; level < BuildArea.LEVELS; level++) {
+                    for (let x: number = 0; x < BuildArea.SIZE; x++) {
+                        for (let z: number = 0; z < BuildArea.SIZE; z++) {
                             this.groundObj[level][x][z] = null;
                         }
                     }
@@ -2710,7 +2711,7 @@ export class Client extends GameShell {
         this.clearCaches();
         this.world?.resetMap();
 
-        for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
+        for (let level: number = 0; level < BuildArea.LEVELS; level++) {
             this.levelCollisionMap[level]?.reset();
         }
 
@@ -3151,7 +3152,7 @@ export class Client extends GameShell {
         for (let i: number = -1; i < this.playerCount; i++) {
             let index: number;
             if (i === -1) {
-                index = Constants.LOCAL_PLAYER_INDEX;
+                index = LOCAL_PLAYER_INDEX;
             } else {
                 index = this.playerIds[i];
             }
@@ -3697,7 +3698,7 @@ export class Client extends GameShell {
         for (let i: number = -1; i < this.playerCount; i++) {
             let index: number;
             if (i === -1) {
-                index = Constants.LOCAL_PLAYER_INDEX;
+                index = LOCAL_PLAYER_INDEX;
             } else {
                 index = this.playerIds[i];
             }
@@ -3948,7 +3949,7 @@ export class Client extends GameShell {
         if (e.faceEntity >= 32768) {
             let index: number = e.faceEntity - 32768;
             if (index === this.selfSlot) {
-                index = Constants.LOCAL_PLAYER_INDEX;
+                index = LOCAL_PLAYER_INDEX;
             }
 
             const player: ClientPlayer | null = this.players[index];
@@ -4520,7 +4521,7 @@ export class Client extends GameShell {
             let id: number;
             if (self) {
                 player = this.localPlayer;
-                id = Constants.LOCAL_PLAYER_INDEX << 14;
+                id = LOCAL_PLAYER_INDEX << 14;
             } else {
                 player = this.players[this.playerIds[i]];
                 id = this.playerIds[i] << 14;
@@ -4538,7 +4539,7 @@ export class Client extends GameShell {
             const stx: number = player.x >> 7;
             const stz: number = player.z >> 7;
 
-            if (stx < 0 || stx >= CollisionConstants.SIZE || stz < 0 || stz >= CollisionConstants.SIZE) {
+            if (stx < 0 || stx >= BuildArea.SIZE || stz < 0 || stz >= BuildArea.SIZE) {
                 continue;
             }
 
@@ -4573,7 +4574,7 @@ export class Client extends GameShell {
             const x: number = npc.x >> 7;
             const z: number = npc.z >> 7;
 
-            if (x < 0 || x >= CollisionConstants.SIZE || z < 0 || z >= CollisionConstants.SIZE) {
+            if (x < 0 || x >= BuildArea.SIZE || z < 0 || z >= BuildArea.SIZE) {
                 continue;
             }
 
@@ -4870,7 +4871,7 @@ export class Client extends GameShell {
             if (entity.chatMessage && (index >= this.playerCount || this.chatPublicMode === 0 || this.chatPublicMode === 3 || (this.chatPublicMode === 1 && this.isFriend((entity as ClientPlayer).name)))) {
                 this.getOverlayPosEntity(entity, entity.height);
 
-                if (this.projectX > -1 && this.chatCount < Constants.MAX_CHATS && this.b12) {
+                if (this.projectX > -1 && this.chatCount < MAX_CHATS && this.b12) {
                     this.chatWidth[this.chatCount] = (this.b12.stringWid(entity.chatMessage) / 2) | 0;
                     this.chatHeight[this.chatCount] = this.b12.height2d;
                     this.chatX[this.chatCount] = this.projectX;
@@ -4960,7 +4961,7 @@ export class Client extends GameShell {
             } else {
                 let colour: number = Colour.YELLOW;
                 if (this.chatColour[i] < 6) {
-                    colour = Client.CHAT_COLORS[this.chatColour[i]];
+                    colour = CHAT_COLOURS[this.chatColour[i]];
                 } else if (this.chatColour[i] === 6) {
                     colour = this.sceneCycle % 20 < 10 ? Colour.RED : Colour.YELLOW;
                 } else if (this.chatColour[i] === 7) {
@@ -5382,11 +5383,11 @@ export class Client extends GameShell {
             this.clearCaches();
             this.world?.resetMap();
 
-            for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
+            for (let level: number = 0; level < BuildArea.LEVELS; level++) {
                 this.levelCollisionMap[level]?.reset();
             }
 
-            const build: ClientBuild = new ClientBuild(CollisionConstants.SIZE, CollisionConstants.SIZE, this.groundh!, this.mapl!);
+            const build: ClientBuild = new ClientBuild(BuildArea.SIZE, BuildArea.SIZE, this.groundh!, this.mapl!);
             const maps: number = this.mapBuildGroundData?.length ?? 0;
 
             ClientBuild.lowMem = World.lowMem;
@@ -5455,8 +5456,8 @@ export class Client extends GameShell {
 
             this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
-            for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
-                for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
+            for (let x: number = 0; x < BuildArea.SIZE; x++) {
+                for (let z: number = 0; z < BuildArea.SIZE; z++) {
                     this.showObject(x, z);
                 }
             }
@@ -5523,10 +5524,10 @@ export class Client extends GameShell {
             pixels[i] = 0;
         }
 
-        for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
-            let offset: number = (CollisionConstants.SIZE - 1 - z) * 512 * 4 + 24628;
+        for (let z: number = 1; z < BuildArea.SIZE - 1; z++) {
+            let offset: number = (BuildArea.SIZE - 1 - z) * 512 * 4 + 24628;
 
-            for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
+            for (let x: number = 1; x < BuildArea.SIZE - 1; x++) {
                 if (this.mapl && (this.mapl[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
                     this.world?.render2DGround(level, x, z, pixels, offset, 512);
                 }
@@ -5544,8 +5545,8 @@ export class Client extends GameShell {
 
         this.minimap.setPixels();
 
-        for (let z: number = 1; z < CollisionConstants.SIZE - 1; z++) {
-            for (let x: number = 1; x < CollisionConstants.SIZE - 1; x++) {
+        for (let z: number = 1; z < BuildArea.SIZE - 1; z++) {
+            for (let x: number = 1; x < BuildArea.SIZE - 1; x++) {
                 if (this.mapl && (this.mapl[level][x][z] & (MapFlag.VisBelow | MapFlag.ForceHighDetail)) === 0) {
                     this.drawDetail(level, x, z, inactiveRgb, activeRgb);
                 }
@@ -5560,8 +5561,8 @@ export class Client extends GameShell {
 
         this.activeMapFunctionCount = 0;
 
-        for (let x: number = 0; x < CollisionConstants.SIZE; x++) {
-            for (let z: number = 0; z < CollisionConstants.SIZE; z++) {
+        for (let x: number = 0; x < BuildArea.SIZE; x++) {
+            for (let z: number = 0; z < BuildArea.SIZE; z++) {
                 const typecode: number = this.world?.gdType(this.minusedlevel, x, z) ?? 0;
                 if (typecode === 0) {
                     continue;
@@ -5577,8 +5578,8 @@ export class Client extends GameShell {
                 let stz: number = z;
 
                 if (func !== 22 && func !== 29 && func !== 34 && func !== 36 && func !== 46 && func !== 47 && func !== 48) {
-                    const maxX: number = CollisionConstants.SIZE;
-                    const maxZ: number = CollisionConstants.SIZE;
+                    const maxX: number = BuildArea.SIZE;
+                    const maxZ: number = BuildArea.SIZE;
                     const collisionmap: CollisionMap | null = this.levelCollisionMap[this.minusedlevel];
 
                     if (collisionmap) {
@@ -5646,7 +5647,7 @@ export class Client extends GameShell {
                 if (scene) {
                     const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
                     const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
-                    scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
+                    scene.plotSprite(tileX * 4 + 48 + offsetX, (BuildArea.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
             } else {
                 if (shape === LocShape.WALL_STRAIGHT || shape === LocShape.WALL_L) {
@@ -5724,7 +5725,7 @@ export class Client extends GameShell {
                 if (scene) {
                     const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
                     const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
-                    scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
+                    scene.plotSprite(tileX * 4 + 48 + offsetX, (BuildArea.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
             } else {
                 if (shape === LocShape.WALL_DIAGONAL) {
@@ -5734,7 +5735,7 @@ export class Client extends GameShell {
                     }
 
                     const dst: Int32Array = this.minimap.data;
-                    const offset: number = tileX * 4 + (CollisionConstants.SIZE - 1 - tileZ) * 512 * 4 + 24624;
+                    const offset: number = tileX * 4 + (BuildArea.SIZE - 1 - tileZ) * 512 * 4 + 24624;
 
                     if (angle === LocAngle.WEST || angle === LocAngle.EAST) {
                         dst[offset + 1536] = rgb;
@@ -5761,7 +5762,7 @@ export class Client extends GameShell {
                 if (scene) {
                     const offsetX: number = ((loc.width * 4 - scene.wi) / 2) | 0;
                     const offsetY: number = ((loc.length * 4 - scene.hi) / 2) | 0;
-                    scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
+                    scene.plotSprite(tileX * 4 + 48 + offsetX, (BuildArea.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
             }
         }
@@ -5846,8 +5847,8 @@ export class Client extends GameShell {
             return false;
         }
 
-        const sceneWidth: number = CollisionConstants.SIZE;
-        const sceneLength: number = CollisionConstants.SIZE;
+        const sceneWidth: number = BuildArea.SIZE;
+        const sceneLength: number = BuildArea.SIZE;
 
         for (let x: number = 0; x < sceneWidth; x++) {
             for (let z: number = 0; z < sceneLength; z++) {
@@ -6012,7 +6013,7 @@ export class Client extends GameShell {
                     for (let px: number = dx - padding; px <= dx + padding; px++) {
                         for (let pz: number = dz - padding; pz <= dz + padding; pz++) {
                             const index: number = CollisionMap.index(px, pz);
-                            if (px >= 0 && pz >= 0 && px < CollisionConstants.SIZE && pz < CollisionConstants.SIZE && this.distMap[index] < min) {
+                            if (px >= 0 && pz >= 0 && px < BuildArea.SIZE && pz < BuildArea.SIZE && this.distMap[index] < min) {
                                 min = this.distMap[index];
                                 x = px;
                                 z = pz;
@@ -7121,7 +7122,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                for (let i: number = 0; i < Constants.MAX_PLAYER_COUNT; i++) {
+                for (let i: number = 0; i < MAX_PLAYER_COUNT; i++) {
                     const player: ClientPlayer | null = this.players[i];
                     if (player) {
                         for (let j: number = 0; j < 10; j++) {
@@ -7137,19 +7138,19 @@ export class Client extends GameShell {
                 this.awaitingPlayerInfo = true;
 
                 let startTileX: number = 0;
-                let endTileX: number = CollisionConstants.SIZE;
+                let endTileX: number = BuildArea.SIZE;
                 let dirX: number = 1;
                 if (dx < 0) {
-                    startTileX = CollisionConstants.SIZE - 1;
+                    startTileX = BuildArea.SIZE - 1;
                     endTileX = -1;
                     dirX = -1;
                 }
 
                 let startTileZ: number = 0;
-                let endTileZ: number = CollisionConstants.SIZE;
+                let endTileZ: number = BuildArea.SIZE;
                 let dirZ: number = 1;
                 if (dz < 0) {
-                    startTileZ = CollisionConstants.SIZE - 1;
+                    startTileZ = BuildArea.SIZE - 1;
                     endTileZ = -1;
                     dirZ = -1;
                 }
@@ -7159,8 +7160,8 @@ export class Client extends GameShell {
                         const lastX: number = x + dx;
                         const lastZ: number = z + dz;
 
-                        for (let level: number = 0; level < CollisionConstants.LEVELS; level++) {
-                            if (lastX >= 0 && lastZ >= 0 && lastX < CollisionConstants.SIZE && lastZ < CollisionConstants.SIZE) {
+                        for (let level: number = 0; level < BuildArea.LEVELS; level++) {
+                            if (lastX >= 0 && lastZ >= 0 && lastX < BuildArea.SIZE && lastZ < BuildArea.SIZE) {
                                 this.groundObj[level][x][z] = this.groundObj[level][lastX][lastZ];
                             } else {
                                 this.groundObj[level][x][z] = null;
@@ -7173,7 +7174,7 @@ export class Client extends GameShell {
                     loc.x -= dx;
                     loc.z -= dz;
 
-                    if (loc.x < 0 || loc.z < 0 || loc.x >= CollisionConstants.SIZE || loc.z >= CollisionConstants.SIZE) {
+                    if (loc.x < 0 || loc.z < 0 || loc.x >= BuildArea.SIZE || loc.z >= BuildArea.SIZE) {
                         loc.unlink();
                     }
                 }
@@ -7396,7 +7397,7 @@ export class Client extends GameShell {
             const rotate: number = info & 0x3;
             const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 this.locChangeCreate(this.minusedlevel, x, z, layer, id, shape, rotate, 0, -1);
             }
         } else if (opcode === ServerProt.LOC_DEL) {
@@ -7406,7 +7407,7 @@ export class Client extends GameShell {
             const rotate: number = info & 0x3;
             const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 this.locChangeCreate(this.minusedlevel, x, z, layer, -1, shape, rotate, 0, -1);
             }
         } else if (opcode === ServerProt.LOC_ANIM) {
@@ -7417,7 +7418,7 @@ export class Client extends GameShell {
             const rotate = info & 0x3;
             const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && this.world && this.groundh) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE && this.world && this.groundh) {
                 const heightSW = this.groundh[this.minusedlevel][x][z];
                 const heightSE = this.groundh[this.minusedlevel][x + 1][z];
                 const heightNE = this.groundh[this.minusedlevel][x + 1][z + 1];
@@ -7459,7 +7460,7 @@ export class Client extends GameShell {
             const type: number = buf.g2();
             const count: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 const obj: ClientObj = new ClientObj(type, count);
                 if (!this.groundObj[this.minusedlevel][x][z]) {
                     this.groundObj[this.minusedlevel][x][z] = new LinkList();
@@ -7471,7 +7472,7 @@ export class Client extends GameShell {
         } else if (opcode === ServerProt.OBJ_DEL) {
             const type: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 const objs = this.groundObj[this.minusedlevel][x][z];
                 if (objs) {
                     for (let obj = objs.head(); obj !== null; obj = objs.next()) {
@@ -7500,7 +7501,7 @@ export class Client extends GameShell {
             const angle: number = buf.g1();
             const startpos: number = buf.g1();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && x2 >= 0 && z2 >= 0 && x2 < CollisionConstants.SIZE && z2 < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE && x2 >= 0 && z2 >= 0 && x2 < BuildArea.SIZE && z2 < BuildArea.SIZE) {
                 x = x * 128 + 64;
                 z = z * 128 + 64;
                 x2 = x2 * 128 + 64;
@@ -7515,7 +7516,7 @@ export class Client extends GameShell {
             const height: number = buf.g1();
             const time: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 x = x * 128 + 64;
                 z = z * 128 + 64;
 
@@ -7527,7 +7528,7 @@ export class Client extends GameShell {
             const count: number = buf.g2();
             const pid: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && pid !== this.selfSlot) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE && pid !== this.selfSlot) {
                 if (!this.groundObj[this.minusedlevel][x][z]) {
                     this.groundObj[this.minusedlevel][x][z] = new LinkList();
                 }
@@ -7609,7 +7610,7 @@ export class Client extends GameShell {
             const ocount: number = buf.g2();
             const count: number = buf.g2();
 
-            if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
+            if (x >= 0 && z >= 0 && x < BuildArea.SIZE && z < BuildArea.SIZE) {
                 const objs = this.groundObj[this.minusedlevel][x][z];
                 if (objs) {
                     for (let obj = objs.head(); obj !== null; obj = objs.next()) {
@@ -7769,7 +7770,7 @@ export class Client extends GameShell {
                 this.world.delLoc(level, x, z);
 
                 const type: LocType = LocType.list(otherId);
-                if (x + type.width > CollisionConstants.SIZE - 1 || z + type.width > CollisionConstants.SIZE - 1 || x + type.length > CollisionConstants.SIZE - 1 || z + type.length > CollisionConstants.SIZE - 1) {
+                if (x + type.width > BuildArea.SIZE - 1 || z + type.width > BuildArea.SIZE - 1 || x + type.length > BuildArea.SIZE - 1 || z + type.length > BuildArea.SIZE - 1) {
                     return;
                 }
 
@@ -7886,14 +7887,14 @@ export class Client extends GameShell {
             const op: number = buf.gBit(2);
 
             if (op === 0) {
-                this.entityUpdateIds[this.entityUpdateCount++] = Constants.LOCAL_PLAYER_INDEX;
+                this.entityUpdateIds[this.entityUpdateCount++] = LOCAL_PLAYER_INDEX;
             } else if (op === 1) {
                 const walkDir: number = buf.gBit(3);
                 this.localPlayer?.moveCode(false, walkDir);
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
-                    this.entityUpdateIds[this.entityUpdateCount++] = Constants.LOCAL_PLAYER_INDEX;
+                    this.entityUpdateIds[this.entityUpdateCount++] = LOCAL_PLAYER_INDEX;
                 }
             } else if (op === 2) {
                 const walkDir: number = buf.gBit(3);
@@ -7904,7 +7905,7 @@ export class Client extends GameShell {
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
-                    this.entityUpdateIds[this.entityUpdateCount++] = Constants.LOCAL_PLAYER_INDEX;
+                    this.entityUpdateIds[this.entityUpdateCount++] = LOCAL_PLAYER_INDEX;
                 }
             } else if (op === 3) {
                 this.minusedlevel = buf.gBit(2);
@@ -7916,7 +7917,7 @@ export class Client extends GameShell {
 
                 const extendedInfo: number = buf.gBit(1);
                 if (extendedInfo === 1) {
-                    this.entityUpdateIds[this.entityUpdateCount++] = Constants.LOCAL_PLAYER_INDEX;
+                    this.entityUpdateIds[this.entityUpdateCount++] = LOCAL_PLAYER_INDEX;
                 }
             }
         }
@@ -10561,7 +10562,7 @@ export class Client extends GameShell {
     private drawScrollbar(x: number, y: number, scrollY: number, scrollHeight: number, height: number): void {
         this.scrollbar1?.plotSprite(x, y);
         this.scrollbar2?.plotSprite(x, y + height - 16);
-        Pix2D.fillRect(x, y + 16, 16, height - 32, this.SCROLLBAR_TRACK);
+        Pix2D.fillRect(x, y + 16, 16, height - 32, SCROLLBAR_TRACK);
 
         let gripSize: number = (((height - 32) * height) / scrollHeight) | 0;
         if (gripSize < 8) {
@@ -10569,19 +10570,19 @@ export class Client extends GameShell {
         }
 
         const gripY: number = (((height - gripSize - 32) * scrollY) / (scrollHeight - height)) | 0;
-        Pix2D.fillRect(x, y + gripY + 16, 16, gripSize, this.SCROLLBAR_GRIP_FOREGROUND);
+        Pix2D.fillRect(x, y + gripY + 16, 16, gripSize, SCROLLBAR_GRIP_FOREGROUND);
 
-        Pix2D.vline(x, y + gripY + 16, gripSize, this.SCROLLBAR_GRIP_HIGHLIGHT);
-        Pix2D.vline(x + 1, y + gripY + 16, gripSize, this.SCROLLBAR_GRIP_HIGHLIGHT);
+        Pix2D.vline(x, y + gripY + 16, gripSize, SCROLLBAR_GRIP_HIGHLIGHT);
+        Pix2D.vline(x + 1, y + gripY + 16, gripSize, SCROLLBAR_GRIP_HIGHLIGHT);
 
-        Pix2D.hline(x, y + gripY + 16, 16, this.SCROLLBAR_GRIP_HIGHLIGHT);
-        Pix2D.hline(x, y + gripY + 17, 16, this.SCROLLBAR_GRIP_HIGHLIGHT);
+        Pix2D.hline(x, y + gripY + 16, 16, SCROLLBAR_GRIP_HIGHLIGHT);
+        Pix2D.hline(x, y + gripY + 17, 16, SCROLLBAR_GRIP_HIGHLIGHT);
 
-        Pix2D.vline(x + 15, y + gripY + 16, gripSize, this.SCROLLBAR_GRIP_LOWLIGHT);
-        Pix2D.vline(x + 14, y + gripY + 17, gripSize - 1, this.SCROLLBAR_GRIP_LOWLIGHT);
+        Pix2D.vline(x + 15, y + gripY + 16, gripSize, SCROLLBAR_GRIP_LOWLIGHT);
+        Pix2D.vline(x + 14, y + gripY + 17, gripSize - 1, SCROLLBAR_GRIP_LOWLIGHT);
 
-        Pix2D.hline(x, y + gripY + gripSize + 15, 16, this.SCROLLBAR_GRIP_LOWLIGHT);
-        Pix2D.hline(x + 1, y + gripY + gripSize + 14, 15, this.SCROLLBAR_GRIP_LOWLIGHT);
+        Pix2D.hline(x, y + gripY + gripSize + 15, 16, SCROLLBAR_GRIP_LOWLIGHT);
+        Pix2D.hline(x + 1, y + gripY + gripSize + 14, 15, SCROLLBAR_GRIP_LOWLIGHT);
     }
 
     private inf(value: number): string {
@@ -11525,8 +11526,8 @@ export class Client extends GameShell {
             this.minimapDrawDot(anchorY, this.activeMapFunctions[i], anchorX);
         }
 
-        for (let ltx: number = 0; ltx < CollisionConstants.SIZE; ltx++) {
-            for (let ltz: number = 0; ltz < CollisionConstants.SIZE; ltz++) {
+        for (let ltx: number = 0; ltx < BuildArea.SIZE; ltx++) {
+            for (let ltz: number = 0; ltz < BuildArea.SIZE; ltz++) {
                 const objs = this.groundObj[this.minusedlevel][ltx][ltz];
                 if (objs) {
                     anchorX = ltx * 4 + 2 - ((this.localPlayer.x / 32) | 0);
