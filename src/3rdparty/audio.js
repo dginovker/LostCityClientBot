@@ -3,7 +3,7 @@
 (function () {
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     if (window.AudioContext) {
-        window.audioContext = new window.AudioContext();
+        window.audioContext = new window.AudioContext({ sampleRate: 22050 });
     }
     var fixAudioContext = function (e) {
         if (window.audioContext) {
