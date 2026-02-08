@@ -176,7 +176,7 @@ export class Client extends GameShell {
     private world: World | null = null;
     private mapl: Uint8Array[][] | null = null;
     private groundh: Int32Array[][] | null = null;
-    private levelCollisionMap: (CollisionMap | null)[] = new TypedArray1d(BuildArea.LEVELS, null);
+    private collision: (CollisionMap | null)[] = new TypedArray1d(BuildArea.LEVELS, null);
     private textureBuffer: Int8Array = new Int8Array(16384);
 
     private zoneUpdateX: number = 0;
@@ -808,7 +808,7 @@ export class Client extends GameShell {
             this.groundh = new Int32Array3d(BuildArea.LEVELS, BuildArea.SIZE + 1, BuildArea.SIZE + 1);
             this.world = new World(this.groundh, BuildArea.SIZE, BuildArea.LEVELS, BuildArea.SIZE);
             for (let level: number = 0; level < BuildArea.LEVELS; level++) {
-                this.levelCollisionMap[level] = new CollisionMap();
+                this.collision[level] = new CollisionMap();
             }
             this.minimap = new Pix32(512, 512);
 
@@ -2712,7 +2712,7 @@ export class Client extends GameShell {
         this.world?.resetMap();
 
         for (let level: number = 0; level < BuildArea.LEVELS; level++) {
-            this.levelCollisionMap[level]?.reset();
+            this.collision[level]?.reset();
         }
 
         stopMidi(false);
@@ -5384,7 +5384,7 @@ export class Client extends GameShell {
             this.world?.resetMap();
 
             for (let level: number = 0; level < BuildArea.LEVELS; level++) {
-                this.levelCollisionMap[level]?.reset();
+                this.collision[level]?.reset();
             }
 
             const build: ClientBuild = new ClientBuild(BuildArea.SIZE, BuildArea.SIZE, this.groundh!, this.mapl!);
@@ -5444,14 +5444,14 @@ export class Client extends GameShell {
                     if (data) {
                         const x: number = (this.mapBuildIndex[i] >> 8) * 64 - this.mapBuildBaseX;
                         const z: number = (this.mapBuildIndex[i] & 0xff) * 64 - this.mapBuildBaseZ;
-                        build.loadLocations(data, x, z, this.loopCycle, this.world, this.levelCollisionMap);
+                        build.loadLocations(data, x, z, this.loopCycle, this.world, this.collision);
                     }
                 }
             }
 
             this.out.pIsaac(ClientProt.NO_TIMEOUT);
 
-            build.finishBuild(this.world, this.levelCollisionMap);
+            build.finishBuild(this.world, this.collision);
             this.areaViewport?.setPixels();
 
             this.out.pIsaac(ClientProt.NO_TIMEOUT);
@@ -5580,10 +5580,10 @@ export class Client extends GameShell {
                 if (func !== 22 && func !== 29 && func !== 34 && func !== 36 && func !== 46 && func !== 47 && func !== 48) {
                     const maxX: number = BuildArea.SIZE;
                     const maxZ: number = BuildArea.SIZE;
-                    const collisionmap: CollisionMap | null = this.levelCollisionMap[this.minusedlevel];
+                    const collisionMap: CollisionMap | null = this.collision[this.minusedlevel];
 
-                    if (collisionmap) {
-                        const flags: Int32Array = collisionmap.flags;
+                    if (collisionMap) {
+                        const flags: Int32Array = collisionMap.flags;
 
                         for (let i: number = 0; i < 10; i++) {
                             const rand: number = (Math.random() * 4.0) | 0;
@@ -5842,7 +5842,7 @@ export class Client extends GameShell {
     }
 
     private tryMove(srcX: number, srcZ: number, dx: number, dz: number, tryNearest: boolean, locWidth: number, locLength: number, locAngle: number, locShape: number, forceapproach: number, type: number): boolean {
-        const collisionMap: CollisionMap | null = this.levelCollisionMap[this.minusedlevel];
+        const collisionMap: CollisionMap | null = this.collision[this.minusedlevel];
         if (!collisionMap) {
             return false;
         }
@@ -7762,7 +7762,7 @@ export class Client extends GameShell {
 
                 const type: LocType = LocType.list(otherId);
                 if (type.blockwalk) {
-                    this.levelCollisionMap[level]?.delWall(x, z, otherShape, otherAngle, type.blockrange);
+                    this.collision[level]?.delWall(x, z, otherShape, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.WALL_DECOR) {
                 this.world?.delDecor(level, x, z);
@@ -7775,14 +7775,14 @@ export class Client extends GameShell {
                 }
 
                 if (type.blockwalk) {
-                    this.levelCollisionMap[level]?.delLoc(x, z, type.width, type.length, otherAngle, type.blockrange);
+                    this.collision[level]?.delLoc(x, z, type.width, type.length, otherAngle, type.blockrange);
                 }
             } else if (layer === LocLayer.GROUND_DECOR) {
                 this.world?.delGroundDecor(level, x, z);
 
                 const type: LocType = LocType.list(otherId);
                 if (type.blockwalk && type.active) {
-                    this.levelCollisionMap[level]?.unblockGround(x, z);
+                    this.collision[level]?.unblockGround(x, z);
                 }
             }
         }
@@ -7794,7 +7794,7 @@ export class Client extends GameShell {
             }
 
             if (this.groundh) {
-                ClientBuild.changeLocUnchecked(level, x, z, id, shape, angle, this.loopCycle, tileLevel, this.groundh, this.world, this.levelCollisionMap[level]);
+                ClientBuild.changeLocUnchecked(level, x, z, id, shape, angle, this.loopCycle, tileLevel, this.groundh, this.world, this.collision[level]);
             }
         }
     }
