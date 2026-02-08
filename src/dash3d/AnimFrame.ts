@@ -1,4 +1,4 @@
-import AnimBase from '#/dash3d/AnimBase.js';
+import AnimBase, { AnimOp } from '#/dash3d/AnimBase.js';
 
 import Packet from '#/io/Packet.js';
 
@@ -93,7 +93,7 @@ export default class AnimFrame {
                     tempTi[current] = j;
 
                     let defaultValue: number = 0;
-                    if (base.type[tempTi[current]] === 3) {
+                    if (base.type[tempTi[current]] === AnimOp.SCALE) {
                         defaultValue = 128;
                     }
 
@@ -118,7 +118,7 @@ export default class AnimFrame {
                     lastGroup = j;
                     current++;
 
-                    if (base.type[j] === 5) {
+                    if (base.type[j] === AnimOp.ALPHA) {
                         this.opaque[id] = false;
                     }
                 }
