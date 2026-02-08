@@ -80,7 +80,7 @@ export const enum ClientProt {
 
     MAP_BUILD_COMPLETE = 134, // index: 241 - NXT naming
     MOVE_OPCLICK = 127, // index: 242 - comes with OP packets, name based on other MOVE packets
-    REPORT_ABUSE = 203, // index: 243
+    SEND_SNAPSHOT = 203, // index: 243 - NXT naming
     MOVE_MINIMAPCLICK = 220, // index: 244 - NXT naming
     INV_BUTTOND = 176, // index: 245 - NXT has "IF_BUTTOND" but for our interface system, this makes more sense
     IGNORELIST_DEL = 193, // index: 246 - NXT naming
