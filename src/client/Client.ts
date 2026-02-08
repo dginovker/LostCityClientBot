@@ -33,7 +33,7 @@ import { DirectionFlag } from '#/dash3d/DirectionFlag.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 import LocChange from '#/dash3d/LocChange.js';
 import { LocLayer } from '#/dash3d/LocLayer.js';
-import LocShape from '#/dash3d/LocShape.js';
+import { LocShape, LOC_SHAPE_TO_LAYER } from '#/dash3d/LocShape.js';
 import { MapFlag } from '#/dash3d/MapFlag.js';
 import MapSpotAnim from '#/dash3d/MapSpotAnim.js';
 import World from '#/dash3d/World.js';
@@ -5649,7 +5649,7 @@ export class Client extends GameShell {
                     scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
             } else {
-                if (shape === LocShape.WALL_STRAIGHT.id || shape === LocShape.WALL_L.id) {
+                if (shape === LocShape.WALL_STRAIGHT || shape === LocShape.WALL_L) {
                     if (angle === LocAngle.WEST) {
                         dst[offset] = rgb;
                         dst[offset + 512] = rgb;
@@ -5673,7 +5673,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (shape === LocShape.WALL_SQUARE_CORNER.id) {
+                if (shape === LocShape.WALL_SQUARE_CORNER) {
                     if (angle === LocAngle.WEST) {
                         dst[offset] = rgb;
                     } else if (angle === LocAngle.NORTH) {
@@ -5685,7 +5685,7 @@ export class Client extends GameShell {
                     }
                 }
 
-                if (shape === LocShape.WALL_L.id) {
+                if (shape === LocShape.WALL_L) {
                     if (angle === LocAngle.SOUTH) {
                         dst[offset] = rgb;
                         dst[offset + 512] = rgb;
@@ -5727,7 +5727,7 @@ export class Client extends GameShell {
                     scene.plotSprite(tileX * 4 + 48 + offsetX, (CollisionConstants.SIZE - tileZ - loc.length) * 4 + offsetY + 48);
                 }
             } else {
-                if (shape === LocShape.WALL_DIAGONAL.id) {
+                if (shape === LocShape.WALL_DIAGONAL) {
                     let rgb: number = 0xeeeeee;
                     if (sceneType > 0) {
                         rgb = 0xee0000;
@@ -5805,7 +5805,7 @@ export class Client extends GameShell {
             this.out.psize1(this.out.pos - start);
         }
 
-        if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id || shape === LocShape.GROUND_DECOR.id) {
+        if (shape === LocShape.CENTREPIECE_STRAIGHT || shape === LocShape.CENTREPIECE_DIAGONAL || shape === LocShape.GROUND_DECOR) {
             const loc: LocType = LocType.list(locId);
 
             let width: number;
@@ -5884,13 +5884,13 @@ export class Client extends GameShell {
                 break;
             }
 
-            if (locShape !== LocShape.WALL_STRAIGHT.id) {
-                if ((locShape < LocShape.WALLDECOR_STRAIGHT_OFFSET.id || locShape === LocShape.CENTREPIECE_STRAIGHT.id) && collisionMap.testWall(x, z, dx, dz, locShape - 1, locAngle)) {
+            if (locShape !== LocShape.WALL_STRAIGHT) {
+                if ((locShape < LocShape.WALLDECOR_STRAIGHT_OFFSET || locShape === LocShape.CENTREPIECE_STRAIGHT) && collisionMap.testWall(x, z, dx, dz, locShape - 1, locAngle)) {
                     arrived = true;
                     break;
                 }
 
-                if (locShape < LocShape.CENTREPIECE_STRAIGHT.id && collisionMap.testWDecor(x, z, dx, dz, locShape - 1, locAngle)) {
+                if (locShape < LocShape.CENTREPIECE_STRAIGHT && collisionMap.testWDecor(x, z, dx, dz, locShape - 1, locAngle)) {
                     arrived = true;
                     break;
                 }
@@ -7394,7 +7394,7 @@ export class Client extends GameShell {
 
             const shape: number = info >> 2;
             const rotate: number = info & 0x3;
-            const layer: number = LocShape.of(shape).layer;
+            const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
                 this.locChangeCreate(this.minusedlevel, x, z, layer, id, shape, rotate, 0, -1);
@@ -7404,7 +7404,7 @@ export class Client extends GameShell {
 
             const shape: number = info >> 2;
             const rotate: number = info & 0x3;
-            const layer: number = LocShape.of(shape).layer;
+            const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE) {
                 this.locChangeCreate(this.minusedlevel, x, z, layer, -1, shape, rotate, 0, -1);
@@ -7415,7 +7415,7 @@ export class Client extends GameShell {
 
             let shape: number = info >> 2;
             const rotate = info & 0x3;
-            const layer: number = LocShape.of(shape).layer;
+            const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
             if (x >= 0 && z >= 0 && x < CollisionConstants.SIZE && z < CollisionConstants.SIZE && this.world && this.groundh) {
                 const heightSW = this.groundh[this.minusedlevel][x][z];
@@ -7540,7 +7540,7 @@ export class Client extends GameShell {
             const info: number = buf.g1();
             const shape: number = info >> 2;
             const rotate: number = info & 0x3;
-            const layer: number = LocShape.of(shape).layer;
+            const layer: number = LOC_SHAPE_TO_LAYER[shape];
 
             const id: number = buf.g2();
             const t1: number = buf.g2();

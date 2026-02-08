@@ -4,7 +4,7 @@ import LocType from '#/config/LocType.js';
 import ClientLocAnim from '#/dash3d/ClientLocAnim.js';
 import CollisionMap, { CollisionConstants } from '#/dash3d/CollisionMap.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
-import LocShape from '#/dash3d/LocShape.js';
+import { LocShape } from '#/dash3d/LocShape.js';
 import { MapFlag } from '#/dash3d/MapFlag.js';
 import Model from '#/dash3d/Model.js';
 import type ModelSource from '#/dash3d/ModelSource.js';
@@ -789,7 +789,7 @@ export default class ClientBuild {
 
         const typecode2: number = ((((angle << 6) + shape) | 0) << 24) >> 24;
 
-        if (shape === LocShape.GROUND_DECOR.id) {
+        if (shape === LocShape.GROUND_DECOR) {
             if (!ClientBuild.lowMem || loc.active || loc.forcedecor) {
                 let model: ModelSource | null;
                 if (loc.anim === -1) {
@@ -804,7 +804,7 @@ export default class ClientBuild {
                     collision.blockGround(x, z);
                 }
             }
-        } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id) {
+        } else if (shape === LocShape.CENTREPIECE_STRAIGHT || shape === LocShape.CENTREPIECE_DIAGONAL) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(10, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -814,7 +814,7 @@ export default class ClientBuild {
 
             if (model) {
                 let yaw: number = 0;
-                if (shape === LocShape.CENTREPIECE_DIAGONAL.id) {
+                if (shape === LocShape.CENTREPIECE_DIAGONAL) {
                     yaw += 256;
                 }
 
@@ -856,7 +856,7 @@ export default class ClientBuild {
             if (loc.blockwalk && collision) {
                 collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape >= LocShape.ROOF_STRAIGHT.id) {
+        } else if (shape >= LocShape.ROOF_STRAIGHT) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -866,14 +866,14 @@ export default class ClientBuild {
 
             world?.addScenery(level, x, z, y, model, typecode, typecode2, 1, 1, 0);
 
-            if (shape >= LocShape.ROOF_STRAIGHT.id && shape <= LocShape.ROOF_FLAT.id && shape !== LocShape.ROOF_DIAGONAL_WITH_ROOFEDGE.id && level > 0) {
+            if (shape >= LocShape.ROOF_STRAIGHT && shape <= LocShape.ROOF_FLAT && shape !== LocShape.ROOF_DIAGONAL_WITH_ROOFEDGE && level > 0) {
                 this.mapo[level][x][z] |= 0x924;
             }
 
             if (loc.blockwalk && collision) {
                 collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_STRAIGHT.id) {
+        } else if (shape === LocShape.WALL_STRAIGHT) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(0, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -928,7 +928,7 @@ export default class ClientBuild {
             if (loc.wallwidth !== 16) {
                 world?.setDecorOffset(level, x, z, loc.wallwidth);
             }
-        } else if (shape === LocShape.WALL_DIAGONAL_CORNER.id) {
+        } else if (shape === LocShape.WALL_DIAGONAL_CORNER) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(1, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -953,7 +953,7 @@ export default class ClientBuild {
             if (loc.blockwalk && collision) {
                 collision.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_L.id) {
+        } else if (shape === LocShape.WALL_L) {
             const offset: number = (angle + 1) & 0x3;
 
             let model1: ModelSource | null;
@@ -1002,7 +1002,7 @@ export default class ClientBuild {
             if (loc.wallwidth !== 16) {
                 world?.setDecorOffset(level, x, z, loc.wallwidth);
             }
-        } else if (shape === LocShape.WALL_SQUARE_CORNER.id) {
+        } else if (shape === LocShape.WALL_SQUARE_CORNER) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(3, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1027,7 +1027,7 @@ export default class ClientBuild {
             if (loc.blockwalk && collision) {
                 collision.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_DIAGONAL.id) {
+        } else if (shape === LocShape.WALL_DIAGONAL) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1040,7 +1040,7 @@ export default class ClientBuild {
             if (loc.blockwalk && collision) {
                 collision.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALLDECOR_STRAIGHT_NOOFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_STRAIGHT_NOOFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1049,7 +1049,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, ClientBuild.WSHAPE0[angle]);
-        } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET) {
             let wallwidth: number = 16;
             if (world) {
                 const typecode: number = world.wallType(level, x, z);
@@ -1078,7 +1078,7 @@ export default class ClientBuild {
                 angle * 512,
                 ClientBuild.WSHAPE0[angle]
             );
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1087,7 +1087,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1096,7 +1096,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1160,7 +1160,7 @@ export default class ClientBuild {
 
         const typecode2: number = ((((angle << 6) + shape) | 0) << 24) >> 24;
 
-        if (shape === LocShape.GROUND_DECOR.id) {
+        if (shape === LocShape.GROUND_DECOR) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(22, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1173,7 +1173,7 @@ export default class ClientBuild {
             if (loc.blockwalk && loc.active && cmap) {
                 cmap.blockGround(x, z);
             }
-        } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id || shape === LocShape.CENTREPIECE_DIAGONAL.id) {
+        } else if (shape === LocShape.CENTREPIECE_STRAIGHT || shape === LocShape.CENTREPIECE_DIAGONAL) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(10, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1183,7 +1183,7 @@ export default class ClientBuild {
 
             if (model) {
                 let yaw: number = 0;
-                if (shape === LocShape.CENTREPIECE_DIAGONAL.id) {
+                if (shape === LocShape.CENTREPIECE_DIAGONAL) {
                     yaw += 256;
                 }
 
@@ -1203,7 +1203,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape >= LocShape.ROOF_STRAIGHT.id) {
+        } else if (shape >= LocShape.ROOF_STRAIGHT) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1216,7 +1216,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_STRAIGHT.id) {
+        } else if (shape === LocShape.WALL_STRAIGHT) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(0, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1229,7 +1229,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_DIAGONAL_CORNER.id) {
+        } else if (shape === LocShape.WALL_DIAGONAL_CORNER) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(1, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1242,7 +1242,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_L.id) {
+        } else if (shape === LocShape.WALL_L) {
             const offset: number = (angle + 1) & 0x3;
 
             let model1: ModelSource | null;
@@ -1260,7 +1260,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_SQUARE_CORNER.id) {
+        } else if (shape === LocShape.WALL_SQUARE_CORNER) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(3, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1273,7 +1273,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addWall(x, z, shape, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALL_DIAGONAL.id) {
+        } else if (shape === LocShape.WALL_DIAGONAL) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(shape, angle, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1286,7 +1286,7 @@ export default class ClientBuild {
             if (loc.blockwalk && cmap) {
                 cmap.addLoc(x, z, loc.width, loc.length, angle, loc.blockrange);
             }
-        } else if (shape === LocShape.WALLDECOR_STRAIGHT_NOOFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_STRAIGHT_NOOFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1295,7 +1295,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle * 512, ClientBuild.WSHAPE0[angle]);
-        } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_STRAIGHT_OFFSET) {
             let wallwidth: number = 16;
             if (world) {
                 const typecode: number = world.wallType(level, x, z);
@@ -1312,7 +1312,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, ClientBuild.DECORXOF[angle] * wallwidth, ClientBuild.DECORZOF[angle] * wallwidth, typecode, model, typecode2, angle * 512, ClientBuild.WSHAPE0[angle]);
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_OFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1321,7 +1321,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 256);
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_NOOFFSET) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);
@@ -1330,7 +1330,7 @@ export default class ClientBuild {
             }
 
             world?.setDecor(level, x, z, y, 0, 0, typecode, model, typecode2, angle, 512);
-        } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH.id) {
+        } else if (shape === LocShape.WALLDECOR_DIAGONAL_BOTH) {
             let model: ModelSource | null;
             if (loc.anim === -1) {
                 model = loc.getModel(4, 0, heightSW, heightSE, heightNE, heightNW, -1);

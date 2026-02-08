@@ -1,7 +1,7 @@
 import LruCache from '#/datastruct/LruCache.js';
 
 import AnimFrame from '#/dash3d/AnimFrame.js';
-import LocShape from '#/dash3d/LocShape.js';
+import { LocShape } from '#/dash3d/LocShape.js';
 import { LocAngle } from '#/dash3d/LocAngle.js';
 
 import Model from '#/dash3d/Model.js';
@@ -248,7 +248,7 @@ export default class LocType {
         if (active === -1) {
             this.active = false;
 
-            if (this.model && (!this.shape || (this.shape && this.shape[0] === LocShape.CENTREPIECE_STRAIGHT.id))) {
+            if (this.model && (!this.shape || (this.shape && this.shape[0] === LocShape.CENTREPIECE_STRAIGHT))) {
                 this.active = true;
             }
 
@@ -279,7 +279,7 @@ export default class LocType {
                 }
             }
             return true;
-        } else if (shape === LocShape.CENTREPIECE_STRAIGHT.id) {
+        } else if (shape === LocShape.CENTREPIECE_STRAIGHT) {
             let ready = true;
             for (let i = 0; i < this.model.length; i++) {
                 const model = this.model[i];
@@ -357,7 +357,7 @@ export default class LocType {
         let typecode: bigint = 0n;
 
         if (this.shape === null) {
-            if (shape !== LocShape.CENTREPIECE_STRAIGHT.id) {
+            if (shape !== LocShape.CENTREPIECE_STRAIGHT) {
                 return null;
             }
 
