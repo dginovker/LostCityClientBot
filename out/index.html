@@ -86,26 +86,29 @@ bot.pickpocketByName('guard');`,
 bot.pickpocketByName('man');`,
             lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
 if (!window._ds) window._ds = 0;
+if (!window._atkTicks) window._atkTicks = 0;
 // Autocast setup (8 ticks with waits for server responses)
 if (window._ds === 0) { bot.setTab(0); window._ds = 1; return; }
 if (window._ds === 1) { bot.clickButton(353); window._ds = 2; return; }
-if (window._ds === 2) { window._ds = 3; return; } // wait for overlay
+if (window._ds === 2) { window._ds = 3; return; }
 if (window._ds === 3) { bot.clickButton(1834); window._ds = 4; return; }
-if (window._ds === 4) { window._ds = 5; return; } // wait for server
+if (window._ds === 4) { window._ds = 5; return; }
 if (window._ds === 5) { bot.selectButton(349); window._ds = 6; return; }
-if (window._ds === 6) { window._ds = 7; return; } // wait for toggle
-if (window._ds < 8) { window._ds = 8; return; }
-// Check stuck (melee on cage or spell not set)
-const m = bot.getMessages(1);
-if (m[0]?.text?.includes("can't reach") || m[0]?.text?.includes("choose a spell")) {
-  const p = bot.getPlayer();
-  if (p) bot.walk(p.x + (Math.random() > 0.5 ? 1 : -1), p.z);
-  window._ds = 0;
-  return;
-}
-// Attack
+if (window._ds === 6) { window._ds = 7; return; }
+if (window._ds < 8) { window._ds = 8; window._atkTicks = 0; return; }
+// Attack demon
 const demons = bot.findNpc('lesser demon');
-if (demons.length > 0) bot.attackNpc(demons[0].slot);`,
+if (demons.length > 0) {
+  bot.attackNpc(demons[0].slot);
+  window._atkTicks++;
+  // If no damage after 5 attack ticks, walk away and redo setup
+  if (window._atkTicks > 5 && demons[0].health === 0) {
+    const p = bot.getPlayer();
+    if (p) bot.walk(p.x + (Math.random() > 0.5 ? 1 : -1), p.z);
+    window._ds = 0;
+    window._atkTicks = 0;
+  }
+}`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
