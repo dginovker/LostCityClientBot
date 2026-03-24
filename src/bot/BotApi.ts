@@ -21,15 +21,16 @@ interface PlayerInfo {
 }
 
 export function initBotApi(client: Client): void {
+    const c = client as any;
+
     const bot = {
         // Internal reference for advanced use
-        _client: client as any,
+        _client: c,
 
-        // ===== Read State =====
+        // ===== Common Handlers (used by startScript) =====
 
-        /** Dismiss any open dialog (level up, etc.) */
+        /** Dismiss any "Click here to continue" chat dialog (level ups, quest text, etc.) */
         dismissDialog(): boolean {
-            const c = client as any;
             if (c.chatComId !== -1) {
                 c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
                 c.out.p2(c.chatComId);
@@ -39,12 +40,47 @@ export function initBotApi(client: Client): void {
             return false;
         },
 
+        /** Close any main modal overlay (Welcome to RuneScape, quest journals, etc.) */
+        closeModal(): boolean {
+            if (c.mainModalId !== -1) {
+                c.out.pIsaac(ClientProt.CLOSE_MODAL);
+                if (c.sideModalId !== -1) {
+                    c.sideModalId = -1;
+                    c.redrawSidebar = true;
+                    c.resumedPauseButton = false;
+                    c.redrawSideicons = true;
+                }
+                if (c.chatComId !== -1) {
+                    c.chatComId = -1;
+                    c.redrawChatback = true;
+                    c.resumedPauseButton = false;
+                }
+                c.mainModalId = -1;
+                return true;
+            }
+            return false;
+        },
+
+        /** Handle all blocking UI: dialogs, modals. Returns true if something was blocking. */
+        handleBlockingUI(): boolean {
+            if (bot.dismissDialog()) return true;
+            if (bot.closeModal()) return true;
+            return false;
+        },
+
+        // ===== Read State =====
+
+        /** Check if logged in */
+        isLoggedIn(): boolean {
+            return c.ingame === true;
+        },
+
         /** Get all nearby NPCs */
         getNpcs(): NpcInfo[] {
             const npcs: NpcInfo[] = [];
-            for (let i = 0; i < (client as any).npcCount; i++) {
-                const idx = (client as any).npcIds[i];
-                const npc = (client as any).npc[idx];
+            for (let i = 0; i < c.npcCount; i++) {
+                const idx = c.npcIds[i];
+                const npc = c.npc[idx];
                 if (npc && npc.type) {
                     npcs.push({
                         slot: idx,
@@ -62,7 +98,7 @@ export function initBotApi(client: Client): void {
 
         /** Get player position and state */
         getPlayer(): PlayerInfo | null {
-            const lp = (client as any).localPlayer;
+            const lp = c.localPlayer;
             if (!lp) return null;
             return {
                 name: lp.name,
@@ -76,24 +112,19 @@ export function initBotApi(client: Client): void {
         getMessages(count: number = 10): { type: number; text: string | null; sender: string | null }[] {
             const msgs = [];
             for (let i = 0; i < count; i++) {
-                const text = (client as any).chatText[i];
+                const text = c.chatText[i];
                 if (text !== null) {
                     msgs.push({
-                        type: (client as any).chatType[i],
+                        type: c.chatType[i],
                         text,
-                        sender: (client as any).chatUsername[i],
+                        sender: c.chatUsername[i],
                     });
                 }
             }
             return msgs;
         },
 
-        /** Check if logged in */
-        isLoggedIn(): boolean {
-            return (client as any).ingame === true;
-        },
-
-        /** Get thieving stat */
+        /** Get all skill stats */
         getStats(): { [name: string]: { level: number; xp: number } } {
             const stats: { [name: string]: { level: number; xp: number } } = {};
             const names = [
@@ -102,8 +133,8 @@ export function initBotApi(client: Client): void {
                 'Crafting', 'Smithing', 'Mining', 'Herblore', 'Agility', 'Thieving',
                 'Slayer', 'Farming', 'Runecraft'
             ];
-            const levels = (client as any).realLevel;
-            const xps = (client as any).experience;
+            const levels = c.realLevel;
+            const xps = c.experience;
             if (levels && xps) {
                 for (let i = 0; i < names.length; i++) {
                     stats[names[i]] = { level: levels[i] ?? 0, xp: xps[i] ?? 0 };
@@ -114,38 +145,31 @@ export function initBotApi(client: Client): void {
 
         // ===== Actions =====
 
-        /** Pickpocket an NPC (sends OPNPC3) */
+        /** Pickpocket an NPC by slot (sends OPNPC3) */
         pickpocket(npcSlot: number): boolean {
-            const npc = (client as any).npc[npcSlot];
-            const lp = (client as any).localPlayer;
-            if (!npc || !lp || !(client as any).ingame) return false;
+            const npc = c.npc[npcSlot];
+            const lp = c.localPlayer;
+            if (!npc || !lp || !c.ingame) return false;
 
-            // Walk toward the NPC
-            (client as any).tryMove(
-                lp.routeX[0], lp.routeZ[0],
-                npc.routeX[0], npc.routeZ[0],
-                false, 1, 1, 0, 0, 0, 2
-            );
-
-            // Send OPNPC3 packet
-            (client as any).out.pIsaac(ClientProt.OPNPC3);
-            (client as any).out.p2(npcSlot);
+            c.tryMove(lp.routeX[0], lp.routeZ[0], npc.routeX[0], npc.routeZ[0], false, 1, 1, 0, 0, 0, 2);
+            c.out.pIsaac(ClientProt.OPNPC3);
+            c.out.p2(npcSlot);
             return true;
         },
 
         /** Walk to a tile */
         walk(x: number, z: number): boolean {
-            const lp = (client as any).localPlayer;
-            if (!lp || !(client as any).ingame) return false;
-            (client as any).tryMove(lp.routeX[0], lp.routeZ[0], x, z, false, 0, 0, 0, 0, 0, 0);
+            const lp = c.localPlayer;
+            if (!lp || !c.ingame) return false;
+            c.tryMove(lp.routeX[0], lp.routeZ[0], x, z, false, 0, 0, 0, 0, 0, 0);
             return true;
         },
 
         /** Auto-login with credentials */
         login(username: string, password: string): void {
-            (client as any).loginUser = username;
-            (client as any).loginPass = password;
-            (client as any).loginscreen = 2;
+            c.loginUser = username;
+            c.loginPass = password;
+            c.loginscreen = 2;
             (window as any)._botLoginPending = true;
         },
 
@@ -160,6 +184,59 @@ export function initBotApi(client: Client): void {
             const npcs = bot.findNpc(name);
             if (npcs.length === 0) return false;
             return bot.pickpocket(npcs[0].slot);
+        },
+
+        // ===== Script Runner =====
+
+        /**
+         * Start a bot script with all common boilerplate handled automatically:
+         * - Auto re-login if logged out
+         * - Dismiss level-up / quest dialogs ("Click here to continue")
+         * - Close modal overlays ("Welcome to RuneScape", etc.)
+         *
+         * Usage:
+         *   window.bot.startScript('red bracket', 'jojolure', () => {
+         *       window.bot.pickpocketByName('paladin');
+         *   });
+         */
+        startScript(username: string, password: string, action: () => void, intervalMs: number = 2000): void {
+            // Clear any previous script
+            if ((window as any)._botInterval) clearInterval((window as any)._botInterval);
+            (window as any)._botRelogging = false;
+
+            (window as any)._botInterval = setInterval(() => {
+                // Auto re-login
+                if (!bot.isLoggedIn()) {
+                    if (!(window as any)._botRelogging) {
+                        (window as any)._botRelogging = true;
+                        console.log('[BOT] Logged out, re-logging in...');
+                        bot.login(username, password);
+                        setTimeout(() => { (window as any)._botRelogging = false; }, 10000);
+                    }
+                    return;
+                }
+
+                // Handle all blocking UI
+                if (bot.handleBlockingUI()) return;
+
+                // Run the user's script action
+                try {
+                    action();
+                } catch (e) {
+                    console.error('[BOT] Script error:', e);
+                }
+            }, intervalMs);
+
+            console.log('[BOT] Script started.');
+        },
+
+        /** Stop the current script */
+        stopScript(): void {
+            if ((window as any)._botInterval) {
+                clearInterval((window as any)._botInterval);
+                (window as any)._botInterval = null;
+            }
+            console.log('[BOT] Script stopped.');
         },
     };
 
