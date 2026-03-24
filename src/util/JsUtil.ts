@@ -1,8 +1,9 @@
 export const sleep = async (ms: number): Promise<void> => new Promise((resolve): NodeJS.Timeout => setTimeout(resolve, ms));
 
-export const downloadUrl = async (url: string): Promise<Uint8Array> => new Uint8Array(await (await fetch(url)).arrayBuffer());
+// Strip leading slash to make URLs relative (needed for GitHub Pages subdirectory hosting)
+export const downloadUrl = async (url: string): Promise<Uint8Array> => new Uint8Array(await (await fetch(url.startsWith('/') ? url.slice(1) : url)).arrayBuffer());
 
-export const downloadText = async (url: string): Promise<string> => (await fetch(url)).text();
+export const downloadText = async (url: string): Promise<string> => (await fetch(url.startsWith('/') ? url.slice(1) : url)).text();
 
 export function arraycopy(src: Int32Array | Uint8Array, srcPos: number, dst: Int32Array | Uint8Array, dstPos: number, length: number): void {
     while (length--) dst[dstPos++] = src[srcPos++];

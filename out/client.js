@@ -755,7 +755,7 @@ class LinkList {
 
 // src/util/JsUtil.ts
 var sleep = async (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-var downloadUrl = async (url) => new Uint8Array(await (await fetch(url)).arrayBuffer());
+var downloadUrl = async (url) => new Uint8Array(await (await fetch(url.startsWith("/") ? url.slice(1) : url)).arrayBuffer());
 function arraycopy(src, srcPos, dst, dstPos, length) {
   while (length--)
     dst[dstPos++] = src[srcPos++];
@@ -29564,4 +29564,4 @@ export {
   Client
 };
 
-//# debugId=64B3A668136F84E864756E2164756E21
+//# debugId=350584E3930829CC64756E2164756E21
