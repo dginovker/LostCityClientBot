@@ -19618,6 +19618,52 @@ function initBotApi(client) {
       c.out.p2(npcSlot);
       return true;
     },
+    interactNpc(npcSlot, optionName) {
+      const npc = c.npc[npcSlot];
+      if (!npc || !npc.type || !c.ingame)
+        return false;
+      const prevEntries = c.menuNumEntries;
+      c.menuNumEntries = 0;
+      c.addNpcOptions(npc.type, npcSlot, 0, 0);
+      const lower = optionName.toLowerCase();
+      for (let i2 = 0;i2 < c.menuNumEntries; i2++) {
+        const opt = c.menuOption[i2];
+        if (opt && opt.toLowerCase().includes(lower)) {
+          c.doAction(i2);
+          return true;
+        }
+      }
+      c.menuNumEntries = prevEntries;
+      return false;
+    },
+    attackNpc(npcSlot) {
+      return bot.interactNpc(npcSlot, "attack");
+    },
+    clickButton(comId) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 231;
+      c.menuParamA[0] = 0;
+      c.menuParamB[0] = 0;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
+    selectButton(comId) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 225;
+      c.menuParamA[0] = 0;
+      c.menuParamB[0] = 0;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
+    setTab(tab) {
+      c.sideTab = tab;
+      c.redrawSidebar = true;
+      c.redrawSideicons = true;
+    },
     walk(x2, z) {
       const lp = c.localPlayer;
       if (!lp || !c.ingame)
@@ -29569,4 +29615,4 @@ export {
   Client
 };
 
-//# debugId=4BBA40B456C78BC864756E2164756E21
+//# debugId=7DE5294FBC7A63FE64756E2164756E21

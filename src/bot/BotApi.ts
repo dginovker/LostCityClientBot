@@ -157,6 +157,67 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Interact with an NPC by building the real game menu and clicking the specified option.
+         *  optionName is case-insensitive partial match (e.g. 'attack', 'pickpocket', 'talk').
+         *  Uses the game's own addNpcOptions to get correct opcodes and priority flags. */
+        interactNpc(npcSlot: number, optionName: string): boolean {
+            const npc = c.npc[npcSlot];
+            if (!npc || !npc.type || !c.ingame) return false;
+
+            // Build the menu using the game's own logic
+            const prevEntries = c.menuNumEntries;
+            c.menuNumEntries = 0;
+            c.addNpcOptions(npc.type, npcSlot, 0, 0);
+
+            // Find the matching option
+            const lower = optionName.toLowerCase();
+            for (let i = 0; i < c.menuNumEntries; i++) {
+                const opt: string | null = c.menuOption[i];
+                if (opt && opt.toLowerCase().includes(lower)) {
+                    c.doAction(i);
+                    return true;
+                }
+            }
+
+            // Restore if not found
+            c.menuNumEntries = prevEntries;
+            return false;
+        },
+
+        /** Shorthand: attack NPC by slot */
+        attackNpc(npcSlot: number): boolean {
+            return bot.interactNpc(npcSlot, 'attack');
+        },
+
+        /** Click an interface button by component ID using the game's action system */
+        clickButton(comId: number): boolean {
+            if (!c.ingame) return false;
+            c.menuAction[0] = 231; // MiniMenuAction.IF_BUTTON (buttontype=normal)
+            c.menuParamA[0] = 0;
+            c.menuParamB[0] = 0;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            return true;
+        },
+
+        /** Click a select/toggle button (buttontype=select) - used for combat styles, autocast toggle */
+        selectButton(comId: number): boolean {
+            if (!c.ingame) return false;
+            c.menuAction[0] = 225; // MiniMenuAction.SELECT_BUTTON
+            c.menuParamA[0] = 0;
+            c.menuParamB[0] = 0;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            return true;
+        },
+
+        /** Set sidebar tab (0=combat, 3=inventory, 6=magic, etc.) */
+        setTab(tab: number): void {
+            c.sideTab = tab;
+            c.redrawSidebar = true;
+            c.redrawSideicons = true;
+        },
+
         /** Walk to a tile */
         walk(x: number, z: number): boolean {
             const lp = c.localPlayer;

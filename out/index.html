@@ -59,6 +59,7 @@
                 <option value="knight">Knight Pickpocket</option>
                 <option value="guard">Guard Pickpocket</option>
                 <option value="man">Man Pickpocket</option>
+                <option value="lesser_demon">Lesser Demon (Magic)</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -83,9 +84,21 @@ bot.pickpocketByName('knight');`,
 bot.pickpocketByName('guard');`,
             man: `// Pickpocket Men
 bot.pickpocketByName('man');`,
+            lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
+if (!window._demonSetup) window._demonSetup = 0;
+// One-time autocast setup (resets on relog via startScript)
+if (window._demonSetup === 0) { bot.setTab(0); window._demonSetup = 1; return; }
+if (window._demonSetup === 1) { bot.clickButton(353); window._demonSetup = 2; return; }
+if (window._demonSetup === 2) { bot.clickButton(1834); window._demonSetup = 3; return; }
+if (window._demonSetup === 3) { bot.selectButton(349); window._demonSetup = 4; return; }
+// Attack phase
+const demons = bot.findNpc('lesser demon');
+if (demons.length > 0) bot.attackNpc(demons[0].slot);`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
+// bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
+// bot.selectButton(comId), bot.setTab(tabId)
 // bot.getMessages(n), bot.getStats(), bot.dismissDialog(), bot.closeModal()
 `,
         };
