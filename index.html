@@ -4,14 +4,146 @@
     <meta charset="utf-8">
     <title>RS Bot Client</title>
     <style>
-        body { background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        #canvas { margin-top: 10px; image-rendering: pixelated; }
-        #controls { color: #0f0; font-family: monospace; padding: 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; font-family: monospace; }
+        #canvas { image-rendering: pixelated; display: block; }
+        #panel {
+            width: 765px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        #toolbar select, #toolbar button {
+            font-family: monospace;
+            font-size: 13px;
+            padding: 4px 8px;
+            background: #333;
+            color: #0f0;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+        #toolbar button:hover { background: #444; }
+        #toolbar button.stop { color: #f44; }
+        #toolbar .spacer { flex: 1; }
+        #toolbar label { color: #888; font-size: 12px; }
+        #editor {
+            width: 100%;
+            height: 120px;
+            background: #1a1a1a;
+            color: #0f0;
+            border: 1px solid #444;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 6px;
+            resize: vertical;
+            tab-size: 2;
+        }
+        #editor:focus { outline: 1px solid #0a0; }
     </style>
 </head>
 <body>
     <canvas id="canvas" width="765" height="503"></canvas>
-    <div id="controls">Bot Client - use window.bot in DevTools</div>
+    <div id="panel">
+        <div id="toolbar">
+            <label>Script:</label>
+            <select id="scriptSelect">
+                <option value="paladin">Paladin Pickpocket</option>
+                <option value="knight">Knight Pickpocket</option>
+                <option value="guard">Guard Pickpocket</option>
+                <option value="man">Man Pickpocket</option>
+                <option value="custom">Custom</option>
+            </select>
+            <button id="startBtn" onclick="startScript()">Start</button>
+            <button id="stopBtn" class="stop" onclick="stopScript()">Stop</button>
+            <span class="spacer"></span>
+            <label>User:</label>
+            <input id="userInput" type="text" style="width:100px;background:#333;color:#0f0;border:1px solid #555;padding:4px;font-family:monospace;font-size:13px" placeholder="username">
+            <label>Pass:</label>
+            <input id="passInput" type="password" style="width:80px;background:#333;color:#0f0;border:1px solid #555;padding:4px;font-family:monospace;font-size:13px" placeholder="password">
+        </div>
+        <textarea id="editor" spellcheck="false"></textarea>
+    </div>
+
+    <script>
+        // Pre-built scripts
+        const SCRIPTS = {
+            paladin: `// Pickpocket Paladins in Ardougne
+bot.pickpocketByName('paladin');`,
+            knight: `// Pickpocket Knights of Ardougne
+bot.pickpocketByName('knight');`,
+            guard: `// Pickpocket Guards
+bot.pickpocketByName('guard');`,
+            man: `// Pickpocket Men
+bot.pickpocketByName('man');`,
+            custom: `// Write your custom script here
+// Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
+// bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
+// bot.getMessages(n), bot.getStats(), bot.dismissDialog(), bot.closeModal()
+`,
+        };
+
+        const editor = document.getElementById('editor');
+        const select = document.getElementById('scriptSelect');
+
+        // Load script into editor when dropdown changes
+        select.addEventListener('change', () => {
+            editor.value = SCRIPTS[select.value] || '';
+        });
+        editor.value = SCRIPTS['paladin'];
+
+        // Handle tab key in editor
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(editor.selectionEnd);
+                editor.selectionStart = editor.selectionEnd = start + 2;
+            }
+        });
+
+        function startScript() {
+            const user = document.getElementById('userInput').value;
+            const pass = document.getElementById('passInput').value;
+            if (!user || !pass) {
+                alert('Enter username and password');
+                return;
+            }
+
+            const code = editor.value;
+            const actionFn = new Function('bot', code);
+
+            window.bot.startScript(user, pass, () => {
+                actionFn(window.bot);
+            });
+
+            document.getElementById('startBtn').style.color = '#888';
+            document.getElementById('stopBtn').style.color = '#f44';
+        }
+
+        function stopScript() {
+            window.bot.stopScript();
+            document.getElementById('startBtn').style.color = '#0f0';
+            document.getElementById('stopBtn').style.color = '#888';
+        }
+
+        // Prevent canvas from stealing keyboard focus from the editor/inputs
+        document.getElementById('canvas').addEventListener('mousedown', () => {
+            // Only take focus if not typing in an input
+            if (document.activeElement === editor ||
+                document.activeElement === document.getElementById('userInput') ||
+                document.activeElement === document.getElementById('passInput')) {
+                // don't steal focus
+            }
+        });
+    </script>
     <script type="module">
         import { Client } from './client.js';
         (() => {
