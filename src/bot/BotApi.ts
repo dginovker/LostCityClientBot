@@ -277,8 +277,8 @@ export function initBotApi(client: Client): void {
                     return;
                 }
 
-                // Handle all blocking UI
-                if (bot.handleBlockingUI()) return;
+                // Handle blocking UI (close modals, dismiss dialogs) but don't skip the action
+                bot.handleBlockingUI();
 
                 // Run the user's script action
                 try {

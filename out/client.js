@@ -19703,8 +19703,7 @@ function initBotApi(client) {
           }
           return;
         }
-        if (bot.handleBlockingUI())
-          return;
+        bot.handleBlockingUI();
         try {
           action();
         } catch (e) {
@@ -29615,4 +29614,4 @@ export {
   Client
 };
 
-//# debugId=7DE5294FBC7A63FE64756E2164756E21
+//# debugId=0C71F2A07844BBCB64756E2164756E21

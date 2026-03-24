@@ -85,13 +85,25 @@ bot.pickpocketByName('guard');`,
             man: `// Pickpocket Men
 bot.pickpocketByName('man');`,
             lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
-if (!window._demonSetup) window._demonSetup = 0;
-// One-time autocast setup (resets on relog via startScript)
-if (window._demonSetup === 0) { bot.setTab(0); window._demonSetup = 1; return; }
-if (window._demonSetup === 1) { bot.clickButton(353); window._demonSetup = 2; return; }
-if (window._demonSetup === 2) { bot.clickButton(1834); window._demonSetup = 3; return; }
-if (window._demonSetup === 3) { bot.selectButton(349); window._demonSetup = 4; return; }
-// Attack phase
+if (!window._ds) window._ds = 0;
+// Autocast setup (8 ticks with waits for server responses)
+if (window._ds === 0) { bot.setTab(0); window._ds = 1; return; }
+if (window._ds === 1) { bot.clickButton(353); window._ds = 2; return; }
+if (window._ds === 2) { window._ds = 3; return; } // wait for overlay
+if (window._ds === 3) { bot.clickButton(1834); window._ds = 4; return; }
+if (window._ds === 4) { window._ds = 5; return; } // wait for server
+if (window._ds === 5) { bot.selectButton(349); window._ds = 6; return; }
+if (window._ds === 6) { window._ds = 7; return; } // wait for toggle
+if (window._ds < 8) { window._ds = 8; return; }
+// Check stuck (melee on cage or spell not set)
+const m = bot.getMessages(1);
+if (m[0]?.text?.includes("can't reach") || m[0]?.text?.includes("choose a spell")) {
+  const p = bot.getPlayer();
+  if (p) bot.walk(p.x + (Math.random() > 0.5 ? 1 : -1), p.z);
+  window._ds = 0;
+  return;
+}
+// Attack
 const demons = bot.findNpc('lesser demon');
 if (demons.length > 0) bot.attackNpc(demons[0].slot);`,
             custom: `// Write your custom script here
