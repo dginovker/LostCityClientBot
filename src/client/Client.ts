@@ -718,7 +718,12 @@ export class Client extends GameShell {
             await this.messageBox(`Requesting ${displayName}`, progress);
 
             try {
-                data = await downloadUrl(`/${filename}${crc}`);
+                try {
+                    data = await downloadUrl(`/${filename}${crc}`);
+                } catch (_e2) {
+                    // Fallback: try without CRC suffix (for static hosting like GitHub Pages)
+                    data = await downloadUrl(`/${filename}`);
+                }
 
                 const checksum = Packet.getcrc(data, 0, data.length);
                 if (crc === checksum) {
