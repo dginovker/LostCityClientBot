@@ -755,7 +755,12 @@ class LinkList {
 
 // src/util/JsUtil.ts
 var sleep = async (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-var downloadUrl = async (url) => new Uint8Array(await (await fetch(url.startsWith("/") ? url.slice(1) : url)).arrayBuffer());
+var downloadUrl = async (url) => {
+  const res = await fetch(url.startsWith("/") ? url.slice(1) : url);
+  if (!res.ok)
+    throw new Error(`HTTP ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+};
 function arraycopy(src, srcPos, dst, dstPos, length) {
   while (length--)
     dst[dstPos++] = src[srcPos++];
@@ -29564,4 +29569,4 @@ export {
   Client
 };
 
-//# debugId=350584E3930829CC64756E2164756E21
+//# debugId=4BBA40B456C78BC864756E2164756E21
