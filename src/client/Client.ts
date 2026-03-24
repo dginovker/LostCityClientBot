@@ -69,6 +69,8 @@ import WordPack from '#/wordenc/WordPack.js';
 
 import JagFX from '#/sound/JagFX.js';
 
+import { initBotApi } from '#/bot/BotApi.js';
+
 const CLIENT_VERSION = 254;
 
 const MAX_PLAYER_COUNT = 2048;
@@ -591,6 +593,9 @@ export class Client extends GameShell {
         }
 
         this.run();
+
+        // Initialize Bot API
+        initBotApi(this);
     }
 
     static setLowMem(): void {
@@ -769,9 +774,10 @@ export class Client extends GameShell {
 
         this.alreadyStarted = true;
 
-        if (typeof process.env.SECURE_ORIGIN !== 'undefined' && process.env.SECURE_ORIGIN !== 'false' && window.location.hostname !== process.env.SECURE_ORIGIN) {
-            this.errorHost = true;
-        }
+        // SECURE_ORIGIN check disabled for bot client
+        // if (typeof process.env.SECURE_ORIGIN !== 'undefined' && process.env.SECURE_ORIGIN !== 'false' && window.location.hostname !== process.env.SECURE_ORIGIN) {
+        //     this.errorHost = true;
+        // }
 
         try {
             this.db = new Database(await Database.openDatabase());
@@ -1306,6 +1312,13 @@ export class Client extends GameShell {
     }
 
     private async titleScreenLoop(): Promise<void> {
+        // Bot auto-login hook
+        if ((window as any)._botLoginPending && this.loginscreen === 2 && this.loginUser && this.loginPass) {
+            (window as any)._botLoginPending = false;
+            await this.login(this.loginUser, this.loginPass, false);
+            if (this.ingame) return;
+        }
+
         if (this.loginscreen === 0) {
             let x: number = ((this.sWid / 2) | 0) - 80;
             let y: number = ((this.sHei / 2) | 0) + 20;
@@ -1947,7 +1960,7 @@ export class Client extends GameShell {
                 await this.titleScreenDraw();
             }
 
-            this.stream = new ClientStream(await ClientStream.openSocket(window.location.host, window.location.protocol === 'https:'));
+            this.stream = new ClientStream(await ClientStream.openSocket('rsleague.com', true));
 
             const userhash = JString.toUserhash(username);
             const loginServer = Number(userhash >> 16n) & 0x1f;
