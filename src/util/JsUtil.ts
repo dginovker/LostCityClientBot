@@ -1,7 +1,12 @@
 export const sleep = async (ms: number): Promise<void> => new Promise((resolve): NodeJS.Timeout => setTimeout(resolve, ms));
 
 // Strip leading slash to make URLs relative (needed for GitHub Pages subdirectory hosting)
-export const downloadUrl = async (url: string): Promise<Uint8Array> => new Uint8Array(await (await fetch(url.startsWith('/') ? url.slice(1) : url)).arrayBuffer());
+// Throws on non-ok responses so CRC-suffix fallback in getJagFile works
+export const downloadUrl = async (url: string): Promise<Uint8Array> => {
+    const res = await fetch(url.startsWith('/') ? url.slice(1) : url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+};
 
 export const downloadText = async (url: string): Promise<string> => (await fetch(url.startsWith('/') ? url.slice(1) : url)).text();
 
