@@ -219,7 +219,7 @@ export function initBotApi(client: Client): void {
                         if (!typecode) continue;
                         const locId = (typecode >> 14) & 0x7fff;
                         const locType = LocType.list(locId);
-                        if (locType && locType.name && locType.name.toLowerCase().includes(lower)) {
+                        if (locType && locType.name && locType.name.toLowerCase() === lower) {
                             results.push({name: locType.name, locId, typecode, x, z});
                         }
                     }
