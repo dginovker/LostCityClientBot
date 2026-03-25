@@ -4,14 +4,14 @@ How we figured out the hard parts of building this bot. Guide for future Claude 
 
 ## Finding the Source Code
 
-The game at rsleague.com is a **Lost City** RuneScape private server. The code is open source:
+The game you are botting is a fork of a **Lost City** RuneScape private server. The code is open source:
 
 - **Server (engine):** https://github.com/LostCityRS/Engine-TS (branch `254`)
 - **Client (TypeScript):** https://github.com/LostCityRS/Client-TS (branch `254`)
 - **Game content (scripts/configs):** https://github.com/LostCityRS/Content (branch `254`)
 - **Legacy org:** https://github.com/2004Scape/Server (redirects to LostCityRS)
 
-The `254` branch corresponds to the 2004-era RuneScape 2 engine revision.
+The `254` branch corresponds to the version you are probably playing on.
 
 ## Understanding the Protocol
 

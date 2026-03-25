@@ -185,19 +185,6 @@ Key internal properties:
 
 After editing, rebuild with `bun run build:dev`. The proxy server auto-serves the new build.
 
-## NPC Type IDs (Pickpocketable)
-
-| ID | Name | Thieving Level |
-|----|------|---------------|
-| 1, 2, 3, 16, 24 | Man | 1 |
-| 4, 5, 6, 25 | Woman | 1 |
-| 7 | Farmer | 10 |
-| 15, 18 | Warrior | 25 |
-| 9, 10, 32 | Guard | 40 |
-| 23, 26 | Knight of Ardougne | 55 |
-| 20 | Paladin | 70 |
-| 21 | Hero | 80 |
-
 ## Client Packet Opcodes (Common)
 
 | Opcode | Name | Payload | Description |
