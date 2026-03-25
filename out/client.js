@@ -19707,7 +19707,7 @@ function initBotApi(client) {
       if (!action)
         return false;
       c.menuAction[0] = action;
-      c.menuParamA[0] = objId;
+      c.menuParamA[0] = objId - 1;
       c.menuParamB[0] = itemSlot;
       c.menuParamC[0] = shopComId;
       c.doAction(0);
@@ -19793,7 +19793,7 @@ function initBotApi(client) {
           return;
         }
         c.idleTimer = performance.now();
-        bot.handleBlockingUI();
+        bot.dismissDialog();
         try {
           action();
         } catch (e) {
@@ -29704,4 +29704,4 @@ export {
   Client
 };
 
-//# debugId=3C1E2A5CC14A973A64756E2164756E21
+//# debugId=58B57BC30AB1347364756E2164756E21

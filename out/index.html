@@ -76,6 +76,7 @@
         // Pre-built scripts
         const SCRIPTS = {
             paladin: `// Pickpocket Paladins in Ardougne
+bot.closeModal();
 bot.pickpocketByName('paladin');`,
             lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
 if (!window._ds) window._ds = 0;
@@ -103,6 +104,7 @@ if (demons.length > 0) {
   }
 }`,
             willow_chop: `// Chop Willow Trees (logs auto-banked on this server)
+bot.closeModal();
 const trees = bot.findLocs('willow', 15);
 if (trees.length > 0) {
   // Pick the closest tree
@@ -116,18 +118,20 @@ if (trees.length > 0) {
   bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
 }`,
             magic_shop: `// Buy runes from Magic Store Owner
-// Step 1: Open shop if not already open
 const c = bot._client;
+// Dismiss welcome screen (modal 4214) but not the shop (modal 3824)
+if (c.mainModalId !== -1 && c.mainModalId !== 3824) { bot.closeModal(); return; }
+// Open shop if not already open
 if (c.mainModalId === -1) {
   const npc = bot.findNpc('magic store');
   if (npc.length > 0) bot.interactNpc(npc[0].slot, 'trade');
   return;
 }
-// Step 2: Buy 10 Law Runes (objId 563, find its slot dynamically)
-// Change the objId below to buy different runes:
-//   556=air, 557=earth, 558=mind, 559=body, 560=death
-//   561=nature, 562=chaos, 563=law, 564=cosmic, 565=blood
-const TARGET_OBJ_ID = 563; // Law rune
+// Buy 10 Law Runes per tick
+// Change the objId below to buy different runes (runtime IDs, +1 from obj.pack):
+//   557=air, 558=earth, 559=mind, 560=body, 561=death
+//   562=nature, 563=chaos, 564=law, 565=cosmic, 566=blood
+const TARGET_OBJ_ID = 564; // Law rune
 const items = bot.getShopItems();
 const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {

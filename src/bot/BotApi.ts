@@ -272,7 +272,7 @@ export function initBotApi(client: Client): void {
             if (!action) return false;
 
             c.menuAction[0] = action;
-            c.menuParamA[0] = objId;
+            c.menuParamA[0] = objId - 1; // linkObjType is +1 from the server's obj ID
             c.menuParamB[0] = itemSlot;
             c.menuParamC[0] = shopComId;
             c.doAction(0);
@@ -387,8 +387,9 @@ export function initBotApi(client: Client): void {
                 // Reset idle timer so the client doesn't auto-logout
                 c.idleTimer = performance.now();
 
-                // Handle blocking UI (close modals, dismiss dialogs) but don't skip the action
-                bot.handleBlockingUI();
+                // Dismiss level-up dialogs. Don't close modals here — scripts
+                // like the shop buyer need modals to stay open.
+                bot.dismissDialog();
 
                 // Run the user's script action
                 try {
