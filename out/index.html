@@ -65,6 +65,7 @@
                 <option value="lesser_demon">Lesser Demon (Magic)</option>
                 <option value="willow_chop">Willow Tree Chopping</option>
                 <option value="magic_shop">Shop Buyer</option>
+                <option value="fletch_arrows">Fletch Arrows</option>
                 <option value="chicken_bones">Chickens + Bury Bones</option>
                 <option value="custom">Custom</option>
             </select>
@@ -165,6 +166,21 @@ if (bones.length > 0) {
 // Priority 3: Attack a chicken
 const chickens = bot.findNpc('chicken');
 if (chickens.length > 0) bot.attackNpc(chickens[0].slot);`,
+            fletch_arrows: `// Fletch arrows: use feather on arrow shaft
+bot.closeModal();
+const FEATHER = 315;     // runtime ID
+const ARROW_SHAFT = 53;  // runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+let featherSlot = -1, shaftSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === FEATHER && featherSlot === -1) featherSlot = i;
+  if (inv.linkObjType[i] === ARROW_SHAFT && shaftSlot === -1) shaftSlot = i;
+}
+if (featherSlot >= 0 && shaftSlot >= 0) {
+  bot.useItemOnItem(FEATHER, featherSlot, ARROW_SHAFT, shaftSlot);
+}`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')

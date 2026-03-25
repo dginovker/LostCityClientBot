@@ -367,6 +367,26 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Use one inventory item on another (e.g. feather on arrow shaft).
+         *  Both objIds are runtime IDs (from linkObjType). Slots are inventory slot indices.
+         *  comId defaults to 3214 (inventory). */
+        useItemOnItem(srcObjId: number, srcSlot: number, destObjId: number, destSlot: number, comId: number = 3214): boolean {
+            if (!c.ingame) return false;
+            // Step 1: Select the source item (USEHELD_START)
+            c.menuAction[0] = 102; // MiniMenuAction.USEHELD_START
+            c.menuParamA[0] = srcObjId - 1; // server obj.pack ID
+            c.menuParamB[0] = srcSlot;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            // Step 2: Use on the target item (USEHELD_ONHELD)
+            c.menuAction[0] = 398; // MiniMenuAction.USEHELD_ONHELD
+            c.menuParamA[0] = destObjId - 1; // server obj.pack ID
+            c.menuParamB[0] = destSlot;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            return true;
+        },
+
         /** Toggle debug mode - shows IDs in right-click menus (locId, npcId, objId, slot, coords) */
         setDebug(on: boolean): void {
             c.debugMode = on;
