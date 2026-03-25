@@ -114,3 +114,91 @@ We tried three approaches:
 3. **Modified client with Bot API (winner)** - Cloned the real client source, added `window.bot` API, built it, served locally with a proxy. Full access to game internals, visible in Chrome, and only ~50 lines of bot code needed.
 
 The key insight: **don't fight the client, extend it.** The game client already handles all the protocol complexity. We just needed to expose its internals.
+
+## How We Built Combat (Lesser Demon Script)
+
+This was the hardest script to get working. Key learnings:
+
+### Don't Send Raw Packets — Use `doAction()`
+
+Our first approach was writing raw packets with `c.out.pIsaac(opcode)`. This works for simple things but has a fatal flaw: **every `pIsaac()` call advances the ISAAC cipher state.** If you send a packet the server doesn't expect (wrong opcode, extra packet, malformed data), the ISAAC counters desync and every subsequent packet becomes garbage. The server disconnects you.
+
+The fix: use the game's own `doAction()` method, which handles packet construction correctly:
+```javascript
+c.menuAction[0] = 242; // MiniMenuAction.OP_NPC1
+c.menuParamA[0] = npcSlot;
+c.menuParamB[0] = 0;
+c.menuParamC[0] = 0;
+c.doAction(0);
+```
+
+Even better: use `addNpcOptions()` to build the menu from the NPC's actual data, then `doAction()` on it. This gets correct opcodes and priority flags automatically. This is what `bot.interactNpc()` does.
+
+### NPC Attack Opcodes Vary Per NPC
+
+We assumed "Attack" was always OPNPC1 (opcode 143). **Wrong.** The lesser demon has Attack on `op[1]`, which maps to OPNPC2 (opcode 195). Other NPCs might have it on `op[0]`, `op[2]`, etc. depending on their config.
+
+We discovered this by calling `addNpcOptions()` and inspecting the generated menu:
+```javascript
+c.menuNumEntries = 0;
+c.addNpcOptions(npc.type, slot, 0, 0);
+// menu[0] was action=2209 (2000 + 209 = priority + OP_NPC2), NOT 242 (OP_NPC1)
+```
+
+### Priority Flag for Higher-Level NPCs
+
+When an NPC's combat level exceeds the player's, the game adds `_PRIORITY (2000)` to the menu action value. So attacking a level-82 lesser demon as a level-19 player gives action `2000 + 209 = 2209`, not `209`. The `interactNpc()` method handles this automatically.
+
+### Caged NPCs and `tryMove()`
+
+For caged NPCs (like the lesser demon in Wizards' Tower), `tryMove()` returns `false` because pathfinding can't reach through cage bars. This means **no MOVE_OPCLICK packet is sent** before the OPNPC packet. The server still processes the attack if the player is in spell range, but only if autocast is set up. Without autocast, it tries melee, which fails with "I can't reach that!"
+
+### Autocast Setup Requires Multi-Step Interface Flow
+
+Setting up autocast Wind Bolt requires clicking through multiple interface buttons with waits between them:
+1. `setTab(0)` — open combat tab
+2. `clickButton(353)` — click "Choose Spell" (opens staff_spells overlay)
+3. **Wait 1 tick** — server needs to send the overlay
+4. `clickButton(1834)` — select Wind Bolt
+5. **Wait 1 tick** — server processes spell selection
+6. `selectButton(349)` — enable autocast toggle
+
+Key distinction: `clickButton()` uses `IF_BUTTON` (action 231) for `buttontype=normal`. `selectButton()` uses `SELECT_BUTTON` (action 225) for `buttontype=select`. Using the wrong one silently fails.
+
+### `handleBlockingUI()` Can Interfere With Setup
+
+The `startScript()` runner calls `handleBlockingUI()` every tick, which dismisses dialogs and closes modals. If the autocast spell selection overlay is open, `handleBlockingUI()` might close it before the spell can be selected. The fix: `handleBlockingUI()` no longer skips the action function — it runs but the action always executes too.
+
+### Stuck Detection After Level-Ups
+
+After a level-up or relog, autocast resets and the bot gets stuck saying "I can't reach that!" (trying melee on caged demon). Detection: count attack ticks where demon HP stays at 0. After 5 ticks with no damage, walk one tile in a random direction and redo the autocast setup.
+
+Don't use message-based stuck detection (`getMessages` checking for "I can't reach") — old messages stay in the queue and cause infinite reset loops.
+
+## How to Find Interface Component IDs
+
+Interface component IDs are needed for `clickButton()` and `selectButton()`. Find them in the Content repo:
+
+1. **Clone/browse:** https://github.com/LostCityRS/Content (branch `254`)
+2. **Pack file:** `pack/interface.pack` maps numeric IDs to named components
+   ```
+   353=combat_staff_2:auto_choose    ← "Choose Spell" button
+   349=combat_staff_2:auto_toggle    ← Autocast on/off toggle
+   1834=staff_spells:ssb4            ← Wind Bolt spell button
+   ```
+3. **Interface definitions:** `scripts/skill_combat/interfaces/magic/combat_staff_2.if` shows button types, positions, and script conditions
+4. **Button types matter:** `buttontype=normal` → use `clickButton()`. `buttontype=select` → use `selectButton()`.
+
+## How to Read Inventory Programmatically
+
+The inventory is stored in IfType interface components:
+```javascript
+const IfType = bot._client.chatInterface.constructor;
+const inv = IfType.list[3214]; // inventory component
+inv.linkObjType[slot]   // item type ID (may be offset by 1 from obj.pack)
+inv.linkObjNumber[slot] // item count
+```
+
+Note: `IfType` is not a global — access it via any existing interface component's constructor. The `chatInterface` property on the client works.
+
+Item IDs can be looked up in the Content repo at `pack/obj.pack`.
