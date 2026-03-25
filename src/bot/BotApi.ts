@@ -238,10 +238,10 @@ export function initBotApi(client: Client): void {
             if (!locType || !locType.op) return false;
 
             const lower = optionName.toLowerCase();
+            const locActions = [625, 721, 743, 357, 1071]; // OP_LOC1 through OP_LOC5
             for (let i = 0; i < 5; i++) {
                 if (locType.op[i] && locType.op[i]!.toLowerCase().includes(lower)) {
-                    // Map op index to MiniMenuAction: OP_LOC1=625, OP_LOC2=626, etc.
-                    c.menuAction[0] = 625 + i;
+                    c.menuAction[0] = locActions[i];
                     c.menuParamA[0] = typecode;
                     c.menuParamB[0] = x;
                     c.menuParamC[0] = z;
@@ -399,11 +399,72 @@ export function initBotApi(client: Client): void {
             c.redrawSideicons = true;
         },
 
-        /** Walk to a tile */
+        /** Walk to a local tile */
         walk(x: number, z: number): boolean {
             const lp = c.localPlayer;
             if (!lp || !c.ingame) return false;
             c.tryMove(lp.routeX[0], lp.routeZ[0], x, z, false, 0, 0, 0, 0, 0, 0);
+            return true;
+        },
+
+        /** Walk toward a world coordinate. Breaks long distances into ~15 tile steps. */
+        walkTo(worldX: number, worldZ: number): boolean {
+            if (!c.ingame || !c.localPlayer) return false;
+            const px = c.localPlayer.routeX[0] + c.mapBuildBaseX;
+            const pz = c.localPlayer.routeZ[0] + c.mapBuildBaseZ;
+            const dx = worldX - px;
+            const dz = worldZ - pz;
+            const dist = Math.max(Math.abs(dx), Math.abs(dz));
+            if (dist === 0) return true;
+            const step = Math.min(dist, 15);
+            const sx = px + Math.round(dx / dist * step);
+            const sz = pz + Math.round(dz / dist * step);
+            return bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ);
+        },
+
+        /** Get player world position */
+        getWorldPos(): {x: number; z: number} | null {
+            const lp = c.localPlayer;
+            if (!lp || !c.ingame) return null;
+            return {x: lp.routeX[0] + c.mapBuildBaseX, z: lp.routeZ[0] + c.mapBuildBaseZ};
+        },
+
+        /** Check if player is within distance of a world coordinate */
+        isNear(worldX: number, worldZ: number, dist: number = 3): boolean {
+            const pos = bot.getWorldPos();
+            if (!pos) return false;
+            return Math.abs(pos.x - worldX) <= dist && Math.abs(pos.z - worldZ) <= dist;
+        },
+
+        /** Use an inventory item on a nearby location (e.g. flax on spinning wheel).
+         *  objId is runtime ID. Finds the loc by name and uses USEHELD_ONLOC (810). */
+        useItemOnLoc(objId: number, objSlot: number, locName: string, comId: number = 3214): boolean {
+            if (!c.ingame) return false;
+            const locs = bot.findLocs(locName, 10);
+            if (locs.length === 0) return false;
+            const loc = locs[0];
+            // Set held item state (same as USEHELD_START)
+            c.objComId = objId - 1; // server obj.pack ID
+            c.objSelectedSlot = objSlot;
+            c.objSelectedComId = comId;
+            // Use item on loc
+            c.menuAction[0] = 810; // MiniMenuAction.USEHELD_ONLOC
+            c.menuParamA[0] = loc.typecode;
+            c.menuParamB[0] = loc.x;
+            c.menuParamC[0] = loc.z;
+            c.doAction(0);
+            return true;
+        },
+
+        /** Deposit all of an item into the bank. Bank interface must be open.
+         *  Uses INV_BUTTON4 (Deposit All) on bank_side:inv (2006). */
+        depositAll(objId: number, slot: number): boolean {
+            if (!c.ingame || c.mainModalId === -1) return false;
+            c.menuAction[0] = 331; // MiniMenuAction.INV_BUTTON4 (Deposit All)
+            c.menuParamA[0] = objId - 1; // server obj.pack ID
+            c.menuParamB[0] = slot;
+            c.menuParamC[0] = 2006; // bank_side:inv
+            c.doAction(0);
             return true;
         },
 
