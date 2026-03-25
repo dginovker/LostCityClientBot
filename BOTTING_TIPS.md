@@ -65,6 +65,7 @@ node serve.cjs
 | `findNpc(name)` | `NpcInfo[]` | Filter NPCs by name (case-insensitive partial match) |
 | `getMessages(n)` | `Message[]` | Last n chat/game messages |
 | `getStats()` | `{StatName: {level, xp}}` | All skill stats |
+| `getAbsolutePosition()` | `{x, z, level}` | Get player's absolute world coordinates (not local scene coords) |
 | `dismissDialog()` | `boolean` | Dismiss "Click here to continue" dialogs. Returns true if a dialog was dismissed |
 
 ### Actions
@@ -96,6 +97,28 @@ for (let i = 0; i < inv.linkObjType.length; i++) {
     }
 }
 // Note: item IDs may be offset by 1 from obj.pack IDs
+```
+
+## Local Server Testing
+
+The following features require a local Lost City server (Engine-TS) where your account has admin privileges. They do NOT work on rsleague.com or other public servers.
+
+### Admin Commands
+
+`bot.sendCommand(cmd)` sends a `::` admin command (without the `::` prefix). `bot.tele(absX, absZ)` is a shorthand for `::tele` with automatic coordinate conversion.
+
+```javascript
+bot.sendCommand('spawnevent genie');  // spawn a random event NPC
+bot.sendCommand('setvar tutorial 1000');  // complete tutorial
+bot.tele(3222, 3218);  // teleport to Lumbridge
+```
+
+### Skipping Tutorial Island
+
+New accounts on a local server start on Tutorial Island. To skip:
+```javascript
+bot.tele(3222, 3218);  // teleport to Lumbridge
+bot.sendCommand('setvar tutorial 1000');  // mark tutorial complete
 ```
 
 ## Writing a New Script

@@ -202,3 +202,81 @@ inv.linkObjNumber[slot] // item count
 Note: `IfType` is not a global — access it via any existing interface component's constructor. The `chatInterface` property on the client works.
 
 Item IDs can be looked up in the Content repo at `pack/obj.pack`.
+
+## How to Add Server Admin Commands (::commands)
+
+Admin/debug commands like `::npc`, `::tele`, `::give` are handled in the Engine-TS server code at:
+- **File:** `src/network/game/client/handler/ClientCheatHandler.ts`
+
+The command handler is organized by staff mod level:
+- `staffModLevel >= 4` + `!NODE_PRODUCTION` — Developer commands (destructive, testing)
+- `staffModLevel >= 3` — Admin commands (item spawning, teleporting, NPC spawning)
+- `staffModLevel >= 2` — Super-moderator commands (coords, visibility)
+
+In non-production mode, all users get `staffModLevel = 4` (set in `src/server/login/LoginThread.ts`).
+
+**Key existing commands:**
+- `::npcadd <internal_name>` — Spawns an NPC by its `npc.pack` internal name (e.g., `::npcadd macro_geni`)
+- `::give <obj_name>` — Gives an item by `obj.pack` name
+- `::tele <level>,<mx>,<mz>,<lx>,<lz>` — Teleports to coordinates
+- `::random` — Triggers random event readiness (`player.afkEventReady = true`)
+
+**NPC spawning pattern** (from `::npcadd`):
+```typescript
+const type: NpcType | null = NpcType.getByName(name);
+World.addNpc(new Npc(player.level, player.x, player.z, type.size, type.size,
+  EntityLifeCycle.DESPAWN, World.getNextNid(), type.id, type.moverestrict, type.blockwalk), 500);
+```
+
+**Random event NPC names** (from `content/pack/npc.pack`):
+| Friendly Name | Internal Name | NPC ID |
+|--------------|---------------|--------|
+| genie | macro_geni | 409 |
+| dwarf | macro_dwarf | 956 |
+| oldman | macro_mysterious_old_man | 410 |
+| swarm | macro_swarm | 411 |
+| rivertroll | macro_rivertrollguardian_1 | 391 |
+| rockgolem | macro_golemguardian_1 | 413 |
+| zombie | macro_zombie1 | 419 |
+| shade | macro_shade1 | 425 |
+| watchman | macro_watchman1 | 431 |
+| treespirit | macro_dryhadguardian_1 | 438 |
+
+Note: Combat-type random events (rivertroll, rockgolem, zombie, shade, watchman, treespirit) have 6 level variants each (e.g., `macro_zombie1` through `macro_zombie6`). The `_1` variants are the lowest level.
+
+**Sending commands from the bot client:**
+```javascript
+const c = bot._client;
+const cmd = 'spawnevent genie'; // without the :: prefix
+c.out.pIsaac(86); // ClientProt.CLIENT_CHEAT = 86
+c.out.p1(cmd.length + 1);
+c.out.pjstr(cmd);
+```
+
+**Important:** Random event NPCs have AI scripts that auto-despawn them within a few game ticks because they expect a `%npc_macro_event_target` variable (set by the normal random event system). When spawned manually, they'll appear briefly then despawn. This is expected behavior.
+
+## How to Skip Tutorial Island
+
+New accounts spawn on Tutorial Island. The `::tele` command (staffModLevel >= 2) can teleport the player to the mainland.
+
+**The `::tele` command format** is `tele <level>,<mx>,<mz>,<lx>,<lz>` where:
+- `level` = plane (0-3)
+- `mx` = map square X (`absX >> 6`)
+- `mz` = map square Z (`absZ >> 6`)
+- `lx` = local tile X (`absX & 63`)
+- `lz` = local tile Z (`absZ & 63`)
+
+For Lumbridge (abs 3222, 3218): `tele 0,50,50,22,18`
+
+**CLIENT_CHEAT packet format** (found in `src/client/Client.ts` around line 3359):
+```typescript
+this.out.pIsaac(ClientProt.CLIENT_CHEAT);  // opcode 86
+this.out.p1(this.chatInput.length - 2 + 1); // length = cmd.length + 1 (null terminator)
+this.out.pjstr(this.chatInput.substring(2)); // command without :: prefix
+```
+
+The `p1` value is `cmd.length + 1` because `pjstr` writes the string followed by a null terminator byte, and `p1` encodes the total length of what `pjstr` writes.
+
+**Bot API method added:** `bot.tele(absX, absZ, level)` and `bot.sendCommand(cmd)` handle the packet format automatically.
+
+**Local dev server advantage:** In non-production mode, all accounts get staffModLevel 4, giving full access to all cheat commands including `::tele`, `::give`, `::setstat`, etc. This is set in `src/server/login/LoginThread.ts`.

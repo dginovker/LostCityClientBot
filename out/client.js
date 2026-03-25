@@ -19488,10 +19488,23 @@ class JagFX {
 }
 
 // src/bot/BotApi.ts
+var RANDOM_EVENT_NPCS = {
+  Genie: "talk",
+  "Drunken Dwarf": "talk",
+  "Mysterious Old Man": "talk",
+  Swarm: "flee",
+  "River troll": "flee",
+  "Rock Golem": "flee",
+  Zombie: "flee",
+  Shade: "flee",
+  Watchman: "flee",
+  "Tree spirit": "flee"
+};
 function initBotApi(client) {
   const c = client;
   const bot = {
     _client: c,
+    _activeEvent: null,
     dismissDialog() {
       if (c.chatComId !== -1) {
         c.out.pIsaac(146 /* RESUME_PAUSEBUTTON */);
@@ -19817,6 +19830,30 @@ function initBotApi(client) {
       c.redrawSidebar = true;
       c.redrawSideicons = true;
     },
+    sendCommand(cmd) {
+      if (!c.out)
+        return false;
+      c.out.pIsaac(86 /* CLIENT_CHEAT */);
+      c.out.p1(cmd.length + 1);
+      c.out.pjstr(cmd);
+      return true;
+    },
+    tele(absX, absZ, level = 0) {
+      const mx = absX >> 6;
+      const mz = absZ >> 6;
+      const lx = absX & 63;
+      const lz = absZ & 63;
+      return bot.sendCommand(`tele ${level},${mx},${mz},${lx},${lz}`);
+    },
+    getAbsolutePosition() {
+      if (!c.localPlayer)
+        return null;
+      return {
+        x: c.mapBuildBaseX + c.localPlayer.routeX[0],
+        z: c.mapBuildBaseZ + c.localPlayer.routeZ[0],
+        level: c.minusedlevel ?? 0
+      };
+    },
     walk(x2, z) {
       const lp = c.localPlayer;
       if (!lp || !c.ingame)
@@ -19840,10 +19877,121 @@ function initBotApi(client) {
         return false;
       return bot.pickpocket(npcs[0].slot);
     },
+    checkRandomEvent() {
+      if (bot._activeEvent) {
+        const event = bot._activeEvent;
+        const { name, slot } = event;
+        const npc = c.npc[slot];
+        const npcAlive = npc && npc.type && npc.type.name === name;
+        if (event.handler === "talk") {
+          if (!npcAlive) {
+            console.log(`[BOT] Random event "${name}" completed (NPC despawned).`);
+            bot._activeEvent = null;
+            return false;
+          }
+          if (event.talking) {
+            bot.dismissDialog();
+            return true;
+          }
+          console.log(`[BOT] Random event "${name}": initiating talk to slot ${slot}.`);
+          bot.interactNpc(slot, "talk");
+          event.talking = true;
+          return true;
+        }
+        if (event.handler === "flee") {
+          if (event.phase === "fleeing") {
+            if (!npcAlive) {
+              console.log(`[BOT] Combat event "${name}" NPC despawned. Walking back to saved position (${event.savedX}, ${event.savedZ}).`);
+              bot.walk(event.savedX, event.savedZ);
+              event.phase = "returning";
+              return true;
+            }
+            const player = bot.getPlayer();
+            if (!player)
+              return true;
+            const npcX = npc.routeX[0];
+            const npcZ = npc.routeZ[0];
+            const dx = player.x - npcX;
+            const dz = player.z - npcZ;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            let fleeX, fleeZ;
+            if (dist < 0.01) {
+              fleeX = player.x + 5;
+              fleeZ = player.z + 5;
+            } else {
+              fleeX = Math.round(player.x + dx / dist * 5);
+              fleeZ = Math.round(player.z + dz / dist * 5);
+            }
+            fleeX = Math.max(1, Math.min(102, fleeX));
+            fleeZ = Math.max(1, Math.min(102, fleeZ));
+            console.log(`[BOT] Fleeing from "${name}" at (${npcX},${npcZ}). Walking to (${fleeX},${fleeZ}).`);
+            bot.walk(fleeX, fleeZ);
+            return true;
+          }
+          if (event.phase === "returning") {
+            const player = bot.getPlayer();
+            if (!player)
+              return true;
+            const dx = Math.abs(player.x - event.savedX);
+            const dz = Math.abs(player.z - event.savedZ);
+            if (dx <= 1 && dz <= 1) {
+              console.log(`[BOT] Combat event "${name}" complete. Returned to saved position.`);
+              bot._activeEvent = null;
+              return false;
+            }
+            bot.walk(event.savedX, event.savedZ);
+            return true;
+          }
+        }
+      }
+      const npcs = bot.getNpcs();
+      for (const npc of npcs) {
+        if (npc.name && npc.name in RANDOM_EVENT_NPCS) {
+          const handler = RANDOM_EVENT_NPCS[npc.name];
+          if (handler === "talk") {
+            console.log(`[BOT] Random event detected: "${npc.name}" at slot ${npc.slot}. Initiating talk.`);
+            bot.interactNpc(npc.slot, "talk");
+            bot._activeEvent = { name: npc.name, slot: npc.slot, handler: "talk", talking: true };
+            return true;
+          }
+          if (handler === "flee") {
+            const player = bot.getPlayer();
+            if (!player)
+              return false;
+            console.log(`[BOT] Combat event detected: "${npc.name}" at slot ${npc.slot}. Saving position (${player.x}, ${player.z}) and fleeing.`);
+            const dx = player.x - npc.x;
+            const dz = player.z - npc.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            let fleeX, fleeZ;
+            if (dist < 0.01) {
+              fleeX = player.x + 5;
+              fleeZ = player.z + 5;
+            } else {
+              fleeX = Math.round(player.x + dx / dist * 5);
+              fleeZ = Math.round(player.z + dz / dist * 5);
+            }
+            fleeX = Math.max(1, Math.min(102, fleeX));
+            fleeZ = Math.max(1, Math.min(102, fleeZ));
+            bot.walk(fleeX, fleeZ);
+            bot._activeEvent = {
+              name: npc.name,
+              slot: npc.slot,
+              handler: "flee",
+              phase: "fleeing",
+              savedX: player.x,
+              savedZ: player.z
+            };
+            return true;
+          }
+        }
+      }
+      return false;
+    },
     startScript(username, password, action, intervalMs = 2000) {
       if (window._botInterval)
         clearInterval(window._botInterval);
       window._botRelogging = false;
+      bot._activeEvent = null;
       window._botInterval = setInterval(() => {
         if (!bot.isLoggedIn()) {
           if (!window._botRelogging) {
@@ -19857,6 +20005,8 @@ function initBotApi(client) {
           return;
         }
         c.idleTimer = performance.now();
+        if (bot.checkRandomEvent())
+          return;
         bot.dismissDialog();
         try {
           action();
@@ -19871,6 +20021,7 @@ function initBotApi(client) {
         clearInterval(window._botInterval);
         window._botInterval = null;
       }
+      bot._activeEvent = null;
       console.log("[BOT] Script stopped.");
     }
   };
@@ -29769,4 +29920,4 @@ export {
   Client
 };
 
-//# debugId=299955CF5155945064756E2164756E21
+//# debugId=6C515D5261D618A064756E2164756E21

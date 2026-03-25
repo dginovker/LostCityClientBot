@@ -21,12 +21,34 @@ interface PlayerInfo {
     level: number;
 }
 
+// Random event NPC names -> handler type
+const RANDOM_EVENT_NPCS: Record<string, 'talk' | 'flee'> = {
+    'Genie': 'talk',
+    'Drunken Dwarf': 'talk',
+    'Mysterious Old Man': 'talk',
+    'Swarm': 'flee',
+    'River troll': 'flee',
+    'Rock Golem': 'flee',
+    'Zombie': 'flee',
+    'Shade': 'flee',
+    'Watchman': 'flee',
+    'Tree spirit': 'flee',
+};
+
 export function initBotApi(client: Client): void {
     const c = client as any;
 
     const bot = {
         // Internal reference for advanced use
         _client: c,
+
+        // Random event state: null when no event, or object when handling one
+        // For 'talk' events: {name, slot, handler:'talk', talking}
+        // For 'flee' events: {name, slot, handler:'flee', phase:'fleeing'|'returning', savedX, savedZ}
+        _activeEvent: null as
+            | { name: string; slot: number; handler: 'talk'; talking: boolean }
+            | { name: string; slot: number; handler: 'flee'; phase: 'fleeing' | 'returning'; savedX: number; savedZ: number }
+            | null,
 
         // ===== Common Handlers (used by startScript) =====
 
@@ -399,6 +421,36 @@ export function initBotApi(client: Client): void {
             c.redrawSideicons = true;
         },
 
+        /** Send a :: admin/cheat command to the server (e.g. 'tele 0,50,50,22,18').
+         *  Do NOT include the '::' prefix -- just the command text. */
+        sendCommand(cmd: string): boolean {
+            if (!c.out) return false;
+            c.out.pIsaac(ClientProt.CLIENT_CHEAT);
+            c.out.p1(cmd.length + 1);
+            c.out.pjstr(cmd);
+            return true;
+        },
+
+        /** Teleport to absolute coordinates using ::tele.
+         *  absX/absZ are absolute world coords (e.g. Lumbridge = 3222, 3218). */
+        tele(absX: number, absZ: number, level: number = 0): boolean {
+            const mx = absX >> 6;
+            const mz = absZ >> 6;
+            const lx = absX & 63;
+            const lz = absZ & 63;
+            return bot.sendCommand(`tele ${level},${mx},${mz},${lx},${lz}`);
+        },
+
+        /** Get player absolute world coordinates */
+        getAbsolutePosition(): { x: number; z: number; level: number } | null {
+            if (!c.localPlayer) return null;
+            return {
+                x: c.mapBuildBaseX + c.localPlayer.routeX[0],
+                z: c.mapBuildBaseZ + c.localPlayer.routeZ[0],
+                level: c.minusedlevel ?? 0,
+            };
+        },
+
         /** Walk to a tile */
         walk(x: number, z: number): boolean {
             const lp = c.localPlayer;
@@ -428,6 +480,134 @@ export function initBotApi(client: Client): void {
             return bot.pickpocket(npcs[0].slot);
         },
 
+        // ===== Random Event Detection =====
+
+        /** Check for and handle random event NPCs. Returns true if an event is being handled
+         *  (caller should skip normal actions). */
+        checkRandomEvent(): boolean {
+            // If we're currently handling an event
+            if (bot._activeEvent) {
+                const event = bot._activeEvent;
+                const { name, slot } = event;
+                const npc = c.npc[slot];
+                const npcAlive = npc && npc.type && npc.type.name === name;
+
+                // --- Talk handler ---
+                if (event.handler === 'talk') {
+                    if (!npcAlive) {
+                        console.log(`[BOT] Random event "${name}" completed (NPC despawned).`);
+                        bot._activeEvent = null;
+                        return false;
+                    }
+                    if (event.talking) {
+                        bot.dismissDialog();
+                        return true;
+                    }
+                    console.log(`[BOT] Random event "${name}": initiating talk to slot ${slot}.`);
+                    bot.interactNpc(slot, 'talk');
+                    event.talking = true;
+                    return true;
+                }
+
+                // --- Flee handler ---
+                if (event.handler === 'flee') {
+                    if (event.phase === 'fleeing') {
+                        if (!npcAlive) {
+                            // NPC despawned, walk back to saved position
+                            console.log(`[BOT] Combat event "${name}" NPC despawned. Walking back to saved position (${event.savedX}, ${event.savedZ}).`);
+                            bot.walk(event.savedX, event.savedZ);
+                            event.phase = 'returning';
+                            return true;
+                        }
+                        // NPC still alive, keep fleeing away from it
+                        const player = bot.getPlayer();
+                        if (!player) return true;
+                        const npcX = npc.routeX[0];
+                        const npcZ = npc.routeZ[0];
+                        const dx = player.x - npcX;
+                        const dz = player.z - npcZ;
+                        // Normalize direction and move 5 tiles away
+                        const dist = Math.sqrt(dx * dx + dz * dz);
+                        let fleeX: number, fleeZ: number;
+                        if (dist < 0.01) {
+                            // On top of NPC, pick arbitrary direction
+                            fleeX = player.x + 5;
+                            fleeZ = player.z + 5;
+                        } else {
+                            fleeX = Math.round(player.x + (dx / dist) * 5);
+                            fleeZ = Math.round(player.z + (dz / dist) * 5);
+                        }
+                        // Clamp to valid tile range
+                        fleeX = Math.max(1, Math.min(102, fleeX));
+                        fleeZ = Math.max(1, Math.min(102, fleeZ));
+                        console.log(`[BOT] Fleeing from "${name}" at (${npcX},${npcZ}). Walking to (${fleeX},${fleeZ}).`);
+                        bot.walk(fleeX, fleeZ);
+                        return true;
+                    }
+                    if (event.phase === 'returning') {
+                        // Check if we've arrived back at the saved position
+                        const player = bot.getPlayer();
+                        if (!player) return true;
+                        const dx = Math.abs(player.x - event.savedX);
+                        const dz = Math.abs(player.z - event.savedZ);
+                        if (dx <= 1 && dz <= 1) {
+                            console.log(`[BOT] Combat event "${name}" complete. Returned to saved position.`);
+                            bot._activeEvent = null;
+                            return false;
+                        }
+                        // Keep walking back
+                        bot.walk(event.savedX, event.savedZ);
+                        return true;
+                    }
+                }
+            }
+
+            // Scan for any random event NPC in the visible NPC list
+            const npcs = bot.getNpcs();
+            for (const npc of npcs) {
+                if (npc.name && npc.name in RANDOM_EVENT_NPCS) {
+                    const handler = RANDOM_EVENT_NPCS[npc.name];
+                    if (handler === 'talk') {
+                        console.log(`[BOT] Random event detected: "${npc.name}" at slot ${npc.slot}. Initiating talk.`);
+                        bot.interactNpc(npc.slot, 'talk');
+                        bot._activeEvent = { name: npc.name, slot: npc.slot, handler: 'talk', talking: true };
+                        return true;
+                    }
+                    if (handler === 'flee') {
+                        const player = bot.getPlayer();
+                        if (!player) return false;
+                        console.log(`[BOT] Combat event detected: "${npc.name}" at slot ${npc.slot}. Saving position (${player.x}, ${player.z}) and fleeing.`);
+                        // Calculate flee direction: away from NPC
+                        const dx = player.x - npc.x;
+                        const dz = player.z - npc.z;
+                        const dist = Math.sqrt(dx * dx + dz * dz);
+                        let fleeX: number, fleeZ: number;
+                        if (dist < 0.01) {
+                            fleeX = player.x + 5;
+                            fleeZ = player.z + 5;
+                        } else {
+                            fleeX = Math.round(player.x + (dx / dist) * 5);
+                            fleeZ = Math.round(player.z + (dz / dist) * 5);
+                        }
+                        fleeX = Math.max(1, Math.min(102, fleeX));
+                        fleeZ = Math.max(1, Math.min(102, fleeZ));
+                        bot.walk(fleeX, fleeZ);
+                        bot._activeEvent = {
+                            name: npc.name,
+                            slot: npc.slot,
+                            handler: 'flee',
+                            phase: 'fleeing',
+                            savedX: player.x,
+                            savedZ: player.z,
+                        };
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        },
+
         // ===== Script Runner =====
 
         /**
@@ -445,6 +625,7 @@ export function initBotApi(client: Client): void {
             // Clear any previous script
             if ((window as any)._botInterval) clearInterval((window as any)._botInterval);
             (window as any)._botRelogging = false;
+            bot._activeEvent = null;
 
             (window as any)._botInterval = setInterval(() => {
                 // Auto re-login
@@ -460,6 +641,9 @@ export function initBotApi(client: Client): void {
 
                 // Reset idle timer so the client doesn't auto-logout
                 c.idleTimer = performance.now();
+
+                // Handle random events before anything else — if one is active, skip user action
+                if (bot.checkRandomEvent()) return;
 
                 // Dismiss level-up dialogs. Don't close modals here — scripts
                 // like the shop buyer need modals to stay open.
@@ -482,6 +666,7 @@ export function initBotApi(client: Client): void {
                 clearInterval((window as any)._botInterval);
                 (window as any)._botInterval = null;
             }
+            bot._activeEvent = null;
             console.log('[BOT] Script stopped.');
         },
     };
