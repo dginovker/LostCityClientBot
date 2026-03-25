@@ -19639,6 +19639,95 @@ function initBotApi(client) {
     attackNpc(npcSlot) {
       return bot.interactNpc(npcSlot, "attack");
     },
+    findLocs(name, radius = 10) {
+      if (!c.ingame || !c.world || !c.localPlayer)
+        return [];
+      const results = [];
+      const lower = name.toLowerCase();
+      const px = c.localPlayer.routeX[0];
+      const pz = c.localPlayer.routeZ[0];
+      const level = c.minusedlevel;
+      for (let dx = -radius;dx <= radius; dx++) {
+        for (let dz = -radius;dz <= radius; dz++) {
+          const x2 = px + dx;
+          const z = pz + dz;
+          if (x2 < 0 || z < 0 || x2 >= 104 || z >= 104)
+            continue;
+          const typecodes = [
+            c.world.wallType(level, x2, z),
+            c.world.sceneType(level, x2, z),
+            c.world.decorType(level, z, x2),
+            c.world.gdType(level, x2, z)
+          ];
+          for (const typecode of typecodes) {
+            if (!typecode)
+              continue;
+            const locId = typecode >> 14 & 32767;
+            const locType = LocType.list(locId);
+            if (locType && locType.name && locType.name.toLowerCase().includes(lower)) {
+              results.push({ name: locType.name, locId, typecode, x: x2, z });
+            }
+          }
+        }
+      }
+      return results;
+    },
+    interactLoc(typecode, x2, z, optionName) {
+      if (!c.ingame)
+        return false;
+      const locId = typecode >> 14 & 32767;
+      const locType = LocType.list(locId);
+      if (!locType || !locType.op)
+        return false;
+      const lower = optionName.toLowerCase();
+      for (let i2 = 0;i2 < 5; i2++) {
+        if (locType.op[i2] && locType.op[i2].toLowerCase().includes(lower)) {
+          c.menuAction[0] = 625 + i2;
+          c.menuParamA[0] = typecode;
+          c.menuParamB[0] = x2;
+          c.menuParamC[0] = z;
+          c.doAction(0);
+          return true;
+        }
+      }
+      return false;
+    },
+    buyShopItem(itemSlot, quantity, shopComId = 3900) {
+      if (!c.ingame || c.mainModalId === -1)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const shopCom = IfType2.list[shopComId];
+      if (!shopCom || !shopCom.linkObjType)
+        return false;
+      const objId = shopCom.linkObjType[itemSlot];
+      if (objId <= 0)
+        return false;
+      const actionMap = { 1: 113, 5: 555, 10: 331 };
+      const action = actionMap[quantity];
+      if (!action)
+        return false;
+      c.menuAction[0] = action;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = itemSlot;
+      c.menuParamC[0] = shopComId;
+      c.doAction(0);
+      return true;
+    },
+    getShopItems(shopComId = 3900) {
+      if (!c.ingame)
+        return [];
+      const IfType2 = c.chatInterface.constructor;
+      const shopCom = IfType2.list[shopComId];
+      if (!shopCom || !shopCom.linkObjType)
+        return [];
+      const items = [];
+      for (let i2 = 0;i2 < shopCom.linkObjType.length; i2++) {
+        if (shopCom.linkObjType[i2] > 0) {
+          items.push({ slot: i2, objId: shopCom.linkObjType[i2], count: shopCom.linkObjNumber[i2] });
+        }
+      }
+      return items;
+    },
     clickButton(comId) {
       if (!c.ingame)
         return false;
@@ -19658,6 +19747,55 @@ function initBotApi(client) {
       c.menuParamC[0] = comId;
       c.doAction(0);
       return true;
+    },
+    getGroundItems(radius = 10) {
+      if (!c.ingame || !c.localPlayer)
+        return [];
+      const results = [];
+      const px = c.localPlayer.routeX[0];
+      const pz = c.localPlayer.routeZ[0];
+      const level = c.minusedlevel;
+      const groundObj = c.groundObj;
+      if (!groundObj || !groundObj[level])
+        return results;
+      for (let dx = -radius;dx <= radius; dx++) {
+        for (let dz = -radius;dz <= radius; dz++) {
+          const x2 = px + dx;
+          const z = pz + dz;
+          if (x2 < 0 || z < 0 || x2 >= 104 || z >= 104)
+            continue;
+          const objs = groundObj[level][x2]?.[z];
+          if (!objs)
+            continue;
+          for (let obj = objs.tail();obj !== null; obj = objs.prev()) {
+            results.push({ objId: obj.id, x: x2, z });
+          }
+        }
+      }
+      return results;
+    },
+    pickupGroundItem(objId, x2, z) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 617;
+      c.menuParamA[0] = objId;
+      c.menuParamB[0] = x2;
+      c.menuParamC[0] = z;
+      c.doAction(0);
+      return true;
+    },
+    useHeldItem(objId, slot, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 694;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
+    setDebug(on) {
+      c.debugMode = on;
     },
     setTab(tab) {
       c.sideTab = tab;
@@ -19703,7 +19841,8 @@ function initBotApi(client) {
           }
           return;
         }
-        bot.handleBlockingUI();
+        c.idleTimer = performance.now();
+        bot.dismissDialog();
         try {
           action();
         } catch (e) {
@@ -20063,6 +20202,7 @@ class Client extends GameShell {
   runenergy = 0;
   runweight = 0;
   staffmodlevel = 0;
+  debugMode = true;
   var = [];
   varServ = [];
   chatInterface = new IfType;
@@ -27462,7 +27602,7 @@ class Client extends GameShell {
               this.menuNumEntries++;
             }
           }
-          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name;
+          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name + (this.debugMode ? " @whi@(id=" + typeId + ")" : "");
           this.menuAction[this.menuNumEntries] = 1381 /* OP_LOC6 */;
           this.menuParamA[this.menuNumEntries] = typecode;
           this.menuParamB[this.menuNumEntries] = x2;
@@ -27552,7 +27692,7 @@ class Client extends GameShell {
                 this.menuNumEntries++;
               }
             }
-            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name;
+            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
             this.menuAction[this.menuNumEntries] = 1152 /* OP_OBJ6 */;
             this.menuParamA[this.menuNumEntries] = obj.id;
             this.menuParamB[this.menuNumEntries] = x2;
@@ -27638,7 +27778,7 @@ class Client extends GameShell {
           this.menuNumEntries++;
         }
       }
-      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip;
+      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip + (this.debugMode ? " @whi@(id=" + npc.id + ")" : "");
       this.menuAction[this.menuNumEntries] = 1714 /* OP_NPC6 */;
       this.menuParamA[this.menuNumEntries] = a;
       this.menuParamB[this.menuNumEntries] = b;
@@ -27843,7 +27983,7 @@ class Client extends GameShell {
                   }
                 }
               }
-              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name;
+              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
               this.menuAction[this.menuNumEntries] = 1328 /* OP_HELD6 */;
               this.menuParamA[this.menuNumEntries] = obj.id;
               this.menuParamB[this.menuNumEntries] = slot;
@@ -29614,4 +29754,4 @@ export {
   Client
 };
 
-//# debugId=0C71F2A07844BBCB64756E2164756E21
+//# debugId=A6EFCFE330531FC064756E2164756E21
