@@ -446,7 +446,7 @@ export class Client extends GameShell {
     private runenergy: number = 0;
     private runweight: number = 0;
     private staffmodlevel: number = 0;
-    debugMode: boolean = false;
+    debugMode: boolean = true;
     private var: number[] = [];
     private varServ: number[] = [];
 

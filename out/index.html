@@ -36,17 +36,23 @@
         #toolbar label { color: #888; font-size: 12px; }
         #editor {
             width: 100%;
-            height: 120px;
-            background: #1a1a1a;
-            color: #0f0;
-            border: 1px solid #444;
-            font-family: monospace;
+            height: 300px;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
             font-size: 13px;
-            padding: 6px;
+            line-height: 1.5;
+            padding: 10px;
             resize: vertical;
             tab-size: 2;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
         }
-        #editor:focus { outline: 1px solid #0a0; }
+        #editor:focus { outline: 1px solid #58a6ff; border-color: #58a6ff; }
+        #editor::selection { background: #264f78; }
     </style>
 </head>
 <body>
@@ -58,7 +64,7 @@
                 <option value="paladin">Paladin Pickpocket</option>
                 <option value="lesser_demon">Lesser Demon (Magic)</option>
                 <option value="willow_chop">Willow Tree Chopping</option>
-                <option value="magic_shop">Magic Shop (Buy Runes)</option>
+                <option value="magic_shop">Shop Buyer</option>
                 <option value="chicken_bones">Chickens + Bury Bones</option>
                 <option value="custom">Custom</option>
             </select>
@@ -118,21 +124,18 @@ if (trees.length > 0) {
   }
   bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
 }`,
-            magic_shop: `// Buy runes from Magic Store Owner
+            magic_shop: `// Shop buyer - trade with nearby shop NPC and buy items
+// Change NPC_NAME and TARGET_OBJ_ID to match your shop and item
+// Use debug mode (bot.setDebug(true)) to see item IDs in examine text
+const NPC_NAME = 'magic store';
+const TARGET_OBJ_ID = 564; // Law rune (use examine to find IDs)
 const c = bot._client;
-// Dismiss welcome screen (modal 4214) but not the shop (modal 3824)
 if (c.mainModalId !== -1 && c.mainModalId !== 3824) { bot.closeModal(); return; }
-// Open shop if not already open
 if (c.mainModalId === -1) {
-  const npc = bot.findNpc('magic store');
+  const npc = bot.findNpc(NPC_NAME);
   if (npc.length > 0) bot.interactNpc(npc[0].slot, 'trade');
   return;
 }
-// Buy 10 Law Runes per tick
-// Change the objId below to buy different runes (runtime IDs, +1 from obj.pack):
-//   557=air, 558=earth, 559=mind, 560=body, 561=death
-//   562=nature, 563=chaos, 564=law, 565=cosmic, 566=blood
-const TARGET_OBJ_ID = 564; // Law rune
 const items = bot.getShopItems();
 const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {

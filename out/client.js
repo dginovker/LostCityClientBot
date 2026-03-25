@@ -20202,7 +20202,7 @@ class Client extends GameShell {
   runenergy = 0;
   runweight = 0;
   staffmodlevel = 0;
-  debugMode = false;
+  debugMode = true;
   var = [];
   varServ = [];
   chatInterface = new IfType;
@@ -29754,4 +29754,4 @@ export {
   Client
 };
 
-//# debugId=98E3A460C630A68764756E2164756E21
+//# debugId=E2464ADBE79DB38564756E2164756E21
