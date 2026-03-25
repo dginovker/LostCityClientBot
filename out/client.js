@@ -19756,6 +19756,7 @@ function initBotApi(client) {
           }
           return;
         }
+        c.idleTimer = performance.now();
         bot.handleBlockingUI();
         try {
           action();
@@ -29667,4 +29668,4 @@ export {
   Client
 };
 
-//# debugId=AA6D3601B69A898C64756E2164756E21
+//# debugId=1AF5E8DC6D16823464756E2164756E21

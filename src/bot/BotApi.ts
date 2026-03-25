@@ -340,6 +340,9 @@ export function initBotApi(client: Client): void {
                     return;
                 }
 
+                // Reset idle timer so the client doesn't auto-logout
+                c.idleTimer = performance.now();
+
                 // Handle blocking UI (close modals, dismiss dialogs) but don't skip the action
                 bot.handleBlockingUI();
 
