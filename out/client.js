@@ -19748,6 +19748,9 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    setDebug(on) {
+      c.debugMode = on;
+    },
     setTab(tab) {
       c.sideTab = tab;
       c.redrawSidebar = true;
@@ -20153,6 +20156,7 @@ class Client extends GameShell {
   runenergy = 0;
   runweight = 0;
   staffmodlevel = 0;
+  debugMode = false;
   var = [];
   varServ = [];
   chatInterface = new IfType;
@@ -27552,7 +27556,7 @@ class Client extends GameShell {
               this.menuNumEntries++;
             }
           }
-          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name;
+          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name + (this.debugMode ? " @whi@(locId=" + typeId + " x=" + x2 + " z=" + z + ")" : "");
           this.menuAction[this.menuNumEntries] = 1381 /* OP_LOC6 */;
           this.menuParamA[this.menuNumEntries] = typecode;
           this.menuParamB[this.menuNumEntries] = x2;
@@ -27642,7 +27646,7 @@ class Client extends GameShell {
                 this.menuNumEntries++;
               }
             }
-            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name;
+            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name + (this.debugMode ? " @whi@(objId=" + obj.id + " x=" + x2 + " z=" + z + ")" : "");
             this.menuAction[this.menuNumEntries] = 1152 /* OP_OBJ6 */;
             this.menuParamA[this.menuNumEntries] = obj.id;
             this.menuParamB[this.menuNumEntries] = x2;
@@ -27728,7 +27732,7 @@ class Client extends GameShell {
           this.menuNumEntries++;
         }
       }
-      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip;
+      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip + (this.debugMode ? " @whi@(npcId=" + npc.id + " slot=" + a + ")" : "");
       this.menuAction[this.menuNumEntries] = 1714 /* OP_NPC6 */;
       this.menuParamA[this.menuNumEntries] = a;
       this.menuParamB[this.menuNumEntries] = b;
@@ -27933,7 +27937,7 @@ class Client extends GameShell {
                   }
                 }
               }
-              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name;
+              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name + (this.debugMode ? " @whi@(objId=" + obj.id + " slot=" + slot + ")" : "");
               this.menuAction[this.menuNumEntries] = 1328 /* OP_HELD6 */;
               this.menuParamA[this.menuNumEntries] = obj.id;
               this.menuParamB[this.menuNumEntries] = slot;
@@ -29704,4 +29708,4 @@ export {
   Client
 };
 
-//# debugId=58B57BC30AB1347364756E2164756E21
+//# debugId=D3566171E9AA567064756E2164756E21

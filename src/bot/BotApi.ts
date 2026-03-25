@@ -318,6 +318,11 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Toggle debug mode - shows IDs in right-click menus (locId, npcId, objId, slot, coords) */
+        setDebug(on: boolean): void {
+            c.debugMode = on;
+        },
+
         /** Set sidebar tab (0=combat, 3=inventory, 6=magic, etc.) */
         setTab(tab: number): void {
             c.sideTab = tab;

@@ -446,6 +446,7 @@ export class Client extends GameShell {
     private runenergy: number = 0;
     private runweight: number = 0;
     private staffmodlevel: number = 0;
+    debugMode: boolean = false;
     private var: number[] = [];
     private varServ: number[] = [];
 
@@ -9593,7 +9594,7 @@ export class Client extends GameShell {
                         }
                     }
 
-                    this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name;
+                    this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name + (this.debugMode ? ' @whi@(locId=' + typeId + ' x=' + x + ' z=' + z + ')' : '');
                     this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_LOC6;
                     this.menuParamA[this.menuNumEntries] = typecode;
                     this.menuParamB[this.menuNumEntries] = x;
@@ -9695,7 +9696,7 @@ export class Client extends GameShell {
                             }
                         }
 
-                        this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name;
+                        this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name + (this.debugMode ? ' @whi@(objId=' + obj.id + ' x=' + x + ' z=' + z + ')' : '');
                         this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_OBJ6;
                         this.menuParamA[this.menuNumEntries] = obj.id;
                         this.menuParamB[this.menuNumEntries] = x;
@@ -9793,7 +9794,7 @@ export class Client extends GameShell {
                 }
             }
 
-            this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip;
+            this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip + (this.debugMode ? ' @whi@(npcId=' + npc.id + ' slot=' + a + ')' : '');
             this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_NPC6;
             this.menuParamA[this.menuNumEntries] = a;
             this.menuParamB[this.menuNumEntries] = b;
@@ -10030,7 +10031,7 @@ export class Client extends GameShell {
                                 }
                             }
 
-                            this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name;
+                            this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name + (this.debugMode ? ' @whi@(objId=' + obj.id + ' slot=' + slot + ')' : '');
                             this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_HELD6;
                             this.menuParamA[this.menuNumEntries] = obj.id;
                             this.menuParamB[this.menuNumEntries] = slot;
