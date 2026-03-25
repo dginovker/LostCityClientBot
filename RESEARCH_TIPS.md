@@ -11,7 +11,7 @@ The game you are botting is a fork of a **Lost City** RuneScape private server. 
 - **Game content (scripts/configs):** https://github.com/LostCityRS/Content (branch `254`)
 - **Legacy org:** https://github.com/2004Scape/Server (redirects to LostCityRS)
 
-The `254` branch corresponds to the version you are probably playing on.
+The `254` branch corresponds to the version you are probably playing on. For fast analysis, you should clone the server repo locally (although note that you are not connected to it, this is just useful for understanding the code)
 
 ## Understanding the Protocol
 
