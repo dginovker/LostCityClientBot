@@ -19692,6 +19692,42 @@ function initBotApi(client) {
       }
       return false;
     },
+    buyShopItem(itemSlot, quantity, shopComId = 3900) {
+      if (!c.ingame || c.mainModalId === -1)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const shopCom = IfType2.list[shopComId];
+      if (!shopCom || !shopCom.linkObjType)
+        return false;
+      const objId = shopCom.linkObjType[itemSlot];
+      if (objId <= 0)
+        return false;
+      const actionMap = { 1: 113, 5: 555, 10: 331 };
+      const action = actionMap[quantity];
+      if (!action)
+        return false;
+      c.menuAction[0] = action;
+      c.menuParamA[0] = objId;
+      c.menuParamB[0] = itemSlot;
+      c.menuParamC[0] = shopComId;
+      c.doAction(0);
+      return true;
+    },
+    getShopItems(shopComId = 3900) {
+      if (!c.ingame)
+        return [];
+      const IfType2 = c.chatInterface.constructor;
+      const shopCom = IfType2.list[shopComId];
+      if (!shopCom || !shopCom.linkObjType)
+        return [];
+      const items = [];
+      for (let i2 = 0;i2 < shopCom.linkObjType.length; i2++) {
+        if (shopCom.linkObjType[i2] > 0) {
+          items.push({ slot: i2, objId: shopCom.linkObjType[i2], count: shopCom.linkObjNumber[i2] });
+        }
+      }
+      return items;
+    },
     clickButton(comId) {
       if (!c.ingame)
         return false;
@@ -29668,4 +29704,4 @@ export {
   Client
 };
 
-//# debugId=1AF5E8DC6D16823464756E2164756E21
+//# debugId=3C1E2A5CC14A973A64756E2164756E21

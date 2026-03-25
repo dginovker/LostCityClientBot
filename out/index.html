@@ -58,6 +58,7 @@
                 <option value="paladin">Paladin Pickpocket</option>
                 <option value="lesser_demon">Lesser Demon (Magic)</option>
                 <option value="willow_chop">Willow Tree Chopping</option>
+                <option value="magic_shop">Magic Shop (Buy Runes)</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -114,12 +115,31 @@ if (trees.length > 0) {
   }
   bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
 }`,
+            magic_shop: `// Buy runes from Magic Store Owner
+// Step 1: Open shop if not already open
+const c = bot._client;
+if (c.mainModalId === -1) {
+  const npc = bot.findNpc('magic store');
+  if (npc.length > 0) bot.interactNpc(npc[0].slot, 'trade');
+  return;
+}
+// Step 2: Buy 10 Law Runes (objId 563, find its slot dynamically)
+// Change the objId below to buy different runes:
+//   556=air, 557=earth, 558=mind, 559=body, 560=death
+//   561=nature, 562=chaos, 563=law, 564=cosmic, 565=blood
+const TARGET_OBJ_ID = 563; // Law rune
+const items = bot.getShopItems();
+const target = items.find(i => i.objId === TARGET_OBJ_ID);
+if (target && target.count > 0) {
+  bot.buyShopItem(target.slot, 10);
+}`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
 // bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
 // bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
 // bot.selectButton(comId), bot.setTab(tabId)
+// bot.getShopItems(), bot.buyShopItem(slot, qty)
 // bot.getMessages(n), bot.getStats(), bot.dismissDialog(), bot.closeModal()
 `,
         };

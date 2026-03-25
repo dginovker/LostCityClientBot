@@ -252,6 +252,50 @@ export function initBotApi(client: Client): void {
             return false;
         },
 
+        /** Buy items from an open shop interface.
+         *  quantity: 1, 5, 10 (maps to INV_BUTTON2, INV_BUTTON3, INV_BUTTON4)
+         *  itemSlot: the slot index of the item in the shop (0-based)
+         *  shopComId: shop inventory component ID (default 3900 = shop_template:inv) */
+        buyShopItem(itemSlot: number, quantity: 1 | 5 | 10, shopComId: number = 3900): boolean {
+            if (!c.ingame || c.mainModalId === -1) return false;
+
+            const IfType = c.chatInterface.constructor as any;
+            const shopCom = IfType.list[shopComId];
+            if (!shopCom || !shopCom.linkObjType) return false;
+
+            const objId = shopCom.linkObjType[itemSlot];
+            if (objId <= 0) return false;
+
+            // Map quantity to MiniMenuAction: Buy 1=INV_BUTTON2(113), Buy 5=INV_BUTTON3(555), Buy 10=INV_BUTTON4(331)
+            const actionMap: Record<number, number> = {1: 113, 5: 555, 10: 331};
+            const action = actionMap[quantity];
+            if (!action) return false;
+
+            c.menuAction[0] = action;
+            c.menuParamA[0] = objId;
+            c.menuParamB[0] = itemSlot;
+            c.menuParamC[0] = shopComId;
+            c.doAction(0);
+            return true;
+        },
+
+        /** Get all items currently in a shop. Returns array of {slot, objId, count}. */
+        getShopItems(shopComId: number = 3900): {slot: number; objId: number; count: number}[] {
+            if (!c.ingame) return [];
+
+            const IfType = c.chatInterface.constructor as any;
+            const shopCom = IfType.list[shopComId];
+            if (!shopCom || !shopCom.linkObjType) return [];
+
+            const items: {slot: number; objId: number; count: number}[] = [];
+            for (let i = 0; i < shopCom.linkObjType.length; i++) {
+                if (shopCom.linkObjType[i] > 0) {
+                    items.push({slot: i, objId: shopCom.linkObjType[i], count: shopCom.linkObjNumber[i]});
+                }
+            }
+            return items;
+        },
+
         /** Click an interface button by component ID using the game's action system */
         clickButton(comId: number): boolean {
             if (!c.ingame) return false;
