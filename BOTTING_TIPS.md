@@ -73,12 +73,30 @@ node serve.cjs
 | `login(user, pass)` | `void` | Auto-login with credentials |
 | `pickpocket(npcSlot)` | `boolean` | Pickpocket NPC by slot index (sends OPNPC3) |
 | `pickpocketByName(name)` | `boolean` | Pickpocket first NPC matching name |
+| `interactNpc(npcSlot, option)` | `boolean` | Interact with NPC using any option (e.g. 'attack', 'talk', 'pickpocket'). Uses the game's own menu system for correct opcodes and priority flags. |
+| `attackNpc(npcSlot)` | `boolean` | Shorthand for `interactNpc(slot, 'attack')` |
+| `clickButton(comId)` | `boolean` | Click a normal interface button (buttontype=normal) |
+| `selectButton(comId)` | `boolean` | Click a select/toggle button (buttontype=select) - used for combat styles, autocast toggle |
+| `setTab(n)` | `void` | Switch sidebar tab (0=combat, 1=skills, 2=quests, 3=inventory, 4=equipment, 5=prayer, 6=magic) |
 | `walk(x, z)` | `boolean` | Walk to a tile coordinate |
 
 ### Advanced
 | Property | Description |
 |----------|-------------|
 | `_client` | Direct reference to the Client instance. Use `(client as any).propertyName` to access any internal state |
+
+### Reading Inventory
+```javascript
+const c = bot._client;
+const IfType = c.chatInterface.constructor; // Access IfType class
+const inv = IfType.list[3214]; // Inventory interface component
+for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] > 0) {
+        console.log('Slot', i, 'ItemID:', inv.linkObjType[i], 'Count:', inv.linkObjNumber[i]);
+    }
+}
+// Note: item IDs may be offset by 1 from obj.pack IDs
+```
 
 ## Writing a New Script
 
@@ -118,6 +136,31 @@ const c = window.bot._client;
 c.out.pIsaac(69);  // OPNPC3 opcode
 c.out.p2(npcSlot);  // NPC slot
 ```
+
+**WARNING:** Raw `pIsaac()` calls desync the ISAAC cipher if you send packets the server doesn't expect. This causes disconnects. Prefer `interactNpc()`, `clickButton()`, and `selectButton()` which use the game's own `doAction()` system and keep ISAAC in sync.
+
+**Interacting with NPCs** - use `interactNpc` instead of raw opcodes:
+```javascript
+// This handles correct opcodes, priority flags, and pathfinding automatically
+bot.interactNpc(npcSlot, 'attack');
+bot.interactNpc(npcSlot, 'pickpocket');
+bot.interactNpc(npcSlot, 'talk');
+```
+
+**Setting up autocast spells** - requires a multi-step interface flow:
+```javascript
+bot.setTab(0);              // Combat tab
+bot.clickButton(353);       // "Choose Spell" button
+// wait 1 tick
+bot.clickButton(1834);      // Wind Bolt (ssb4 in staff_spells interface)
+// wait 1 tick
+bot.selectButton(349);      // Autocast toggle (auto_toggle in combat_staff_2)
+```
+Interface component IDs can be found in the Content repo: https://github.com/LostCityRS/Content (branch 254), file `pack/interface.pack`.
+
+**NPC Attack option position varies** - "Attack" can be on op[0] (OPNPC1) or op[1] (OPNPC2) depending on the NPC. Lesser demons have Attack on op[1]. `interactNpc('attack')` handles this automatically.
+
+**Priority flag** - when NPC level > player level, the game adds +2000 to the menu action value. `interactNpc()` handles this automatically via `addNpcOptions()`.
 
 **Checking if stunned/delayed** - look for the stun message:
 ```javascript
