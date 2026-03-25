@@ -318,6 +318,55 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Get ground items near the player. Returns array of {objId, x, z} */
+        getGroundItems(radius: number = 10): {objId: number; x: number; z: number}[] {
+            if (!c.ingame || !c.localPlayer) return [];
+            const results: {objId: number; x: number; z: number}[] = [];
+            const px = c.localPlayer.routeX[0];
+            const pz = c.localPlayer.routeZ[0];
+            const level = c.minusedlevel;
+            const groundObj = c.groundObj;
+            if (!groundObj || !groundObj[level]) return results;
+
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dz = -radius; dz <= radius; dz++) {
+                    const x = px + dx;
+                    const z = pz + dz;
+                    if (x < 0 || z < 0 || x >= 104 || z >= 104) continue;
+                    const objs = groundObj[level][x]?.[z];
+                    if (!objs) continue;
+                    for (let obj = objs.tail(); obj !== null; obj = objs.prev()) {
+                        results.push({objId: obj.id, x, z});
+                    }
+                }
+            }
+            return results;
+        },
+
+        /** Pick up a ground item using the game's action system.
+         *  objId is from getGroundItems() (obj.pack ID, no offset needed). */
+        pickupGroundItem(objId: number, x: number, z: number): boolean {
+            if (!c.ingame) return false;
+            c.menuAction[0] = 617; // MiniMenuAction.OP_OBJ3 (Take - hardcoded for default pickup)
+            c.menuParamA[0] = objId; // ground items already use obj.pack IDs
+            c.menuParamB[0] = x;
+            c.menuParamC[0] = z;
+            c.doAction(0);
+            return true;
+        },
+
+        /** Use a held item's first option (e.g. Bury bones, Eat food).
+         *  objId is the runtime ID. slot is the inventory slot. comId defaults to 3214 (inventory). */
+        useHeldItem(objId: number, slot: number, comId: number = 3214): boolean {
+            if (!c.ingame) return false;
+            c.menuAction[0] = 694; // MiniMenuAction.OP_HELD1
+            c.menuParamA[0] = objId - 1; // server expects obj.pack ID
+            c.menuParamB[0] = slot;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            return true;
+        },
+
         /** Toggle debug mode - shows IDs in right-click menus (locId, npcId, objId, slot, coords) */
         setDebug(on: boolean): void {
             c.debugMode = on;

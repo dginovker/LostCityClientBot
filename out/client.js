@@ -19748,6 +19748,52 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    getGroundItems(radius = 10) {
+      if (!c.ingame || !c.localPlayer)
+        return [];
+      const results = [];
+      const px = c.localPlayer.routeX[0];
+      const pz = c.localPlayer.routeZ[0];
+      const level = c.minusedlevel;
+      const groundObj = c.groundObj;
+      if (!groundObj || !groundObj[level])
+        return results;
+      for (let dx = -radius;dx <= radius; dx++) {
+        for (let dz = -radius;dz <= radius; dz++) {
+          const x2 = px + dx;
+          const z = pz + dz;
+          if (x2 < 0 || z < 0 || x2 >= 104 || z >= 104)
+            continue;
+          const objs = groundObj[level][x2]?.[z];
+          if (!objs)
+            continue;
+          for (let obj = objs.tail();obj !== null; obj = objs.prev()) {
+            results.push({ objId: obj.id, x: x2, z });
+          }
+        }
+      }
+      return results;
+    },
+    pickupGroundItem(objId, x2, z) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 617;
+      c.menuParamA[0] = objId;
+      c.menuParamB[0] = x2;
+      c.menuParamC[0] = z;
+      c.doAction(0);
+      return true;
+    },
+    useHeldItem(objId, slot, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 694;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
     setDebug(on) {
       c.debugMode = on;
     },
@@ -29708,4 +29754,4 @@ export {
   Client
 };
 
-//# debugId=D3566171E9AA567064756E2164756E21
+//# debugId=98E3A460C630A68764756E2164756E21

@@ -59,6 +59,7 @@
                 <option value="lesser_demon">Lesser Demon (Magic)</option>
                 <option value="willow_chop">Willow Tree Chopping</option>
                 <option value="magic_shop">Magic Shop (Buy Runes)</option>
+                <option value="chicken_bones">Chickens + Bury Bones</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -137,10 +138,35 @@ const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {
   bot.buyShopItem(target.slot, 10);
 }`,
+            chicken_bones: `// Kill chickens, pick up bones, bury them
+bot.closeModal();
+// Bone IDs: ground items use obj.pack ID (526), inventory uses +1 (527)
+const BONES_GROUND = 526;
+const BONES_INV = 527;
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+// Priority 1: Bury any bones in inventory
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === BONES_INV) {
+    bot.useHeldItem(BONES_INV, i);
+    return;
+  }
+}
+// Priority 2: Pick up bones on ground
+const bones = bot.getGroundItems(10).filter(g => g.objId === BONES_GROUND);
+if (bones.length > 0) {
+  bot.pickupGroundItem(bones[0].objId, bones[0].x, bones[0].z);
+  return;
+}
+// Priority 3: Attack a chicken
+const chickens = bot.findNpc('chicken');
+if (chickens.length > 0) bot.attackNpc(chickens[0].slot);`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
-// bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
+// bot.getGroundItems(radius), bot.pickupGroundItem(objId, x, z)
+// bot.useHeldItem(objId, slot), bot.pickpocket(slot), bot.walk(x, z)
 // bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
 // bot.selectButton(comId), bot.setTab(tabId)
 // bot.getShopItems(), bot.buyShopItem(slot, qty)
