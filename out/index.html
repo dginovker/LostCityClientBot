@@ -56,10 +56,8 @@
             <label>Script:</label>
             <select id="scriptSelect">
                 <option value="paladin">Paladin Pickpocket</option>
-                <option value="knight">Knight Pickpocket</option>
-                <option value="guard">Guard Pickpocket</option>
-                <option value="man">Man Pickpocket</option>
                 <option value="lesser_demon">Lesser Demon (Magic)</option>
+                <option value="willow_chop">Willow Tree Chopping</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -78,12 +76,6 @@
         const SCRIPTS = {
             paladin: `// Pickpocket Paladins in Ardougne
 bot.pickpocketByName('paladin');`,
-            knight: `// Pickpocket Knights of Ardougne
-bot.pickpocketByName('knight');`,
-            guard: `// Pickpocket Guards
-bot.pickpocketByName('guard');`,
-            man: `// Pickpocket Men
-bot.pickpocketByName('man');`,
             lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
 if (!window._ds) window._ds = 0;
 if (!window._atkTicks) window._atkTicks = 0;
@@ -109,8 +101,22 @@ if (demons.length > 0) {
     window._atkTicks = 0;
   }
 }`,
+            willow_chop: `// Chop Willow Trees (logs auto-banked on this server)
+const trees = bot.findLocs('willow', 15);
+if (trees.length > 0) {
+  // Pick the closest tree
+  const p = bot.getPlayer();
+  let closest = trees[0];
+  let minDist = 999;
+  for (const t of trees) {
+    const d = Math.abs(t.x - p.x) + Math.abs(t.z - p.z);
+    if (d < minDist) { minDist = d; closest = t; }
+  }
+  bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
+}`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
+// bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
 // bot.pickpocket(slot), bot.pickpocketByName(name), bot.walk(x, z)
 // bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
 // bot.selectButton(comId), bot.setTab(tabId)

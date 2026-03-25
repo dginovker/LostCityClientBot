@@ -19639,6 +19639,59 @@ function initBotApi(client) {
     attackNpc(npcSlot) {
       return bot.interactNpc(npcSlot, "attack");
     },
+    findLocs(name, radius = 10) {
+      if (!c.ingame || !c.world || !c.localPlayer)
+        return [];
+      const results = [];
+      const lower = name.toLowerCase();
+      const px = c.localPlayer.routeX[0];
+      const pz = c.localPlayer.routeZ[0];
+      const level = c.minusedlevel;
+      for (let dx = -radius;dx <= radius; dx++) {
+        for (let dz = -radius;dz <= radius; dz++) {
+          const x2 = px + dx;
+          const z = pz + dz;
+          if (x2 < 0 || z < 0 || x2 >= 104 || z >= 104)
+            continue;
+          const typecodes = [
+            c.world.wallType(level, x2, z),
+            c.world.sceneType(level, x2, z),
+            c.world.decorType(level, z, x2),
+            c.world.gdType(level, x2, z)
+          ];
+          for (const typecode of typecodes) {
+            if (!typecode)
+              continue;
+            const locId = typecode >> 14 & 32767;
+            const locType = LocType.list(locId);
+            if (locType && locType.name && locType.name.toLowerCase().includes(lower)) {
+              results.push({ name: locType.name, locId, typecode, x: x2, z });
+            }
+          }
+        }
+      }
+      return results;
+    },
+    interactLoc(typecode, x2, z, optionName) {
+      if (!c.ingame)
+        return false;
+      const locId = typecode >> 14 & 32767;
+      const locType = LocType.list(locId);
+      if (!locType || !locType.op)
+        return false;
+      const lower = optionName.toLowerCase();
+      for (let i2 = 0;i2 < 5; i2++) {
+        if (locType.op[i2] && locType.op[i2].toLowerCase().includes(lower)) {
+          c.menuAction[0] = 625 + i2;
+          c.menuParamA[0] = typecode;
+          c.menuParamB[0] = x2;
+          c.menuParamC[0] = z;
+          c.doAction(0);
+          return true;
+        }
+      }
+      return false;
+    },
     clickButton(comId) {
       if (!c.ingame)
         return false;
@@ -29614,4 +29667,4 @@ export {
   Client
 };
 
-//# debugId=0C71F2A07844BBCB64756E2164756E21
+//# debugId=AA6D3601B69A898C64756E2164756E21

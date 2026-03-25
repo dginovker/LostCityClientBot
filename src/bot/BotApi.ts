@@ -2,6 +2,7 @@
 
 import { Client } from '#/client/Client.js';
 import { ClientProt } from '#/io/ClientProt.js';
+import LocType from '#/config/LocType.js';
 
 interface NpcInfo {
     slot: number;
@@ -187,6 +188,68 @@ export function initBotApi(client: Client): void {
         /** Shorthand: attack NPC by slot */
         attackNpc(npcSlot: number): boolean {
             return bot.interactNpc(npcSlot, 'attack');
+        },
+
+        /** Find nearby locations (trees, rocks, etc.) by name within a given radius.
+         *  Scans wall, scene (centrepiece), decor, and ground decoration layers.
+         *  Returns array of {name, locId, typecode, x, z} */
+        findLocs(name: string, radius: number = 10): {name: string; locId: number; typecode: number; x: number; z: number}[] {
+            if (!c.ingame || !c.world || !c.localPlayer) return [];
+            const results: {name: string; locId: number; typecode: number; x: number; z: number}[] = [];
+            const lower = name.toLowerCase();
+            const px = c.localPlayer.routeX[0];
+            const pz = c.localPlayer.routeZ[0];
+            const level = c.minusedlevel;
+
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dz = -radius; dz <= radius; dz++) {
+                    const x = px + dx;
+                    const z = pz + dz;
+                    if (x < 0 || z < 0 || x >= 104 || z >= 104) continue;
+
+                    // Check all location layers: wall, scene (centrepiece/trees), decor, ground decor
+                    const typecodes = [
+                        c.world.wallType(level, x, z),
+                        c.world.sceneType(level, x, z),
+                        c.world.decorType(level, z, x),  // note: z, x param order
+                        c.world.gdType(level, x, z)
+                    ];
+
+                    for (const typecode of typecodes) {
+                        if (!typecode) continue;
+                        const locId = (typecode >> 14) & 0x7fff;
+                        const locType = LocType.list(locId);
+                        if (locType && locType.name && locType.name.toLowerCase().includes(lower)) {
+                            results.push({name: locType.name, locId, typecode, x, z});
+                        }
+                    }
+                }
+            }
+            return results;
+        },
+
+        /** Interact with a location (tree, rock, etc.) using the game's action system.
+         *  optionName is case-insensitive partial match (e.g. 'chop', 'mine', 'open'). */
+        interactLoc(typecode: number, x: number, z: number, optionName: string): boolean {
+            if (!c.ingame) return false;
+
+            const locId = (typecode >> 14) & 0x7fff;
+            const locType = LocType.list(locId);
+            if (!locType || !locType.op) return false;
+
+            const lower = optionName.toLowerCase();
+            for (let i = 0; i < 5; i++) {
+                if (locType.op[i] && locType.op[i]!.toLowerCase().includes(lower)) {
+                    // Map op index to MiniMenuAction: OP_LOC1=625, OP_LOC2=626, etc.
+                    c.menuAction[0] = 625 + i;
+                    c.menuParamA[0] = typecode;
+                    c.menuParamB[0] = x;
+                    c.menuParamC[0] = z;
+                    c.doAction(0);
+                    return true;
+                }
+            }
+            return false;
         },
 
         /** Click an interface button by component ID using the game's action system */
