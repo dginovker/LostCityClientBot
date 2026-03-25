@@ -27602,7 +27602,7 @@ class Client extends GameShell {
               this.menuNumEntries++;
             }
           }
-          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name + (this.debugMode ? " @whi@(locId=" + typeId + " x=" + x2 + " z=" + z + ")" : "");
+          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name + (this.debugMode ? " @whi@(id=" + typeId + ")" : "");
           this.menuAction[this.menuNumEntries] = 1381 /* OP_LOC6 */;
           this.menuParamA[this.menuNumEntries] = typecode;
           this.menuParamB[this.menuNumEntries] = x2;
@@ -27692,7 +27692,7 @@ class Client extends GameShell {
                 this.menuNumEntries++;
               }
             }
-            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name + (this.debugMode ? " @whi@(objId=" + obj.id + " x=" + x2 + " z=" + z + ")" : "");
+            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
             this.menuAction[this.menuNumEntries] = 1152 /* OP_OBJ6 */;
             this.menuParamA[this.menuNumEntries] = obj.id;
             this.menuParamB[this.menuNumEntries] = x2;
@@ -27778,7 +27778,7 @@ class Client extends GameShell {
           this.menuNumEntries++;
         }
       }
-      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip + (this.debugMode ? " @whi@(npcId=" + npc.id + " slot=" + a + ")" : "");
+      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip + (this.debugMode ? " @whi@(id=" + npc.id + ")" : "");
       this.menuAction[this.menuNumEntries] = 1714 /* OP_NPC6 */;
       this.menuParamA[this.menuNumEntries] = a;
       this.menuParamB[this.menuNumEntries] = b;
@@ -27983,7 +27983,7 @@ class Client extends GameShell {
                   }
                 }
               }
-              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name + (this.debugMode ? " @whi@(objId=" + obj.id + " slot=" + slot + ")" : "");
+              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
               this.menuAction[this.menuNumEntries] = 1328 /* OP_HELD6 */;
               this.menuParamA[this.menuNumEntries] = obj.id;
               this.menuParamB[this.menuNumEntries] = slot;
@@ -29754,4 +29754,4 @@ export {
   Client
 };
 
-//# debugId=E2464ADBE79DB38564756E2164756E21
+//# debugId=A6EFCFE330531FC064756E2164756E21
