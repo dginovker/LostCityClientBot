@@ -19794,6 +19794,21 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    useItemOnItem(srcObjId, srcSlot, destObjId, destSlot, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 102;
+      c.menuParamA[0] = srcObjId - 1;
+      c.menuParamB[0] = srcSlot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      c.menuAction[0] = 398;
+      c.menuParamA[0] = destObjId - 1;
+      c.menuParamB[0] = destSlot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
     setDebug(on) {
       c.debugMode = on;
     },
@@ -29754,4 +29769,4 @@ export {
   Client
 };
 
-//# debugId=5346609D6AB4143D64756E2164756E21
+//# debugId=299955CF5155945064756E2164756E21
