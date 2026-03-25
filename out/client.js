@@ -19693,9 +19693,10 @@ function initBotApi(client) {
       if (!locType || !locType.op)
         return false;
       const lower = optionName.toLowerCase();
+      const locActions = [625, 721, 743, 357, 1071];
       for (let i2 = 0;i2 < 5; i2++) {
         if (locType.op[i2] && locType.op[i2].toLowerCase().includes(lower)) {
-          c.menuAction[0] = 625 + i2;
+          c.menuAction[0] = locActions[i2];
           c.menuParamA[0] = typecode;
           c.menuParamB[0] = x2;
           c.menuParamC[0] = z;
@@ -19859,6 +19860,60 @@ function initBotApi(client) {
       if (!lp || !c.ingame)
         return false;
       c.tryMove(lp.routeX[0], lp.routeZ[0], x2, z, false, 0, 0, 0, 0, 0, 0);
+      return true;
+    },
+    walkTo(worldX, worldZ) {
+      if (!c.ingame || !c.localPlayer)
+        return false;
+      const px = c.localPlayer.routeX[0] + c.mapBuildBaseX;
+      const pz = c.localPlayer.routeZ[0] + c.mapBuildBaseZ;
+      const dx = worldX - px;
+      const dz = worldZ - pz;
+      const dist = Math.max(Math.abs(dx), Math.abs(dz));
+      if (dist === 0)
+        return true;
+      const step = Math.min(dist, 15);
+      const sx = px + Math.round(dx / dist * step);
+      const sz = pz + Math.round(dz / dist * step);
+      return bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ);
+    },
+    getWorldPos() {
+      const lp = c.localPlayer;
+      if (!lp || !c.ingame)
+        return null;
+      return { x: lp.routeX[0] + c.mapBuildBaseX, z: lp.routeZ[0] + c.mapBuildBaseZ };
+    },
+    isNear(worldX, worldZ, dist = 3) {
+      const pos = bot.getWorldPos();
+      if (!pos)
+        return false;
+      return Math.abs(pos.x - worldX) <= dist && Math.abs(pos.z - worldZ) <= dist;
+    },
+    useItemOnLoc(objId, objSlot, locName, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      const locs = bot.findLocs(locName, 10);
+      if (locs.length === 0)
+        return false;
+      const loc = locs[0];
+      c.objComId = objId - 1;
+      c.objSelectedSlot = objSlot;
+      c.objSelectedComId = comId;
+      c.menuAction[0] = 810;
+      c.menuParamA[0] = loc.typecode;
+      c.menuParamB[0] = loc.x;
+      c.menuParamC[0] = loc.z;
+      c.doAction(0);
+      return true;
+    },
+    depositAll(objId, slot) {
+      if (!c.ingame || c.mainModalId === -1)
+        return false;
+      c.menuAction[0] = 331;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 2006;
+      c.doAction(0);
       return true;
     },
     login(username, password) {
@@ -29920,4 +29975,4 @@ export {
   Client
 };
 
-//# debugId=6C515D5261D618A064756E2164756E21
+//# debugId=545B9426D72CDC0164756E2164756E21
