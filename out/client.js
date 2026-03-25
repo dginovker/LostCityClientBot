@@ -19664,7 +19664,7 @@ function initBotApi(client) {
               continue;
             const locId = typecode >> 14 & 32767;
             const locType = LocType.list(locId);
-            if (locType && locType.name && locType.name.toLowerCase().includes(lower)) {
+            if (locType && locType.name && locType.name.toLowerCase() === lower) {
               results.push({ name: locType.name, locId, typecode, x: x2, z });
             }
           }
@@ -29754,4 +29754,4 @@ export {
   Client
 };
 
-//# debugId=A6EFCFE330531FC064756E2164756E21
+//# debugId=5346609D6AB4143D64756E2164756E21
