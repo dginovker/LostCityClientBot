@@ -3,6 +3,7 @@
 import { Client } from '#/client/Client.js';
 import { ClientProt } from '#/io/ClientProt.js';
 import LocType from '#/config/LocType.js';
+import ObjType from '#/config/ObjType.js';
 
 interface NpcInfo {
     slot: number;
@@ -52,8 +53,12 @@ export function initBotApi(client: Client): void {
 
         // ===== Common Handlers (used by startScript) =====
 
-        /** Dismiss any "Click here to continue" chat dialog (level ups, quest text, etc.) */
+        /** Dismiss any "Click here to continue" chat dialog (level ups, quest text, etc.)
+         *  Set window._botProtectChatComId to a specific comId to prevent dismissing that interface
+         *  (e.g. 139 for the fletching dialog) while still dismissing others (level-ups etc). */
         dismissDialog(): boolean {
+            const protectedId = (window as any)._botProtectChatComId;
+            if (protectedId && c.chatComId === protectedId) return false;
             if (c.chatComId !== -1) {
                 c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
                 c.out.p2(c.chatComId);
@@ -409,6 +414,27 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Look up an obj name by pack ID */
+        getObjName(packId: number): string | null {
+            try {
+                const obj = ObjType.list(packId);
+                return obj?.name ?? null;
+            } catch { return null; }
+        },
+
+        /** Get full obj info including recolour data */
+        getObjInfo(packId: number): any {
+            try {
+                const obj = ObjType.list(packId) as any;
+                if (!obj) return null;
+                return {
+                    id: obj.id, name: obj.name,
+                    recol_s: obj.recol_s, recol_d: obj.recol_d,
+                    model: obj.model, desc: obj.desc
+                };
+            } catch { return null; }
+        },
+
         /** Toggle debug mode - shows IDs in right-click menus (locId, npcId, objId, slot, coords) */
         setDebug(on: boolean): void {
             c.debugMode = on;
@@ -516,6 +542,50 @@ export function initBotApi(client: Client): void {
             c.menuParamA[0] = objId - 1; // server obj.pack ID
             c.menuParamB[0] = slot;
             c.menuParamC[0] = 2006; // bank_side:inv
+            c.doAction(0);
+            return true;
+        },
+
+        /** Check if the bank interface is currently open */
+        isBankOpen(): boolean {
+            return c.ingame && c.mainModalId === 5292;
+        },
+
+        /** Get all items in the bank. Bank must be open. Returns array of {slot, objId, count}. */
+        getBankItems(): {slot: number; objId: number; count: number}[] {
+            if (!c.ingame || c.mainModalId !== 5292) return [];
+            const IfType = c.chatInterface.constructor as any;
+            const bankCom = IfType.list[5382]; // bank:inv
+            if (!bankCom || !bankCom.linkObjType) return [];
+            const items: {slot: number; objId: number; count: number}[] = [];
+            for (let i = 0; i < bankCom.linkObjType.length; i++) {
+                if (bankCom.linkObjType[i] > 0) {
+                    items.push({slot: i, objId: bankCom.linkObjType[i], count: bankCom.linkObjNumber[i]});
+                }
+            }
+            return items;
+        },
+
+        /** Withdraw 1 of an item from the bank. Bank must be open.
+         *  objId is runtime ID (from linkObjType). slot is the bank slot index. */
+        withdrawOne(objId: number, slot: number): boolean {
+            if (!c.ingame || c.mainModalId !== 5292) return false;
+            c.menuAction[0] = 582; // MiniMenuAction.INV_BUTTON1 (Withdraw 1)
+            c.menuParamA[0] = objId - 1; // server obj.pack ID
+            c.menuParamB[0] = slot;
+            c.menuParamC[0] = 5382; // bank:inv
+            c.doAction(0);
+            return true;
+        },
+
+        /** Withdraw all of an item from the bank. Bank must be open.
+         *  objId is runtime ID (from linkObjType). slot is the bank slot index. */
+        withdrawAll(objId: number, slot: number): boolean {
+            if (!c.ingame || c.mainModalId !== 5292) return false;
+            c.menuAction[0] = 331; // MiniMenuAction.INV_BUTTON4 (Withdraw All)
+            c.menuParamA[0] = objId - 1; // server obj.pack ID
+            c.menuParamB[0] = slot;
+            c.menuParamC[0] = 5382; // bank:inv
             c.doAction(0);
             return true;
         },
@@ -669,6 +739,97 @@ export function initBotApi(client: Client): void {
             return false;
         },
 
+        /** Solve a Mysterious Box random event if one is open (mainModalId 6554).
+         *  Returns true if a box was solved, false if no box interface is open. */
+        solveBox(): boolean {
+            if (!c.ingame || c.mainModalId !== 6554) return false;
+
+            const IfType = c.chatInterface.constructor as any;
+            const question: string = IfType.list[6561]?.text ?? '';
+            const answers: string[] = [
+                IfType.list[6565]?.text ?? '',
+                IfType.list[6566]?.text ?? '',
+                IfType.list[6567]?.text ?? ''
+            ];
+            const modelIds: number[] = [
+                IfType.list[6555]?.model1Id ?? 0,
+                IfType.list[6557]?.model1Id ?? 0,
+                IfType.list[6559]?.model1Id ?? 0
+            ];
+
+            // Map pack ID → colour using recol_d values
+            const colorMap: Record<number, string> = { 1703: 'Red', 43429: 'Blue', 8749: 'Yellow' };
+            const shapeNames: Record<number, string> = {};
+            for (let i = 0; i < 3; i++) {
+                shapeNames[modelIds[i]] = answers[i];
+            }
+
+            // Get colour for each model from its recol_d
+            const modelColours: string[] = modelIds.map(id => {
+                const obj = ObjType.list(id) as any;
+                const recolD = obj?.recol_d;
+                if (recolD) {
+                    return colorMap[recolD[0]] ?? 'Unknown';
+                }
+                return 'Unknown';
+            });
+
+            // Parse question
+            let correctIdx = -1;
+            const colourMatch = question.match(/What colou?r is the (.+)\?/i);
+            const shapeMatch = question.match(/Which shape is (.+)\?/i);
+
+            if (colourMatch) {
+                const targetColour = modelColours[0];
+                correctIdx = answers.findIndex(a => a.toLowerCase() === targetColour?.toLowerCase());
+            } else if (shapeMatch) {
+                const targetColour = shapeMatch[1];
+                for (let i = 0; i < 3; i++) {
+                    if (modelColours[i]?.toLowerCase() === targetColour.toLowerCase()) {
+                        correctIdx = i;
+                        break;
+                    }
+                }
+            }
+
+            if (correctIdx >= 0) {
+                const buttons = [6562, 6563, 6564];
+                console.log(`[BOT] Mysterious Box: "${question}" → Answer: "${answers[correctIdx]}" (button ${buttons[correctIdx]})`);
+                bot.clickButton(buttons[correctIdx]);
+                return true;
+            }
+
+            console.log(`[BOT] Mysterious Box: Could not solve "${question}" answers=${JSON.stringify(answers)} colours=${JSON.stringify(modelColours)}`);
+            return false;
+        },
+
+        /** Check if player has mysterious boxes in inventory */
+        hasBoxes(): boolean {
+            if (!c.ingame) return false;
+            const IfType = c.chatInterface.constructor as any;
+            const inv = IfType.list[3214];
+            if (!inv?.linkObjType) return false;
+            for (let i = 0; i < inv.linkObjType.length; i++) {
+                if (inv.linkObjType[i] === 3063) return true;
+            }
+            return false;
+        },
+
+        /** Open a mysterious box from inventory. Returns true if clicked. */
+        openBox(): boolean {
+            if (!c.ingame) return false;
+            const IfType = c.chatInterface.constructor as any;
+            const inv = IfType.list[3214];
+            if (!inv?.linkObjType) return false;
+            for (let i = 0; i < inv.linkObjType.length; i++) {
+                if (inv.linkObjType[i] === 3063) {
+                    bot.useHeldItem(3063, i);
+                    return true;
+                }
+            }
+            return false;
+        },
+
         // ===== Script Runner =====
 
         /**
@@ -709,6 +870,10 @@ export function initBotApi(client: Client): void {
                 // Dismiss level-up dialogs. Don't close modals here — scripts
                 // like the shop buyer need modals to stay open.
                 bot.dismissDialog();
+
+                // Auto-solve mysterious boxes
+                if (c.mainModalId === 6554) { bot.solveBox(); return; }
+                if (bot.hasBoxes() && c.mainModalId === -1 && c.chatComId === -1) { bot.openBox(); return; }
 
                 // Run the user's script action
                 try {

@@ -280,3 +280,25 @@ The `p1` value is `cmd.length + 1` because `pjstr` writes the string followed by
 **Bot API method added:** `bot.tele(absX, absZ, level)` and `bot.sendCommand(cmd)` handle the packet format automatically.
 
 **Local dev server advantage:** In non-production mode, all accounts get staffModLevel 4, giving full access to all cheat commands including `::tele`, `::give`, `::setstat`, etc. This is set in `src/server/login/LoginThread.ts`.
+
+## How to Read Obj Properties (Recolour, Model, etc.)
+
+We added `ObjType` access to the BotApi. Use `bot.getObjInfo(packId)` to get recolour data, model info, etc. This was essential for solving the Mysterious Box random event where shape colors are encoded in `recol_d`.
+
+```javascript
+bot.getObjName(3062)  // "Strange box"
+bot.getObjInfo(3063)  // { recol_s: [115], recol_d: [1703], ... }
+```
+
+## How We Solved the Mysterious Box Random Event
+
+The Mysterious Box (modal 6554) shows 3 coloured shapes and asks either "What colour is the [shape]?" or "Which shape is [colour]?".
+
+**Key discovery:** The shape models are displayed via type-6 interface components (6555, 6557, 6559) with `model1Type=4` (obj model). The `model1Id` is the obj pack ID. We determine colors from `ObjType.list(packId).recol_d[0]`:
+- 1703 = Red
+- 43429 = Blue
+- 8749 = Yellow
+
+The three models correspond positionally to the three answer labels (6565, 6566, 6567). Each model's shape name comes from its corresponding answer text. We match the queried attribute (color or shape) against the model data to find the correct button (6562/6563/6564).
+
+**Integration:** Box solving is automatically triggered in `startScript()` before the user's action function runs. It detects boxes in inventory, opens them, and solves the quiz — all transparently.

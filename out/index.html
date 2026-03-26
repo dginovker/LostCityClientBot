@@ -68,6 +68,7 @@
                 <option value="fletch_arrows">Fletch Arrows</option>
                 <option value="chicken_bones">Chickens + Bury Bones</option>
                 <option value="flax_spin">Flax Spinner</option>
+                <option value="fletch_longbow">Fletch Yew Longbow</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -266,6 +267,74 @@ if (st === 'pick_flax') {
   // If flax is nearby, start picking. Otherwise keep walking.
   if (bot.findLocs('Flax', 10).length > 0) { window._fs = 'pick_flax'; return; }
   bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z);
+}`,
+            fletch_longbow: `// Fletch Yew Longbows: bank -> deposit -> withdraw knife + logs -> fletch -> repeat
+const KNIFE = 947;
+const WILLOW_LOG = 1516;
+const LONGBOW_BTN = 145;
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+const bankInv = IfType.list[2006];
+if (!window._wlb) window._wlb = 'open_bank';
+const st = window._wlb;
+// Count inventory
+let knifeSlot = -1, logSlot = -1, logCount = 0, totalItems = 0;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] > 0) totalItems++;
+  if (inv.linkObjType[i] === KNIFE && knifeSlot === -1) knifeSlot = i;
+  if (inv.linkObjType[i] === WILLOW_LOG) { logCount++; logSlot = i; }
+}
+// Protect the fletching interface (139) from auto-dismiss; level-ups still get dismissed
+window._botProtectChatComId = (st === 'fletch') ? 139 : 0;
+// Close non-bank modals (welcome screen etc)
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
+if (st === 'open_bank') {
+  if (c.mainModalId === 5292) { window._wlb = 'deposit'; return; }
+  const pos = bot.getWorldPos();
+  const banks = bot.findLocs('Bank booth', 10).filter(b => b.locId === 2213)
+    .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
+                   (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
+  if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+} else if (st === 'deposit') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
+  }
+  window._wlb = 'withdraw_knife';
+} else if (st === 'withdraw_knife') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  const bankItems = bot.getBankItems();
+  const knife = bankItems.find(i => i.objId === KNIFE);
+  if (knife) bot.withdrawOne(knife.objId, knife.slot);
+  window._wlb = 'withdraw_logs';
+} else if (st === 'withdraw_logs') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  const bankItems = bot.getBankItems();
+  const logs = bankItems.find(i => i.objId === WILLOW_LOG);
+  if (logs) {
+    bot.withdrawAll(logs.objId, logs.slot);
+    window._wlb = 'close_bank';
+  } else {
+    console.log('[BOT] No willow logs in bank! Stopping.');
+    bot.stopScript();
+  }
+} else if (st === 'close_bank') {
+  bot.closeModal();
+  window._wlb = 'fletch';
+} else if (st === 'fletch') {
+  // Fletching interface showing - click longbow then immediately queue knife on next log
+  if (c.chatComId === 139) {
+    bot.clickButton(LONGBOW_BTN);
+    if (knifeSlot >= 0 && logSlot >= 0) bot.useItemOnItem(KNIFE, knifeSlot, WILLOW_LOG, logSlot);
+    return;
+  }
+  // Other dialog (level-up etc) - dismiss it
+  if (c.chatComId !== -1) { bot.dismissDialog(); return; }
+  // No more logs -> bank
+  if (logCount === 0) { window._wlb = 'open_bank'; return; }
+  // Use knife on log
+  if (knifeSlot >= 0 && logSlot >= 0) bot.useItemOnItem(KNIFE, knifeSlot, WILLOW_LOG, logSlot);
 }`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)

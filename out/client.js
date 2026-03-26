@@ -19506,6 +19506,9 @@ function initBotApi(client) {
     _client: c,
     _activeEvent: null,
     dismissDialog() {
+      const protectedId = window._botProtectChatComId;
+      if (protectedId && c.chatComId === protectedId)
+        return false;
       if (c.chatComId !== -1) {
         c.out.pIsaac(146 /* RESUME_PAUSEBUTTON */);
         c.out.p2(c.chatComId);
@@ -19823,6 +19826,31 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    getObjName(packId) {
+      try {
+        const obj = ObjType.list(packId);
+        return obj?.name ?? null;
+      } catch {
+        return null;
+      }
+    },
+    getObjInfo(packId) {
+      try {
+        const obj = ObjType.list(packId);
+        if (!obj)
+          return null;
+        return {
+          id: obj.id,
+          name: obj.name,
+          recol_s: obj.recol_s,
+          recol_d: obj.recol_d,
+          model: obj.model,
+          desc: obj.desc
+        };
+      } catch {
+        return null;
+      }
+    },
     setDebug(on) {
       c.debugMode = on;
     },
@@ -19913,6 +19941,44 @@ function initBotApi(client) {
       c.menuParamA[0] = objId - 1;
       c.menuParamB[0] = slot;
       c.menuParamC[0] = 2006;
+      c.doAction(0);
+      return true;
+    },
+    isBankOpen() {
+      return c.ingame && c.mainModalId === 5292;
+    },
+    getBankItems() {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return [];
+      const IfType2 = c.chatInterface.constructor;
+      const bankCom = IfType2.list[5382];
+      if (!bankCom || !bankCom.linkObjType)
+        return [];
+      const items = [];
+      for (let i2 = 0;i2 < bankCom.linkObjType.length; i2++) {
+        if (bankCom.linkObjType[i2] > 0) {
+          items.push({ slot: i2, objId: bankCom.linkObjType[i2], count: bankCom.linkObjNumber[i2] });
+        }
+      }
+      return items;
+    },
+    withdrawOne(objId, slot) {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return false;
+      c.menuAction[0] = 582;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
+      c.doAction(0);
+      return true;
+    },
+    withdrawAll(objId, slot) {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return false;
+      c.menuAction[0] = 331;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
       c.doAction(0);
       return true;
     },
@@ -20042,6 +20108,86 @@ function initBotApi(client) {
       }
       return false;
     },
+    solveBox() {
+      if (!c.ingame || c.mainModalId !== 6554)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const question = IfType2.list[6561]?.text ?? "";
+      const answers = [
+        IfType2.list[6565]?.text ?? "",
+        IfType2.list[6566]?.text ?? "",
+        IfType2.list[6567]?.text ?? ""
+      ];
+      const modelIds = [
+        IfType2.list[6555]?.model1Id ?? 0,
+        IfType2.list[6557]?.model1Id ?? 0,
+        IfType2.list[6559]?.model1Id ?? 0
+      ];
+      const colorMap = { 1703: "Red", 43429: "Blue", 8749: "Yellow" };
+      const shapeNames = {};
+      for (let i2 = 0;i2 < 3; i2++) {
+        shapeNames[modelIds[i2]] = answers[i2];
+      }
+      const modelColours = modelIds.map((id) => {
+        const obj = ObjType.list(id);
+        const recolD = obj?.recol_d;
+        if (recolD) {
+          return colorMap[recolD[0]] ?? "Unknown";
+        }
+        return "Unknown";
+      });
+      let correctIdx = -1;
+      const colourMatch = question.match(/What colou?r is the (.+)\?/i);
+      const shapeMatch = question.match(/Which shape is (.+)\?/i);
+      if (colourMatch) {
+        const targetColour = modelColours[0];
+        correctIdx = answers.findIndex((a) => a.toLowerCase() === targetColour?.toLowerCase());
+      } else if (shapeMatch) {
+        const targetColour = shapeMatch[1];
+        for (let i2 = 0;i2 < 3; i2++) {
+          if (modelColours[i2]?.toLowerCase() === targetColour.toLowerCase()) {
+            correctIdx = i2;
+            break;
+          }
+        }
+      }
+      if (correctIdx >= 0) {
+        const buttons = [6562, 6563, 6564];
+        console.log(`[BOT] Mysterious Box: "${question}" → Answer: "${answers[correctIdx]}" (button ${buttons[correctIdx]})`);
+        bot.clickButton(buttons[correctIdx]);
+        return true;
+      }
+      console.log(`[BOT] Mysterious Box: Could not solve "${question}" answers=${JSON.stringify(answers)} colours=${JSON.stringify(modelColours)}`);
+      return false;
+    },
+    hasBoxes() {
+      if (!c.ingame)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const inv = IfType2.list[3214];
+      if (!inv?.linkObjType)
+        return false;
+      for (let i2 = 0;i2 < inv.linkObjType.length; i2++) {
+        if (inv.linkObjType[i2] === 3063)
+          return true;
+      }
+      return false;
+    },
+    openBox() {
+      if (!c.ingame)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const inv = IfType2.list[3214];
+      if (!inv?.linkObjType)
+        return false;
+      for (let i2 = 0;i2 < inv.linkObjType.length; i2++) {
+        if (inv.linkObjType[i2] === 3063) {
+          bot.useHeldItem(3063, i2);
+          return true;
+        }
+      }
+      return false;
+    },
     startScript(username, password, action, intervalMs = 2000) {
       if (window._botInterval)
         clearInterval(window._botInterval);
@@ -20063,6 +20209,14 @@ function initBotApi(client) {
         if (bot.checkRandomEvent())
           return;
         bot.dismissDialog();
+        if (c.mainModalId === 6554) {
+          bot.solveBox();
+          return;
+        }
+        if (bot.hasBoxes() && c.mainModalId === -1 && c.chatComId === -1) {
+          bot.openBox();
+          return;
+        }
         try {
           action();
         } catch (e) {
@@ -29975,4 +30129,4 @@ export {
   Client
 };
 
-//# debugId=545B9426D72CDC0164756E2164756E21
+//# debugId=1DF1EF62BBA791FF64756E2164756E21

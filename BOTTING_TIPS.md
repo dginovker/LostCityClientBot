@@ -218,3 +218,100 @@ After editing, rebuild with `bun run build:dev`. The proxy server auto-serves th
 | 146 | RESUME_PAUSEBUTTON | p2(comId) | Dismiss dialog |
 | 6 | MOVE_GAMECLICK | variable | Walk to tile |
 | 239 | NO_TIMEOUT | (none) | Keep-alive |
+
+## Banking
+
+The bank interface uses these component IDs:
+- **Bank modal ID:** 5292 (check `c.mainModalId === 5292`)
+- **Bank contents:** 5382 (`bank:inv`, 240 slots) - iop: Withdraw 1/5/10/All/X
+- **Player inventory in bank:** 2006 (`bank_side:inv`, 28 slots) - iop: Deposit 1/5/10/All/X
+- **Bank booth locId:** 2213 (usable booths, interact with `'use-quickly'`)
+
+### Banking API
+```javascript
+bot.isBankOpen()                    // Check if bank modal is open
+bot.getBankItems()                  // Get {slot, objId, count}[] of all bank items
+bot.depositAll(objId, slot)         // Deposit all of item (uses component 2006)
+bot.withdrawOne(objId, slot)        // Withdraw 1 item (uses component 5382)
+bot.withdrawAll(objId, slot)        // Withdraw all of item (uses component 5382)
+```
+
+### Banking Pattern (state machine)
+```javascript
+// Deposit: iterate player inv in bank (2006) and deposit each item
+const bankInv = IfType.list[2006];
+for (let i = 0; i < bankInv.linkObjType.length; i++) {
+  if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
+}
+// Withdraw: find item in bank and withdraw
+const bankItems = bot.getBankItems();
+const item = bankItems.find(i => i.objId === TARGET_ID);
+if (item) bot.withdrawAll(item.objId, item.slot);
+```
+
+## Fletching / Crafting Interfaces
+
+When using an item on another (e.g. knife on willow log), the game opens a chat-based dialog (chatComId) with options. For fletching:
+- **Fletching interface chatComId:** 139
+- **Willow Short Bow button:** 144
+- **Willow Long Bow button:** 145
+
+### Protecting chat dialogs from auto-dismiss
+`startScript()` auto-calls `dismissDialog()` each tick, which will dismiss crafting interfaces. To protect a specific dialog:
+```javascript
+window._botProtectChatComId = 139; // Protect fletching interface
+// Level-up dialogs (different chatComId) will still be auto-dismissed
+// Set to 0 when leaving the fletching state
+```
+
+### Efficiency: pipeline actions
+After clicking the crafting option, immediately queue the next use-item-on-item to save a tick:
+```javascript
+if (c.chatComId === 139) {
+  bot.clickButton(145);  // Select longbow
+  bot.useItemOnItem(KNIFE, knifeSlot, WILLOW_LOG, logSlot);  // Queue next
+  return;
+}
+```
+
+## Common Item IDs (Runtime / linkObjType)
+
+| Item | Runtime ID | obj.pack ID |
+|------|-----------|-------------|
+| Knife | 947 | 946 |
+| Willow logs | 1520 | 1519 |
+| Willow longbow (u) | 59 | 58 |
+| Bones | 527 | 526 |
+| Flax | 1780 | 1779 |
+| Bowstring | 1778 | 1777 |
+| Feather | 315 | 314 |
+| Arrow shaft | 53 | 52 |
+| Mysterious box | 3063 | 3062 |
+| Yew logs | 1516 | 1515 |
+| Yew longbow (u) | 67 | 66 |
+
+## Random Events: Mysterious Box
+
+The Mysterious Box random event is handled automatically by `startScript()`. When boxes appear in inventory, the bot:
+1. Opens each box (`bot.openBox()`)
+2. Reads the question and shape models from the interface (modal 6554)
+3. Determines shape colors from `ObjType.recol_d` data:
+   - `recol_d[0] = 1703` → Red
+   - `recol_d[0] = 43429` → Blue
+   - `recol_d[0] = 8749` → Yellow
+4. Matches the answer to the question and clicks the correct button
+5. Repeats until all boxes are cleared
+
+### Interface Component IDs
+- Modal: 6554
+- Question text: 6561
+- Shape models: 6555, 6557, 6559 (type 6, model1Type=4, model1Id = obj pack ID)
+- Answer buttons: 6562, 6563, 6564
+- Answer labels: 6565, 6566, 6567
+
+### Manual Usage
+```javascript
+bot.solveBox();   // Solve the currently open box
+bot.hasBoxes();   // Check if inventory has boxes
+bot.openBox();    // Click first box in inventory
+```
