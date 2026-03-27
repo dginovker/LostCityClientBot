@@ -236,17 +236,33 @@ bot.withdrawOne(objId, slot)        // Withdraw 1 item (uses component 5382)
 bot.withdrawAll(objId, slot)        // Withdraw all of item (uses component 5382)
 ```
 
-### Banking Pattern (state machine)
+### Banking Pattern (fast)
+The old state-machine approach (deposit one item per 2s tick) is very slow. Instead, use fast polling + batch operations:
+
+**Key optimizations:**
+1. **Don't deposit tools** — skip items you'll need next (e.g., knife). Saves a withdraw step entirely.
+2. **Batch deposits** — send all `depositAll` calls in a single loop with no `return` between them. All packets are sent at once.
+3. **Fast-poll for bank open** — use a 100ms setInterval to detect when the bank modal opens, instead of waiting for the next 2s script tick.
+4. **Delay between deposit and withdraw** — after depositing, wait 600ms (1 server tick) before calling `getBankItems()` + `withdrawAll()`. Otherwise the bank contents are stale and you'll miss items.
+
 ```javascript
-// Deposit: iterate player inv in bank (2006) and deposit each item
-const bankInv = IfType.list[2006];
-for (let i = 0; i < bankInv.linkObjType.length; i++) {
-  if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
-}
-// Withdraw: find item in bank and withdraw
-const bankItems = bot.getBankItems();
-const item = bankItems.find(i => i.objId === TARGET_ID);
-if (item) bot.withdrawAll(item.objId, item.slot);
+// Fast-poll for bank to open, then batch deposit + delayed withdraw
+const pollId = setInterval(() => {
+  if (c.mainModalId !== 5292) return;
+  clearInterval(pollId);
+  // Deposit everything except the knife
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0 && bankInv.linkObjType[i] !== KNIFE)
+      bot.depositAll(bankInv.linkObjType[i], i);
+  }
+  // Wait for server to update, then withdraw
+  setTimeout(() => {
+    const logs = bot.getBankItems().find(i => i.objId === YEW_LOG);
+    if (logs) bot.withdrawAll(logs.objId, logs.slot);
+    setTimeout(() => bot.closeModal(), 600);
+  }, 600);
+}, 100);
 ```
 
 ## Fletching / Crafting Interfaces
@@ -264,7 +280,20 @@ window._botProtectChatComId = 139; // Protect fletching interface
 // Set to 0 when leaving the fletching state
 ```
 
-### Efficiency: pipeline actions
+### Efficiency: burst fletching (zero server delay)
+Fletching has **zero `p_delay`** on the server. You can send ALL fletch commands at once:
+```javascript
+// Burst: fletch entire inventory in ~7 seconds instead of 54
+for (const logSlot of logSlots) {
+  bot.useItemOnItem(KNIFE, knifeSlot, YEW_LOG, logSlot);
+  bot.clickButton(145);  // Longbow option
+}
+```
+The server processes 5 USER_EVENTs/tick (2 per fletch = ~2.5 fletches/tick). 27 logs completes in ~7s.
+
+**Important:** Use a 15-second timeout to re-send remaining commands in case a level-up dialog interrupts the burst mid-way. See the `fletch_longbow` script for the complete implementation.
+
+### Legacy: pipeline actions (slower, pre-burst approach)
 After clicking the crafting option, immediately queue the next use-item-on-item to save a tick:
 ```javascript
 if (c.chatComId === 139) {

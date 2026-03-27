@@ -10,6 +10,7 @@ The game you are botting is a fork of a **Lost City** RuneScape private server. 
 - **Client (TypeScript):** https://github.com/LostCityRS/Client-TS (branch `254`)
 - **Game content (scripts/configs):** https://github.com/LostCityRS/Content (branch `254`)
 - **Legacy org:** https://github.com/2004Scape/Server (redirects to LostCityRS)
+- **Bot API reference (third-party):** https://gitlab.com/project-undercut/moldy-swiss-cheese/-/tree/254-bot/api — Another bot implementation for the same 254 server. Useful for understanding how to interact with the game protocol, send packets, and handle interfaces. Clone with `git clone --branch 254-bot https://gitlab.com/project-undercut/moldy-swiss-cheese.git`
 
 The `254` branch corresponds to the version you are probably playing on. For fast analysis, you should clone the server repo locally (although note that you are not connected to it, this is just useful for understanding the code)
 
@@ -302,3 +303,48 @@ The Mysterious Box (modal 6554) shows 3 coloured shapes and asks either "What co
 The three models correspond positionally to the three answer labels (6565, 6566, 6567). Each model's shape name comes from its corresponding answer text. We match the queried attribute (color or shape) against the model data to find the correct button (6562/6563/6564).
 
 **Integration:** Box solving is automatically triggered in `startScript()` before the user's action function runs. It detects boxes in inventory, opens them, and solves the quiz — all transparently.
+
+## How We Discovered Zero-Delay Fletching (Burst Fletch)
+
+### The Discovery
+
+By reading the server-side content scripts at `~/Projects/content/scripts/skill_fletching/`, we found that **fletching has zero `p_delay` calls**. Every other crafting skill uses `p_delay` (cooking: 1 tick, smithing: 5 ticks, spinning: 4 ticks), but fletching completes instantly.
+
+The key file is `scripts/skill_fletching/scripts/cut_logs.rs2`. The flow is:
+1. `[opheldu,knife]` trigger → opens `~multiobj2()` dialog → `p_pausebutton` (suspends script, but does NOT set `player.delayed`)
+2. Player clicks longbow button → `IF_BUTTON` resumes the suspended script
+3. Script runs: `inv_del(inv, $log, 1)` + `stat_advance(fletching, $xp)` + `inv_add(inv, $product, 1)` → **done, no delay**
+
+### Server Rate Limits
+
+The server processes up to **5 USER_EVENTs per tick** (defined in `ClientGameProtCategory.ts`). Each fletch cycle requires 2 USER_EVENTs (OPHELDU + IF_BUTTON), so the max is **~2.5 fletches per 600ms tick**.
+
+### The Burst Approach
+
+Since `player.delayed` is never set, we can send ALL fletch commands at once:
+```javascript
+for (const logSlot of logSlots) {
+    bot.useItemOnItem(KNIFE, knifeSlot, YEW_LOG, logSlot);
+    bot.clickButton(LONGBOW_BTN);
+}
+```
+
+The server processes them in order: OPHELDU→IF_BUTTON→OPHELDU→IF_BUTTON→... across multiple ticks, 5 events per tick.
+
+**Result:** 27 yew logs fletched in **~7.2 seconds** (vs 54 seconds with the old 1-per-2s-tick method).
+
+### Critical Gotcha: Idle Timer
+
+When sending raw commands outside of `startScript()`, the client's idle timer (`c.idleTimer`) is not reset, causing auto-disconnect after a few seconds. Always either:
+- Use `startScript()` (which resets idle timer each iteration), or
+- Manually reset: `c.idleTimer = performance.now()` in a keepalive interval
+
+We initially thought the disconnects were from ISAAC cipher desync (too many packets). They were actually from idle timeout. The burst of 54 packets (27 × 2) is fine — the server buffers and processes them across ticks without any cipher issues.
+
+### Theoretical Max Speed
+
+| Approach | Time for 27 logs | Notes |
+|----------|-----------------|-------|
+| Old script (1 per 2s tick) | ~54s | Pipeline: clickButton + queue next useItemOnItem |
+| Burst (all at once) | ~7.2s | Limited by 5 USER_EVENTs/tick server cap |
+| Theoretical min | ~6.6s | 27 logs ÷ 2.5/tick × 0.6s/tick |
