@@ -444,7 +444,14 @@ window._fastLoop = setInterval(() => {
     // 14 bowstrings: 10 + 4x1
     withdraw10(BOWSTRING, strBank.slot);
     for (let i = 0; i < 4; i++) bot.withdrawOne(BOWSTRING, strBank.slot);
-    setTimeout(() => { bot.closeModal(); }, 600);
+    // Poll until all 14 of each appear in inventory before closing bank
+    // (10 withdraw commands take ~2 server ticks to process)
+    const closePoll = setInterval(() => {
+      const {pairs: p} = getInv();
+      if (p >= 14) { clearInterval(closePoll); bot.closeModal(); }
+    }, 200);
+    // Safety timeout: close after 3s regardless
+    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === 5292) bot.closeModal(); }, 3000);
   }, 600);
 }, 100);`,
             custom: `// Write your custom script here
