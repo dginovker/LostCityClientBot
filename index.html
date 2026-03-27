@@ -276,8 +276,8 @@ const YEW_LOG = 1516;
 const LONGBOW_BTN = 145;
 const c = bot._client;
 const IfType = c.chatInterface.constructor;
-// Skip if fast loop is already running
-if (window._fastLoop) return;
+// Clean up any stale fast loop from previous run
+if (window._fastLoop) { clearInterval(window._fastLoop); window._fastLoop = null; }
 // Close non-bank modals (welcome screen etc)
 if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
 // Helper: read inventory

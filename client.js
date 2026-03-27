@@ -4594,9 +4594,6 @@ class GameShell {
     canvas.oncontextmenu = (e) => {
       e.preventDefault();
     };
-    window.oncontextmenu = (e) => {
-      e.preventDefault();
-    };
     await this.messageBox("Loading...", 0);
     await this.maininit();
     let ntime = 0;
@@ -30129,4 +30126,4 @@ export {
   Client
 };
 
-//# debugId=1DF1EF62BBA791FF64756E2164756E21
+//# debugId=8E5763B99F2BE78E64756E2164756E21
