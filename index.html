@@ -69,6 +69,7 @@
                 <option value="chicken_bones">Chickens + Bury Bones</option>
                 <option value="flax_spin">Flax Spinner</option>
                 <option value="fletch_longbow">Fletch Yew Longbow</option>
+                <option value="string_longbow">String Yew Longbow</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -276,8 +277,13 @@ const YEW_LOG = 1516;
 const LONGBOW_BTN = 145;
 const c = bot._client;
 const IfType = c.chatInterface.constructor;
-// Clean up any stale fast loop from previous run
-if (window._fastLoop) { clearInterval(window._fastLoop); window._fastLoop = null; }
+// Skip if active fast loop is running; only clear stale ones from previous script session
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return; // active loop, skip
+  clearInterval(window._fastLoop); window._fastLoop = null; // stale loop, clear
+}
+window._flGen++;
 // Close non-bank modals (welcome screen etc)
 if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
 // Helper: read inventory
@@ -300,6 +306,7 @@ if (knifeSlot >= 0 && logSlots.length > 0) {
   }
   console.log('[BOT] Burst-sent ' + logSlots.length + ' fletch commands');
   // Fast-poll until all logs consumed, then bank
+  window._flActive = window._flGen;
   window._fastLoop = setInterval(() => {
     c.idleTimer = performance.now();
     if (!c.ingame) return;
@@ -320,6 +327,7 @@ const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
                  (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
 if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
 // Fast-poll until bank opens, then deposit+withdraw+close in one shot
+window._flActive = window._flGen;
 window._fastLoop = setInterval(() => {
   c.idleTimer = performance.now();
   if (!c.ingame) return;
@@ -344,6 +352,98 @@ window._fastLoop = setInterval(() => {
       bot.stopScript();
       return;
     }
+    setTimeout(() => { bot.closeModal(); }, 600);
+  }, 600);
+}, 100);`,
+            string_longbow: `// String Yew Longbows (FAST): burst-string + fast bank polling
+// No dialog, no p_delay: just OPHELDU = 1 USER_EVENT per string
+// 5 strings per tick = 14 strings in ~1.7 seconds!
+const BOW_U = 67;       // Yew longbow (u) runtime ID
+const BOWSTRING = 1778; // Bowstring runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Skip if active fast loop is running; only clear stale ones
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+}
+window._flGen++;
+// Close non-bank modals
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
+// Helper: read inventory
+function getInv() {
+  const inv = IfType.list[3214];
+  const bows = [], strings = [];
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] === BOW_U) bows.push(i);
+    if (inv.linkObjType[i] === BOWSTRING) strings.push(i);
+  }
+  return {bows, strings, pairs: Math.min(bows.length, strings.length)};
+}
+const {bows, strings, pairs} = getInv();
+// If we have bows + strings, burst-string them all
+if (pairs > 0) {
+  // No dialog needed — just OPHELDU for each pair
+  for (let i = 0; i < pairs; i++) {
+    bot.useItemOnItem(BOWSTRING, strings[i], BOW_U, bows[i]);
+  }
+  console.log('[BOT] Burst-sent ' + pairs + ' string commands');
+  // Fast-poll until all bows are strung
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    const {pairs: remaining} = getInv();
+    if (remaining === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+    }
+  }, 200);
+  return;
+}
+// Otherwise: bank for supplies
+const pos = bot.getWorldPos();
+const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
+  .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
+                 (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
+if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+// Fast-poll until bank opens, then deposit + withdraw
+window._flActive = window._flGen;
+window._fastLoop = setInterval(() => {
+  c.idleTimer = performance.now();
+  if (!c.ingame) return;
+  if (c.mainModalId !== 5292) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+  // Deposit everything
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+  }
+  // Wait for server to update, then withdraw 14 unstrung + 14 bowstrings
+  setTimeout(() => {
+    if (c.mainModalId !== 5292) return;
+    const bankItems = bot.getBankItems();
+    const bowBank = bankItems.find(i => i.objId === BOW_U);
+    const strBank = bankItems.find(i => i.objId === BOWSTRING);
+    if (!bowBank || !strBank) {
+      console.log('[BOT] Missing supplies! Stopping.');
+      bot.stopScript();
+      return;
+    }
+    // Withdraw 14 of each (10+4x1) to fill 28 slots
+    function withdraw10(objId, slot) {
+      c.menuAction[0] = 555; // INV_BUTTON3 = Withdraw 10
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
+      c.doAction(0);
+    }
+    // 14 bows: 10 + 4x1
+    withdraw10(BOW_U, bowBank.slot);
+    for (let i = 0; i < 4; i++) bot.withdrawOne(BOW_U, bowBank.slot);
+    // 14 bowstrings: 10 + 4x1
+    withdraw10(BOWSTRING, strBank.slot);
+    for (let i = 0; i < 4; i++) bot.withdrawOne(BOWSTRING, strBank.slot);
     setTimeout(() => { bot.closeModal(); }, 600);
   }, 600);
 }, 100);`,
