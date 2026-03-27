@@ -554,18 +554,27 @@ function doShopOps() {
   // Step 2: poll until sells complete, then buy
   const phase2 = () => {
     const freeSlots = 28 - 2; // chisel + coins always present
-    for (let i = 0; i < freeSlots; i++) bot.buyShopItem(0, 1);
-    console.log('[BOT] Sent ' + freeSlots + ' buy commands');
-    // Poll until inventory full, then close
-    const buyPoll = setInterval(() => {
+    // Batch buy: send 5 buy1 commands per tick to stay within server buffer
+    let sent = 0;
+    console.log('[BOT] Buying ' + freeSlots + ' uncut sapphires');
+    const buyLoop = setInterval(() => {
       c.idleTimer = performance.now();
-      const {uncuts: bought} = getInv();
-      if (bought.length >= freeSlots) {
-        clearInterval(buyPoll);
+      if (c.mainModalId !== SHOP_MODAL) { clearInterval(buyLoop); return; }
+      // Check if all received
+      const {uncuts: have} = getInv();
+      if (have.length >= freeSlots) {
+        clearInterval(buyLoop);
         bot.closeModal();
+        return;
       }
-    }, 200);
-    setTimeout(() => { clearInterval(buyPoll); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 10000);
+      // Send next batch of 5
+      const batch = Math.min(5, freeSlots - sent);
+      if (batch > 0) {
+        for (let i = 0; i < batch; i++) bot.buyShopItem(0, 1);
+        sent += batch;
+      }
+    }, 600);
+    setTimeout(() => { clearInterval(buyLoop); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 15000);
   };
   if (curCuts.length > 0) {
     // Wait for sells to process before buying
