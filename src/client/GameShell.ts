@@ -116,9 +116,8 @@ export default abstract class GameShell {
             e.preventDefault();
         };
 
-        window.oncontextmenu = (e: MouseEvent): void => {
-            e.preventDefault();
-        };
+        // Only block context menu on the canvas — allow it elsewhere (e.g. inspect element)
+        // window.oncontextmenu was blocking right-click on the entire page
 
         await this.messageBox('Loading...', 0);
         await this.maininit();
