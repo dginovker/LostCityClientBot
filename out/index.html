@@ -71,6 +71,7 @@
                 <option value="fletch_longbow">Fletch Yew Longbow</option>
                 <option value="string_longbow">String Yew Longbow</option>
                 <option value="cut_gems">Cut Sapphires (Herquin)</option>
+                <option value="iron_mine">Iron Miner (Varrock East)</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -587,6 +588,103 @@ function doShopOps() {
   } else {
     doBuy();
   }
+}`,
+            iron_mine: `// Iron Miner (Varrock East) - power mines iron, drops ore, handles randoms
+// Walks back from Lumbridge if you die. Handles pickaxe head, strange plant.
+const IRON_ROCK = 2092;      // full iron rock locId
+const IRON_ORE = 441;        // runtime ID
+const MINE_CENTER = {x: 3285, z: 3368}; // Varrock east mine center
+const LUMBRIDGE = {x: 3222, z: 3218};
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Helper: count inventory items
+function getInv() {
+  const inv = IfType.list[3214];
+  let oreSlots = [], totalItems = 0;
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] > 0) totalItems++;
+    if (inv.linkObjType[i] === IRON_ORE) oreSlots.push(i);
+  }
+  return {oreSlots, totalItems, full: totalItems >= 28};
+}
+// Helper: pick up pickaxe head from ground if present
+function checkPickaxeHead() {
+  const ground = bot.getGroundItems(5);
+  // Pickaxe heads: runtime 481-489 odd (bronze=481, iron=483, steel=485, mith=487, adam=489, rune=491... actually let me just check for any "pickaxe" ground items)
+  for (const g of ground) {
+    const name = bot.getObjName(g.objId - 1) || '';
+    if (name.toLowerCase().includes('pickaxe')) {
+      bot.pickupGroundItem(g.objId, g.x, g.z);
+      console.log('[MINER] Picking up: ' + name);
+      return true;
+    }
+  }
+  return false;
+}
+// Helper: pick strange plant if nearby
+function checkStrangePlant() {
+  const plants = bot.findLocs('Strange plant', 5);
+  if (plants.length > 0) {
+    bot.interactLoc(plants[0].typecode, plants[0].x, plants[0].z, 'pick');
+    console.log('[MINER] Picking strange plant');
+    return true;
+  }
+  return false;
+}
+// Handle pickaxe head reattachment - use head on handle in inventory
+function checkBrokenPickaxe() {
+  const inv = IfType.list[3214];
+  let handleSlot = -1, headSlot = -1;
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    const name = bot.getObjName(inv.linkObjType[i] - 1) || '';
+    if (name.toLowerCase().includes('pickaxe handle')) handleSlot = i;
+    if (name.toLowerCase().includes('pickaxe head')) { headSlot = i; }
+  }
+  if (handleSlot >= 0 && headSlot >= 0) {
+    bot.useItemOnItem(inv.linkObjType[headSlot], headSlot, inv.linkObjType[handleSlot], handleSlot);
+    console.log('[MINER] Reattaching pickaxe head');
+    return true;
+  }
+  return false;
+}
+const pos = bot.getWorldPos();
+if (!pos) return;
+// If in Lumbridge area (died), walk back to mine
+if (Math.abs(pos.x - LUMBRIDGE.x) < 10 && Math.abs(pos.z - LUMBRIDGE.z) < 10) {
+  bot.walkTo(MINE_CENTER.x, MINE_CENTER.z);
+  console.log('[MINER] Walking back from Lumbridge');
+  return;
+}
+// If not near mine, walk toward it
+if (Math.abs(pos.x - MINE_CENTER.x) > 20 || Math.abs(pos.z - MINE_CENTER.z) > 20) {
+  bot.walkTo(MINE_CENTER.x, MINE_CENTER.z);
+  return;
+}
+// Check for random event items
+if (checkPickaxeHead()) return;
+if (checkBrokenPickaxe()) return;
+if (checkStrangePlant()) return;
+// If inventory full, drop ore (one per tick via OP_HELD5 = action 100 = "Drop")
+const {oreSlots, full} = getInv();
+if (full && oreSlots.length > 0) {
+  // Drop first ore found
+  c.menuAction[0] = 100; // MiniMenuAction.OP_HELD5 = Drop
+  c.menuParamA[0] = IRON_ORE - 1; // pack ID
+  c.menuParamB[0] = oreSlots[0];
+  c.menuParamC[0] = 3214; // inventory
+  c.doAction(0);
+  return;
+}
+// Mine the closest iron rock
+const rocks = bot.findLocs('Rocks', 15).filter(r => r.locId === IRON_ROCK);
+if (rocks.length > 0) {
+  // Pick closest
+  let closest = rocks[0], minDist = 999;
+  for (const r of rocks) {
+    const d = Math.abs(r.x + c.mapBuildBaseX - pos.x) + Math.abs(r.z + c.mapBuildBaseZ - pos.z);
+    if (d < minDist) { minDist = d; closest = r; }
+  }
+  bot.interactLoc(closest.typecode, closest.x, closest.z, 'mine');
 }`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
