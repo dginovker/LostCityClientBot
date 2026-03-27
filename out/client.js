@@ -19884,8 +19884,7 @@ function initBotApi(client) {
       const lp = c.localPlayer;
       if (!lp || !c.ingame)
         return false;
-      c.tryMove(lp.routeX[0], lp.routeZ[0], x2, z, false, 0, 0, 0, 0, 0, 0);
-      return true;
+      return c.tryMove(lp.routeX[0], lp.routeZ[0], x2, z, true, 0, 0, 0, 0, 0, 0);
     },
     walkTo(worldX, worldZ) {
       if (!c.ingame || !c.localPlayer)
@@ -30306,4 +30305,4 @@ export {
   Client
 };
 
-//# debugId=EF92E68F4F7464CF64756E2164756E21
+//# debugId=C30C76159AD8330564756E2164756E21

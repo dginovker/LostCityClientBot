@@ -483,8 +483,8 @@ export function initBotApi(client: Client): void {
         walk(x: number, z: number): boolean {
             const lp = c.localPlayer;
             if (!lp || !c.ingame) return false;
-            c.tryMove(lp.routeX[0], lp.routeZ[0], x, z, false, 0, 0, 0, 0, 0, 0);
-            return true;
+            // 5th param must be true (allowApproach) — false causes tryMove to silently fail
+            return c.tryMove(lp.routeX[0], lp.routeZ[0], x, z, true, 0, 0, 0, 0, 0, 0);
         },
 
         /** Walk toward a world coordinate. Breaks long distances into ~15 tile steps. */
