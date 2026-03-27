@@ -67,6 +67,8 @@
                 <option value="magic_shop">Shop Buyer</option>
                 <option value="fletch_arrows">Fletch Arrows</option>
                 <option value="chicken_bones">Chickens + Bury Bones</option>
+                <option value="flax_spin">Flax Spinner</option>
+                <option value="fletch_longbow">Fletch Yew Longbow</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -180,6 +182,159 @@ for (let i = 0; i < inv.linkObjType.length; i++) {
 }
 if (featherSlot >= 0 && shaftSlot >= 0) {
   bot.useItemOnItem(FEATHER, featherSlot, ARROW_SHAFT, shaftSlot);
+}`,
+            flax_spin: `// Flax Spinner: pick flax -> spin on wheel -> bank bowstring -> repeat
+// Close non-bank modals (welcome screen etc)
+const c0 = bot._client;
+if (c0.mainModalId !== -1 && c0.mainModalId !== 5292) bot.closeModal();
+const FLAX = 1780;        // runtime ID
+const BOWSTRING = 1778;   // runtime ID
+const FLAX_FIELD = {x:2738, z:3441};
+const DOOR_POS = {x:2714, z:3475};
+const LADDER_POS = {x:2712, z:3473};
+const BANK_POS = {x:2724, z:3493};
+if (!window._fs) window._fs = 'pick_flax';
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+// Count items
+let flaxSlot = -1, flaxCount = 0, itemCount = 0;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] > 0) itemCount++;
+  if (inv.linkObjType[i] === FLAX) { flaxCount++; if (flaxSlot === -1) flaxSlot = i; }
+}
+const invFull = itemCount >= 28;
+const st = window._fs;
+// Helper: open only CLOSED doors (locId 1530), skip open ones (1531)
+function openDoorIfClosed() {
+  const doors = bot.findLocs('Door', 3).filter(d => d.locId === 1530);
+  if (doors.length > 0) return bot.interactLoc(doors[0].typecode, doors[0].x, doors[0].z, 'open');
+  return false;
+}
+// State machine
+if (st === 'pick_flax') {
+  if (invFull && flaxCount > 0) { window._fs = 'walk_to_house'; return; }
+  if (invFull && flaxCount === 0) { window._fs = 'walk_to_bank'; return; }
+  if (!bot.isNear(FLAX_FIELD.x, FLAX_FIELD.z, 5)) { bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z); return; }
+  const flax = bot.findLocs('Flax', 10);
+  if (flax.length > 0) bot.interactLoc(flax[0].typecode, flax[0].x, flax[0].z, 'pick');
+} else if (st === 'walk_to_house') {
+  if (openDoorIfClosed()) return;
+  if (!bot.isNear(LADDER_POS.x, LADDER_POS.z, 3)) { bot.walkTo(DOOR_POS.x, DOOR_POS.z); return; }
+  window._fs = 'climb_up';
+} else if (st === 'climb_up') {
+  const ladder = bot.findLocs('Ladder', 5);
+  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
+  window._fs = 'spin_flax';
+} else if (st === 'spin_flax') {
+  if (flaxCount === 0) { window._fs = 'climb_down'; return; }
+  bot.useItemOnLoc(FLAX, flaxSlot, 'Spinning wheel');
+} else if (st === 'climb_down') {
+  const ladder = bot.findLocs('Ladder', 10);
+  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
+  window._fs = 'walk_to_bank';
+} else if (st === 'walk_to_bank') {
+  if (openDoorIfClosed()) return;
+  if (!bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(BANK_POS.x, BANK_POS.z); return; }
+  // Use closest usable booth (locId 2213) with use-quickly
+  const pos2 = bot.getWorldPos();
+  const banks = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
+    .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos2.x)+Math.abs(a.z+c.mapBuildBaseZ-pos2.z)) -
+                   (Math.abs(b.x+c.mapBuildBaseX-pos2.x)+Math.abs(b.z+c.mapBuildBaseZ-pos2.z)));
+  if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+  window._fs = 'deposit';
+} else if (st === 'deposit') {
+  if (c.mainModalId === -1) {
+    // Bank not open - re-open closest usable booth
+    const pos3 = bot.getWorldPos();
+    const banks2 = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
+      .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos3.x)+Math.abs(a.z+c.mapBuildBaseZ-pos3.z)) -
+                     (Math.abs(b.x+c.mapBuildBaseX-pos3.x)+Math.abs(b.z+c.mapBuildBaseZ-pos3.z)));
+    if (banks2.length > 0) bot.interactLoc(banks2[0].typecode, banks2[0].x, banks2[0].z, 'use-quickly');
+    return;
+  }
+  // Deposit ALL items via bank_side:inv (2006)
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
+  }
+  bot.closeModal();
+  window._fs = 'walk_to_flax';
+} else if (st === 'walk_to_flax') {
+  if (openDoorIfClosed()) return;
+  // Step out of bank first if still inside
+  if (bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(2722, 3488); return; }
+  // If flax is nearby, start picking. Otherwise keep walking.
+  if (bot.findLocs('Flax', 10).length > 0) { window._fs = 'pick_flax'; return; }
+  bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z);
+}`,
+            fletch_longbow: `// Fletch Yew Longbows: bank -> deposit -> withdraw knife + logs -> fletch -> repeat
+const KNIFE = 947;
+const WILLOW_LOG = 1516;
+const LONGBOW_BTN = 145;
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+const bankInv = IfType.list[2006];
+if (!window._wlb) window._wlb = 'open_bank';
+const st = window._wlb;
+// Count inventory
+let knifeSlot = -1, logSlot = -1, logCount = 0, totalItems = 0;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] > 0) totalItems++;
+  if (inv.linkObjType[i] === KNIFE && knifeSlot === -1) knifeSlot = i;
+  if (inv.linkObjType[i] === WILLOW_LOG) { logCount++; logSlot = i; }
+}
+// Protect the fletching interface (139) from auto-dismiss; level-ups still get dismissed
+window._botProtectChatComId = (st === 'fletch') ? 139 : 0;
+// Close non-bank modals (welcome screen etc)
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
+if (st === 'open_bank') {
+  if (c.mainModalId === 5292) { window._wlb = 'deposit'; return; }
+  const pos = bot.getWorldPos();
+  const banks = bot.findLocs('Bank booth', 10).filter(b => b.locId === 2213)
+    .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
+                   (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
+  if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+} else if (st === 'deposit') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
+  }
+  window._wlb = 'withdraw_knife';
+} else if (st === 'withdraw_knife') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  const bankItems = bot.getBankItems();
+  const knife = bankItems.find(i => i.objId === KNIFE);
+  if (knife) bot.withdrawOne(knife.objId, knife.slot);
+  window._wlb = 'withdraw_logs';
+} else if (st === 'withdraw_logs') {
+  if (c.mainModalId !== 5292) { window._wlb = 'open_bank'; return; }
+  const bankItems = bot.getBankItems();
+  const logs = bankItems.find(i => i.objId === WILLOW_LOG);
+  if (logs) {
+    bot.withdrawAll(logs.objId, logs.slot);
+    window._wlb = 'close_bank';
+  } else {
+    console.log('[BOT] No willow logs in bank! Stopping.');
+    bot.stopScript();
+  }
+} else if (st === 'close_bank') {
+  bot.closeModal();
+  window._wlb = 'fletch';
+} else if (st === 'fletch') {
+  // Fletching interface showing - click longbow then immediately queue knife on next log
+  if (c.chatComId === 139) {
+    bot.clickButton(LONGBOW_BTN);
+    if (knifeSlot >= 0 && logSlot >= 0) bot.useItemOnItem(KNIFE, knifeSlot, WILLOW_LOG, logSlot);
+    return;
+  }
+  // Other dialog (level-up etc) - dismiss it
+  if (c.chatComId !== -1) { bot.dismissDialog(); return; }
+  // No more logs -> bank
+  if (logCount === 0) { window._wlb = 'open_bank'; return; }
+  // Use knife on log
+  if (knifeSlot >= 0 && logSlot >= 0) bot.useItemOnItem(KNIFE, knifeSlot, WILLOW_LOG, logSlot);
 }`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)

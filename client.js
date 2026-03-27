@@ -19488,11 +19488,27 @@ class JagFX {
 }
 
 // src/bot/BotApi.ts
+var RANDOM_EVENT_NPCS = {
+  Genie: "talk",
+  "Drunken Dwarf": "talk",
+  "Mysterious Old Man": "talk",
+  Swarm: "flee",
+  "River troll": "flee",
+  "Rock Golem": "flee",
+  Zombie: "flee",
+  Shade: "flee",
+  Watchman: "flee",
+  "Tree spirit": "flee"
+};
 function initBotApi(client) {
   const c = client;
   const bot = {
     _client: c,
+    _activeEvent: null,
     dismissDialog() {
+      const protectedId = window._botProtectChatComId;
+      if (protectedId && c.chatComId === protectedId)
+        return false;
       if (c.chatComId !== -1) {
         c.out.pIsaac(146 /* RESUME_PAUSEBUTTON */);
         c.out.p2(c.chatComId);
@@ -19680,9 +19696,10 @@ function initBotApi(client) {
       if (!locType || !locType.op)
         return false;
       const lower = optionName.toLowerCase();
+      const locActions = [625, 721, 743, 357, 1071];
       for (let i2 = 0;i2 < 5; i2++) {
         if (locType.op[i2] && locType.op[i2].toLowerCase().includes(lower)) {
-          c.menuAction[0] = 625 + i2;
+          c.menuAction[0] = locActions[i2];
           c.menuParamA[0] = typecode;
           c.menuParamB[0] = x2;
           c.menuParamC[0] = z;
@@ -19809,6 +19826,31 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    getObjName(packId) {
+      try {
+        const obj = ObjType.list(packId);
+        return obj?.name ?? null;
+      } catch {
+        return null;
+      }
+    },
+    getObjInfo(packId) {
+      try {
+        const obj = ObjType.list(packId);
+        if (!obj)
+          return null;
+        return {
+          id: obj.id,
+          name: obj.name,
+          recol_s: obj.recol_s,
+          recol_d: obj.recol_d,
+          model: obj.model,
+          desc: obj.desc
+        };
+      } catch {
+        return null;
+      }
+    },
     setDebug(on) {
       c.debugMode = on;
     },
@@ -19817,11 +19859,127 @@ function initBotApi(client) {
       c.redrawSidebar = true;
       c.redrawSideicons = true;
     },
+    sendCommand(cmd) {
+      if (!c.out)
+        return false;
+      c.out.pIsaac(86 /* CLIENT_CHEAT */);
+      c.out.p1(cmd.length + 1);
+      c.out.pjstr(cmd);
+      return true;
+    },
+    tele(absX, absZ, level = 0) {
+      const mx = absX >> 6;
+      const mz = absZ >> 6;
+      const lx = absX & 63;
+      const lz = absZ & 63;
+      return bot.sendCommand(`tele ${level},${mx},${mz},${lx},${lz}`);
+    },
+    getAbsolutePosition() {
+      if (!c.localPlayer)
+        return null;
+      return {
+        x: c.mapBuildBaseX + c.localPlayer.routeX[0],
+        z: c.mapBuildBaseZ + c.localPlayer.routeZ[0],
+        level: c.minusedlevel ?? 0
+      };
+    },
     walk(x2, z) {
       const lp = c.localPlayer;
       if (!lp || !c.ingame)
         return false;
       c.tryMove(lp.routeX[0], lp.routeZ[0], x2, z, false, 0, 0, 0, 0, 0, 0);
+      return true;
+    },
+    walkTo(worldX, worldZ) {
+      if (!c.ingame || !c.localPlayer)
+        return false;
+      const px = c.localPlayer.routeX[0] + c.mapBuildBaseX;
+      const pz = c.localPlayer.routeZ[0] + c.mapBuildBaseZ;
+      const dx = worldX - px;
+      const dz = worldZ - pz;
+      const dist = Math.max(Math.abs(dx), Math.abs(dz));
+      if (dist === 0)
+        return true;
+      const step = Math.min(dist, 15);
+      const sx = px + Math.round(dx / dist * step);
+      const sz = pz + Math.round(dz / dist * step);
+      return bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ);
+    },
+    getWorldPos() {
+      const lp = c.localPlayer;
+      if (!lp || !c.ingame)
+        return null;
+      return { x: lp.routeX[0] + c.mapBuildBaseX, z: lp.routeZ[0] + c.mapBuildBaseZ };
+    },
+    isNear(worldX, worldZ, dist = 3) {
+      const pos = bot.getWorldPos();
+      if (!pos)
+        return false;
+      return Math.abs(pos.x - worldX) <= dist && Math.abs(pos.z - worldZ) <= dist;
+    },
+    useItemOnLoc(objId, objSlot, locName, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      const locs = bot.findLocs(locName, 10);
+      if (locs.length === 0)
+        return false;
+      const loc = locs[0];
+      c.objComId = objId - 1;
+      c.objSelectedSlot = objSlot;
+      c.objSelectedComId = comId;
+      c.menuAction[0] = 810;
+      c.menuParamA[0] = loc.typecode;
+      c.menuParamB[0] = loc.x;
+      c.menuParamC[0] = loc.z;
+      c.doAction(0);
+      return true;
+    },
+    depositAll(objId, slot) {
+      if (!c.ingame || c.mainModalId === -1)
+        return false;
+      c.menuAction[0] = 331;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 2006;
+      c.doAction(0);
+      return true;
+    },
+    isBankOpen() {
+      return c.ingame && c.mainModalId === 5292;
+    },
+    getBankItems() {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return [];
+      const IfType2 = c.chatInterface.constructor;
+      const bankCom = IfType2.list[5382];
+      if (!bankCom || !bankCom.linkObjType)
+        return [];
+      const items = [];
+      for (let i2 = 0;i2 < bankCom.linkObjType.length; i2++) {
+        if (bankCom.linkObjType[i2] > 0) {
+          items.push({ slot: i2, objId: bankCom.linkObjType[i2], count: bankCom.linkObjNumber[i2] });
+        }
+      }
+      return items;
+    },
+    withdrawOne(objId, slot) {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return false;
+      c.menuAction[0] = 582;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
+      c.doAction(0);
+      return true;
+    },
+    withdrawAll(objId, slot) {
+      if (!c.ingame || c.mainModalId !== 5292)
+        return false;
+      c.menuAction[0] = 331;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
+      c.doAction(0);
       return true;
     },
     login(username, password) {
@@ -19840,10 +19998,201 @@ function initBotApi(client) {
         return false;
       return bot.pickpocket(npcs[0].slot);
     },
+    checkRandomEvent() {
+      if (bot._activeEvent) {
+        const event = bot._activeEvent;
+        const { name, slot } = event;
+        const npc = c.npc[slot];
+        const npcAlive = npc && npc.type && npc.type.name === name;
+        if (event.handler === "talk") {
+          if (!npcAlive) {
+            console.log(`[BOT] Random event "${name}" completed (NPC despawned).`);
+            bot._activeEvent = null;
+            return false;
+          }
+          if (event.talking) {
+            bot.dismissDialog();
+            return true;
+          }
+          console.log(`[BOT] Random event "${name}": initiating talk to slot ${slot}.`);
+          bot.interactNpc(slot, "talk");
+          event.talking = true;
+          return true;
+        }
+        if (event.handler === "flee") {
+          if (event.phase === "fleeing") {
+            if (!npcAlive) {
+              console.log(`[BOT] Combat event "${name}" NPC despawned. Walking back to saved position (${event.savedX}, ${event.savedZ}).`);
+              bot.walk(event.savedX, event.savedZ);
+              event.phase = "returning";
+              return true;
+            }
+            const player = bot.getPlayer();
+            if (!player)
+              return true;
+            const npcX = npc.routeX[0];
+            const npcZ = npc.routeZ[0];
+            const dx = player.x - npcX;
+            const dz = player.z - npcZ;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            let fleeX, fleeZ;
+            if (dist < 0.01) {
+              fleeX = player.x + 5;
+              fleeZ = player.z + 5;
+            } else {
+              fleeX = Math.round(player.x + dx / dist * 5);
+              fleeZ = Math.round(player.z + dz / dist * 5);
+            }
+            fleeX = Math.max(1, Math.min(102, fleeX));
+            fleeZ = Math.max(1, Math.min(102, fleeZ));
+            console.log(`[BOT] Fleeing from "${name}" at (${npcX},${npcZ}). Walking to (${fleeX},${fleeZ}).`);
+            bot.walk(fleeX, fleeZ);
+            return true;
+          }
+          if (event.phase === "returning") {
+            const player = bot.getPlayer();
+            if (!player)
+              return true;
+            const dx = Math.abs(player.x - event.savedX);
+            const dz = Math.abs(player.z - event.savedZ);
+            if (dx <= 1 && dz <= 1) {
+              console.log(`[BOT] Combat event "${name}" complete. Returned to saved position.`);
+              bot._activeEvent = null;
+              return false;
+            }
+            bot.walk(event.savedX, event.savedZ);
+            return true;
+          }
+        }
+      }
+      const npcs = bot.getNpcs();
+      for (const npc of npcs) {
+        if (npc.name && npc.name in RANDOM_EVENT_NPCS) {
+          const handler = RANDOM_EVENT_NPCS[npc.name];
+          if (handler === "talk") {
+            console.log(`[BOT] Random event detected: "${npc.name}" at slot ${npc.slot}. Initiating talk.`);
+            bot.interactNpc(npc.slot, "talk");
+            bot._activeEvent = { name: npc.name, slot: npc.slot, handler: "talk", talking: true };
+            return true;
+          }
+          if (handler === "flee") {
+            const player = bot.getPlayer();
+            if (!player)
+              return false;
+            console.log(`[BOT] Combat event detected: "${npc.name}" at slot ${npc.slot}. Saving position (${player.x}, ${player.z}) and fleeing.`);
+            const dx = player.x - npc.x;
+            const dz = player.z - npc.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            let fleeX, fleeZ;
+            if (dist < 0.01) {
+              fleeX = player.x + 5;
+              fleeZ = player.z + 5;
+            } else {
+              fleeX = Math.round(player.x + dx / dist * 5);
+              fleeZ = Math.round(player.z + dz / dist * 5);
+            }
+            fleeX = Math.max(1, Math.min(102, fleeX));
+            fleeZ = Math.max(1, Math.min(102, fleeZ));
+            bot.walk(fleeX, fleeZ);
+            bot._activeEvent = {
+              name: npc.name,
+              slot: npc.slot,
+              handler: "flee",
+              phase: "fleeing",
+              savedX: player.x,
+              savedZ: player.z
+            };
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+    solveBox() {
+      if (!c.ingame || c.mainModalId !== 6554)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const question = IfType2.list[6561]?.text ?? "";
+      const answers = [
+        IfType2.list[6565]?.text ?? "",
+        IfType2.list[6566]?.text ?? "",
+        IfType2.list[6567]?.text ?? ""
+      ];
+      const modelIds = [
+        IfType2.list[6555]?.model1Id ?? 0,
+        IfType2.list[6557]?.model1Id ?? 0,
+        IfType2.list[6559]?.model1Id ?? 0
+      ];
+      const colorMap = { 1703: "Red", 43429: "Blue", 8749: "Yellow" };
+      const shapeNames = {};
+      for (let i2 = 0;i2 < 3; i2++) {
+        shapeNames[modelIds[i2]] = answers[i2];
+      }
+      const modelColours = modelIds.map((id) => {
+        const obj = ObjType.list(id);
+        const recolD = obj?.recol_d;
+        if (recolD) {
+          return colorMap[recolD[0]] ?? "Unknown";
+        }
+        return "Unknown";
+      });
+      let correctIdx = -1;
+      const colourMatch = question.match(/What colou?r is the (.+)\?/i);
+      const shapeMatch = question.match(/Which shape is (.+)\?/i);
+      if (colourMatch) {
+        const targetColour = modelColours[0];
+        correctIdx = answers.findIndex((a) => a.toLowerCase() === targetColour?.toLowerCase());
+      } else if (shapeMatch) {
+        const targetColour = shapeMatch[1];
+        for (let i2 = 0;i2 < 3; i2++) {
+          if (modelColours[i2]?.toLowerCase() === targetColour.toLowerCase()) {
+            correctIdx = i2;
+            break;
+          }
+        }
+      }
+      if (correctIdx >= 0) {
+        const buttons = [6562, 6563, 6564];
+        console.log(`[BOT] Mysterious Box: "${question}" → Answer: "${answers[correctIdx]}" (button ${buttons[correctIdx]})`);
+        bot.clickButton(buttons[correctIdx]);
+        return true;
+      }
+      console.log(`[BOT] Mysterious Box: Could not solve "${question}" answers=${JSON.stringify(answers)} colours=${JSON.stringify(modelColours)}`);
+      return false;
+    },
+    hasBoxes() {
+      if (!c.ingame)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const inv = IfType2.list[3214];
+      if (!inv?.linkObjType)
+        return false;
+      for (let i2 = 0;i2 < inv.linkObjType.length; i2++) {
+        if (inv.linkObjType[i2] === 3063)
+          return true;
+      }
+      return false;
+    },
+    openBox() {
+      if (!c.ingame)
+        return false;
+      const IfType2 = c.chatInterface.constructor;
+      const inv = IfType2.list[3214];
+      if (!inv?.linkObjType)
+        return false;
+      for (let i2 = 0;i2 < inv.linkObjType.length; i2++) {
+        if (inv.linkObjType[i2] === 3063) {
+          bot.useHeldItem(3063, i2);
+          return true;
+        }
+      }
+      return false;
+    },
     startScript(username, password, action, intervalMs = 2000) {
       if (window._botInterval)
         clearInterval(window._botInterval);
       window._botRelogging = false;
+      bot._activeEvent = null;
       window._botInterval = setInterval(() => {
         if (!bot.isLoggedIn()) {
           if (!window._botRelogging) {
@@ -19857,7 +20206,17 @@ function initBotApi(client) {
           return;
         }
         c.idleTimer = performance.now();
+        if (bot.checkRandomEvent())
+          return;
         bot.dismissDialog();
+        if (c.mainModalId === 6554) {
+          bot.solveBox();
+          return;
+        }
+        if (bot.hasBoxes() && c.mainModalId === -1 && c.chatComId === -1) {
+          bot.openBox();
+          return;
+        }
         try {
           action();
         } catch (e) {
@@ -19871,6 +20230,7 @@ function initBotApi(client) {
         clearInterval(window._botInterval);
         window._botInterval = null;
       }
+      bot._activeEvent = null;
       console.log("[BOT] Script stopped.");
     }
   };
@@ -29769,4 +30129,4 @@ export {
   Client
 };
 
-//# debugId=299955CF5155945064756E2164756E21
+//# debugId=1DF1EF62BBA791FF64756E2164756E21
