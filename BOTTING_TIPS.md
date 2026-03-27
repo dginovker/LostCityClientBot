@@ -319,6 +319,33 @@ if (c.chatComId === 139) {
 | Yew logs | 1516 | 1515 |
 | Yew longbow (u) | 67 | 66 |
 
+## Shop Mechanics
+
+### Key discovery: shops never drop below base stock
+On this server, `buy10` from a shop with base stock of 10 will give you 10 items **and the stock stays at 10**. The stock never decreases below its base level. This means:
+- If base stock is 1 (e.g., Herquin's uncut sapphires), `buy10` only gives 1
+- If you **sell items to boost stock above 10**, then `buy10` gives 10 every time
+
+### Strategy: seed the shop
+For shops with low base stock, first sell items to the shop to boost stock, then use `buy10` for fast bulk buying. Example for Herquin's gems:
+1. First cycle: buy 1 at a time (slow) until you have a full inventory
+2. Cut them all, sell the cut gems back
+3. Also sell ~10 uncut gems to boost the uncut stock from 1 to ~11
+4. Now `buy10` works: 3x `buy10` fills 26 free slots instantly (3 commands vs 26)
+
+### Selling to shops
+Sell uses component 3823 (shop_side:inv). `sell10` (INV_BUTTON4 = 331) sells by **item type**, not just the clicked slot — one command sells up to 10 of that item from anywhere in your inventory.
+```javascript
+c.menuAction[0] = 331; // INV_BUTTON4 = Sell 10
+c.menuParamA[0] = objId - 1; // pack ID
+c.menuParamB[0] = anySlotWithItem;
+c.menuParamC[0] = 3823; // shop_side:inv
+c.doAction(0);
+```
+
+### Gem cutting
+Gem cutting (chisel on uncut gem) has **zero p_delay and zero dialog** but DOES play an `anim()`. Unlike fletching burst, sending all OPHELDUs at once stalls after ~10. **Batch 10 per tick targeting bottom-up slots** works reliably. Sapphires have 100% success rate.
+
 ## Random Events: Mysterious Box
 
 The Mysterious Box random event is handled automatically by `startScript()`. When boxes appear in inventory, the bot:
