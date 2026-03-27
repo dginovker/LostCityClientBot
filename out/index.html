@@ -70,6 +70,7 @@
                 <option value="flax_spin">Flax Spinner</option>
                 <option value="fletch_longbow">Fletch Yew Longbow</option>
                 <option value="string_longbow">String Yew Longbow</option>
+                <option value="cut_gems">Cut Sapphires (Herquin)</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -454,6 +455,130 @@ window._fastLoop = setInterval(() => {
     setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === 5292) bot.closeModal(); }, 3000);
   }, 600);
 }, 100);`,
+            cut_gems: `// Cut Sapphires at Herquin's: buy uncut -> burst cut -> sell cut -> repeat
+// Gem cutting has zero p_delay and zero dialog: 1 OPHELDU per cut = 5 cuts/tick
+const CHISEL = 1756;
+const UNCUT_SAPPHIRE = 1624;
+const CUT_SAPPHIRE = 1608;
+const SHOP_MODAL = 3824;
+const SHOP_COM = 3900;  // shop inventory (buy from)
+const SHOP_SIDE = 3823; // player inventory in shop (sell from)
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Generation-based fast loop guard
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+}
+window._flGen++;
+// Close non-shop modals
+if (c.mainModalId !== -1 && c.mainModalId !== SHOP_MODAL) { bot.closeModal(); return; }
+// Helper: read inventory
+function getInv() {
+  const inv = IfType.list[3214];
+  let chiselSlot = -1; const uncuts = [], cuts = [];
+  let totalItems = 0;
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] > 0) totalItems++;
+    if (inv.linkObjType[i] === CHISEL && chiselSlot === -1) chiselSlot = i;
+    if (inv.linkObjType[i] === UNCUT_SAPPHIRE) uncuts.push(i);
+    if (inv.linkObjType[i] === CUT_SAPPHIRE) cuts.push(i);
+  }
+  return {chiselSlot, uncuts, cuts, totalItems};
+}
+// Helper: sell 10 of an item on shop_side:inv
+function sell10(objId, slot) {
+  c.menuAction[0] = 331; // INV_BUTTON4 = Sell 10
+  c.menuParamA[0] = objId - 1;
+  c.menuParamB[0] = slot;
+  c.menuParamC[0] = SHOP_SIDE;
+  c.doAction(0);
+}
+const {chiselSlot, uncuts, cuts, totalItems} = getInv();
+// If we have uncuts + chisel, cut them in batches of 5 per tick
+if (chiselSlot >= 0 && uncuts.length > 0) {
+  let batch = 0;
+  const BATCH_SIZE = 5;
+  function sendBatch() {
+    const {chiselSlot: cs, uncuts: remaining} = getInv();
+    if (cs < 0 || remaining.length === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+      return;
+    }
+    const toSend = remaining.slice(0, BATCH_SIZE);
+    for (const slot of toSend) {
+      bot.useItemOnItem(CHISEL, cs, UNCUT_SAPPHIRE, slot);
+    }
+    batch++;
+  }
+  sendBatch(); // send first batch immediately
+  console.log('[BOT] Cutting ' + uncuts.length + ' gems in batches of ' + BATCH_SIZE);
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    const {uncuts: remaining} = getInv();
+    if (remaining.length === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+      return;
+    }
+    sendBatch();
+  }, 600);
+  return;
+}
+// Otherwise: open shop, sell cuts, buy uncuts
+if (c.mainModalId !== SHOP_MODAL) {
+  const herquin = bot.findNpc('herquin');
+  if (herquin.length > 0) bot.interactNpc(herquin[0].slot, 'trade');
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    if (c.mainModalId !== SHOP_MODAL) return; // shop not open yet
+    clearInterval(window._fastLoop); window._fastLoop = null;
+    doShopOps();
+  }, 100);
+  return;
+}
+// Shop already open
+doShopOps();
+function doShopOps() {
+  const {cuts: curCuts} = getInv();
+  // Step 1: sell all cut sapphires (sell10 works by item type, 3 covers up to 30)
+  if (curCuts.length > 0) {
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+  }
+  // Step 2: poll until sells complete, then buy
+  const phase2 = () => {
+    const freeSlots = 28 - 2; // chisel + coins always present
+    for (let i = 0; i < freeSlots; i++) bot.buyShopItem(0, 1);
+    console.log('[BOT] Sent ' + freeSlots + ' buy commands');
+    // Poll until inventory full, then close
+    const buyPoll = setInterval(() => {
+      c.idleTimer = performance.now();
+      const {uncuts: bought} = getInv();
+      if (bought.length >= freeSlots) {
+        clearInterval(buyPoll);
+        bot.closeModal();
+      }
+    }, 200);
+    setTimeout(() => { clearInterval(buyPoll); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 10000);
+  };
+  if (curCuts.length > 0) {
+    // Wait for sells to process before buying
+    const sellPoll = setInterval(() => {
+      c.idleTimer = performance.now();
+      if (c.mainModalId !== SHOP_MODAL) { clearInterval(sellPoll); return; }
+      const {cuts: remaining} = getInv();
+      if (remaining.length === 0) { clearInterval(sellPoll); phase2(); }
+    }, 200);
+  } else {
+    phase2(); // no cuts to sell, go straight to buying
+  }
+}`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
