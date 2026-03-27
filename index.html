@@ -496,24 +496,23 @@ function sell10(objId, slot) {
   c.doAction(0);
 }
 const {chiselSlot, uncuts, cuts, totalItems} = getInv();
-// If we have uncuts + chisel, cut them in batches of 5 per tick
+// If we have uncuts + chisel, cut them in batches of 10 (bottom-up) per tick
 if (chiselSlot >= 0 && uncuts.length > 0) {
-  let batch = 0;
-  const BATCH_SIZE = 5;
+  const BATCH_SIZE = 10;
   function sendBatch() {
     const {chiselSlot: cs, uncuts: remaining} = getInv();
     if (cs < 0 || remaining.length === 0) {
       clearInterval(window._fastLoop); window._fastLoop = null;
       return;
     }
-    const toSend = remaining.slice(0, BATCH_SIZE);
+    // Target bottom slots first — avoids anim blocking issues
+    const toSend = remaining.slice(-BATCH_SIZE);
     for (const slot of toSend) {
       bot.useItemOnItem(CHISEL, cs, UNCUT_SAPPHIRE, slot);
     }
-    batch++;
   }
-  sendBatch(); // send first batch immediately
-  console.log('[BOT] Cutting ' + uncuts.length + ' gems in batches of ' + BATCH_SIZE);
+  sendBatch();
+  console.log('[BOT] Cutting ' + uncuts.length + ' gems (10/tick, bottom-up)');
   window._flActive = window._flGen;
   window._fastLoop = setInterval(() => {
     c.idleTimer = performance.now();
@@ -544,48 +543,49 @@ if (c.mainModalId !== SHOP_MODAL) {
 // Shop already open
 doShopOps();
 function doShopOps() {
-  const {cuts: curCuts} = getInv();
-  // Step 1: sell all cut sapphires (sell10 works by item type, 3 covers up to 30)
+  const {cuts: curCuts, uncuts: curUncuts} = getInv();
+  const freeSlots = 28 - 2; // chisel + coins
+  // Step 1: sell all cut sapphires (sell10 x3 covers up to 30)
   if (curCuts.length > 0) {
     sell10(CUT_SAPPHIRE, curCuts[0]);
     sell10(CUT_SAPPHIRE, curCuts[0]);
     sell10(CUT_SAPPHIRE, curCuts[0]);
   }
-  // Step 2: poll until sells complete, then buy
-  const phase2 = () => {
-    const freeSlots = 28 - 2; // chisel + coins always present
-    // Batch buy: send 5 buy1 commands per tick to stay within server buffer
-    let sent = 0;
-    console.log('[BOT] Buying ' + freeSlots + ' uncut sapphires');
-    const buyLoop = setInterval(() => {
+  // Step 2: seed shop if stock < 10 by selling uncuts back
+  // (shop never drops below base stock, so buy10 needs stock >= 10)
+  const shopItems = bot.getShopItems();
+  const uncutStock = shopItems.find(i => i.objId === UNCUT_SAPPHIRE);
+  if (uncutStock && uncutStock.count < 10 && curUncuts.length > 0) {
+    sell10(UNCUT_SAPPHIRE, curUncuts[0]); // sell up to 10 to seed
+    console.log('[BOT] Seeding shop stock (was ' + uncutStock.count + ')');
+  }
+  // Step 3: poll until sells complete, then buy with 3x buy10
+  const doBuy = () => {
+    // 3x buy10 = up to 30 items, capped by inventory space
+    bot.buyShopItem(0, 10);
+    bot.buyShopItem(0, 10);
+    bot.buyShopItem(0, 10);
+    console.log('[BOT] Sent 3x buy10');
+    // Poll until inventory full, then close
+    const closePoll = setInterval(() => {
       c.idleTimer = performance.now();
-      if (c.mainModalId !== SHOP_MODAL) { clearInterval(buyLoop); return; }
-      // Check if all received
       const {uncuts: have} = getInv();
       if (have.length >= freeSlots) {
-        clearInterval(buyLoop);
+        clearInterval(closePoll);
         bot.closeModal();
-        return;
       }
-      // Send next batch of 5
-      const batch = Math.min(5, freeSlots - sent);
-      if (batch > 0) {
-        for (let i = 0; i < batch; i++) bot.buyShopItem(0, 1);
-        sent += batch;
-      }
-    }, 600);
-    setTimeout(() => { clearInterval(buyLoop); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 15000);
+    }, 200);
+    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 10000);
   };
   if (curCuts.length > 0) {
-    // Wait for sells to process before buying
     const sellPoll = setInterval(() => {
       c.idleTimer = performance.now();
       if (c.mainModalId !== SHOP_MODAL) { clearInterval(sellPoll); return; }
       const {cuts: remaining} = getInv();
-      if (remaining.length === 0) { clearInterval(sellPoll); phase2(); }
+      if (remaining.length === 0) { clearInterval(sellPoll); doBuy(); }
     }, 200);
   } else {
-    phase2(); // no cuts to sell, go straight to buying
+    doBuy();
   }
 }`,
             custom: `// Write your custom script here
