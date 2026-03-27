@@ -19995,12 +19995,177 @@ function initBotApi(client) {
         return false;
       return bot.pickpocket(npcs[0].slot);
     },
+    _computeMazePath() {
+      const col = c.collision?.[0];
+      if (!col || !c.localPlayer)
+        return null;
+      const flags = col.flags;
+      const SIZE = 104;
+      const idx = (x2, z) => x2 * SIZE + z;
+      const MAZE_DOOR_IDS = [3628, 3629, 3630, 3631, 3632];
+      const WALL_N = 2, WALL_E = 8, WALL_S = 32, WALL_W = 128;
+      const BLOCKED = 256 | 2097152;
+      const level = c.minusedlevel;
+      const doorMap = {};
+      for (let x2 = 1;x2 < SIZE - 1; x2++) {
+        for (let z = 1;z < SIZE - 1; z++) {
+          const tc = c.world.wallType(level, x2, z);
+          if (!tc)
+            continue;
+          const locId = tc >> 14 & 32767;
+          if (MAZE_DOOR_IDS.includes(locId)) {
+            doorMap[x2 + "," + z] = { locId, tc, lx: x2, lz: z };
+          }
+        }
+      }
+      const canMove = (x2, z, dx, dz) => {
+        const nx = x2 + dx, nz = z + dz;
+        if (nx < 1 || nz < 1 || nx >= SIZE - 1 || nz >= SIZE - 1)
+          return false;
+        if (flags[idx(nx, nz)] & BLOCKED)
+          return false;
+        const sf = flags[idx(x2, z)], df = flags[idx(nx, nz)];
+        let blocked = false;
+        if (dz === 1 && (sf & WALL_N || df & WALL_S))
+          blocked = true;
+        if (dz === -1 && (sf & WALL_S || df & WALL_N))
+          blocked = true;
+        if (dx === 1 && (sf & WALL_E || df & WALL_W))
+          blocked = true;
+        if (dx === -1 && (sf & WALL_W || df & WALL_E))
+          blocked = true;
+        if (!blocked)
+          return true;
+        return !!(doorMap[x2 + "," + z] || doorMap[nx + "," + nz]);
+      };
+      const px = c.localPlayer.routeX[0];
+      const pz = c.localPlayer.routeZ[0];
+      const centerX = 2911 - c.mapBuildBaseX;
+      const centerZ = 4575 - c.mapBuildBaseZ;
+      const visited = new Uint8Array(SIZE * SIZE);
+      const parent = new Int32Array(SIZE * SIZE).fill(-1);
+      const queue = [[px, pz]];
+      visited[idx(px, pz)] = 1;
+      const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      let goalX = -1, goalZ = -1, found = false;
+      while (queue.length > 0) {
+        const [cx, cz] = queue.shift();
+        for (let sx = 0;sx < 3 && !found; sx++)
+          for (let sz = 0;sz < 3 && !found; sz++)
+            if (Math.abs(cx - (centerX + sx)) + Math.abs(cz - (centerZ + sz)) <= 1) {
+              goalX = cx;
+              goalZ = cz;
+              found = true;
+            }
+        if (found)
+          break;
+        for (const [dx, dz] of dirs) {
+          const nx = cx + dx, nz = cz + dz;
+          if (visited[idx(nx, nz)])
+            continue;
+          if (!canMove(cx, cz, dx, dz))
+            continue;
+          visited[idx(nx, nz)] = 1;
+          parent[idx(nx, nz)] = cx * SIZE + cz;
+          queue.push([nx, nz]);
+        }
+      }
+      if (!found) {
+        console.log("[BOT] Maze: no path found!");
+        return null;
+      }
+      const path = [];
+      let tx = goalX, tz = goalZ;
+      while (tx !== px || tz !== pz) {
+        const door = doorMap[tx + "," + tz];
+        path.unshift({
+          absX: tx + c.mapBuildBaseX,
+          absZ: tz + c.mapBuildBaseZ,
+          lx: tx,
+          lz: tz,
+          door: door ? { tc: door.tc, lx: door.lx, lz: door.lz, locId: door.locId } : null
+        });
+        const p = parent[idx(tx, tz)];
+        tx = Math.floor(p / SIZE);
+        tz = p % SIZE;
+      }
+      console.log(`[BOT] Maze path: ${path.length} tiles, ${path.filter((p) => p.door).length} doors`);
+      return path;
+    },
     checkRandomEvent() {
       if (bot._activeEvent) {
         const event = bot._activeEvent;
         const { name, slot } = event;
         const npc = c.npc[slot];
         const npcAlive = npc && npc.type && npc.type.name === name;
+        if (event.handler === "maze") {
+          bot.dismissDialog();
+          if (event.waitTicks > 0) {
+            event.waitTicks--;
+            return true;
+          }
+          const mPos = bot.getWorldPos();
+          if (!mPos || mPos.x < 2880 || mPos.x > 2943 || mPos.z < 4544 || mPos.z > 4607) {
+            console.log("[BOT] Maze solved!");
+            bot._activeEvent = null;
+            return false;
+          }
+          while (event.step < event.path.length) {
+            const wp2 = event.path[event.step];
+            if (Math.abs(mPos.x - wp2.absX) + Math.abs(mPos.z - wp2.absZ) <= 0) {
+              event.step++;
+            } else
+              break;
+          }
+          if (event.step >= event.path.length) {
+            const spx = c.localPlayer.routeX[0], spz = c.localPlayer.routeZ[0];
+            const slevel = c.minusedlevel;
+            for (let dx = -5;dx <= 5; dx++) {
+              for (let dz = -5;dz <= 5; dz++) {
+                const sx = spx + dx, sz = spz + dz;
+                if (sx < 0 || sz < 0 || sx >= 104 || sz >= 104)
+                  continue;
+                const wtc = c.world.wallType(slevel, sx, sz);
+                if (wtc) {
+                  const wid = wtc >> 14 & 32767;
+                  if (wid >= 3628 && wid <= 3632) {
+                    const stc2 = c.world.sceneType(slevel, sx, sz);
+                    for (let ddx = -2;ddx <= 2; ddx++) {
+                      for (let ddz = -2;ddz <= 2; ddz++) {
+                        const stc22 = c.world.sceneType(slevel, sx + ddx, sz + ddz);
+                        if (stc22 && (stc22 >> 14 & 32767) === 3634) {
+                          bot.interactLoc(wtc, sx, sz, "open");
+                          console.log("[BOT] Opening shrine door");
+                          event.waitTicks = 4;
+                          return true;
+                        }
+                      }
+                    }
+                  }
+                }
+                const stc = c.world.sceneType(slevel, sx, sz);
+                if (stc && (stc >> 14 & 32767) === 3634) {
+                  bot.interactLoc(stc, sx, sz, "touch");
+                  console.log("[BOT] Touching shrine!");
+                  event.waitTicks = 10;
+                  return true;
+                }
+              }
+            }
+            bot.walkTo(2911, 4575);
+            return true;
+          }
+          const wp = event.path[event.step];
+          if (wp.door) {
+            bot.interactLoc(wp.door.tc, wp.door.lx, wp.door.lz, "open");
+            console.log(`[BOT] Maze door ${event.step}/${event.path.length} at (${wp.absX},${wp.absZ})`);
+            event.step++;
+            event.waitTicks = 4;
+          } else {
+            bot.walk(wp.lx, wp.lz);
+          }
+          return true;
+        }
         if (event.handler === "talk") {
           if (!npcAlive) {
             console.log(`[BOT] Random event "${name}" completed (NPC despawned).`);
@@ -20061,6 +20226,21 @@ function initBotApi(client) {
             return true;
           }
         }
+      }
+      const mazePos = bot.getWorldPos();
+      if (mazePos && mazePos.x >= 2880 && mazePos.x <= 2943 && mazePos.z >= 4544 && mazePos.z <= 4607) {
+        if (!bot._activeEvent || bot._activeEvent.handler !== "maze") {
+          console.log("[BOT] Maze random event detected! Computing path...");
+          const mazePath = bot._computeMazePath();
+          if (mazePath) {
+            bot._activeEvent = { handler: "maze", path: mazePath, step: 0, waitTicks: 0 };
+          }
+        }
+        return true;
+      } else if (bot._activeEvent && bot._activeEvent.handler === "maze") {
+        console.log("[BOT] Maze solved! Teleported back.");
+        bot._activeEvent = null;
+        return false;
       }
       const npcs = bot.getNpcs();
       for (const npc of npcs) {
@@ -30126,4 +30306,4 @@ export {
   Client
 };
 
-//# debugId=8E5763B99F2BE78E64756E2164756E21
+//# debugId=EF92E68F4F7464CF64756E2164756E21

@@ -46,9 +46,11 @@ export function initBotApi(client: Client): void {
         // Random event state: null when no event, or object when handling one
         // For 'talk' events: {name, slot, handler:'talk', talking}
         // For 'flee' events: {name, slot, handler:'flee', phase:'fleeing'|'returning', savedX, savedZ}
+        // For 'maze' events: {handler:'maze', path, step, waitTicks}
         _activeEvent: null as
             | { name: string; slot: number; handler: 'talk'; talking: boolean }
             | { name: string; slot: number; handler: 'flee'; phase: 'fleeing' | 'returning'; savedX: number; savedZ: number }
+            | { handler: 'maze'; path: any[]; step: number; waitTicks: number }
             | null,
 
         // ===== Common Handlers (used by startScript) =====
@@ -615,6 +617,97 @@ export function initBotApi(client: Client): void {
 
         /** Check for and handle random event NPCs. Returns true if an event is being handled
          *  (caller should skip normal actions). */
+        /** Compute BFS path through the maze from current position to the center shrine.
+         *  Returns array of {absX, absZ, lx, lz, door?} waypoints, or null if no path. */
+        _computeMazePath(): any[] | null {
+            const col = c.collision?.[0];
+            if (!col || !c.localPlayer) return null;
+
+            const flags = col.flags;
+            const SIZE = 104;
+            const idx = (x: number, z: number): number => x * SIZE + z;
+            const MAZE_DOOR_IDS = [3628, 3629, 3630, 3631, 3632];
+            const WALL_N = 0x2, WALL_E = 0x8, WALL_S = 0x20, WALL_W = 0x80;
+            const BLOCKED = 0x100 | 0x200000; // LOC | FLOOR
+
+            // Build door set from world data
+            const level = c.minusedlevel;
+            const doorMap: Record<string, {locId: number; tc: number; lx: number; lz: number}> = {};
+            for (let x = 1; x < SIZE - 1; x++) {
+                for (let z = 1; z < SIZE - 1; z++) {
+                    const tc = c.world.wallType(level, x, z);
+                    if (!tc) continue;
+                    const locId = (tc >> 14) & 0x7fff;
+                    if (MAZE_DOOR_IDS.includes(locId)) {
+                        doorMap[x + ',' + z] = {locId, tc, lx: x, lz: z};
+                    }
+                }
+            }
+
+            const canMove = (x: number, z: number, dx: number, dz: number): boolean => {
+                const nx = x + dx, nz = z + dz;
+                if (nx < 1 || nz < 1 || nx >= SIZE - 1 || nz >= SIZE - 1) return false;
+                if (flags[idx(nx, nz)] & BLOCKED) return false;
+                const sf = flags[idx(x, z)], df = flags[idx(nx, nz)];
+                let blocked = false;
+                if (dz === 1 && (sf & WALL_N || df & WALL_S)) blocked = true;
+                if (dz === -1 && (sf & WALL_S || df & WALL_N)) blocked = true;
+                if (dx === 1 && (sf & WALL_E || df & WALL_W)) blocked = true;
+                if (dx === -1 && (sf & WALL_W || df & WALL_E)) blocked = true;
+                if (!blocked) return true;
+                // Allow passage through doors
+                return !!(doorMap[x + ',' + z] || doorMap[nx + ',' + nz]);
+            };
+
+            const px = c.localPlayer.routeX[0];
+            const pz = c.localPlayer.routeZ[0];
+            const centerX = 2911 - c.mapBuildBaseX;
+            const centerZ = 4575 - c.mapBuildBaseZ;
+
+            const visited = new Uint8Array(SIZE * SIZE);
+            const parent = new Int32Array(SIZE * SIZE).fill(-1);
+            const queue: number[][] = [[px, pz]];
+            visited[idx(px, pz)] = 1;
+            const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+            let goalX = -1, goalZ = -1, found = false;
+
+            while (queue.length > 0) {
+                const [cx, cz] = queue.shift()!;
+                // Check if adjacent to shrine (3x3 at centerX..+2, centerZ..+2)
+                for (let sx = 0; sx < 3 && !found; sx++)
+                    for (let sz = 0; sz < 3 && !found; sz++)
+                        if (Math.abs(cx - (centerX+sx)) + Math.abs(cz - (centerZ+sz)) <= 1)
+                            { goalX = cx; goalZ = cz; found = true; }
+                if (found) break;
+                for (const [dx, dz] of dirs) {
+                    const nx = cx + dx, nz = cz + dz;
+                    if (visited[idx(nx, nz)]) continue;
+                    if (!canMove(cx, cz, dx, dz)) continue;
+                    visited[idx(nx, nz)] = 1;
+                    parent[idx(nx, nz)] = cx * SIZE + cz;
+                    queue.push([nx, nz]);
+                }
+            }
+
+            if (!found) { console.log('[BOT] Maze: no path found!'); return null; }
+
+            // Trace path, marking door waypoints
+            const path: any[] = [];
+            let tx = goalX, tz = goalZ;
+            while (tx !== px || tz !== pz) {
+                const door = doorMap[tx + ',' + tz];
+                path.unshift({
+                    absX: tx + c.mapBuildBaseX, absZ: tz + c.mapBuildBaseZ,
+                    lx: tx, lz: tz,
+                    door: door ? {tc: door.tc, lx: door.lx, lz: door.lz, locId: door.locId} : null
+                });
+                const p = parent[idx(tx, tz)];
+                tx = Math.floor(p / SIZE); tz = p % SIZE;
+            }
+            console.log(`[BOT] Maze path: ${path.length} tiles, ${path.filter((p: any) => p.door).length} doors`);
+            return path;
+        },
+
         checkRandomEvent(): boolean {
             // If we're currently handling an event
             if (bot._activeEvent) {
@@ -622,6 +715,82 @@ export function initBotApi(client: Client): void {
                 const { name, slot } = event;
                 const npc = c.npc[slot];
                 const npcAlive = npc && npc.type && npc.type.name === name;
+
+                // --- Maze handler ---
+                if (event.handler === 'maze') {
+                    bot.dismissDialog();
+                    if (event.waitTicks > 0) { event.waitTicks--; return true; }
+
+                    const mPos = bot.getWorldPos();
+                    if (!mPos || mPos.x < 2880 || mPos.x > 2943 || mPos.z < 4544 || mPos.z > 4607) {
+                        console.log('[BOT] Maze solved!');
+                        bot._activeEvent = null;
+                        return false;
+                    }
+
+                    // Skip past waypoints we've reached
+                    while (event.step < event.path.length) {
+                        const wp = event.path[event.step];
+                        if (Math.abs(mPos.x - wp.absX) + Math.abs(mPos.z - wp.absZ) <= 0) {
+                            event.step++;
+                        } else break;
+                    }
+
+                    if (event.step >= event.path.length) {
+                        // Path done — find and touch the shrine
+                        const spx = c.localPlayer.routeX[0], spz = c.localPlayer.routeZ[0];
+                        const slevel = c.minusedlevel;
+                        // First check if shrine door needs opening
+                        for (let dx = -5; dx <= 5; dx++) {
+                            for (let dz = -5; dz <= 5; dz++) {
+                                const sx = spx+dx, sz = spz+dz;
+                                if (sx<0||sz<0||sx>=104||sz>=104) continue;
+                                const wtc = c.world.wallType(slevel, sx, sz);
+                                if (wtc) {
+                                    const wid = (wtc >> 14) & 0x7fff;
+                                    if (wid >= 3628 && wid <= 3632) {
+                                        // There's a door near us — might be the shrine door
+                                        const stc = c.world.sceneType(slevel, sx, sz);
+                                        // Check if shrine is on the other side
+                                        for (let ddx = -2; ddx <= 2; ddx++) {
+                                            for (let ddz = -2; ddz <= 2; ddz++) {
+                                                const stc2 = c.world.sceneType(slevel, sx+ddx, sz+ddz);
+                                                if (stc2 && ((stc2>>14)&0x7fff) === 3634) {
+                                                    bot.interactLoc(wtc, sx, sz, 'open');
+                                                    console.log('[BOT] Opening shrine door');
+                                                    event.waitTicks = 4;
+                                                    return true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                // Check for shrine directly
+                                const stc = c.world.sceneType(slevel, sx, sz);
+                                if (stc && ((stc>>14)&0x7fff) === 3634) {
+                                    bot.interactLoc(stc, sx, sz, 'touch');
+                                    console.log('[BOT] Touching shrine!');
+                                    event.waitTicks = 10;
+                                    return true;
+                                }
+                            }
+                        }
+                        // Walk toward shrine center
+                        bot.walkTo(2911, 4575);
+                        return true;
+                    }
+
+                    const wp = event.path[event.step];
+                    if (wp.door) {
+                        bot.interactLoc(wp.door.tc, wp.door.lx, wp.door.lz, 'open');
+                        console.log(`[BOT] Maze door ${event.step}/${event.path.length} at (${wp.absX},${wp.absZ})`);
+                        event.step++;
+                        event.waitTicks = 4;
+                    } else {
+                        bot.walk(wp.lx, wp.lz);
+                    }
+                    return true;
+                }
 
                 // --- Talk handler ---
                 if (event.handler === 'talk') {
@@ -691,6 +860,23 @@ export function initBotApi(client: Client): void {
                         return true;
                     }
                 }
+            }
+
+            // --- Maze detection: check if player is in the maze zone ---
+            const mazePos = bot.getWorldPos();
+            if (mazePos && mazePos.x >= 2880 && mazePos.x <= 2943 && mazePos.z >= 4544 && mazePos.z <= 4607) {
+                if (!bot._activeEvent || bot._activeEvent.handler !== 'maze') {
+                    console.log('[BOT] Maze random event detected! Computing path...');
+                    const mazePath = bot._computeMazePath();
+                    if (mazePath) {
+                        bot._activeEvent = { handler: 'maze', path: mazePath, step: 0, waitTicks: 0 };
+                    }
+                }
+                return true; // always skip user action while in maze
+            } else if (bot._activeEvent && bot._activeEvent.handler === 'maze') {
+                console.log('[BOT] Maze solved! Teleported back.');
+                bot._activeEvent = null;
+                return false;
             }
 
             // Scan for any random event NPC in the visible NPC list
