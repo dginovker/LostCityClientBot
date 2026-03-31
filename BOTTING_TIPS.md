@@ -7,7 +7,7 @@ Guide for Claude Code instances to write bot scripts for the Lost City client.
 This is a modified [LostCityRS/Client-TS](https://github.com/LostCityRS/Client-TS) (branch `254`) with a **Bot API** injected. The client runs in Chrome, connects to a game server via WebSocket, and exposes game internals through `window.bot`. Claude Code controls it via the **Chrome DevTools MCP server** using `evaluate_script`.
 
 ```
-Chrome (game client) <--WebSocket--> Game Server (rsleague.com)
+Chrome (game client) <--WebSocket--> Game Server (play.rn04.rs)
        ^
        | evaluate_script
        v
@@ -18,26 +18,33 @@ Claude Code (via Chrome DevTools MCP)
 
 The client connects to the game server in two places that need to be changed:
 
-1. **WebSocket (game connection):** `src/client/Client.ts` line ~1962
+1. **WebSocket (game connection):** `src/client/Client.ts` line ~1969
    ```typescript
-   this.stream = new ClientStream(await ClientStream.openSocket('rsleague.com', true));
+   this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
    ```
 
 2. **WebSocket (on-demand/asset streaming):** `src/io/OnDemand.ts` line ~663
    ```typescript
-   this.stream = new ClientStream(await ClientStream.openSocket('rsleague.com', true));
+   this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
    ```
 
 3. **HTTP resources** (CRC checksums, game caches) are fetched via relative URLs like `/crc`, `/title`, etc. The local proxy server (`serve.cjs`) forwards these to the game server. Change the `UPSTREAM` constant in `serve.cjs`:
    ```javascript
-   const UPSTREAM = 'rsleague.com';
+   const UPSTREAM = 'play.rn04.rs';
    ```
+   **Important:** `serve.cjs` must check cache file names BEFORE local file lookup, because the `out/` directory may contain stale cache files from a previous server. Cache files (`crc`, `title`, `config`, `interface`, `media`, `versionlist`, `textures`, `wordenc`, `sounds`, `build`, `ondemand.zip`) should always be proxied to the upstream server.
 
-4. **RSA keys** are set in `bundle.ts` lines 11-12. The default keys match the original 2004scape/Lost City server. If a server uses custom keys, extract them from its client (search the minified JS for `BigInt("...numbers...")` near the login code).
+4. **RSA keys** are set in `bundle.ts` lines 11-12. The default keys match both the original 2004scape/Lost City server **and** rn04.rs (they use the same keys). If a server uses custom keys, extract them from its client (search the minified JS for long numeric literals >80 digits near the login code, or use `grep -oP '\d{80,}' client.js`).
 
 5. **SECURE_ORIGIN check** is disabled in `Client.ts` to allow running from localhost.
 
-After changes, rebuild: `bun run build:dev`
+### Server-specific protocol differences
+
+When switching to a different server (e.g. rn04.rs), their custom client may have protocol modifications. Compare the minified client JS against our source to find differences. Known divergences:
+
+- **rn04.rs `UPDATE_INV_FULL` (opcode 28):** Inventory size field is 2 bytes (`g2()`), not 1 byte (`g1()`) as in the original Lost City client. Fixed in `Client.ts` line ~6509. Without this fix, all inventory items are invisible because subsequent item data is misaligned by 1 byte.
+
+After changes, rebuild: `bun bundle.ts dev`
 
 ## Building and Running
 
@@ -46,7 +53,7 @@ After changes, rebuild: `bun run build:dev`
 bun install
 
 # Build (dev mode, no minification - easier to debug)
-bun run build:dev
+bun bundle.ts dev
 
 # Start the proxy server
 node serve.cjs

@@ -1966,7 +1966,7 @@ export class Client extends GameShell {
                 await this.titleScreenDraw();
             }
 
-            this.stream = new ClientStream(await ClientStream.openSocket('rsleague.com', true));
+            this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
 
             const userhash = JString.toUserhash(username);
             const loginServer = Number(userhash >> 16n) & 0x1f;
@@ -6506,7 +6506,7 @@ export class Client extends GameShell {
 
                 const component: number = this.in.g2();
                 const inv: IfType = IfType.list[component];
-                const size: number = this.in.g1();
+                const size: number = this.in.g2();
 
                 if (inv.linkObjType && inv.linkObjNumber) {
                     for (let i: number = 0; i < size; i++) {

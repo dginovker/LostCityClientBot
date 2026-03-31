@@ -660,7 +660,7 @@ export default class OnDemand extends OnDemandProvider {
                 }
 
                 this.socketOpenTime = now;
-                this.stream = new ClientStream(await ClientStream.openSocket('rsleague.com', true));
+                this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
 
                 this.buf[0] = 15;
                 this.stream.write(this.buf, 1);

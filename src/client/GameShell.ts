@@ -1,7 +1,7 @@
 import InputTracking from '#/client/InputTracking.js';
 import { CanvasEnabledKeys, KeyCodes } from '#/client/KeyCodes.js';
 
-import { canvas, canvas2d } from '#/graphics/Canvas.js';
+import { canvas, canvas2d, blitToScreen, resizeCanvas, gameWidth, gameHeight } from '#/graphics/Canvas.js';
 import Pix3D from '#/dash3d/Pix3D.js';
 import PixMap from '#/graphics/PixMap.js';
 
@@ -48,27 +48,26 @@ export default abstract class GameShell {
     constructor(resizetoFit: boolean = false) {
         canvas.tabIndex = -1;
         canvas2d.fillStyle = 'black';
-        canvas2d.fillRect(0, 0, canvas.width, canvas.height);
+        canvas2d.fillRect(0, 0, gameWidth(), gameHeight());
 
         this.resizeToFit = resizetoFit;
         if (this.resizeToFit) {
             this.resize(window.innerWidth, window.innerHeight);
         } else {
-            this.resize(canvas.width, canvas.height);
+            this.resize(gameWidth(), gameHeight());
         }
     }
 
     protected get sWid(): number {
-        return canvas.width;
+        return gameWidth();
     }
 
     protected get sHei(): number {
-        return canvas.height;
+        return gameHeight();
     }
 
     protected resize(width: number, height: number) {
-        canvas.width = width;
-        canvas.height = height;
+        resizeCanvas(width, height);
         this.drawArea = new PixMap(width, height);
         Pix3D.setRenderClipping();
     }
@@ -201,6 +200,7 @@ export default abstract class GameShell {
             }
 
             await this.maindraw();
+            blitToScreen();
 
             // this is custom for targeting specific fps (on mobile).
             if (this.tfps < 50) {
@@ -611,8 +611,8 @@ export default abstract class GameShell {
             x = ((clickLocWithinCanvas.x - offsetX) * scaleX) | 0;
             y = ((clickLocWithinCanvas.y - offsetY) * scaleY) | 0;
         } else {
-            const scaleX: number = canvas.width / canvasBounds.width;
-            const scaleY: number = canvas.height / canvasBounds.height;
+            const scaleX: number = gameWidth() / canvasBounds.width;
+            const scaleY: number = gameHeight() / canvasBounds.height;
             x = (clickLocWithinCanvas.x * scaleX) | 0;
             y = (clickLocWithinCanvas.y * scaleY) | 0;
         }

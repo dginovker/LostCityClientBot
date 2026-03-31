@@ -62,11 +62,13 @@ Can also be found by logging in and calling `window.bot.getNpcs()` - each NPC ha
 
 ## CORS Problem and Solution
 
-When serving the modified client from localhost, `fetch('/crc')` etc. work fine (same-origin to localhost). But the **WebSocket** connects directly to rsleague.com (cross-origin), which works because WebSocket isn't subject to CORS.
+When serving the modified client from localhost, `fetch('/crc')` etc. work fine (same-origin to localhost). But the **WebSocket** connects directly to the game server (cross-origin), which works because WebSocket isn't subject to CORS.
 
 The trick: a **local proxy server** (`serve.cjs`) that:
-1. Serves static files (the built client) from `out/`
-2. Proxies all other HTTP requests to rsleague.com (for `/crc`, `/title`, `/config`, `/interface`, `/media`, etc.)
+1. Checks if the request is for a cache file (`crc`, `title`, `config`, `interface`, `media`, `versionlist`, `textures`, `wordenc`, `sounds`, `build`, `ondemand.zip`) — if so, proxies to the upstream game server (currently `play.rn04.rs`)
+2. Falls back to serving static files (the built client JS, HTML, wasm) from `out/`
+
+**Critical:** Cache files must be proxied BEFORE checking local files. The `out/` directory may contain stale cache files from a previous server. If the local file takes priority, you'll get CRC/data mismatches. The cache file matching also needs to handle both exact names (`/crc`) and CRC-suffixed names (`/config-3555567`). Note: some servers omit the hyphen separator (e.g. `versionlist1866360969` instead of `versionlist-1866360969`), so the matcher should handle `basename.startsWith(known)` broadly.
 
 This way HTTP fetches stay same-origin (no CORS) while WebSocket goes direct.
 
@@ -303,6 +305,59 @@ The Mysterious Box (modal 6554) shows 3 coloured shapes and asks either "What co
 The three models correspond positionally to the three answer labels (6565, 6566, 6567). Each model's shape name comes from its corresponding answer text. We match the queried attribute (color or shape) against the model data to find the correct button (6562/6563/6564).
 
 **Integration:** Box solving is automatically triggered in `startScript()` before the user's action function runs. It detects boxes in inventory, opens them, and solves the quiz — all transparently.
+
+## How We Fixed Invisible Inventory on rn04.rs
+
+### The Problem
+
+After switching the bot client from rsleague.com to play.rn04.rs, the client connected and loaded fine, but **inventory items were completely invisible**. The inventory panel showed nothing, even though the character was logged in and could interact with NPCs.
+
+### How We Found It
+
+We downloaded rn04's minified client from `https://play.rn04.rs/client/client.js` and compared the `UPDATE_INV_FULL` (opcode 28) packet handler against our source code.
+
+**Technique:** Search for the opcode dispatch pattern. In the rn04 minified client, the server packet handler is a series of `if/else` blocks keyed on the opcode number. Find opcode 28, then trace the packet reads.
+
+To identify minified method names, we mapped them by behavior:
+| rn04 minified | Our Client | Operation |
+|---|---|---|
+| `qa()` | `g2()` | Read uint16 (2 bytes) |
+| `oa()` | `g1()` | Read uint8 (1 byte) |
+| `ta()` | `g4()` | Read int32 (4 bytes) |
+| `ra()` | `g2b()` | Read int16 (2 bytes, signed) |
+| `xa()` | `gjstr()` | Read null-terminated string |
+
+### The Root Cause
+
+In the `UPDATE_INV_FULL` handler (opcode 28), rn04's server sends the inventory item count as a **2-byte uint16**, but our client read it as a **1-byte uint8**:
+
+```typescript
+// Our client (WRONG for rn04):
+const size: number = this.in.g1();  // reads 1 byte
+
+// rn04 client (CORRECT):
+const size = this.in.g2();  // reads 2 bytes
+```
+
+This 1-byte misalignment corrupted ALL subsequent item data. Every `objType` and `count` value was garbage, causing the inventory to appear empty.
+
+### The Fix
+
+`src/client/Client.ts` line ~6509: change `this.in.g1()` to `this.in.g2()`.
+
+### Verification Method
+
+Everything else in the protocol is identical between the two clients:
+- ServerProtSizes array: byte-for-byte identical (255 entries)
+- All 70 opcode numbers: identical
+- `UPDATE_INV_PARTIAL` (opcode 170), `UPDATE_INV_STOP_TRANSMIT` (opcode 168), `IF_SETOBJECT` (opcode 222): identical structure
+- ISAAC cipher pattern: identical
+- Login sequence: identical (CLIENT_VERSION 254, same handshake)
+- RSA keys: identical (same modulus and exponent)
+
+### Lesson
+
+When connecting to a different server that uses a custom client, always compare the packet handlers for any reads that might differ in size (g1 vs g2, g2 vs g4). A single byte difference causes cascading corruption of all subsequent fields in the packet, which manifests as "missing" data rather than obvious errors.
 
 ## How We Discovered Zero-Delay Fletching (Burst Fletch)
 
