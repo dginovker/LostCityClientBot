@@ -590,99 +590,74 @@ function doShopOps() {
   }
 }`,
             iron_mine: `// Iron Miner (Varrock East) - power mines iron, drops ore, handles randoms
-// Walks back from Lumbridge if you die. Handles pickaxe head, strange plant.
-const IRON_ROCK = 2092;      // full iron rock locId
-const IRON_ORE = 441;        // runtime ID
-const MINE_CENTER = {x: 3285, z: 3368}; // Varrock east mine center
-const LUMBRIDGE = {x: 3222, z: 3218};
+// Random events: maze/boxes/talk/flee auto-handled by startScript.
+// Also handles: pickaxe head reattach, strange plant, junk dropping, death walk-back.
+const IRON_ROCK = 2092;
+const IRON_ORE = 441;
+const MINE = {x: 3285, z: 3368};
 const c = bot._client;
 const IfType = c.chatInterface.constructor;
-// Helper: count inventory items
-function getInv() {
-  const inv = IfType.list[3214];
-  let oreSlots = [], totalItems = 0;
-  for (let i = 0; i < inv.linkObjType.length; i++) {
-    if (inv.linkObjType[i] > 0) totalItems++;
-    if (inv.linkObjType[i] === IRON_ORE) oreSlots.push(i);
-  }
-  return {oreSlots, totalItems, full: totalItems >= 28};
-}
-// Helper: pick up pickaxe head from ground if present
-function checkPickaxeHead() {
-  const ground = bot.getGroundItems(5);
-  // Pickaxe heads: runtime 481-489 odd (bronze=481, iron=483, steel=485, mith=487, adam=489, rune=491... actually let me just check for any "pickaxe" ground items)
-  for (const g of ground) {
-    const name = bot.getObjName(g.objId - 1) || '';
-    if (name.toLowerCase().includes('pickaxe')) {
-      bot.pickupGroundItem(g.objId, g.x, g.z);
-      console.log('[MINER] Picking up: ' + name);
-      return true;
-    }
-  }
-  return false;
-}
-// Helper: pick strange plant if nearby
-function checkStrangePlant() {
-  const plants = bot.findLocs('Strange plant', 5);
-  if (plants.length > 0) {
-    bot.interactLoc(plants[0].typecode, plants[0].x, plants[0].z, 'pick');
-    console.log('[MINER] Picking strange plant');
-    return true;
-  }
-  return false;
-}
-// Handle pickaxe head reattachment - use head on handle in inventory
-function checkBrokenPickaxe() {
-  const inv = IfType.list[3214];
-  let handleSlot = -1, headSlot = -1;
-  for (let i = 0; i < inv.linkObjType.length; i++) {
-    const name = bot.getObjName(inv.linkObjType[i] - 1) || '';
-    if (name.toLowerCase().includes('pickaxe handle')) handleSlot = i;
-    if (name.toLowerCase().includes('pickaxe head')) { headSlot = i; }
-  }
-  if (handleSlot >= 0 && headSlot >= 0) {
-    bot.useItemOnItem(inv.linkObjType[headSlot], headSlot, inv.linkObjType[handleSlot], handleSlot);
-    console.log('[MINER] Reattaching pickaxe head');
-    return true;
-  }
-  return false;
-}
+const inv = IfType.list[3214];
 const pos = bot.getWorldPos();
 if (!pos) return;
-// If in Lumbridge area (died), walk back to mine
-if (Math.abs(pos.x - LUMBRIDGE.x) < 10 && Math.abs(pos.z - LUMBRIDGE.z) < 10) {
-  bot.walkTo(MINE_CENTER.x, MINE_CENTER.z);
-  console.log('[MINER] Walking back from Lumbridge');
+// Walk to mine if not nearby (handles death/teleport recovery)
+if (Math.abs(pos.x - MINE.x) > 15 || Math.abs(pos.z - MINE.z) > 15) {
+  bot.walkTo(MINE.x, MINE.z);
   return;
 }
-// If not near mine, walk toward it
-if (Math.abs(pos.x - MINE_CENTER.x) > 20 || Math.abs(pos.z - MINE_CENTER.z) > 20) {
-  bot.walkTo(MINE_CENTER.x, MINE_CENTER.z);
+// Reattach broken pickaxe (head ID 481-491 odd + handle 467)
+let hs = -1, hds = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === 467) hs = i;
+  if (inv.linkObjType[i] >= 481 && inv.linkObjType[i] <= 491 && inv.linkObjType[i] % 2 === 1) hds = i;
+}
+if (hs >= 0 && hds >= 0) {
+  bot.useItemOnItem(inv.linkObjType[hds], hds, inv.linkObjType[hs], hs);
   return;
 }
-// Check for random event items
-if (checkPickaxeHead()) return;
-if (checkBrokenPickaxe()) return;
-if (checkStrangePlant()) return;
-// If inventory full, drop ore (one per tick via OP_HELD5 = action 100 = "Drop")
-const {oreSlots, full} = getInv();
-if (full && oreSlots.length > 0) {
-  // Drop first ore found
-  c.menuAction[0] = 100; // MiniMenuAction.OP_HELD5 = Drop
-  c.menuParamA[0] = IRON_ORE - 1; // pack ID
-  c.menuParamB[0] = oreSlots[0];
-  c.menuParamC[0] = 3214; // inventory
-  c.doAction(0);
+// Pick up pickaxe head from ground
+const gnd = bot.getGroundItems(5);
+for (const g of gnd) {
+  if (g.objId >= 481 && g.objId <= 491 && g.objId % 2 === 1) {
+    bot.pickupGroundItem(g.objId, g.x, g.z); return;
+  }
+}
+// Pick strange plant
+const plants = bot.findLocs('Strange plant', 5);
+if (plants.length > 0) {
+  bot.interactLoc(plants[0].typecode, plants[0].x, plants[0].z, 'pick'); return;
+}
+// Count items — identify ore and junk
+let total = 0, oreSlot = -1, junkSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  const id = inv.linkObjType[i];
+  if (id <= 0) continue;
+  total++;
+  if (id === IRON_ORE && oreSlot === -1) oreSlot = i;
+  // Junk = anything that isn't ore, pickaxe, dramen, coins, runes, or pickaxe parts
+  if (junkSlot === -1 && id !== IRON_ORE && id !== 773 && id !== 996 && id !== 467
+    && !(id >= 481 && id <= 491) && !(id >= 1266 && id <= 1276)
+    && !(id >= 555 && id <= 566)) junkSlot = i;
+}
+// Drop ore when full
+if (total >= 28 && oreSlot >= 0) {
+  c.menuAction[0] = 100; c.menuParamA[0] = IRON_ORE - 1;
+  c.menuParamB[0] = oreSlot; c.menuParamC[0] = 3214; c.doAction(0);
   return;
 }
-// Mine the closest iron rock
+// Drop junk at 27+ to prevent inventory lock from random event drops
+if (total >= 27 && junkSlot >= 0) {
+  c.menuAction[0] = 100; c.menuParamA[0] = inv.linkObjType[junkSlot] - 1;
+  c.menuParamB[0] = junkSlot; c.menuParamC[0] = 3214; c.doAction(0);
+  return;
+}
+// Mine closest iron rock
 const rocks = bot.findLocs('Rocks', 15).filter(r => r.locId === IRON_ROCK);
 if (rocks.length > 0) {
-  // Pick closest
-  let closest = rocks[0], minDist = 999;
+  let closest = rocks[0], minD = 999;
   for (const r of rocks) {
     const d = Math.abs(r.x + c.mapBuildBaseX - pos.x) + Math.abs(r.z + c.mapBuildBaseZ - pos.z);
-    if (d < minDist) { minDist = d; closest = r; }
+    if (d < minD) { minD = d; closest = r; }
   }
   bot.interactLoc(closest.typecode, closest.x, closest.z, 'mine');
 }`,
