@@ -748,7 +748,7 @@ if (state === 'banking') {
 }
 // === WALKING TO BEARS ===
 if (state === 'walking_to_bears') {
-  if (bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 15)) { window._bearState = 'killing'; return; }
+  if (bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 15)) { window._bearState = 'killing'; window._bearFailedLoots = {}; return; }
   bot.walkTo(BEAR_AREA.x, BEAR_AREA.z);
   return;
 }
@@ -757,11 +757,17 @@ const inv = IfType.list[3214];
 let invCount = 0;
 for (let i = 0; i < 28; i++) { if (inv.linkObjType[i] > 0) invCount++; }
 if (invCount >= 28) { window._bearState = 'walking_to_bank'; return; }
-// Loot ground items when not in combat
+// Loot ground items when not in combat (skip unreachable ones)
+if (!window._bearFailedLoots) window._bearFailedLoots = {};
 const groundItems = bot.getGroundItems(10);
-if (groundItems.length > 0 && lp.faceEntity === -1) {
-  bot.pickupGroundItem(groundItems[0].objId, groundItems[0].x, groundItems[0].z);
-  return;
+if (lp.faceEntity === -1) {
+  for (const item of groundItems) {
+    const key = item.objId + ',' + item.x + ',' + item.z;
+    if (window._bearFailedLoots[key]) continue;
+    bot.pickupGroundItem(item.objId, item.x, item.z);
+    window._bearFailedLoots[key] = 1;
+    return;
+  }
 }
 // Skip if already fighting
 if (lp.faceEntity !== -1) return;
