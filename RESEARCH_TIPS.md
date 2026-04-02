@@ -472,3 +472,36 @@ We initially thought the disconnects were from ISAAC cipher desync (too many pac
 | Old script (1 per 2s tick) | ~54s | Pipeline: clickButton + queue next useItemOnItem |
 | Burst (all at once) | ~7.2s | Limited by 5 USER_EVENTs/tick server cap |
 | Theoretical min | ~6.6s | 27 logs ÷ 2.5/tick × 0.6s/tick |
+
+## How We Detect Combat State (faceEntity)
+
+### The Problem
+
+When writing a combat bot, we need to know if the player is already fighting something so we don't spam attack commands every tick. The initial script used `localPlayer.targetEntity` — but **that property doesn't exist** on ClientPlayer. It silently returned `undefined`, which is falsy, so the "already in combat" check never triggered and the bot re-attacked every 2 seconds (interrupting itself).
+
+### How We Found the Right Field
+
+We enumerated all properties on `localPlayer` that contained "target", "combat", "interact", or "anim":
+```javascript
+Object.keys(lp).filter(k => k.toLowerCase().includes('target') || k.toLowerCase().includes('combat'))
+```
+This returned `combatCycle` and `combatLevel` — no `targetEntity`. We then looked for numeric fields with non-zero values during combat and found `faceEntity`.
+
+### The Solution
+
+`localPlayer.faceEntity` tracks what the player is facing/interacting with:
+- `-1` → idle (not in combat)
+- `>= 0` → the NPC slot the player is engaged with
+
+```javascript
+if (lp.faceEntity !== -1) return; // Already fighting, skip
+```
+
+### Also Useful
+- `lp.combatCycle` — the game cycle when combat last occurred. Compare with `c.loopCycle` to check recency.
+- `lp.primaryAnim` — the current animation ID. Attack animations are positive numbers; idle is `-1`.
+
+### Current HP
+- `c.statEffectiveLevel[3]` — current (boosted/drained) Hitpoints level
+- `c.statBaseLevel[3]` — base Hitpoints level (max HP)
+- Index 3 = Hitpoints in the stat arrays (0=Atk 1=Def 2=Str 3=HP ...)

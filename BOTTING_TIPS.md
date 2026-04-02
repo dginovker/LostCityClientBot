@@ -426,3 +426,44 @@ bot.solveBox();   // Solve the currently open box
 bot.hasBoxes();   // Check if inventory has boxes
 bot.openBox();    // Click first box in inventory
 ```
+
+## Bear Killer + Looter + Banker Script
+
+A combat loop script that kills bears, loots all drops, banks when inventory is full, and repeats. Includes HP safety (AFKs when below threshold).
+
+### Key Coordinates
+- **Bear area:** (2700, 3332) — East Ardougne, north of the south bank
+- **Bank:** Ardy south bank booths at (2656, 3286), locId 2213, option `'use-quickly'`
+
+### Combat Detection
+Use `localPlayer.faceEntity` to detect if the player is already in combat:
+- `faceEntity === -1` → idle, can attack a new target
+- `faceEntity !== -1` → already fighting, skip attack
+
+**Do NOT use `targetEntity`** — that property doesn't exist. Early versions of the script used it and silently re-attacked every tick.
+
+### State Machine Pattern
+The script uses a state machine with states: `killing` → `walking_to_bank` → `banking` → `walking_to_bears` → `killing`.
+
+```javascript
+// State transitions:
+// killing: attack bears, loot ground items. If invCount >= 28 → walking_to_bank
+// walking_to_bank: walkTo(BANK_POS). If isNear(bank) → banking (interact with booth)
+// banking: fast-poll for bank modal (mainModalId === 5292), batch depositAll, closeModal → walking_to_bears
+// walking_to_bears: walkTo(BEAR_AREA). If isNear(bears) → killing
+```
+
+### HP Safety
+```javascript
+const currentHP = c.statEffectiveLevel[3]; // index 3 = Hitpoints
+if (currentHP < HP_THRESHOLD) return; // AFK, HP regens naturally
+```
+Note: `statEffectiveLevel[3]` is current HP, `statBaseLevel[3]` is max HP.
+
+### Looting Priority
+Loot ground items **before** attacking new bears, but only when not mid-combat (`faceEntity === -1`). This prevents interrupting fights to pick up items.
+
+### Bear Details
+- **TypeId:** 105
+- **Drop table:** Diverse — herbs, ores, bars, bones, weapons, food, gems, armor. Many drops are stackable, so inventory fills slowly by unique types.
+- **Combat level:** Low enough that a level ~40 character can AFK them safely.

@@ -1442,7 +1442,7 @@ function resizeCanvas(width, height) {
   canvas.style.height = height + "px";
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
-  displayCtx.imageSmoothingEnabled = false;
+  displayCtx.imageSmoothingEnabled = true;
 }
 resizeCanvas(offscreen.width, offscreen.height);
 function gameWidth() {
@@ -19938,10 +19938,14 @@ function initBotApi(client) {
       const dist = Math.max(Math.abs(dx), Math.abs(dz));
       if (dist === 0)
         return true;
-      const step = Math.min(dist, 15);
-      const sx = px + Math.round(dx / dist * step);
-      const sz = pz + Math.round(dz / dist * step);
-      return bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ);
+      for (const maxStep of [15, 10, 5, 3, 1]) {
+        const step = Math.min(dist, maxStep);
+        const sx = px + Math.round(dx / dist * step);
+        const sz = pz + Math.round(dz / dist * step);
+        if (bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ))
+          return true;
+      }
+      return false;
     },
     getWorldPos() {
       const lp = c.localPlayer;
@@ -30361,4 +30365,4 @@ export {
   Client
 };
 
-//# debugId=A554E2E45038E26564756E2164756E21
+//# debugId=54D8A3657435A24764756E2164756E21

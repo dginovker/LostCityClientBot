@@ -29,7 +29,7 @@ export function resizeCanvas(width: number, height: number): void {
     canvas.style.height = height + 'px';
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
-    displayCtx.imageSmoothingEnabled = false;
+    displayCtx.imageSmoothingEnabled = true;
 }
 
 // Initialize with the HTML-defined dimensions

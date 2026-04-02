@@ -507,7 +507,7 @@ export function initBotApi(client: Client): void {
             return c.tryMove(lp.routeX[0], lp.routeZ[0], x, z, true, 0, 0, 0, 0, 0, 0);
         },
 
-        /** Walk toward a world coordinate. Breaks long distances into ~15 tile steps. */
+        /** Walk toward a world coordinate. Tries progressively smaller steps to navigate around obstacles. */
         walkTo(worldX: number, worldZ: number): boolean {
             if (!c.ingame || !c.localPlayer) return false;
             const px = c.localPlayer.routeX[0] + c.mapBuildBaseX;
@@ -516,10 +516,14 @@ export function initBotApi(client: Client): void {
             const dz = worldZ - pz;
             const dist = Math.max(Math.abs(dx), Math.abs(dz));
             if (dist === 0) return true;
-            const step = Math.min(dist, 15);
-            const sx = px + Math.round(dx / dist * step);
-            const sz = pz + Math.round(dz / dist * step);
-            return bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ);
+            // Try progressively smaller steps until pathfinding succeeds
+            for (const maxStep of [15, 10, 5, 3, 1]) {
+                const step = Math.min(dist, maxStep);
+                const sx = px + Math.round(dx / dist * step);
+                const sz = pz + Math.round(dz / dist * step);
+                if (bot.walk(sx - c.mapBuildBaseX, sz - c.mapBuildBaseZ)) return true;
+            }
+            return false;
         },
 
         /** Get player world position */
