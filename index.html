@@ -768,7 +768,8 @@ if (lp.faceEntity !== -1) return;
 // Attack a bear
 const bears = bot.getNpcs().filter(n => n.typeId === BEAR_TYPE_ID);
 const target = bears.find(b => b.health === 0) || bears[0];
-if (target) bot.attackNpc(target.slot);`,
+if (target) { bot.attackNpc(target.slot); }
+else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BEAR_AREA.z); }`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
