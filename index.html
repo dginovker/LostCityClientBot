@@ -15,7 +15,7 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; font-family: monospace; }
-        #canvas { image-rendering: pixelated; display: block; }
+        #canvas { image-rendering: auto; display: block; }
         #panel {
             width: 765px;
             background: #2a2a2a;
@@ -73,6 +73,7 @@
                 <option value="cut_gems">Cut Sapphires (Herquin)</option>
                 <option value="iron_mine">Iron Miner (Varrock East)</option>
                 <option value="alch_fire">Alchemy (Fire Runes)</option>
+                <option value="bear_killer">Bear Killer + Banker</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -681,6 +682,93 @@ const spell = magicLvl >= 55 ? HIGH_ALCH : LOW_ALCH;
 bot.setTab(6); // magic tab
 bot.castSpellOnItem(spell, FIRE_RUNE, fireSlot);
 `,
+            bear_killer: `// Bear Killer + Looter + Banker (Ardy bears)
+// Kills bears, loots all ground items, banks at Ardy south when inventory full.
+// AFKs if HP drops below 30 (natural regen recovers it).
+const BEAR_AREA = {x: 2700, z: 3332};
+const BANK_POS = {x: 2656, z: 3286};
+const HP_THRESHOLD = 30;
+const BEAR_TYPE_ID = 105;
+const c = bot._client;
+const lp = c.localPlayer;
+const pos = bot.getWorldPos();
+if (!pos || !lp) return;
+// Close welcome modal (but not bank modal)
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) bot.closeModal();
+// HP safety
+const currentHP = c.statEffectiveLevel[3];
+if (currentHP < HP_THRESHOLD) return;
+// Init state
+if (!window._bearState) window._bearState = 'killing';
+if (!window._bearBankPollId) window._bearBankPollId = null;
+const state = window._bearState;
+const IfType = c.chatInterface.constructor;
+// === WALKING TO BANK ===
+if (state === 'walking_to_bank') {
+  if (bot.isNear(BANK_POS.x, BANK_POS.z, 5)) {
+    const banks = bot.findLocs('bank booth', 10);
+    if (banks.length > 0) {
+      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+      window._bearState = 'banking';
+      if (window._bearBankPollId) clearInterval(window._bearBankPollId);
+      window._bearBankPollId = setInterval(() => {
+        if (c.mainModalId !== 5292) return;
+        clearInterval(window._bearBankPollId);
+        window._bearBankPollId = null;
+        const bankInv = IfType.list[2006];
+        for (let i = 0; i < bankInv.linkObjType.length; i++) {
+          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+        }
+        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
+      }, 100);
+    } else { bot.walkTo(BANK_POS.x, BANK_POS.z); }
+    return;
+  }
+  bot.walkTo(BANK_POS.x, BANK_POS.z);
+  return;
+}
+// === BANKING ===
+if (state === 'banking') {
+  if (c.mainModalId !== 5292 && !window._bearBankPollId) {
+    const banks = bot.findLocs('bank booth', 10);
+    if (banks.length > 0) {
+      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+      window._bearBankPollId = setInterval(() => {
+        if (c.mainModalId !== 5292) return;
+        clearInterval(window._bearBankPollId); window._bearBankPollId = null;
+        const bankInv = IfType.list[2006];
+        for (let i = 0; i < bankInv.linkObjType.length; i++) {
+          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+        }
+        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
+      }, 100);
+    } else { window._bearState = 'walking_to_bank'; }
+  }
+  return;
+}
+// === WALKING TO BEARS ===
+if (state === 'walking_to_bears') {
+  if (bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 15)) { window._bearState = 'killing'; return; }
+  bot.walkTo(BEAR_AREA.x, BEAR_AREA.z);
+  return;
+}
+// === KILLING / LOOTING ===
+const inv = IfType.list[3214];
+let invCount = 0;
+for (let i = 0; i < 28; i++) { if (inv.linkObjType[i] > 0) invCount++; }
+if (invCount >= 28) { window._bearState = 'walking_to_bank'; return; }
+// Loot ground items when not in combat
+const groundItems = bot.getGroundItems(10);
+if (groundItems.length > 0 && lp.faceEntity === -1) {
+  bot.pickupGroundItem(groundItems[0].objId, groundItems[0].x, groundItems[0].z);
+  return;
+}
+// Skip if already fighting
+if (lp.faceEntity !== -1) return;
+// Attack a bear
+const bears = bot.getNpcs().filter(n => n.typeId === BEAR_TYPE_ID);
+const target = bears.find(b => b.health === 0) || bears[0];
+if (target) bot.attackNpc(target.slot);`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')

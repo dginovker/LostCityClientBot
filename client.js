@@ -1442,7 +1442,7 @@ function resizeCanvas(width, height) {
   canvas.style.height = height + "px";
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
-  displayCtx.imageSmoothingEnabled = false;
+  displayCtx.imageSmoothingEnabled = true;
 }
 resizeCanvas(offscreen.width, offscreen.height);
 function gameWidth() {
@@ -30361,4 +30361,4 @@ export {
   Client
 };
 
-//# debugId=A554E2E45038E26564756E2164756E21
+//# debugId=8A83BAFFD7CD63F264756E2164756E21
