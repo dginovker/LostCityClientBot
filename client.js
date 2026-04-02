@@ -19835,6 +19835,21 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    castSpellOnItem(spellComId, objId, slot, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 274;
+      c.menuParamA[0] = 0;
+      c.menuParamB[0] = 0;
+      c.menuParamC[0] = spellComId;
+      c.doAction(0);
+      c.menuAction[0] = 563;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
     useItemOnItem(srcObjId, srcSlot, destObjId, destSlot, comId = 3214) {
       if (!c.ingame)
         return false;
@@ -30346,4 +30361,4 @@ export {
   Client
 };
 
-//# debugId=6FD3A93506FB12B964756E2164756E21
+//# debugId=A554E2E45038E26564756E2164756E21
