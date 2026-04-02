@@ -1423,10 +1423,37 @@ KeyCodes.set("Z", { code: 90, ch: 90 });
 
 // src/graphics/Canvas.ts
 var canvas = document.getElementById("canvas");
-var canvas2d = canvas?.getContext("2d", {
+var dpr = window.devicePixelRatio || 1;
+var offscreen = document.createElement("canvas");
+offscreen.width = canvas.width;
+offscreen.height = canvas.height;
+var canvas2d = offscreen.getContext("2d", {
   desynchronized: false,
   alpha: false
 });
+var displayCtx = canvas.getContext("2d", {
+  desynchronized: false,
+  alpha: false
+});
+function resizeCanvas(width, height) {
+  offscreen.width = width;
+  offscreen.height = height;
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  displayCtx.imageSmoothingEnabled = false;
+}
+resizeCanvas(offscreen.width, offscreen.height);
+function gameWidth() {
+  return offscreen.width;
+}
+function gameHeight() {
+  return offscreen.height;
+}
+function blitToScreen() {
+  displayCtx.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
+}
 
 // src/graphics/Pix2D.ts
 class Pix2D extends Linkable2 {
@@ -4545,23 +4572,22 @@ class GameShell {
   constructor(resizetoFit = false) {
     canvas.tabIndex = -1;
     canvas2d.fillStyle = "black";
-    canvas2d.fillRect(0, 0, canvas.width, canvas.height);
+    canvas2d.fillRect(0, 0, gameWidth(), gameHeight());
     this.resizeToFit = resizetoFit;
     if (this.resizeToFit) {
       this.resize(window.innerWidth, window.innerHeight);
     } else {
-      this.resize(canvas.width, canvas.height);
+      this.resize(gameWidth(), gameHeight());
     }
   }
   get sWid() {
-    return canvas.width;
+    return gameWidth();
   }
   get sHei() {
-    return canvas.height;
+    return gameHeight();
   }
   resize(width, height) {
-    canvas.width = width;
-    canvas.height = height;
+    resizeCanvas(width, height);
     this.drawArea = new PixMap(width, height);
     Pix3D.setRenderClipping();
   }
@@ -4657,6 +4683,7 @@ class GameShell {
         this.fps = ratio * 1000 / (this.deltime * 256) | 0;
       }
       await this.maindraw();
+      blitToScreen();
       if (this.tfps < 50) {
         const tfps = 1000 / this.tfps - (performance.now() - ntime);
         if (tfps > 0) {
@@ -4948,8 +4975,8 @@ class GameShell {
       x = (clickLocWithinCanvas.x - offsetX) * scaleX | 0;
       y = (clickLocWithinCanvas.y - offsetY) * scaleY | 0;
     } else {
-      const scaleX = canvas.width / canvasBounds.width;
-      const scaleY = canvas.height / canvasBounds.height;
+      const scaleX = gameWidth() / canvasBounds.width;
+      const scaleY = gameHeight() / canvasBounds.height;
       x = clickLocWithinCanvas.x * scaleX | 0;
       y = clickLocWithinCanvas.y * scaleY | 0;
     }
@@ -17790,7 +17817,7 @@ class OnDemand extends OnDemandProvider {
           return;
         }
         this.socketOpenTime = now;
-        this.stream = new ClientStream(await ClientStream.openSocket("rsleague.com", true));
+        this.stream = new ClientStream(await ClientStream.openSocket("play.rn04.rs", true));
         this.buf[0] = 15;
         this.stream.write(this.buf, 1);
         for (let i2 = 0;i2 < 8; i2++) {
@@ -21955,7 +21982,7 @@ class Client extends GameShell {
         this.loginMes2 = "Connecting to server...";
         await this.titleScreenDraw();
       }
-      this.stream = new ClientStream(await ClientStream.openSocket("rsleague.com", true));
+      this.stream = new ClientStream(await ClientStream.openSocket("play.rn04.rs", true));
       const userhash = JString.toUserhash(username);
       const loginServer = Number(userhash >> 16n) & 31;
       this.out.pos = 0;
@@ -25662,7 +25689,7 @@ class Client extends GameShell {
         this.redrawSidebar = true;
         const component = this.in.g2();
         const inv = IfType.list[component];
-        const size = this.in.g1();
+        const size = this.in.g2();
         if (inv.linkObjType && inv.linkObjNumber) {
           for (let i2 = 0;i2 < size; i2++) {
             inv.linkObjType[i2] = this.in.g2();
@@ -30319,4 +30346,4 @@ export {
   Client
 };
 
-//# debugId=73D90A6AE989FBF664756E2164756E21
+//# debugId=6FD3A93506FB12B964756E2164756E21
