@@ -306,6 +306,75 @@ The three models correspond positionally to the three answer labels (6565, 6566,
 
 **Integration:** Box solving is automatically triggered in `startScript()` before the user's action function runs. It detects boxes in inventory, opens them, and solves the quiz — all transparently.
 
+## Login Rate-Limit Throttle
+
+The bot's `startScript()` auto-re-login was firing every 10 seconds, which quickly triggered the server's "Login limit exceeded" (response 9) or "Login attempts exceeded" (response 16) rate limit. The fix:
+
+1. **30-second base delay** between re-login attempts (down from 10s — only 2 attempts/min instead of 6)
+2. **Rate-limit detection** by checking `c.loginMes1` for "Login limit", "Login attempts exceeded", or "Too many connections"
+3. **Exponential backoff** starting at 65s (respecting server's "wait 1 minute" message), doubling up to 120s max
+4. **Reset on success** — backoff resets to 30s when login succeeds
+
+The detection reads `loginMes1` (field name `loginMes1` on Client, accessible via `c.loginMes1` since `c = client as any`). Server response codes: 9 = "Login limit exceeded", 16 = "Login attempts exceeded".
+
+## How We Got Spell Casting (Alchemy) Working
+
+### The Problem
+
+Casting targeted spells (like Low/High Alchemy) on inventory items requires a **two-step action flow** that mirrors how the game's own menu system works. Simply setting `targetMode` and firing TGT_HELD doesn't work.
+
+### The Two-Step Flow
+
+The game's spell casting works via:
+1. **TGT_BUTTON (action 274):** Selects the spell. This is a client-side-only action — no packet is sent. It sets `targetMode=1`, `targetComId=spellComId`, and `targetMask` (which determines valid target types). For alchemy, `targetMask=16` (inventory items), which also switches to the inventory tab.
+2. **TGT_HELD (action 563):** Casts the selected spell on an inventory item. Sends `OPHELDT` packet with `(packId, slot, inventoryComId, spellComId)`.
+
+### Why Setting targetMode Directly Didn't Work
+
+Our first approach set `c.targetMode = 1` and `c.targetComId` manually, then fired TGT_HELD. The packet was sent but the server silently rejected it. The TGT_BUTTON action (274) must be dispatched via `doAction()` first — it does more than just set flags (it also sets `targetOp`, `targetMask`, clears `useMode`, and triggers UI state changes that the game loop relies on).
+
+### Key Gotcha: paramA is Pack ID, Not Runtime ID
+
+The menu system uses `ObjType.list(linkObjType[slot] - 1)` to get the item, and sets `paramA = obj.id` (the pack/server ID). The `linkObjType` array stores **runtime IDs** (server ID + 1). So `paramA` must be `linkObjType[slot] - 1`.
+
+### Finding Spell Component IDs
+
+Spell component IDs can be discovered at runtime by iterating `IfType.list` and checking for `targetVerb`/`targetBase`:
+```javascript
+const IfType = c.chatInterface.constructor;
+for (let id = 1150; id < 1200; id++) {
+    const com = IfType.list[id];
+    if (com && com.targetBase) {
+        console.log(id, com.targetBase, com.targetMask);
+    }
+}
+```
+
+Key alchemy IDs:
+- **Low Level Alchemy:** component 1162, targetMask 16
+- **High Level Alchemy:** component 1178, targetMask 16
+
+### Final Working Implementation
+
+```javascript
+castSpellOnItem(spellComId, objId, slot, comId = 3214) {
+    // Step 1: Select the spell (client-side only)
+    c.menuAction[0] = 274; // TGT_BUTTON
+    c.menuParamA[0] = 0;
+    c.menuParamB[0] = 0;
+    c.menuParamC[0] = spellComId;
+    c.doAction(0);
+    // Step 2: Cast on inventory item (sends OPHELDT packet)
+    c.menuAction[0] = 563; // TGT_HELD
+    c.menuParamA[0] = objId - 1; // pack ID
+    c.menuParamB[0] = slot;
+    c.menuParamC[0] = comId;
+    c.doAction(0);
+}
+```
+
+Both steps execute in the same tick — no delay needed between them.
+
 ## How We Fixed Invisible Inventory on rn04.rs
 
 ### The Problem

@@ -19835,6 +19835,21 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    castSpellOnItem(spellComId, objId, slot, comId = 3214) {
+      if (!c.ingame)
+        return false;
+      c.menuAction[0] = 274;
+      c.menuParamA[0] = 0;
+      c.menuParamB[0] = 0;
+      c.menuParamC[0] = spellComId;
+      c.doAction(0);
+      c.menuAction[0] = 563;
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = comId;
+      c.doAction(0);
+      return true;
+    },
     useItemOnItem(srcObjId, srcSlot, destObjId, destSlot, comId = 3214) {
       if (!c.ingame)
         return false;
@@ -20396,18 +20411,32 @@ function initBotApi(client) {
         clearInterval(window._botInterval);
       window._botRelogging = false;
       bot._activeEvent = null;
+      window._botReloginDelay = 30000;
       window._botInterval = setInterval(() => {
         if (!bot.isLoggedIn()) {
           if (!window._botRelogging) {
+            const msg = c.loginMes1 + " " + c.loginMes2;
+            if (msg.includes("Login limit") || msg.includes("Login attempts exceeded") || msg.includes("Too many connections")) {
+              const delay = Math.max(window._botReloginDelay, 65000);
+              const newDelay = Math.min(delay * 2, 120000);
+              window._botReloginDelay = newDelay;
+              console.log(`[BOT] Rate limited, waiting ${Math.round(delay / 1000)}s before retry...`);
+              window._botRelogging = true;
+              setTimeout(() => {
+                window._botRelogging = false;
+              }, delay);
+              return;
+            }
             window._botRelogging = true;
             console.log("[BOT] Logged out, re-logging in...");
             bot.login(username, password);
             setTimeout(() => {
               window._botRelogging = false;
-            }, 1e4);
+            }, 30000);
           }
           return;
         }
+        window._botReloginDelay = 30000;
         c.idleTimer = performance.now();
         if (bot.checkRandomEvent())
           return;
@@ -30332,4 +30361,4 @@ export {
   Client
 };
 
-//# debugId=836224EF46EAFED564756E2164756E21
+//# debugId=A554E2E45038E26564756E2164756E21

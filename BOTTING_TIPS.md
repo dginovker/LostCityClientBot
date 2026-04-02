@@ -87,6 +87,7 @@ node serve.cjs
 | `selectButton(comId)` | `boolean` | Click a select/toggle button (buttontype=select) - used for combat styles, autocast toggle |
 | `setTab(n)` | `void` | Switch sidebar tab (0=combat, 1=skills, 2=quests, 3=inventory, 4=equipment, 5=prayer, 6=magic) |
 | `walk(x, z)` | `boolean` | Walk to a tile coordinate |
+| `castSpellOnItem(spellComId, objId, slot)` | `boolean` | Cast a targeted spell on an inventory item (e.g. alchemy) |
 
 ### Advanced
 | Property | Description |
@@ -310,6 +311,50 @@ if (c.chatComId === 139) {
 }
 ```
 
+## Casting Spells on Items
+
+Use `bot.castSpellOnItem(spellComId, objId, slot)` to cast any targeted spell on an inventory item.
+
+### Alchemy Example
+```javascript
+const LOW_ALCH = 1162;
+const HIGH_ALCH = 1178;
+const FIRE_RUNE = 555; // runtime ID from linkObjType
+const magicLvl = bot._client.statBaseLevel[6]; // index 6 = Magic
+const spell = magicLvl >= 55 ? HIGH_ALCH : LOW_ALCH;
+bot.setTab(6); // open magic tab
+bot.castSpellOnItem(spell, FIRE_RUNE, fireSlot);
+```
+
+### Spell Component IDs (Normal Spellbook)
+
+Found by iterating `IfType.list[1150..1200]` checking for `targetBase`:
+
+| Spell | Component ID | targetMask | Notes |
+|-------|-------------|------------|-------|
+| Low Level Alchemy | 1162 | 16 (inventory) | Requires 21 Magic, 1 nature + 3 fire |
+| High Level Alchemy | 1178 | 16 (inventory) | Requires 55 Magic, 1 nature + 5 fire |
+| Superheat Item | 1173 | 16 (inventory) | |
+| Enchant Lvl-1 Jewelry | 1155 | 16 (inventory) | |
+| Enchant Lvl-2 Jewelry | 1165 | 16 (inventory) | |
+| Enchant Lvl-3 Jewelry | 1176 | 16 (inventory) | |
+| Telekinetic Grab | 1168 | 1 (ground items) | |
+
+### How It Works Under the Hood
+
+`castSpellOnItem` dispatches two actions in sequence:
+1. **TGT_BUTTON (274)** with `paramC = spellComId` — selects the spell (client-side only, no packet)
+2. **TGT_HELD (563)** with `paramA = objId - 1` (pack ID), `paramB = slot`, `paramC = 3214` — sends OPHELDT packet
+
+Both steps must go through `doAction()`. Setting `targetMode`/`targetComId` directly doesn't work — the TGT_BUTTON action sets additional state the game loop needs.
+
+### Reading Magic Level
+```javascript
+const magicLvl = bot._client.statBaseLevel[6]; // base level
+const magicXP = bot._client.statXP[6];         // current XP
+// Skill indices: 0=Atk 1=Def 2=Str 3=HP 4=Ranged 5=Prayer 6=Magic ...
+```
+
 ## Common Item IDs (Runtime / linkObjType)
 
 | Item | Runtime ID | obj.pack ID |
@@ -325,6 +370,9 @@ if (c.chatComId === 139) {
 | Mysterious box | 3063 | 3062 |
 | Yew logs | 1516 | 1515 |
 | Yew longbow (u) | 67 | 66 |
+| Fire rune | 555 | 554 |
+| Nature rune | 562 | 561 |
+| Coins | 996 | 995 |
 
 ## Shop Mechanics
 

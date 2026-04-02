@@ -72,6 +72,7 @@
                 <option value="string_longbow">String Yew Longbow</option>
                 <option value="cut_gems">Cut Sapphires (Herquin)</option>
                 <option value="iron_mine">Iron Miner (Varrock East)</option>
+                <option value="alch_fire">Alchemy (Fire Runes)</option>
                 <option value="custom">Custom</option>
             </select>
             <button id="startBtn" onclick="startScript()">Start</button>
@@ -661,6 +662,25 @@ if (rocks.length > 0) {
   }
   bot.interactLoc(closest.typecode, closest.x, closest.z, 'mine');
 }`,
+            alch_fire: `// Alchemy trainer: Low Alch fire runes until 55 Magic, then High Alch
+bot.closeModal();
+const LOW_ALCH = 1162;
+const HIGH_ALCH = 1178;
+const FIRE_RUNE = 555; // runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+const magicLvl = c.statBaseLevel[6];
+// Find fire runes in inventory
+let fireSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === FIRE_RUNE) { fireSlot = i; break; }
+}
+if (fireSlot < 0) { console.log('[BOT] No fire runes in inventory!'); return; }
+const spell = magicLvl >= 55 ? HIGH_ALCH : LOW_ALCH;
+bot.setTab(6); // magic tab
+bot.castSpellOnItem(spell, FIRE_RUNE, fireSlot);
+`,
             custom: `// Write your custom script here
 // Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
 // bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')

@@ -396,6 +396,26 @@ export function initBotApi(client: Client): void {
             return true;
         },
 
+        /** Cast a spell on an inventory item.
+         *  spellComId is the spell's interface component ID (e.g. 1162 for Low Alch, 1178 for High Alch).
+         *  objId is the runtime ID (from linkObjType). slot is the inventory slot. */
+        castSpellOnItem(spellComId: number, objId: number, slot: number, comId: number = 3214): boolean {
+            if (!c.ingame) return false;
+            // Step 1: Select the spell (TGT_BUTTON)
+            c.menuAction[0] = 274; // MiniMenuAction.TGT_BUTTON
+            c.menuParamA[0] = 0;
+            c.menuParamB[0] = 0;
+            c.menuParamC[0] = spellComId;
+            c.doAction(0);
+            // Step 2: Cast on the inventory item (TGT_HELD)
+            c.menuAction[0] = 563; // MiniMenuAction.TGT_HELD
+            c.menuParamA[0] = objId - 1; // server expects pack ID (runtime - 1)
+            c.menuParamB[0] = slot;
+            c.menuParamC[0] = comId;
+            c.doAction(0);
+            return true;
+        },
+
         /** Use one inventory item on another (e.g. feather on arrow shaft).
          *  Both objIds are runtime IDs (from linkObjType). Slots are inventory slot indices.
          *  comId defaults to 3214 (inventory). */
@@ -1035,17 +1055,33 @@ export function initBotApi(client: Client): void {
             (window as any)._botRelogging = false;
             bot._activeEvent = null;
 
+            (window as any)._botReloginDelay = 30000; // 30s between re-login attempts
+
             (window as any)._botInterval = setInterval(() => {
                 // Auto re-login
                 if (!bot.isLoggedIn()) {
                     if (!(window as any)._botRelogging) {
+                        const msg = c.loginMes1 + ' ' + c.loginMes2;
+                        // Rate-limit errors: wait at least 65s (server says "wait 1 minute")
+                        if (msg.includes('Login limit') || msg.includes('Login attempts exceeded') || msg.includes('Too many connections')) {
+                            const delay = Math.max((window as any)._botReloginDelay, 65000);
+                            const newDelay = Math.min(delay * 2, 120000);
+                            (window as any)._botReloginDelay = newDelay;
+                            console.log(`[BOT] Rate limited, waiting ${Math.round(delay / 1000)}s before retry...`);
+                            (window as any)._botRelogging = true;
+                            setTimeout(() => { (window as any)._botRelogging = false; }, delay);
+                            return;
+                        }
+
                         (window as any)._botRelogging = true;
                         console.log('[BOT] Logged out, re-logging in...');
                         bot.login(username, password);
-                        setTimeout(() => { (window as any)._botRelogging = false; }, 10000);
+                        setTimeout(() => { (window as any)._botRelogging = false; }, 30000);
                     }
                     return;
                 }
+                // Reset backoff on successful login
+                (window as any)._botReloginDelay = 30000;
 
                 // Reset idle timer so the client doesn't auto-logout
                 c.idleTimer = performance.now();
