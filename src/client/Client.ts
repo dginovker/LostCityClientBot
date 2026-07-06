@@ -9361,7 +9361,7 @@ export class Client extends GameShell {
                         }
                     }
 
-                    this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name;
+                    this.menuOption[this.menuNumEntries] = 'Examine @cya@' + loc.name + (this.debugMode ? ' @whi@(id=' + typeId + ')' : '');
                     this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_LOC6;
                     this.menuParamA[this.menuNumEntries] = typecode;
                     this.menuParamB[this.menuNumEntries] = x;
@@ -9463,7 +9463,7 @@ export class Client extends GameShell {
                             }
                         }
 
-                        this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name;
+                        this.menuOption[this.menuNumEntries] = 'Examine @lre@' + type.name + (this.debugMode ? ' @whi@(id=' + obj.id + ')' : '');
                         this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_OBJ6;
                         this.menuParamA[this.menuNumEntries] = obj.id;
                         this.menuParamB[this.menuNumEntries] = x;
@@ -9561,7 +9561,7 @@ export class Client extends GameShell {
                 }
             }
 
-            this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip;
+            this.menuOption[this.menuNumEntries] = 'Examine @yel@' + tooltip + (this.debugMode ? ' @whi@(id=' + npc.id + ')' : '');
             this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_NPC6;
             this.menuParamA[this.menuNumEntries] = a;
             this.menuParamB[this.menuNumEntries] = b;
@@ -9800,7 +9800,7 @@ export class Client extends GameShell {
                                 }
                             }
 
-                            this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name;
+                            this.menuOption[this.menuNumEntries] = 'Examine @lre@' + obj.name + (this.debugMode ? ' @whi@(id=' + obj.id + ')' : '');
                             this.menuAction[this.menuNumEntries] = MiniMenuAction.OP_HELD6;
                             this.menuParamA[this.menuNumEntries] = obj.id;
                             this.menuParamB[this.menuNumEntries] = slot;

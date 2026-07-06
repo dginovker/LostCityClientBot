@@ -109,7 +109,7 @@ export function initBotApi(client: Client): void {
                 return false;
             }
 
-            c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
+            c.out.p1Enc(ClientProt.RESUME_PAUSEBUTTON);
             c.out.p2(continueId);
             c.resumedPauseButton = true;
             return true;
@@ -118,7 +118,7 @@ export function initBotApi(client: Client): void {
         /** Close any main modal overlay (Welcome to RuneScape, quest journals, etc.) */
         closeModal(): boolean {
             if (c.mainModalId !== -1) {
-                c.out.pIsaac(ClientProt.CLOSE_MODAL);
+                c.out.p1Enc(ClientProt.CLOSE_MODAL);
                 if (c.sideModalId !== -1) {
                     c.sideModalId = -1;
                     c.redrawSide = true;
@@ -429,9 +429,25 @@ export function initBotApi(client: Client): void {
         },
 
         /** Get ground items near the player. Returns array of {objId, x, z} */
-        getGroundItems(radius: number = 10): {objId: number; x: number; z: number}[] {
+        /** Read the player inventory as [{slot, id, name, count}] (empty slots omitted).
+         *  `id` is the held-item id you pass straight to useHeldItem/castSpellOnItem; `name` is the
+         *  item name for filtering, e.g. bot.getInventory().find(i => i.name === 'Bones'). */
+        getInventory(): {slot: number; id: number; name: string | null; count: number}[] {
+            const inv = IfType.list[3214]; // inventory container component
+            if (!inv || !inv.linkObjType || !inv.linkObjNumber) return [];
+            const items: {slot: number; id: number; name: string | null; count: number}[] = [];
+            for (let i = 0; i < inv.linkObjType.length; i++) {
+                const id = inv.linkObjType[i];
+                if (id > 0) {
+                    items.push({slot: i, id, name: ObjType.list(id - 1)?.name ?? null, count: inv.linkObjNumber[i]});
+                }
+            }
+            return items;
+        },
+
+        getGroundItems(radius: number = 10): {objId: number; name: string | null; x: number; z: number}[] {
             if (!c.ingame || !c.localPlayer) return [];
-            const results: {objId: number; x: number; z: number}[] = [];
+            const results: {objId: number; name: string | null; x: number; z: number}[] = [];
             const px = c.localPlayer.routeX[0];
             const pz = c.localPlayer.routeZ[0];
             const level = c.minusedlevel;
@@ -446,7 +462,7 @@ export function initBotApi(client: Client): void {
                     const objs = groundObj[level][x]?.[z];
                     if (!objs) continue;
                     for (let obj = objs.tail(); obj !== null; obj = objs.prev()) {
-                        results.push({objId: obj.id, x, z});
+                        results.push({objId: obj.id, name: ObjType.list(obj.id)?.name ?? null, x, z});
                     }
                 }
             }
@@ -557,7 +573,7 @@ export function initBotApi(client: Client): void {
          *  Do NOT include the '::' prefix -- just the command text. */
         sendCommand(cmd: string): boolean {
             if (!c.out) return false;
-            c.out.pIsaac(ClientProt.CLIENT_CHEAT);
+            c.out.p1Enc(ClientProt.CLIENT_CHEAT);
             c.out.p1(cmd.length + 1);
             c.out.pjstr(cmd);
             return true;
