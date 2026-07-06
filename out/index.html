@@ -166,23 +166,31 @@ const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {
   bot.buyShopItem(target.slot, 10);
 }`,
-            chicken_bones: `// Kill chickens and bury their bones. Commits to one chicken until it
-// dies (won't switch targets mid-fight), and skips chickens someone else is fighting.
+            chicken_bones: `// Kill chickens and bury their bones. Locks onto one chicken until it
+// dies (no target-switching / "I'm already under attack" spam), skipping ones others are fighting.
+const c = bot._client;
 bot.closeModal();
 
-// Already fighting a chicken? Let it finish — don't wander off or switch targets.
-if (bot.isInCombat()) return;
+// Stick with our current chicken until it's dead — don't grab another.
+const st = (window._chickenTarget = window._chickenTarget || { slot: -1 });
+if (st.slot !== -1) {
+  const t = bot.getNpcs().find(n => n.slot === st.slot && /chicken/i.test(n.name || ''));
+  if (t && bot.isInCombat()) return;   // still fighting it — do nothing else
+  st.slot = -1;                         // it's dead / gone / we're no longer in combat
+}
 
-// 1) Bury any bones in the inventory
+// Idle: bury bones, grab bones off the ground, or start on a new chicken.
 const bone = bot.getInventory().find(i => i.name === 'Bones');
 if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
 
-// 2) Otherwise pick up bones lying on the ground
 const drop = bot.getGroundItems(10).find(g => g.name === 'Bones');
 if (drop) { bot.pickupGroundItem(drop.objId, drop.x, drop.z); return; }
 
-// 3) Otherwise attack the nearest free chicken
-bot.attackNpcByName('chicken', n => !n.inCombat && !n.interacting);`,
+// Attack the NEAREST chicken nobody else is fighting, and remember it.
+const px = c.localPlayer.routeX[0], pz = c.localPlayer.routeZ[0];
+const target = bot.findNpc('chicken', n => !n.inCombat && !n.interacting)
+  .sort((a, b) => (Math.abs(a.x - px) + Math.abs(a.z - pz)) - (Math.abs(b.x - px) + Math.abs(b.z - pz)))[0];
+if (target) { st.slot = target.slot; bot.attackNpc(target.slot); }`,
             fletch_arrows: `// Fletch arrows: use feather on arrow shaft
 bot.closeModal();
 const FEATHER = 315;     // runtime ID
@@ -861,6 +869,14 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
                 },
             },
         });
+
+        // Bump this whenever the built-in SCRIPTS change, so a deployed preset update replaces any
+        // stale copy the browser cached from a previous visit. Edits still persist within a version.
+        const SCRIPTS_VERSION = '2';
+        if (localStorage.getItem('bot_scripts_version') !== SCRIPTS_VERSION) {
+            localStorage.removeItem('bot_code');
+            localStorage.setItem('bot_scripts_version', SCRIPTS_VERSION);
+        }
 
         // Restore the last selected script AND its editor content on reload. (Bug: the browser
         // restored the <select> value but the editor always reset to the first script.) Also

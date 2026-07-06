@@ -165,12 +165,12 @@ export function initBotApi(client: Client): void {
             return c.ingame === true;
         },
 
-        /** True while the local player is engaged with a target (attacking an NPC, in a fight, etc.)
-         *  — the player is "facing" an entity. Use this to avoid re-targeting mid-fight, e.g. so a
-         *  combat script doesn't ditch the mob it's already fighting for a fresh one:
-         *    if (bot.isInCombat()) return; */
+        /** True while the local player is in combat — took or dealt damage recently (this drives the
+         *  health bar). On rs2b2t the local player's faceEntity is NOT set during combat, so this uses
+         *  combatCycle instead. Note it stays true for a stretch (~20s) after the last hit, so pair it
+         *  with a target check rather than using it alone as a between-kills gate. */
         isInCombat(): boolean {
-            return !!c.localPlayer && c.localPlayer.faceEntity !== -1;
+            return !!c.localPlayer && c.localPlayer.combatCycle > Client.loopCycle;
         },
 
         /** Get all nearby NPCs */
