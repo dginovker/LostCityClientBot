@@ -19634,14 +19634,14 @@ function initBotApi(client) {
         console.warn(`[bot] dismissDialog: chat dialog ${c.chatModalId} has no continue button ` + `(likely a multi-option menu — use selectButton). Not auto-dismissing.`);
         return false;
       }
-      c.out.pIsaac(72 /* RESUME_PAUSEBUTTON */);
+      c.out.p1Enc(72 /* RESUME_PAUSEBUTTON */);
       c.out.p2(continueId);
       c.resumedPauseButton = true;
       return true;
     },
     closeModal() {
       if (c.mainModalId !== -1) {
-        c.out.pIsaac(51 /* CLOSE_MODAL */);
+        c.out.p1Enc(51 /* CLOSE_MODAL */);
         if (c.sideModalId !== -1) {
           c.sideModalId = -1;
           c.redrawSide = true;
@@ -19912,6 +19912,19 @@ function initBotApi(client) {
       c.doAction(0);
       return true;
     },
+    getInventory() {
+      const inv = IfType.list[3214];
+      if (!inv || !inv.linkObjType || !inv.linkObjNumber)
+        return [];
+      const items = [];
+      for (let i2 = 0;i2 < inv.linkObjType.length; i2++) {
+        const id = inv.linkObjType[i2];
+        if (id > 0) {
+          items.push({ slot: i2, id, name: ObjType.list(id - 1)?.name ?? null, count: inv.linkObjNumber[i2] });
+        }
+      }
+      return items;
+    },
     getGroundItems(radius = 10) {
       if (!c.ingame || !c.localPlayer)
         return [];
@@ -19932,7 +19945,7 @@ function initBotApi(client) {
           if (!objs)
             continue;
           for (let obj = objs.tail();obj !== null; obj = objs.prev()) {
-            results.push({ objId: obj.id, x: x2, z });
+            results.push({ objId: obj.id, name: ObjType.list(obj.id)?.name ?? null, x: x2, z });
           }
         }
       }
@@ -20022,7 +20035,7 @@ function initBotApi(client) {
     sendCommand(cmd) {
       if (!c.out)
         return false;
-      c.out.pIsaac(224 /* CLIENT_CHEAT */);
+      c.out.p1Enc(224 /* CLIENT_CHEAT */);
       c.out.p1(cmd.length + 1);
       c.out.pjstr(cmd);
       return true;
@@ -28140,7 +28153,7 @@ class Client extends GameShell {
               this.menuNumEntries++;
             }
           }
-          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name;
+          this.menuOption[this.menuNumEntries] = "Examine @cya@" + loc.name + (this.debugMode ? " @whi@(id=" + typeId + ")" : "");
           this.menuAction[this.menuNumEntries] = 1381 /* OP_LOC6 */;
           this.menuParamA[this.menuNumEntries] = typecode;
           this.menuParamB[this.menuNumEntries] = x2;
@@ -28230,7 +28243,7 @@ class Client extends GameShell {
                 this.menuNumEntries++;
               }
             }
-            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name;
+            this.menuOption[this.menuNumEntries] = "Examine @lre@" + type.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
             this.menuAction[this.menuNumEntries] = 1152 /* OP_OBJ6 */;
             this.menuParamA[this.menuNumEntries] = obj.id;
             this.menuParamB[this.menuNumEntries] = x2;
@@ -28316,7 +28329,7 @@ class Client extends GameShell {
           this.menuNumEntries++;
         }
       }
-      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip;
+      this.menuOption[this.menuNumEntries] = "Examine @yel@" + tooltip + (this.debugMode ? " @whi@(id=" + npc.id + ")" : "");
       this.menuAction[this.menuNumEntries] = 1714 /* OP_NPC6 */;
       this.menuParamA[this.menuNumEntries] = a;
       this.menuParamB[this.menuNumEntries] = b;
@@ -28523,7 +28536,7 @@ class Client extends GameShell {
                   }
                 }
               }
-              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name;
+              this.menuOption[this.menuNumEntries] = "Examine @lre@" + obj.name + (this.debugMode ? " @whi@(id=" + obj.id + ")" : "");
               this.menuAction[this.menuNumEntries] = 1328 /* OP_HELD6 */;
               this.menuParamA[this.menuNumEntries] = obj.id;
               this.menuParamB[this.menuNumEntries] = slot;
@@ -30285,4 +30298,4 @@ export {
   Client
 };
 
-//# debugId=8B0352858C38023664756E2164756E21
+//# debugId=68ABC64E4D9C61AE64756E2164756E21

@@ -5,7 +5,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>RS Bot Client</title>
+    <title>🔴 RuneScape 2004 — Chill Skilling Stream | Road to Max - YouTube</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FF0000' d='M23 12s0-3.9-.5-5.8c-.3-1-1-1.8-2-2C18.9 4 12 4 12 4s-6.9 0-8.5.4c-1 .2-1.7 1-2 2C1 8.1 1 12 1 12s0 3.9.5 5.8c.3 1 1 1.8 2 2C5.1 20 12 20 12 20s6.9 0 8.5-.4c1-.2 1.7-1 2-2C23 15.9 23 12 23 12z'/%3E%3Cpath fill='%23fff' d='M10 15l5-3-5-3z'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/material-darker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
@@ -13,51 +14,153 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; font-family: monospace; }
-        #canvas { image-rendering: auto; display: block; }
-        #panel {
-            width: 765px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        #toolbar {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        #toolbar select, #toolbar button {
-            font-family: monospace;
-            font-size: 13px;
-            padding: 4px 8px;
-            background: #333;
-            color: #0f0;
-            border: 1px solid #555;
-            cursor: pointer;
-        }
-        #toolbar button:hover { background: #444; }
-        #toolbar button.stop { color: #f44; }
-        #toolbar .spacer { flex: 1; }
-        #toolbar label { color: #888; font-size: 12px; }
-        .CodeMirror {
-            width: 100%;
-            height: 250px;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 13px;
-            border: 1px solid #444;
-            border-radius: 4px;
-        }
-        .CodeMirror-hints { z-index: 9999; }
-        #editor { display: none; }
+        :root { --bg:#0f0f0f; --elev:#212121; --hover:#272727; --text:#f1f1f1; --sub:#aaa; --red:#f00; --chip:#272727; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        html,body { background:var(--bg); color:var(--text); font-family:Roboto,Arial,Helvetica,sans-serif; }
+        a { color:inherit; text-decoration:none; }
+
+        /* top bar */
+        #yt-header { position:sticky; top:0; z-index:100; height:56px; display:flex; align-items:center; gap:16px; padding:0 16px; background:var(--bg); }
+        .yt-burger { font-size:20px; cursor:pointer; color:var(--text); }
+        .yt-logo { display:flex; align-items:center; gap:5px; font-weight:700; font-size:20px; letter-spacing:-1.2px; }
+        .yt-logo .play { background:var(--red); color:#fff; border-radius:5px; padding:1px 5px; font-size:13px; line-height:1; }
+        .yt-search-wrap { flex:1; display:flex; justify-content:center; }
+        .yt-search { display:flex; width:100%; max-width:600px; }
+        .yt-search input { flex:1; background:#121212; border:1px solid #303030; border-right:none; border-radius:40px 0 0 40px; color:var(--text); padding:9px 16px; font-size:15px; outline:none; }
+        .yt-search button { background:#222; border:1px solid #303030; border-radius:0 40px 40px 0; padding:0 20px; color:var(--text); cursor:pointer; font-size:16px; }
+        .yt-icons { display:flex; align-items:center; gap:20px; font-size:19px; }
+        .yt-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f0932b,#eb4d4b); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; }
+
+        /* layout */
+        #yt-body { display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:24px; max-width:1280px; margin:24px auto; padding:0 24px; }
+        @media (max-width:1000px){ #yt-body{ grid-template-columns:1fr; } }
+
+        /* player = the game */
+        #yt-player { position:relative; width:100%; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; }
+        #canvas { display:block; max-width:100%; max-height:100%; image-rendering:auto; }
+        #yt-player-bar { position:absolute; left:0; right:0; bottom:0; height:44px; display:flex; align-items:center; gap:16px; padding:0 16px; color:#fff; font-size:13px; background:linear-gradient(transparent,rgba(0,0,0,.75)); opacity:0; transition:opacity .2s; pointer-events:none; }
+        #yt-player:hover #yt-player-bar { opacity:1; }
+        #yt-player-bar .live { display:flex; align-items:center; gap:5px; font-weight:600; }
+        #yt-player-bar .live .dot { width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 6px var(--red); }
+        #yt-player-bar .spacer { flex:1; }
+        #yt-player-bar .ctl { cursor:pointer; opacity:.92; font-size:16px; pointer-events:auto; }
+        #yt-player-bar .ctl:hover { opacity:1; }
+
+        h1#yt-title { font-size:20px; margin:16px 0 12px; font-weight:600; line-height:1.4; }
+        #yt-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+        .yt-channel { display:flex; align-items:center; gap:12px; }
+        .yt-chan-av { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; }
+        .yt-chan-name { font-weight:600; }
+        .yt-chan-subs { color:var(--sub); font-size:12px; }
+        .yt-sub-btn { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px 16px; font-weight:600; cursor:pointer; }
+        .yt-actions { display:flex; gap:8px; margin-left:auto; }
+        .yt-pill { background:var(--chip); border:none; color:var(--text); border-radius:18px; padding:9px 14px; cursor:pointer; font-size:14px; }
+        .yt-pill:hover { background:#3d3d3d; }
+        #yt-desc { background:var(--elev); border-radius:12px; padding:12px; margin-top:16px; font-size:14px; line-height:1.5; }
+        #yt-desc .stat { font-weight:600; margin-bottom:6px; }
+        #yt-desc .sub { color:var(--sub); }
+
+        /* sidebar: live chat + a couple recs */
+        #yt-chat { background:var(--elev); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:460px; }
+        #yt-chat h3 { padding:12px 16px; border-bottom:1px solid #303030; font-size:14px; font-weight:500; }
+        #yt-chat-msgs { flex:1; overflow-y:auto; padding:8px 12px; display:flex; flex-direction:column; gap:9px; font-size:13px; line-height:1.35; }
+        .chat-msg .u { font-weight:600; margin-right:6px; color:var(--sub); }
+        .chat-msg .u.mod { color:#5e84f1; } .chat-msg .u.vip { color:#e0a04d; }
+        .rec { display:flex; gap:8px; margin-top:14px; }
+        .rec-thumb { width:160px; height:90px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:30px; }
+        .rec-info .t { font-size:14px; font-weight:500; line-height:1.3; }
+        .rec-info .c { color:var(--sub); font-size:12px; margin-top:4px; }
+
+        /* hidden bot control panel — toggle with Ctrl+B or the player gear */
+        #panel { position:fixed; left:50%; bottom:0; transform:translate(-50%,110%); width:min(920px,96vw); max-height:72vh; overflow:auto; background:#181818; border:1px solid #303030; border-radius:12px 12px 0 0; box-shadow:0 -8px 40px rgba(0,0,0,.6); padding:12px; z-index:200; transition:transform .25s ease; display:flex; flex-direction:column; gap:8px; }
+        #panel.show { transform:translate(-50%,0); }
+        .phead { display:flex; align-items:center; gap:8px; color:var(--sub); font-size:12px; }
+        .phead .x { margin-left:auto; cursor:pointer; font-size:16px; }
+        #toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        #toolbar select, #toolbar button, #toolbar input { font-family:monospace; font-size:13px; padding:5px 8px; background:#333; color:#0f0; border:1px solid #555; cursor:pointer; border-radius:4px; }
+        #toolbar input { cursor:text; }
+        #toolbar button:hover { background:#444; }
+        #toolbar button.stop { color:#f44; }
+        #toolbar .spacer { flex:1; }
+        #toolbar label { color:#888; font-size:12px; }
+        .CodeMirror { width:100%; height:240px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; border:1px solid #444; border-radius:4px; }
+        .CodeMirror-hints { z-index:9999; }
+        #editor { display:none; }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="765" height="503"></canvas>
+    <!-- ================= YouTube-style chrome (camouflage) ================= -->
+    <header id="yt-header">
+        <span class="yt-burger">&#9776;</span>
+        <span class="yt-logo"><span class="play">&#9654;</span>YouTube</span>
+        <div class="yt-search-wrap"><div class="yt-search"><input placeholder="Search" spellcheck="false"><button>&#128269;</button></div></div>
+        <div class="yt-icons"><span>&#127908;</span><span>&#9993;</span><span>&#128276;</span><span class="yt-avatar">D</span></div>
+    </header>
+
+    <div id="yt-body">
+        <main id="yt-main">
+            <div id="yt-player">
+                <!-- the game renders here; framed as the livestream -->
+                <canvas id="canvas" width="765" height="503"></canvas>
+                <div id="yt-player-bar">
+                    <span class="ctl">&#10074;&#10074;</span>
+                    <span class="ctl">&#128266;</span>
+                    <span class="live"><span class="dot"></span>LIVE</span>
+                    <span class="spacer"></span>
+                    <span class="ctl" id="yt-gear" title="Settings">&#9881;</span>
+                    <span class="ctl">&#128250;</span>
+                    <span class="ctl">&#9974;</span>
+                </div>
+            </div>
+
+            <h1 id="yt-title">&#128308; RuneScape 2004 &mdash; Chill Skilling Stream | Road to Max &#127793; !discord !ranks</h1>
+
+            <div id="yt-meta">
+                <div class="yt-channel">
+                    <div class="yt-chan-av">OS</div>
+                    <div>
+                        <div class="yt-chan-name">OldSchool Vibes</div>
+                        <div class="yt-chan-subs">142K subscribers</div>
+                    </div>
+                    <button class="yt-sub-btn">Subscribe</button>
+                </div>
+                <div class="yt-actions">
+                    <button class="yt-pill">&#128077; 4.2K</button>
+                    <button class="yt-pill">&#128078;</button>
+                    <button class="yt-pill">&#8631; Share</button>
+                    <button class="yt-pill">&#8943;</button>
+                </div>
+            </div>
+
+            <div id="yt-desc">
+                <div class="stat"><span id="yt-viewers">3,914</span> watching now &nbsp;&#183;&nbsp; Started streaming 3 hours ago</div>
+                <div class="sub">Just a chill 2004scape stream while I work on some skills. Drop a follow &#10084;&#65039;&nbsp; Commands: !discord !ranks !uptime. No backseating pls &#128591;</div>
+            </div>
+        </main>
+
+        <aside id="yt-sidebar">
+            <div id="yt-chat">
+                <h3>&#128172;&nbsp; Live chat</h3>
+                <div id="yt-chat-msgs"></div>
+            </div>
+            <div class="rec">
+                <div class="rec-thumb" style="background:linear-gradient(135deg,#eb4d4b,#c44569)">&#127925;</div>
+                <div class="rec-info"><div class="t">lofi hip hop radio &#128218; - beats to relax/study to</div><div class="c">Lofi Girl &#183; 41K watching</div></div>
+            </div>
+            <div class="rec">
+                <div class="rec-thumb" style="background:linear-gradient(135deg,#3867d6,#38ada9)">&#9876;&#65039;</div>
+                <div class="rec-info"><div class="t">RuneScape 2004 - Top 10 Money Makers</div><div class="c">GP Guides &#183; 891K views</div></div>
+            </div>
+            <div class="rec">
+                <div class="rec-thumb" style="background:linear-gradient(135deg,#8854d0,#3867d6)">&#127918;</div>
+                <div class="rec-info"><div class="t">I played 2004scape for 100 hours...</div><div class="c">RetroGamer &#183; 1.2M views</div></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ================= Bot controls (hidden; toggle with Ctrl+B or the player gear) ================= -->
     <div id="panel">
+        <div class="phead"><span>&#9881; Player settings</span><span class="x" id="yt-panel-x">&#10005;</span></div>
         <div id="toolbar">
             <label>Script:</label>
             <select id="scriptSelect">
@@ -80,9 +183,9 @@
             <button id="stopBtn" class="stop" onclick="stopScript()">Stop</button>
             <span class="spacer"></span>
             <label>User:</label>
-            <input id="userInput" type="text" style="width:100px;background:#333;color:#0f0;border:1px solid #555;padding:4px;font-family:monospace;font-size:13px" placeholder="username">
+            <input id="userInput" type="text" style="width:110px" placeholder="username">
             <label>Pass:</label>
-            <input id="passInput" type="password" style="width:80px;background:#333;color:#0f0;border:1px solid #555;padding:4px;font-family:monospace;font-size:13px" placeholder="password">
+            <input id="passInput" type="password" style="width:90px" placeholder="password">
         </div>
         <textarea id="editor" spellcheck="false"></textarea>
     </div>
@@ -149,30 +252,20 @@ const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {
   bot.buyShopItem(target.slot, 10);
 }`,
-            chicken_bones: `// Kill chickens, pick up bones, bury them
+            chicken_bones: `// Kill chickens and bury their bones.
+// Uses item NAMES (not magic IDs) and skips chickens someone else is fighting.
 bot.closeModal();
-// Bone IDs: ground items use obj.pack ID (526), inventory uses +1 (527)
-const BONES_GROUND = 526;
-const BONES_INV = 527;
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-const inv = IfType.list[3214];
-// Priority 1: Bury any bones in inventory
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  if (inv.linkObjType[i] === BONES_INV) {
-    bot.useHeldItem(BONES_INV, i);
-    return;
-  }
-}
-// Priority 2: Pick up bones on ground
-const bones = bot.getGroundItems(10).filter(g => g.objId === BONES_GROUND);
-if (bones.length > 0) {
-  bot.pickupGroundItem(bones[0].objId, bones[0].x, bones[0].z);
-  return;
-}
-// Priority 3: Attack a chicken
-const chickens = bot.findNpc('chicken');
-if (chickens.length > 0) bot.attackNpc(chickens[0].slot);`,
+
+// 1) Bury any bones already in the inventory
+const bone = bot.getInventory().find(i => i.name === 'Bones');
+if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
+
+// 2) Otherwise pick up bones lying on the ground
+const drop = bot.getGroundItems(10).find(g => g.name === 'Bones');
+if (drop) { bot.pickupGroundItem(drop.objId, drop.x, drop.z); return; }
+
+// 3) Otherwise attack the nearest chicken that's not already in combat
+bot.attackNpcByName('chicken', n => !n.inCombat && !n.interacting);`,
             fletch_arrows: `// Fletch arrows: use feather on arrow shaft
 bot.closeModal();
 const FEATHER = 315;     // runtime ID
@@ -802,20 +895,32 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
                 });
         }
 
+        // Field names that appear across bot API return values (getNpcs, getGroundItems,
+        // getInventory, getBankItems, ...). Not type-aware, but surfaces what's available.
+        const API_FIELDS = [
+            'slot', 'typeId', 'name', 'x', 'z', 'health', 'totalHealth', 'inCombat', 'interacting',
+            'objId', 'id', 'count', 'kind', 'index', 'level', 'desc', 'model',
+        ];
+
         function botHint(cm) {
             const cur = cm.getCursor();
             const line = cm.getLine(cur.line);
             const end = cur.ch;
             let start = end;
-            while (start > 0 && /[\w.]/.test(line.charAt(start - 1))) start--;
-            const typed = line.slice(start, end);
+            while (start > 0 && /\w/.test(line.charAt(start - 1))) start--;   // the word only (stop at the dot)
+            const word = line.slice(start, end);
+            const prop = line.slice(0, start).match(/([\w)\]]+)\s*\.\s*$/);   // "<expr>." => property access
 
-            const methods = getBotMethods();
-            const prefix = typed.startsWith('bot.') ? typed.slice(4) : typed;
-            const list = methods.filter(m => m.startsWith(prefix)).map(m => ({
-                text: 'bot.' + m.replace(/\(.*\)/, '('),
-                displayText: 'bot.' + m,
-            }));
+            let list;
+            if (prop && prop[1] === 'bot') {
+                list = getBotMethods().filter(m => m.startsWith(word))
+                    .map(m => ({ text: m.replace(/\(.*\)/, '('), displayText: m }));
+            } else if (prop) {
+                list = API_FIELDS.filter(f => f.startsWith(word)).map(f => ({ text: f, displayText: f }));
+            } else {
+                list = ['bot', 'const', 'let', 'return', 'if', 'for', 'while', 'function']
+                    .filter(t => t.startsWith(word)).map(t => ({ text: t, displayText: t }));
+            }
             return { list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
         }
 
@@ -832,18 +937,28 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
                     cm.replaceSelection('.');
                     const cur = cm.getCursor();
                     const line = cm.getLine(cur.line);
-                    if (line.slice(Math.max(0, cur.ch - 4), cur.ch) === 'bot.') {
+                    // Trigger autocomplete after any "identifier." (property access), not just "bot."
+                    if (/[\w)\]]/.test(line.charAt(cur.ch - 2))) {
                         cm.showHint({ hint: botHint, completeSingle: false });
                     }
                 },
             },
         });
 
-        // Load script into editor when dropdown changes
+        // Restore the last selected script AND its editor content on reload. (Bug: the browser
+        // restored the <select> value but the editor always reset to the first script.) Also
+        // persist edits so refreshing doesn't wipe changes.
+        const savedScript = localStorage.getItem('bot_script');
+        const savedCode = localStorage.getItem('bot_code');
+        if (savedScript && SCRIPTS[savedScript] !== undefined) select.value = savedScript;
+        cm.setValue(savedCode != null ? savedCode : (SCRIPTS[select.value] || SCRIPTS['paladin']));
+
+        // Selecting a preset replaces the editor content; typing persists edits.
         select.addEventListener('change', () => {
+            localStorage.setItem('bot_script', select.value);
             cm.setValue(SCRIPTS[select.value] || '');
         });
-        cm.setValue(SCRIPTS['paladin']);
+        cm.on('change', () => localStorage.setItem('bot_code', cm.getValue()));
 
         // Persist username/password in localStorage
         const userInput = document.getElementById('userInput');
@@ -852,6 +967,46 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
         passInput.value = localStorage.getItem('bot_pass') || '';
         userInput.addEventListener('input', () => localStorage.setItem('bot_user', userInput.value));
         passInput.addEventListener('input', () => localStorage.setItem('bot_pass', passInput.value));
+
+        // ===== Camouflage: hidden control panel + fake livestream UI =====
+        const panel = document.getElementById('panel');
+        function togglePanel(force) {
+            const show = force !== undefined ? force : !panel.classList.contains('show');
+            panel.classList.toggle('show', show);
+            if (show) setTimeout(() => cm.refresh(), 260); // CodeMirror must re-measure once visible
+        }
+        document.getElementById('yt-gear').addEventListener('click', () => togglePanel());
+        document.getElementById('yt-panel-x').addEventListener('click', () => togglePanel(false));
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); togglePanel(); }
+            else if (e.key === 'Escape' && panel.classList.contains('show')) togglePanel(false);
+        });
+
+        // Fake live chat ticker — makes the page read as a real stream at a glance.
+        const chatUsers = [['xX_Slayer_Xx',''],['ChadThundercock','mod'],['runefan2004','vip'],['GielinorGandalf',''],
+            ['lofi_enjoyer',''],['NoLifeNoah',''],['scapeRuleZ',''],['ZamorakZoomer',''],['grandmaster_gp','vip'],
+            ['AFKAndy',''],['tutorial_island',''],['maxcapememer','mod'],['dragon_scimmy',''],['f2p_forever','']];
+        const chatMsgs = ['this stream is so chill','what skill next?','!discord','poggers','how many hours today?',
+            'GG on the level up','lmaooo','no backseating!','W stream','the music slaps','tuning in from work 👀',
+            'the grind never stops','how do i join the clan','!uptime','based','bury those bones king','ez xp',
+            'stay hydrated streamer','love this game fr','chicken arc 🐔','+1','first','let him cook'];
+        const chatBox = document.getElementById('yt-chat-msgs');
+        function addChat() {
+            const [u, tag] = chatUsers[Math.floor(Math.random() * chatUsers.length)];
+            const m = chatMsgs[Math.floor(Math.random() * chatMsgs.length)];
+            const el = document.createElement('div');
+            el.className = 'chat-msg';
+            el.innerHTML = '<span class="u ' + tag + '">' + u + '</span><span>' + m + '</span>';
+            chatBox.appendChild(el);
+            while (chatBox.children.length > 40) chatBox.removeChild(chatBox.firstChild);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        for (let i = 0; i < 14; i++) addChat();
+        (function loopChat() { setTimeout(() => { addChat(); loopChat(); }, 1500 + Math.random() * 3000); })();
+
+        // Jitter the "watching now" count.
+        const viewersEl = document.getElementById('yt-viewers');
+        setInterval(() => { viewersEl.textContent = (3800 + Math.floor(Math.random() * 450)).toLocaleString(); }, 5000);
 
         function startScript() {
             const user = userInput.value;
