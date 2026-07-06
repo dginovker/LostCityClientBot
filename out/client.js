@@ -11235,9 +11235,6 @@ class GameShell {
     canvas.oncontextmenu = (e) => {
       e.preventDefault();
     };
-    window.oncontextmenu = (e) => {
-      e.preventDefault();
-    };
     await this.drawProgress("Loading...", 0);
     await this.maininit();
     let ntime = 0;
@@ -11343,7 +11340,6 @@ class GameShell {
     canvas.oncontextmenu = null;
     window.onmouseup = null;
     window.onmousemove = null;
-    window.oncontextmenu = null;
   }
   setFramerate(rate) {
     this.deltime = 1000 / rate | 0;
@@ -19583,6 +19579,33 @@ class JagFX {
 }
 
 // src/bot/BotApi.ts
+function findContinueButton(rootId) {
+  const queue = [rootId];
+  const seen = new Set;
+  while (queue.length) {
+    const id = queue.shift();
+    if (id === -1 || id == null || seen.has(id))
+      continue;
+    seen.add(id);
+    const com = IfType.list[id];
+    if (!com)
+      continue;
+    if (com.buttonType === 6 /* BUTTON_CONTINUE */)
+      return id;
+    if (com.children) {
+      for (const child of com.children)
+        queue.push(child);
+    }
+  }
+  return -1;
+}
+function decodeInteracting(faceEntity) {
+  if (faceEntity == null || faceEntity === -1 || faceEntity === 65535)
+    return null;
+  if (faceEntity >= 32768)
+    return { kind: "player", index: faceEntity - 32768 };
+  return { kind: "npc", index: faceEntity };
+}
 var RANDOM_EVENT_NPCS = {
   Genie: "talk",
   "Drunken Dwarf": "talk",
@@ -19604,13 +19627,17 @@ function initBotApi(client) {
       const protectedId = window._botProtectChatComId;
       if (protectedId && c.chatModalId === protectedId)
         return false;
-      if (c.chatModalId !== -1) {
-        c.out.pIsaac(72 /* RESUME_PAUSEBUTTON */);
-        c.out.p2(c.chatModalId);
-        c.resumedPauseButton = true;
-        return true;
+      if (c.chatModalId === -1)
+        return false;
+      const continueId = findContinueButton(c.chatModalId);
+      if (continueId === -1) {
+        console.warn(`[bot] dismissDialog: chat dialog ${c.chatModalId} has no continue button ` + `(likely a multi-option menu — use selectButton). Not auto-dismissing.`);
+        return false;
       }
-      return false;
+      c.out.pIsaac(72 /* RESUME_PAUSEBUTTON */);
+      c.out.p2(continueId);
+      c.resumedPauseButton = true;
+      return true;
     },
     closeModal() {
       if (c.mainModalId !== -1) {
@@ -19638,6 +19665,18 @@ function initBotApi(client) {
         return true;
       return false;
     },
+    getBlockingState() {
+      return {
+        ingame: c.ingame === true,
+        chatModalId: c.chatModalId,
+        chatContinueButtonId: c.chatModalId === -1 ? -1 : findContinueButton(c.chatModalId),
+        mainModalId: c.mainModalId,
+        sideModalId: c.sideModalId,
+        resumedPauseButton: c.resumedPauseButton,
+        activeRandomEvent: bot._activeEvent,
+        hasBoxes: bot.hasBoxes()
+      };
+    },
     isLoggedIn() {
       return c.ingame === true;
     },
@@ -19654,7 +19693,9 @@ function initBotApi(client) {
             x: npc.routeX[0],
             z: npc.routeZ[0],
             health: npc.health,
-            totalHealth: npc.totalHealth
+            totalHealth: npc.totalHealth,
+            inCombat: npc.combatCycle > Client.loopCycle,
+            interacting: decodeInteracting(npc.faceEntity)
           });
         }
       }
@@ -19720,14 +19761,12 @@ function initBotApi(client) {
       return stats;
     },
     pickpocket(npcSlot) {
-      const npc = c.npc[npcSlot];
-      const lp = c.localPlayer;
-      if (!npc || !lp || !c.ingame)
-        return false;
-      c.tryMove(lp.routeX[0], lp.routeZ[0], npc.routeX[0], npc.routeZ[0], false, 1, 1, 0, 0, 0, 2);
-      c.out.pIsaac(223 /* OPNPC3 */);
-      c.out.p2(npcSlot);
-      return true;
+      const ok = bot.interactNpc(npcSlot, "pickpocket");
+      if (!ok) {
+        const npc = c.npc[npcSlot];
+        console.warn(`[bot] pickpocket: no "Pickpocket" option on NPC slot ${npcSlot}` + (npc?.type?.name ? ` (${npc.type.name})` : "") + " — nothing sent.");
+      }
+      return ok;
     },
     interactNpc(npcSlot, optionName) {
       const npc = c.npc[npcSlot];
@@ -19749,6 +19788,19 @@ function initBotApi(client) {
     },
     attackNpc(npcSlot) {
       return bot.interactNpc(npcSlot, "attack");
+    },
+    attackNpcByName(name, filter) {
+      const matches = bot.findNpc(name, filter);
+      if (matches.length === 0) {
+        console.warn(`[bot] attackNpcByName: no NPC matching "${name}"` + (filter ? " passing the filter" : "") + " in range.");
+        return false;
+      }
+      const lp = c.localPlayer;
+      if (lp) {
+        const dist = (n) => Math.abs(n.x - lp.routeX[0]) + Math.abs(n.z - lp.routeZ[0]);
+        matches.sort((a, b) => dist(a) - dist(b));
+      }
+      return bot.attackNpc(matches[0].slot);
     },
     findLocs(name, radius = 10) {
       if (!c.ingame || !c.world || !c.localPlayer)
@@ -20099,14 +20151,16 @@ function initBotApi(client) {
       c.loginscreen = 2;
       window._botLoginPending = true;
     },
-    findNpc(name) {
+    findNpc(name, filter) {
       const lower = name.toLowerCase();
-      return bot.getNpcs().filter((n) => n.name?.toLowerCase().includes(lower));
+      return bot.getNpcs().filter((n) => n.name?.toLowerCase().includes(lower) && (!filter || filter(n)));
     },
     pickpocketByName(name) {
       const npcs = bot.findNpc(name);
-      if (npcs.length === 0)
+      if (npcs.length === 0) {
+        console.warn(`[bot] pickpocketByName: no NPC in range matching "${name}".`);
         return false;
+      }
       return bot.pickpocket(npcs[0].slot);
     },
     _computeMazePath() {
@@ -30231,4 +30285,4 @@ export {
   Client
 };
 
-//# debugId=7D3CC675374AB4D264756E2164756E21
+//# debugId=8B0352858C38023664756E2164756E21

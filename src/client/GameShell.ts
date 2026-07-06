@@ -115,9 +115,8 @@ export default abstract class GameShell {
             e.preventDefault();
         };
 
-        window.oncontextmenu = (e: MouseEvent): void => {
-            e.preventDefault();
-        };
+        // Only block the context menu on the game canvas (above) — leave the rest of the
+        // page alone so right-click → "Inspect Element" still works for debugging the bot.
 
         await this.drawProgress('Loading...', 0);
         await this.maininit();
@@ -248,7 +247,6 @@ export default abstract class GameShell {
         canvas.oncontextmenu = null;
         window.onmouseup = null;
         window.onmousemove = null;
-        window.oncontextmenu = null;
     }
 
     protected setFramerate(rate: number) {

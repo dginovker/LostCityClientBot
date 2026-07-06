@@ -4,6 +4,27 @@ import { Client } from '#/client/Client.js';
 import { ClientProt } from '#/io/ClientProt.js';
 import LocType from '#/config/LocType.js';
 import ObjType from '#/config/ObjType.js';
+import IfType, { ButtonType } from '#/config/IfType.js';
+
+/** Walk an open interface tree and return the component id of its "Click here to continue"
+ *  (BUTTON_CONTINUE) button, or -1 if there isn't one. The server's RESUME_PAUSEBUTTON expects
+ *  this button's own id — the same value the client sends on a real click — not the dialog root. */
+function findContinueButton(rootId: number): number {
+    const queue: number[] = [rootId];
+    const seen = new Set<number>();
+    while (queue.length) {
+        const id = queue.shift()!;
+        if (id === -1 || id == null || seen.has(id)) continue;
+        seen.add(id);
+        const com = IfType.list[id];
+        if (!com) continue;
+        if (com.buttonType === ButtonType.BUTTON_CONTINUE) return id;
+        if (com.children) {
+            for (const child of com.children) queue.push(child);
+        }
+    }
+    return -1;
+}
 
 interface NpcInfo {
     slot: number;
@@ -13,6 +34,19 @@ interface NpcInfo {
     z: number;
     health: number;
     totalHealth: number;
+    /** True if the NPC took or dealt damage recently (its health bar is showing) — i.e. in combat. */
+    inCombat: boolean;
+    /** Who the NPC is currently facing/fighting, or null if idle. A chicken being attacked by
+     *  another player reads as { kind: 'player', index: <their player index> }. */
+    interacting: { kind: 'player' | 'npc'; index: number } | null;
+}
+
+/** Decode an entity's faceEntity field (as the client does): -1/65535 = nobody,
+ *  < 32768 = an NPC index, >= 32768 = a player index (minus the 32768 offset). */
+function decodeInteracting(faceEntity: number): { kind: 'player' | 'npc'; index: number } | null {
+    if (faceEntity == null || faceEntity === -1 || faceEntity === 65535) return null;
+    if (faceEntity >= 32768) return { kind: 'player', index: faceEntity - 32768 };
+    return { kind: 'npc', index: faceEntity };
 }
 
 interface PlayerInfo {
@@ -61,13 +95,24 @@ export function initBotApi(client: Client): void {
         dismissDialog(): boolean {
             const protectedId = (window as any)._botProtectChatComId;
             if (protectedId && c.chatModalId === protectedId) return false;
-            if (c.chatModalId !== -1) {
-                c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
-                c.out.p2(c.chatModalId);
-                c.resumedPauseButton = true;
-                return true;
+            if (c.chatModalId === -1) return false;
+
+            // Resume "Click here to continue" by the CONTINUE button's OWN component id (what the
+            // client sends on a real click), not the dialog root id. rev 254 accepted the root, but
+            // rev 274 ignores it — so level-up dialogs never cleared and scripts sat looping forever.
+            const continueId = findContinueButton(c.chatModalId);
+            if (continueId === -1) {
+                // A chat modal is open but it's not a click-to-continue dialog (e.g. a multi-option
+                // menu, which needs selectButton/clickButton). Surface it instead of hanging silently.
+                console.warn(`[bot] dismissDialog: chat dialog ${c.chatModalId} has no continue button ` +
+                    `(likely a multi-option menu — use selectButton). Not auto-dismissing.`);
+                return false;
             }
-            return false;
+
+            c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
+            c.out.p2(continueId);
+            c.resumedPauseButton = true;
+            return true;
         },
 
         /** Close any main modal overlay (Welcome to RuneScape, quest journals, etc.) */
@@ -100,6 +145,21 @@ export function initBotApi(client: Client): void {
 
         // ===== Read State =====
 
+        /** Snapshot of what (if anything) is blocking the bot — dialogs, modals, active random
+         *  event. Call this from the console when a script "just sits there" to see the cause. */
+        getBlockingState(): Record<string, unknown> {
+            return {
+                ingame: c.ingame === true,
+                chatModalId: c.chatModalId,                                   // open chat dialog (-1 = none)
+                chatContinueButtonId: c.chatModalId === -1 ? -1 : findContinueButton(c.chatModalId),
+                mainModalId: c.mainModalId,                                   // open centre modal (-1 = none)
+                sideModalId: c.sideModalId,                                   // open sidebar modal (-1 = none)
+                resumedPauseButton: c.resumedPauseButton,
+                activeRandomEvent: bot._activeEvent,
+                hasBoxes: bot.hasBoxes(),
+            };
+        },
+
         /** Check if logged in */
         isLoggedIn(): boolean {
             return c.ingame === true;
@@ -120,6 +180,8 @@ export function initBotApi(client: Client): void {
                         z: npc.routeZ[0],
                         health: npc.health,
                         totalHealth: npc.totalHealth,
+                        inCombat: npc.combatCycle > Client.loopCycle,
+                        interacting: decodeInteracting(npc.faceEntity),
                     });
                 }
             }
@@ -175,16 +237,18 @@ export function initBotApi(client: Client): void {
 
         // ===== Actions =====
 
-        /** Pickpocket an NPC by slot (sends OPNPC3) */
+        /** Pickpocket an NPC by slot. Builds the real game menu and clicks the "Pickpocket"
+         *  option — its option slot/opcode differs per NPC (Man, Paladin, Master Farmer, guards
+         *  all differ), so hardcoding OPNPC3 only worked for a few. Returns false (with a warning)
+         *  if this NPC has no Pickpocket option, instead of silently sending the wrong packet. */
         pickpocket(npcSlot: number): boolean {
-            const npc = c.npc[npcSlot];
-            const lp = c.localPlayer;
-            if (!npc || !lp || !c.ingame) return false;
-
-            c.tryMove(lp.routeX[0], lp.routeZ[0], npc.routeX[0], npc.routeZ[0], false, 1, 1, 0, 0, 0, 2);
-            c.out.pIsaac(ClientProt.OPNPC3);
-            c.out.p2(npcSlot);
-            return true;
+            const ok = bot.interactNpc(npcSlot, 'pickpocket');
+            if (!ok) {
+                const npc = c.npc[npcSlot];
+                console.warn(`[bot] pickpocket: no "Pickpocket" option on NPC slot ${npcSlot}` +
+                    (npc?.type?.name ? ` (${npc.type.name})` : '') + ' — nothing sent.');
+            }
+            return ok;
         },
 
         /** Interact with an NPC by building the real game menu and clicking the specified option.
@@ -217,6 +281,23 @@ export function initBotApi(client: Client): void {
         /** Shorthand: attack NPC by slot */
         attackNpc(npcSlot: number): boolean {
             return bot.interactNpc(npcSlot, 'attack');
+        },
+
+        /** Attack the NEAREST NPC matching a name, optionally narrowed by a predicate.
+         *  Solves "it keeps attacking chickens already in combat" — pass a filter to skip busy ones:
+         *    bot.attackNpcByName('chicken', n => !n.inCombat && !n.interacting) */
+        attackNpcByName(name: string, filter?: (n: NpcInfo) => boolean): boolean {
+            const matches = bot.findNpc(name, filter);
+            if (matches.length === 0) {
+                console.warn(`[bot] attackNpcByName: no NPC matching "${name}"` + (filter ? ' passing the filter' : '') + ' in range.');
+                return false;
+            }
+            const lp = c.localPlayer;
+            if (lp) {
+                const dist = (n: NpcInfo): number => Math.abs(n.x - lp.routeX[0]) + Math.abs(n.z - lp.routeZ[0]);
+                matches.sort((a, b) => dist(a) - dist(b));
+            }
+            return bot.attackNpc(matches[0].slot);
         },
 
         /** Find nearby locations (trees, rocks, etc.) by name within a given radius.
@@ -627,16 +708,21 @@ export function initBotApi(client: Client): void {
             (window as any)._botLoginPending = true;
         },
 
-        /** Find NPCs by name (case-insensitive partial match) */
-        findNpc(name: string): NpcInfo[] {
+        /** Find NPCs by name (case-insensitive partial match), optionally narrowed by a predicate.
+         *  DreamBot-style lambda filtering, e.g. skip chickens someone else is already fighting:
+         *    bot.findNpc('chicken', n => !n.inCombat && !n.interacting) */
+        findNpc(name: string, filter?: (n: NpcInfo) => boolean): NpcInfo[] {
             const lower = name.toLowerCase();
-            return bot.getNpcs().filter(n => n.name?.toLowerCase().includes(lower));
+            return bot.getNpcs().filter(n => n.name?.toLowerCase().includes(lower) && (!filter || filter(n)));
         },
 
-        /** Pickpocket the first NPC matching a name */
+        /** Pickpocket the first NPC matching a name (case-insensitive substring, e.g. 'man', 'paladin') */
         pickpocketByName(name: string): boolean {
             const npcs = bot.findNpc(name);
-            if (npcs.length === 0) return false;
+            if (npcs.length === 0) {
+                console.warn(`[bot] pickpocketByName: no NPC in range matching "${name}".`);
+                return false;
+            }
             return bot.pickpocket(npcs[0].slot);
         },
 
