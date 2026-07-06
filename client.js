@@ -19681,7 +19681,7 @@ function initBotApi(client) {
       return c.ingame === true;
     },
     isInCombat() {
-      return !!c.localPlayer && c.localPlayer.faceEntity !== -1;
+      return !!c.localPlayer && c.localPlayer.combatCycle > Client.loopCycle;
     },
     getNpcs() {
       const npcs = [];
@@ -30301,4 +30301,4 @@ export {
   Client
 };
 
-//# debugId=278DD708D703491F64756E2164756E21
+//# debugId=64D4AEEA497CBC2864756E2164756E21
