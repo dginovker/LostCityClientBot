@@ -165,6 +165,14 @@ export function initBotApi(client: Client): void {
             return c.ingame === true;
         },
 
+        /** True while the local player is engaged with a target (attacking an NPC, in a fight, etc.)
+         *  — the player is "facing" an entity. Use this to avoid re-targeting mid-fight, e.g. so a
+         *  combat script doesn't ditch the mob it's already fighting for a fresh one:
+         *    if (bot.isInCombat()) return; */
+        isInCombat(): boolean {
+            return !!c.localPlayer && c.localPlayer.faceEntity !== -1;
+        },
+
         /** Get all nearby NPCs */
         getNpcs(): NpcInfo[] {
             const npcs: NpcInfo[] = [];

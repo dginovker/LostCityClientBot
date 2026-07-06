@@ -166,11 +166,14 @@ const target = items.find(i => i.objId === TARGET_OBJ_ID);
 if (target && target.count > 0) {
   bot.buyShopItem(target.slot, 10);
 }`,
-            chicken_bones: `// Kill chickens and bury their bones.
-// Uses item NAMES (not magic IDs) and skips chickens someone else is fighting.
+            chicken_bones: `// Kill chickens and bury their bones. Commits to one chicken until it
+// dies (won't switch targets mid-fight), and skips chickens someone else is fighting.
 bot.closeModal();
 
-// 1) Bury any bones already in the inventory
+// Already fighting a chicken? Let it finish — don't wander off or switch targets.
+if (bot.isInCombat()) return;
+
+// 1) Bury any bones in the inventory
 const bone = bot.getInventory().find(i => i.name === 'Bones');
 if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
 
@@ -178,7 +181,7 @@ if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
 const drop = bot.getGroundItems(10).find(g => g.name === 'Bones');
 if (drop) { bot.pickupGroundItem(drop.objId, drop.x, drop.z); return; }
 
-// 3) Otherwise attack the nearest chicken that's not already in combat
+// 3) Otherwise attack the nearest free chicken
 bot.attackNpcByName('chicken', n => !n.inCombat && !n.interacting);`,
             fletch_arrows: `// Fletch arrows: use feather on arrow shaft
 bot.closeModal();

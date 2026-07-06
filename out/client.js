@@ -19680,6 +19680,9 @@ function initBotApi(client) {
     isLoggedIn() {
       return c.ingame === true;
     },
+    isInCombat() {
+      return !!c.localPlayer && c.localPlayer.faceEntity !== -1;
+    },
     getNpcs() {
       const npcs = [];
       for (let i2 = 0;i2 < c.npcCount; i2++) {
@@ -30298,4 +30301,4 @@ export {
   Client
 };
 
-//# debugId=68ABC64E4D9C61AE64756E2164756E21
+//# debugId=278DD708D703491F64756E2164756E21
