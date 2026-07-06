@@ -14,183 +14,97 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
     <style>
-        :root { --bg:#0f0f0f; --elev:#212121; --hover:#272727; --text:#f1f1f1; --sub:#aaa; --red:#f00; --chip:#272727; }
+        :root { --bg:#0f0f0f; --elev:#212121; --text:#f1f1f1; --sub:#aaa; --red:#f00; --green:#2ba640; --chip:#272727; }
         * { box-sizing:border-box; margin:0; padding:0; }
         html,body { background:var(--bg); color:var(--text); font-family:Roboto,Arial,Helvetica,sans-serif; }
         a { color:inherit; text-decoration:none; }
 
-        /* top bar */
         #yt-header { position:sticky; top:0; z-index:100; height:56px; display:flex; align-items:center; gap:16px; padding:0 16px; background:var(--bg); }
-        .yt-burger { font-size:20px; cursor:pointer; color:var(--text); }
+        .yt-burger { font-size:20px; cursor:pointer; }
         .yt-logo { display:flex; align-items:center; gap:5px; font-weight:700; font-size:20px; letter-spacing:-1.2px; }
         .yt-logo .play { background:var(--red); color:#fff; border-radius:5px; padding:1px 5px; font-size:13px; line-height:1; }
         .yt-search-wrap { flex:1; display:flex; justify-content:center; }
-        .yt-search { display:flex; width:100%; max-width:600px; }
+        .yt-search { display:flex; width:100%; max-width:560px; }
         .yt-search input { flex:1; background:#121212; border:1px solid #303030; border-right:none; border-radius:40px 0 0 40px; color:var(--text); padding:9px 16px; font-size:15px; outline:none; }
         .yt-search button { background:#222; border:1px solid #303030; border-radius:0 40px 40px 0; padding:0 20px; color:var(--text); cursor:pointer; font-size:16px; }
-        .yt-icons { display:flex; align-items:center; gap:20px; font-size:19px; }
         .yt-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f0932b,#eb4d4b); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; }
 
-        /* layout */
-        #yt-body { display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:24px; max-width:1280px; margin:24px auto; padding:0 24px; }
-        @media (max-width:1000px){ #yt-body{ grid-template-columns:1fr; } }
+        #yt-body { max-width:1000px; margin:24px auto; padding:0 24px; }
 
-        /* player = the game */
         #yt-player { position:relative; width:100%; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; }
         #canvas { display:block; max-width:100%; max-height:100%; image-rendering:auto; }
-        #yt-player-bar { position:absolute; left:0; right:0; bottom:0; height:44px; display:flex; align-items:center; gap:16px; padding:0 16px; color:#fff; font-size:13px; background:linear-gradient(transparent,rgba(0,0,0,.75)); opacity:0; transition:opacity .2s; pointer-events:none; }
-        #yt-player:hover #yt-player-bar { opacity:1; }
-        #yt-player-bar .live { display:flex; align-items:center; gap:5px; font-weight:600; }
-        #yt-player-bar .live .dot { width:9px; height:9px; border-radius:50%; background:var(--red); box-shadow:0 0 6px var(--red); }
-        #yt-player-bar .spacer { flex:1; }
-        #yt-player-bar .ctl { cursor:pointer; opacity:.92; font-size:16px; pointer-events:auto; }
-        #yt-player-bar .ctl:hover { opacity:1; }
+        #yt-live { position:absolute; top:12px; left:12px; background:var(--red); color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.5px; }
 
-        h1#yt-title { font-size:20px; margin:16px 0 12px; font-weight:600; line-height:1.4; }
-        #yt-meta { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
-        .yt-channel { display:flex; align-items:center; gap:12px; }
-        .yt-chan-av { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; }
-        .yt-chan-name { font-weight:600; }
-        .yt-chan-subs { color:var(--sub); font-size:12px; }
-        .yt-sub-btn { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px 16px; font-weight:600; cursor:pointer; }
-        .yt-actions { display:flex; gap:8px; margin-left:auto; }
-        .yt-pill { background:var(--chip); border:none; color:var(--text); border-radius:18px; padding:9px 14px; cursor:pointer; font-size:14px; }
-        .yt-pill:hover { background:#3d3d3d; }
-        #yt-desc { background:var(--elev); border-radius:12px; padding:12px; margin-top:16px; font-size:14px; line-height:1.5; }
-        #yt-desc .stat { font-weight:600; margin-bottom:6px; }
-        #yt-desc .sub { color:var(--sub); }
+        h1#yt-title { font-size:20px; margin:16px 0 12px; font-weight:600; }
 
-        /* sidebar: live chat + a couple recs */
-        #yt-chat { background:var(--elev); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; height:460px; }
-        #yt-chat h3 { padding:12px 16px; border-bottom:1px solid #303030; font-size:14px; font-weight:500; }
-        #yt-chat-msgs { flex:1; overflow-y:auto; padding:8px 12px; display:flex; flex-direction:column; gap:9px; font-size:13px; line-height:1.35; }
-        .chat-msg .u { font-weight:600; margin-right:6px; color:var(--sub); }
-        .chat-msg .u.mod { color:#5e84f1; } .chat-msg .u.vip { color:#e0a04d; }
-        .rec { display:flex; gap:8px; margin-top:14px; }
-        .rec-thumb { width:160px; height:90px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:30px; }
-        .rec-info .t { font-size:14px; font-weight:500; line-height:1.3; }
-        .rec-info .c { color:var(--sub); font-size:12px; margin-top:4px; }
+        #yt-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+        .yt-chan-av { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:18px; flex-shrink:0; }
+        .yt-chan-text { display:flex; flex-direction:column; min-width:0; }
+        select.yt-chan-name { background:transparent; border:none; color:var(--text); font-weight:600; font-size:16px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; padding:0; max-width:300px; }
+        select.yt-chan-name option { background:#212121; color:var(--text); font-weight:400; }
+        #yt-status { color:var(--sub); font-size:12px; }
+        #yt-status.on { color:var(--green); }
+        #runBtn { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px 24px; font-weight:600; font-size:14px; cursor:pointer; }
+        #runBtn.running { background:var(--red); color:#fff; }
+        #yt-meta .spacer { flex:1; }
+        .yt-input { background:var(--chip); border:1px solid #303030; border-radius:18px; color:var(--text); padding:8px 14px; font-size:13px; outline:none; width:130px; }
+        .yt-input:focus { border-color:#3ea6ff; }
 
-        /* hidden bot control panel — toggle with Ctrl+B or the player gear */
-        #panel { position:fixed; left:50%; bottom:0; transform:translate(-50%,110%); width:min(920px,96vw); max-height:72vh; overflow:auto; background:#181818; border:1px solid #303030; border-radius:12px 12px 0 0; box-shadow:0 -8px 40px rgba(0,0,0,.6); padding:12px; z-index:200; transition:transform .25s ease; display:flex; flex-direction:column; gap:8px; }
-        #panel.show { transform:translate(-50%,0); }
-        .phead { display:flex; align-items:center; gap:8px; color:var(--sub); font-size:12px; }
-        .phead .x { margin-left:auto; cursor:pointer; font-size:16px; }
-        #toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-        #toolbar select, #toolbar button, #toolbar input { font-family:monospace; font-size:13px; padding:5px 8px; background:#333; color:#0f0; border:1px solid #555; cursor:pointer; border-radius:4px; }
-        #toolbar input { cursor:text; }
-        #toolbar button:hover { background:#444; }
-        #toolbar button.stop { color:#f44; }
-        #toolbar .spacer { flex:1; }
-        #toolbar label { color:#888; font-size:12px; }
-        .CodeMirror { width:100%; height:240px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; border:1px solid #444; border-radius:4px; }
+        #yt-desc { background:var(--elev); border-radius:12px; padding:8px; margin-top:16px; }
+        .CodeMirror { width:100%; height:300px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; border-radius:8px; }
         .CodeMirror-hints { z-index:9999; }
         #editor { display:none; }
     </style>
 </head>
 <body>
-    <!-- ================= YouTube-style chrome (camouflage) ================= -->
     <header id="yt-header">
         <span class="yt-burger">&#9776;</span>
         <span class="yt-logo"><span class="play">&#9654;</span>YouTube</span>
         <div class="yt-search-wrap"><div class="yt-search"><input placeholder="Search" spellcheck="false"><button>&#128269;</button></div></div>
-        <div class="yt-icons"><span>&#127908;</span><span>&#9993;</span><span>&#128276;</span><span class="yt-avatar">D</span></div>
+        <div class="yt-avatar">D</div>
     </header>
 
     <div id="yt-body">
-        <main id="yt-main">
-            <div id="yt-player">
-                <!-- the game renders here; framed as the livestream -->
-                <canvas id="canvas" width="765" height="503"></canvas>
-                <div id="yt-player-bar">
-                    <span class="ctl">&#10074;&#10074;</span>
-                    <span class="ctl">&#128266;</span>
-                    <span class="live"><span class="dot"></span>LIVE</span>
-                    <span class="spacer"></span>
-                    <span class="ctl" id="yt-gear" title="Settings">&#9881;</span>
-                    <span class="ctl">&#128250;</span>
-                    <span class="ctl">&#9974;</span>
-                </div>
-            </div>
-
-            <h1 id="yt-title">&#128308; RuneScape 2004 &mdash; Chill Skilling Stream | Road to Max &#127793; !discord !ranks</h1>
-
-            <div id="yt-meta">
-                <div class="yt-channel">
-                    <div class="yt-chan-av">OS</div>
-                    <div>
-                        <div class="yt-chan-name">OldSchool Vibes</div>
-                        <div class="yt-chan-subs">142K subscribers</div>
-                    </div>
-                    <button class="yt-sub-btn">Subscribe</button>
-                </div>
-                <div class="yt-actions">
-                    <button class="yt-pill">&#128077; 4.2K</button>
-                    <button class="yt-pill">&#128078;</button>
-                    <button class="yt-pill">&#8631; Share</button>
-                    <button class="yt-pill">&#8943;</button>
-                </div>
-            </div>
-
-            <div id="yt-desc">
-                <div class="stat"><span id="yt-viewers">3,914</span> watching now &nbsp;&#183;&nbsp; Started streaming 3 hours ago</div>
-                <div class="sub">Just a chill 2004scape stream while I work on some skills. Drop a follow &#10084;&#65039;&nbsp; Commands: !discord !ranks !uptime. No backseating pls &#128591;</div>
-            </div>
-        </main>
-
-        <aside id="yt-sidebar">
-            <div id="yt-chat">
-                <h3>&#128172;&nbsp; Live chat</h3>
-                <div id="yt-chat-msgs"></div>
-            </div>
-            <div class="rec">
-                <div class="rec-thumb" style="background:linear-gradient(135deg,#eb4d4b,#c44569)">&#127925;</div>
-                <div class="rec-info"><div class="t">lofi hip hop radio &#128218; - beats to relax/study to</div><div class="c">Lofi Girl &#183; 41K watching</div></div>
-            </div>
-            <div class="rec">
-                <div class="rec-thumb" style="background:linear-gradient(135deg,#3867d6,#38ada9)">&#9876;&#65039;</div>
-                <div class="rec-info"><div class="t">RuneScape 2004 - Top 10 Money Makers</div><div class="c">GP Guides &#183; 891K views</div></div>
-            </div>
-            <div class="rec">
-                <div class="rec-thumb" style="background:linear-gradient(135deg,#8854d0,#3867d6)">&#127918;</div>
-                <div class="rec-info"><div class="t">I played 2004scape for 100 hours...</div><div class="c">RetroGamer &#183; 1.2M views</div></div>
-            </div>
-        </aside>
-    </div>
-
-    <!-- ================= Bot controls (hidden; toggle with Ctrl+B or the player gear) ================= -->
-    <div id="panel">
-        <div class="phead"><span>&#9881; Player settings</span><span class="x" id="yt-panel-x">&#10005;</span></div>
-        <div id="toolbar">
-            <label>Script:</label>
-            <select id="scriptSelect">
-                <option value="paladin">Paladin Pickpocket</option>
-                <option value="lesser_demon">Lesser Demon (Magic)</option>
-                <option value="willow_chop">Willow Tree Chopping</option>
-                <option value="magic_shop">Shop Buyer</option>
-                <option value="fletch_arrows">Fletch Arrows</option>
-                <option value="chicken_bones">Chickens + Bury Bones</option>
-                <option value="flax_spin">Flax Spinner</option>
-                <option value="fletch_longbow">Fletch Yew Longbow</option>
-                <option value="string_longbow">String Yew Longbow</option>
-                <option value="cut_gems">Cut Sapphires (Herquin)</option>
-                <option value="iron_mine">Iron Miner (Varrock East)</option>
-                <option value="alch_fire">Alchemy (Fire Runes)</option>
-                <option value="bear_killer">Bear Killer + Banker</option>
-                <option value="custom">Custom</option>
-            </select>
-            <button id="startBtn" onclick="startScript()">Start</button>
-            <button id="stopBtn" class="stop" onclick="stopScript()">Stop</button>
-            <span class="spacer"></span>
-            <label>User:</label>
-            <input id="userInput" type="text" style="width:110px" placeholder="username">
-            <label>Pass:</label>
-            <input id="passInput" type="password" style="width:90px" placeholder="password">
+        <div id="yt-player">
+            <canvas id="canvas" width="765" height="503"></canvas>
+            <span id="yt-live">&#9679; LIVE</span>
         </div>
-        <textarea id="editor" spellcheck="false"></textarea>
+
+        <h1 id="yt-title">2004scape &mdash; Live</h1>
+
+        <div id="yt-meta">
+            <div class="yt-chan-av">&#9654;</div>
+            <div class="yt-chan-text">
+                <select id="scriptSelect" class="yt-chan-name">
+                    <option value="paladin">Paladin Pickpocket</option>
+                    <option value="lesser_demon">Lesser Demon (Magic)</option>
+                    <option value="willow_chop">Willow Tree Chopping</option>
+                    <option value="magic_shop">Shop Buyer</option>
+                    <option value="fletch_arrows">Fletch Arrows</option>
+                    <option value="chicken_bones">Chickens + Bury Bones</option>
+                    <option value="flax_spin">Flax Spinner</option>
+                    <option value="fletch_longbow">Fletch Yew Longbow</option>
+                    <option value="string_longbow">String Yew Longbow</option>
+                    <option value="cut_gems">Cut Sapphires (Herquin)</option>
+                    <option value="iron_mine">Iron Miner (Varrock East)</option>
+                    <option value="alch_fire">Alchemy (Fire Runes)</option>
+                    <option value="bear_killer">Bear Killer + Banker</option>
+                    <option value="custom">Custom</option>
+                </select>
+                <span id="yt-status">Stopped</span>
+            </div>
+            <button id="runBtn" onclick="toggleRun()">Start</button>
+            <span class="spacer"></span>
+            <input id="userInput" class="yt-input" type="text" placeholder="username">
+            <input id="passInput" class="yt-input" type="password" placeholder="password">
+        </div>
+
+        <div id="yt-desc">
+            <textarea id="editor" spellcheck="false"></textarea>
+        </div>
     </div>
 
-    <script>
+        <script>
         // Pre-built scripts
         const SCRIPTS = {
             paladin: `// Pickpocket Paladins in Ardougne
@@ -968,45 +882,18 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
         userInput.addEventListener('input', () => localStorage.setItem('bot_user', userInput.value));
         passInput.addEventListener('input', () => localStorage.setItem('bot_pass', passInput.value));
 
-        // ===== Camouflage: hidden control panel + fake livestream UI =====
-        const panel = document.getElementById('panel');
-        function togglePanel(force) {
-            const show = force !== undefined ? force : !panel.classList.contains('show');
-            panel.classList.toggle('show', show);
-            if (show) setTimeout(() => cm.refresh(), 260); // CodeMirror must re-measure once visible
+        // ===== Run/Stop toggle: "Subscribe" becomes Start/Stop and reflects script state =====
+        let _running = false;
+        function setRun(running) {
+            _running = running;
+            const btn = document.getElementById('runBtn');
+            const status = document.getElementById('yt-status');
+            btn.textContent = running ? 'Stop' : 'Start';
+            btn.classList.toggle('running', running);
+            status.textContent = running ? '\u25CF Running' : 'Stopped';
+            status.classList.toggle('on', running);
         }
-        document.getElementById('yt-gear').addEventListener('click', () => togglePanel());
-        document.getElementById('yt-panel-x').addEventListener('click', () => togglePanel(false));
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); togglePanel(); }
-            else if (e.key === 'Escape' && panel.classList.contains('show')) togglePanel(false);
-        });
-
-        // Fake live chat ticker — makes the page read as a real stream at a glance.
-        const chatUsers = [['xX_Slayer_Xx',''],['ChadThundercock','mod'],['runefan2004','vip'],['GielinorGandalf',''],
-            ['lofi_enjoyer',''],['NoLifeNoah',''],['scapeRuleZ',''],['ZamorakZoomer',''],['grandmaster_gp','vip'],
-            ['AFKAndy',''],['tutorial_island',''],['maxcapememer','mod'],['dragon_scimmy',''],['f2p_forever','']];
-        const chatMsgs = ['this stream is so chill','what skill next?','!discord','poggers','how many hours today?',
-            'GG on the level up','lmaooo','no backseating!','W stream','the music slaps','tuning in from work 👀',
-            'the grind never stops','how do i join the clan','!uptime','based','bury those bones king','ez xp',
-            'stay hydrated streamer','love this game fr','chicken arc 🐔','+1','first','let him cook'];
-        const chatBox = document.getElementById('yt-chat-msgs');
-        function addChat() {
-            const [u, tag] = chatUsers[Math.floor(Math.random() * chatUsers.length)];
-            const m = chatMsgs[Math.floor(Math.random() * chatMsgs.length)];
-            const el = document.createElement('div');
-            el.className = 'chat-msg';
-            el.innerHTML = '<span class="u ' + tag + '">' + u + '</span><span>' + m + '</span>';
-            chatBox.appendChild(el);
-            while (chatBox.children.length > 40) chatBox.removeChild(chatBox.firstChild);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-        for (let i = 0; i < 14; i++) addChat();
-        (function loopChat() { setTimeout(() => { addChat(); loopChat(); }, 1500 + Math.random() * 3000); })();
-
-        // Jitter the "watching now" count.
-        const viewersEl = document.getElementById('yt-viewers');
-        setInterval(() => { viewersEl.textContent = (3800 + Math.floor(Math.random() * 450)).toLocaleString(); }, 5000);
+        function toggleRun() { _running ? stopScript() : startScript(); }
 
         function startScript() {
             const user = userInput.value;
@@ -1023,14 +910,12 @@ else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BE
                 actionFn(window.bot);
             });
 
-            document.getElementById('startBtn').style.color = '#888';
-            document.getElementById('stopBtn').style.color = '#f44';
+            setRun(true);
         }
 
         function stopScript() {
             window.bot.stopScript();
-            document.getElementById('startBtn').style.color = '#0f0';
-            document.getElementById('stopBtn').style.color = '#888';
+            setRun(false);
         }
 
         // Prevent canvas from stealing keyboard focus from the editor/inputs
