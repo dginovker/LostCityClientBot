@@ -60,10 +60,10 @@ export function initBotApi(client: Client): void {
          *  (e.g. 139 for the fletching dialog) while still dismissing others (level-ups etc). */
         dismissDialog(): boolean {
             const protectedId = (window as any)._botProtectChatComId;
-            if (protectedId && c.chatComId === protectedId) return false;
-            if (c.chatComId !== -1) {
+            if (protectedId && c.chatModalId === protectedId) return false;
+            if (c.chatModalId !== -1) {
                 c.out.pIsaac(ClientProt.RESUME_PAUSEBUTTON);
-                c.out.p2(c.chatComId);
+                c.out.p2(c.chatModalId);
                 c.resumedPauseButton = true;
                 return true;
             }
@@ -76,13 +76,13 @@ export function initBotApi(client: Client): void {
                 c.out.pIsaac(ClientProt.CLOSE_MODAL);
                 if (c.sideModalId !== -1) {
                     c.sideModalId = -1;
-                    c.redrawSidebar = true;
+                    c.redrawSide = true;
                     c.resumedPauseButton = false;
-                    c.redrawSideicons = true;
+                    c.redrawIcons = true;
                 }
-                if (c.chatComId !== -1) {
-                    c.chatComId = -1;
-                    c.redrawChatback = true;
+                if (c.chatModalId !== -1) {
+                    c.chatModalId = -1;
+                    c.redrawChat = true;
                     c.resumedPauseButton = false;
                 }
                 c.mainModalId = -1;
@@ -462,11 +462,14 @@ export function initBotApi(client: Client): void {
             c.debugMode = on;
         },
 
-        /** Set sidebar tab (0=combat, 3=inventory, 6=magic, etc.) */
-        setTab(tab: number): void {
-            c.sideTab = tab;
-            c.redrawSidebar = true;
-            c.redrawSideicons = true;
+        /** Set sidebar tab (0=combat, 3=inventory, 6=magic, etc.).
+         *  NOTE: The 254 client tracked the active tab in a client-side `sideTab` field.
+         *  Revision 274 removed that — the sidebar is driven by the interface system — so
+         *  there is no client field to poke. Bot scripts don't need the visible tab anyway
+         *  (inventory/stats/etc. are read directly from game state). Throw loudly rather
+         *  than silently no-op so callers know to remove the call. */
+        setTab(_tab: number): void {
+            throw new Error('setTab is not supported on protocol rev 274 (no client-side sideTab field). Bot state is read directly; remove the setTab call.');
         },
 
         /** Send a :: admin/cheat command to the server (e.g. 'tele 0,50,50,22,18').
@@ -1099,7 +1102,7 @@ export function initBotApi(client: Client): void {
 
                 // Auto-solve mysterious boxes
                 if (c.mainModalId === 6554) { bot.solveBox(); return; }
-                if (bot.hasBoxes() && c.mainModalId === -1 && c.chatComId === -1) { bot.openBox(); return; }
+                if (bot.hasBoxes() && c.mainModalId === -1 && c.chatModalId === -1) { bot.openBox(); return; }
 
                 // Run the user's script action
                 try {

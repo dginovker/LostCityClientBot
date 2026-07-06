@@ -3,7 +3,7 @@ import Pix32 from '#/graphics/Pix32.js';
 import Pix2D from '#/graphics/Pix2D.js';
 import Pix8 from '#/graphics/Pix8.js';
 import PixFont from '#/graphics/PixFont.js';
-import Jagfile from '#/io/Jagfile.js';
+import JagFile from '#/io/JagFile.js';
 import Packet from '#/io/Packet.js';
 import { TypedArray1d, TypedArray2d } from '#/util/Arrays.js';
 import { downloadUrl, sleep } from '#/util/JsUtil.js';
@@ -22,10 +22,10 @@ export class MapView extends GameShell {
 
     mapStartX: number = 50 << 6;
     mapStartZ: number = 50 << 6;
-    mapWidth: number = 20 << 6;
-    mapHeight: number = 19 << 6;
-    mapOriginX: number = 36 << 6;
-    mapOriginZ: number = 44 << 6;
+    mapWidth: number = 25 << 6;
+    mapHeight: number = 22 << 6;
+    mapOriginX: number = 32 << 6;
+    mapOriginZ: number = 41 << 6;
     focusX: number = this.mapStartX - this.mapOriginX;
     focusZ: number = this.mapOriginZ + this.mapHeight - this.mapStartZ;
 
@@ -110,7 +110,7 @@ export class MapView extends GameShell {
     activeMapFunctionCount: number = 0;
 
     overview: Pix32 | null = null;
-    overviewHeight: number = 200;
+    overviewHeight: number = 180;
     overviewWidth: number = ((this.overviewHeight * this.mapWidth) / this.mapHeight) | 0;
     overviewX: number = 635 - this.overviewWidth - 5;
     overviewY: number = 503 - this.overviewHeight - 20;
@@ -165,7 +165,7 @@ export class MapView extends GameShell {
         'Spinning Wheel',
         'Food Shop',
         'Cookery Shop',
-        '???',
+        'Mini-Game',
         'Water Source',
         'Cooking Range',
         'Skirt Shop',
@@ -175,7 +175,8 @@ export class MapView extends GameShell {
         'Chainmail Shop',
         'Silver Shop',
         'Fur Trader',
-        'Spice Shop'
+        'Spice Shop',
+        'Agility Training'
     ];
 
     constructor() {
@@ -187,14 +188,15 @@ export class MapView extends GameShell {
     override async maininit(): Promise<void> {
         // custom:
         this.keyHeight = this.sHei - this.keyY - 20;
+        this.overviewWidth = ((this.overviewHeight * this.mapWidth) / this.mapHeight) | 0;
         this.overviewX = this.sWid - this.overviewWidth - 5;
         this.overviewY = this.sHei - this.overviewHeight - 20;
-        this.redrawScreen = true;
+        this.fullredraw = true;
         canvas.style.cursor = 'grab';
 
-        const worldmap: Jagfile = await this.loadWorldmap();
+        const worldmap: JagFile = await this.loadWorldmap();
 
-        await this.messageBox('Please wait... Rendering Map', 100);
+        await this.drawProgress('Please wait... Rendering Map', 100);
 
         // const size: Packet = new Packet(worldmap.read('size.dat'));
         // this.mapOriginX = size.g2();
@@ -281,7 +283,7 @@ export class MapView extends GameShell {
         } catch (_e) {
         }
 
-        this.b12 = PixFont.depack(worldmap, 'b12');
+        this.b12 = PixFont.depack(worldmap, 'b12_full', false);
 
         // custom:
         try {
@@ -317,7 +319,7 @@ export class MapView extends GameShell {
         this.drawArea?.setPixels();
     }
 
-    override async maindraw(): Promise<void> {
+    override async mainredraw(): Promise<void> {
         if (this.redraw) {
             this.redraw = false;
             this.redrawTimer = 0;
@@ -676,9 +678,9 @@ export class MapView extends GameShell {
 
     // ----
 
-    worldmap: Jagfile | null = null;
+    worldmap: JagFile | null = null;
 
-    async loadWorldmap(): Promise<Jagfile> {
+    async loadWorldmap(): Promise<JagFile> {
         if (this.worldmap) {
             return this.worldmap;
         }
@@ -688,14 +690,14 @@ export class MapView extends GameShell {
 
         let retry: number = 5;
         while (!data) {
-            await this.messageBox('Requesting map', 0);
+            await this.drawProgress('Requesting map', 0);
 
             try {
                 data = await downloadUrl('/worldmap.jag');
             } catch (_e) {
                 data = undefined;
                 for (let i: number = retry; i > 0; i--) {
-                    await this.messageBox(`Error loading - Will retry in ${i} secs.`, 0);
+                    await this.drawProgress(`Error loading - Will retry in ${i} secs.`, 0);
                     await sleep(1000);
                 }
 
@@ -706,7 +708,7 @@ export class MapView extends GameShell {
             }
         }
 
-        this.worldmap = new Jagfile(data);
+        this.worldmap = new JagFile(data);
         return this.worldmap;
     }
 
@@ -1804,10 +1806,10 @@ export class MapView extends GameShell {
 
         this.mapStartX = 50 << 6;
         this.mapStartZ = 50 << 6;
-        this.mapWidth = 20 << 6;
-        this.mapHeight = 19 << 6;
-        this.mapOriginX = 36 << 6;
-        this.mapOriginZ = 44 << 6;
+        this.mapWidth = 25 << 6;
+        this.mapHeight = 22 << 6;
+        this.mapOriginX = 32 << 6;
+        this.mapOriginZ = 41 << 6;
         this.mapArea = 0;
         this.focusX = this.mapStartX - this.mapOriginX;
         this.focusZ = this.mapOriginZ + this.mapHeight - this.mapStartZ;
@@ -1827,10 +1829,10 @@ export class MapView extends GameShell {
 
         this.mapStartX = 50 << 6;
         this.mapStartZ = 150 << 6;
-        this.mapWidth = 21 << 6;
-        this.mapHeight = 19 << 6;
-        this.mapOriginX = 35 << 6;
-        this.mapOriginZ = 144 << 6;
+        this.mapWidth = 25 << 6;
+        this.mapHeight = 22 << 6;
+        this.mapOriginX = 32 << 6;
+        this.mapOriginZ = 141 << 6;
         this.mapArea = 1;
         this.focusX = this.mapStartX - this.mapOriginX;
         this.focusZ = this.mapOriginZ + this.mapHeight - this.mapStartZ;
@@ -1851,9 +1853,9 @@ export class MapView extends GameShell {
         this.mapStartX = 39 << 6;
         this.mapStartZ = 74 << 6;
         this.mapWidth = 21 << 6;
-        this.mapHeight = 15 << 6;
+        this.mapHeight = 17 << 6;
         this.mapOriginX = 28 << 6;
-        this.mapOriginZ = 65 << 6;
+        this.mapOriginZ = 63 << 6;
         this.mapArea = 2;
         this.focusX = this.mapStartX - this.mapOriginX;
         this.focusZ = this.mapOriginZ + this.mapHeight - this.mapStartZ;

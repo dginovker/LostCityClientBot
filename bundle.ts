@@ -7,9 +7,9 @@ import { nth_identifier } from './identifier.js';
 
 const define = {
     'process.env.SECURE_ORIGIN': JSON.stringify(process.env.SECURE_ORIGIN ?? 'false'),
-    // original key, used 2003-2010
-    'process.env.LOGIN_RSAE': JSON.stringify(process.env.LOGIN_RSAE ?? '58778699976184461502525193738213253649000149147835990136706041084440742975821'),
-    'process.env.LOGIN_RSAN': JSON.stringify(process.env.LOGIN_RSAN ?? '7162900525229798032761816791230527296329313291232324290237849263501208207972894053929065636522363163621000728841182238772712427862772219676577293600221789'),
+    // rs2b2t (w1.rs2b2t.com) custom RSA login keys, extracted from their client (BigInt(modulus), BigInt(65537))
+    'process.env.LOGIN_RSAE': JSON.stringify(process.env.LOGIN_RSAE ?? '65537'),
+    'process.env.LOGIN_RSAN': JSON.stringify(process.env.LOGIN_RSAN ?? '117420683091599437363781545043460293895633275635653353309906159820872703885723869096825270694383466833728011835587324760936150761784279979493634580041806369762348843902867397790796219798581737432768036489623686153294697841819355248591000037921789209503314465546289565662596345179694574470836552536702466642733'),
     'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString())
 };
 
@@ -107,7 +107,29 @@ async function applyTerser(script: BunOutput): Promise<boolean> {
                     'midi_render',
                     'setValue',
                     'getValue',
-                    'calledRun'
+                    'calledRun',
+
+                    // dns-json response fields
+                    'Status',
+                    'Answer',
+
+                    // main thread <-> ondemand worker protocol
+                    'type',
+                    'versions',
+                    'crcs',
+                    'host',
+                    'secured',
+                    'ingame',
+                    'dbEnabled',
+                    'archive',
+                    'file',
+                    'priority',
+                    'urgent',
+                    'data',
+                    'message',
+                    'failCount',
+                    'error',
+                    'id'
                 ]
             }
         }
@@ -125,13 +147,15 @@ if (!fs.existsSync('out')) {
 }
 
 fs.copyFileSync('src/3rdparty/tinymidipcm/tinymidipcm.wasm', 'out/tinymidipcm.wasm');
+fs.copyFileSync('src/3rdparty/tinymidipcm/SCC1_Florestan.sf2', 'out/SCC1_Florestan.sf2');
 
 const args = process.argv.slice(2);
 const prod = args[0] !== 'dev';
 
 const entrypoints = [
     'src/client/Client.ts',
-    'src/mapview/MapView.ts'
+    'src/mapview/MapView.ts',
+    'src/io/OnDemandWorker.ts'
 ];
 
 for (const file of entrypoints) {

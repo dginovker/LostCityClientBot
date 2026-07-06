@@ -1,5 +1,5 @@
 import Pix2D from '#/graphics/Pix2D.js';
-import type Jagfile from '#/io/Jagfile.js';
+import type JagFile from '#/io/JagFile.js';
 import { TypedArray1d } from '#/util/Arrays.js';
 
 export default class WorldMapFont extends Pix2D {
@@ -26,7 +26,7 @@ export default class WorldMapFont extends Pix2D {
     private ctx!: CanvasRenderingContext2D;
 
     // dumped from another system that guarantees no antialiasing was used
-    static load(jag: Jagfile, name: string) {
+    static load(jag: JagFile, name: string) {
         const font = new WorldMapFont();
         const fm = jag.read(`${name}.dat`);
         if (!fm) {
@@ -206,30 +206,30 @@ export default class WorldMapFont extends Pix2D {
         let dstOff = dx + dy * Pix2D.width;
         let dstStep = Pix2D.width - w;
 
-        if (y < Pix2D.clipMinY) {
-            const cutoff: number = Pix2D.clipMinY - y;
+        if (dy < Pix2D.clipMinY) {
+            const cutoff: number = Pix2D.clipMinY - dy;
             h -= cutoff;
-            y = Pix2D.clipMinY;
+            dy = Pix2D.clipMinY;
             srcOff += cutoff * w;
             dstOff += cutoff * Pix2D.width;
         }
 
-        if (y + h > Pix2D.clipMaxY) {
-            h -= y + h - Pix2D.clipMaxY;
+        if (dy + h > Pix2D.clipMaxY) {
+            h -= dy + h - Pix2D.clipMaxY;
         }
 
-        if (x < Pix2D.clipMinX) {
-            const cutoff: number = Pix2D.clipMinX - x;
+        if (dx < Pix2D.clipMinX) {
+            const cutoff: number = Pix2D.clipMinX - dx;
             w -= cutoff;
-            x = Pix2D.clipMinX;
+            dx = Pix2D.clipMinX;
             srcOff += cutoff;
             dstOff += cutoff;
             srcStep += cutoff;
             dstStep += cutoff;
         }
 
-        if (x + w > Pix2D.clipMaxX) {
-            const cutoff: number = x + w - Pix2D.clipMaxX;
+        if (dx + w > Pix2D.clipMaxX) {
+            const cutoff: number = dx + w - Pix2D.clipMaxX;
             w -= cutoff;
             srcStep += cutoff;
             dstStep += cutoff;

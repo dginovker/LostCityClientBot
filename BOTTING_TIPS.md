@@ -16,33 +16,43 @@ Claude Code (via Chrome DevTools MCP)
 
 ## Connecting to a Server
 
-The client connects to the game server in two places that need to be changed:
+**Currently pointed at `w1.rs2b2t.com` (revision 274).** The client connects in these places:
 
-1. **WebSocket (game connection):** `src/client/Client.ts` line ~1969
+1. **WebSocket (game connection):** `src/client/Client.ts`
    ```typescript
-   this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
+   this.stream = new ClientStream(await ClientStream.openSocket('w1.rs2b2t.com', true));
    ```
+   Stock upstream uses `window.location.host`; we hardcode the host because we self-host the page (localhost / GitHub Pages) but the game socket must go to the real server.
 
-2. **WebSocket (on-demand/asset streaming):** `src/io/OnDemand.ts` line ~663
+2. **On-demand/asset streaming (274 Web Worker):** `src/io/OnDemand.ts` — the worker init `postMessage` carries the host:
    ```typescript
-   this.stream = new ClientStream(await ClientStream.openSocket('play.rn04.rs', true));
+   host: 'w1.rs2b2t.com',
+   secured: true,
    ```
+   (254 opened a socket directly here; 274 moved streaming into `OnDemandWorker.ts`, which does `openSocket(this.host, this.secured)` with the values passed in.)
 
-3. **HTTP resources** (CRC checksums, game caches) are fetched via relative URLs like `/crc`, `/title`, etc. The local proxy server (`serve.cjs`) forwards these to the game server. Change the `UPSTREAM` constant in `serve.cjs`:
+3. **HTTP cache archives** (`/crc`, `/title`, `/config`, …) — the local proxy (`serve.cjs`) forwards them to the game server. Set `UPSTREAM`:
    ```javascript
-   const UPSTREAM = 'play.rn04.rs';
+   const UPSTREAM = 'w1.rs2b2t.com';
    ```
-   **Important:** `serve.cjs` must check cache file names BEFORE local file lookup, because the `out/` directory may contain stale cache files from a previous server. Cache files (`crc`, `title`, `config`, `interface`, `media`, `versionlist`, `textures`, `wordenc`, `sounds`, `build`, `ondemand.zip`) should always be proxied to the upstream server.
+   The client requests `<archive><crc>` where crc is a **signed** int, so the suffix starts with `-`, `?`, **or a digit** — `serve.cjs`'s cache-file match handles all three (a digit-suffix bug would 404 positive-CRC archives). It proxies cache names BEFORE local lookup so stale `out/` files never mask fresh data.
 
-4. **RSA keys** are set in `bundle.ts` lines 11-12. The default keys match both the original 2004scape/Lost City server **and** rn04.rs (they use the same keys). If a server uses custom keys, extract them from its client (search the minified JS for long numeric literals >80 digits near the login code, or use `grep -oP '\d{80,}' client.js`).
+4. **RSA keys** (`bundle.ts`): rs2b2t uses **custom** keys — `LOGIN_RSAE`=`65537`, `LOGIN_RSAN`=the 309-digit modulus. See RESEARCH_TIPS "How We Found the RSA Keys".
 
-5. **SECURE_ORIGIN check** is disabled in `Client.ts` to allow running from localhost.
+5. **SECURE_ORIGIN** defaults to `'false'` in `bundle.ts`, so its host check in `Client.ts` is already a no-op (no need to disable it).
 
-### Server-specific protocol differences
+### rev 254 vs 274
 
-When switching to a different server (e.g. rn04.rs), their custom client may have protocol modifications. Compare the minified client JS against our source to find differences. Known divergences:
+rn04.rs was 254 (config swap sufficed, needed only a `UPDATE_INV_FULL` 2-byte tweak). rs2b2t is **274** — a different opcode table + custom RSA, so we re-based `src/` onto the LostCityRS `274` branch rather than patching packets. See RESEARCH_TIPS "Switching to a Different-Revision Server". Do NOT reintroduce the rn04 `g2()` inventory hack — 274 has its own (correct) handlers.
 
-- **rn04.rs `UPDATE_INV_FULL` (opcode 28):** Inventory size field is 2 bytes (`g2()`), not 1 byte (`g1()`) as in the original Lost City client. Fixed in `Client.ts` line ~6509. Without this fix, all inventory items are invisible because subsequent item data is misaligned by 1 byte.
+### GitHub Pages (static, no proxy) deploy
+
+The `gh-pages` branch serves the flattened `out/` at `dginovker.github.io/LostCityClientBot/`. With no proxy, cache archives are committed with **clean names** (`crc`, `title`, `config`, …) and the client adapts:
+- `util/JsUtil.ts` `downloadUrl`/`downloadText` strip a leading `/` so fetches are **relative** to the page (works in the repo subdirectory), and `downloadUrl` throws on non-ok.
+- `Client.getJagFile` requests `<archive><crc>` first (proxy path / cache-buster) and **falls back** to the un-suffixed `<archive>` (the committed static file) on 404.
+- The game/on-demand WebSockets go straight to `wss://w1.rs2b2t.com` (works cross-origin; rs2b2t does NOT send CORS headers for HTTP caches, which is why caches must be committed rather than fetched cross-origin).
+
+To re-deploy: rebuild, fetch fresh clean-named caches into `out/` (`for f in crc title config interface media textures wordenc sounds versionlist; do curl -s "https://w1.rs2b2t.com/$f" -o out/$f; done`), then mirror `out/` to the `gh-pages` branch root. Re-fetch caches whenever rs2b2t updates (stale CRCs fail the login handshake). 274 uses the WebSocket worker, so **no `ondemand.zip`** is needed.
 
 After changes, rebuild: `bun bundle.ts dev`
 

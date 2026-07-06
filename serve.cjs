@@ -6,7 +6,7 @@ const path = require('path');
 
 const PORT = 8080;
 const STATIC_DIR = path.join(__dirname, 'out');
-const UPSTREAM = 'play.rn04.rs';
+const UPSTREAM = 'w1.rs2b2t.com';
 
 const MIME = {
     '.html': 'text/html',
@@ -52,7 +52,10 @@ const server = http.createServer((req, res) => {
     // Proxy cache file requests to upstream FIRST (before local lookup)
     const basename = urlPath.slice(1); // remove leading /
     for (const known of CACHE_FILES) {
-        if (basename === known || basename.startsWith(known + '-') || basename.startsWith(known + '?')) {
+        // The client requests archives as `<name><crc>` where crc is a signed int,
+        // so the char after the name is '-' (negative crc), '?' (query), or a digit (positive crc).
+        const after = basename.charAt(known.length);
+        if (basename === known || (basename.startsWith(known) && (after === '-' || after === '?' || (after >= '0' && after <= '9')))) {
             console.log(`Proxy: ${req.url} -> https://${UPSTREAM}${req.url}`);
             proxyToUpstream(req, res);
             return;

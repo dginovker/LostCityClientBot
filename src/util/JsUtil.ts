@@ -1,10 +1,11 @@
 export const sleep = async (ms: number): Promise<void> => new Promise((resolve): NodeJS.Timeout => setTimeout(resolve, ms));
 
-// Strip leading slash to make URLs relative (needed for GitHub Pages subdirectory hosting)
-// Throws on non-ok responses so CRC-suffix fallback in getJagFile works
+// Strip leading slash so cache URLs resolve relative to the page — needed for GitHub Pages
+// subdirectory hosting (dginovker.github.io/LostCityClientBot/). Throw on non-ok so the
+// CRC-suffix fallback in Client.getJagFile can catch a 404 and try the un-suffixed name.
 export const downloadUrl = async (url: string): Promise<Uint8Array> => {
     const res = await fetch(url.startsWith('/') ? url.slice(1) : url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return new Uint8Array(await res.arrayBuffer());
 };
 
@@ -46,4 +47,9 @@ export function bigIntModPow(base: bigint, exponent: bigint, modulus: bigint): b
         exponent >>= 1n;
     }
     return result;
+}
+
+export function mulShift16(a: number, b: number): number {
+    // (int) (((long) a * (long) b) >> 16);
+    return Number(BigInt.asIntN(32, (BigInt(a) * BigInt(b)) >> 16n));
 }

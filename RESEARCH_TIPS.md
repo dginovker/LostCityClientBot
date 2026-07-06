@@ -12,7 +12,28 @@ The game you are botting is a fork of a **Lost City** RuneScape private server. 
 - **Legacy org:** https://github.com/2004Scape/Server (redirects to LostCityRS)
 - **Bot API reference (third-party):** https://gitlab.com/project-undercut/moldy-swiss-cheese/-/tree/254-bot/api — Another bot implementation for the same 254 server. Useful for understanding how to interact with the game protocol, send packets, and handle interfaces. Clone with `git clone --branch 254-bot https://gitlab.com/project-undercut/moldy-swiss-cheese.git`
 
-The `254` branch corresponds to the version you are probably playing on. For fast analysis, you should clone the server repo locally (although note that you are not connected to it, this is just useful for understanding the code)
+**The active server (`w1.rs2b2t.com`) runs revision `274`, not `254`.** Use the `274` branches of the repos above (they exist: `git ls-remote --heads https://github.com/LostCityRS/Client-TS` lists `225`, `244`, `254`, `274`, `500`, ...). This repo's `src/` is now the LostCityRS Client-TS `274` client with the bot layer applied on top.
+
+## Switching to a Different-Revision Server (how we moved 254 → 274 / rs2b2t)
+
+rn04.rs was revision `254` — protocol-compatible with our client, so switching was a config swap. **rs2b2t is revision `274`** — a different protocol (shuffled opcode table, custom RSA keys), so a config swap is NOT enough. Here is how we detected that and did the port.
+
+**1. Detect the revision mismatch from the live client.** Download the target's client JS and compare against our source:
+```bash
+curl -sL https://w1.rs2b2t.com/client/client.js -o rs2b2t.js
+grep -oE 'p1\(255\)|p2\(274\)|p1\(254\)' rs2b2t.js        # login revision: rs2b2t sends p1(255) p2(274) = rev 274
+```
+Then compare an unambiguous server packet. The game chat handler (contains `:tradereq:`) is opcode **73** (`MESSAGE_GAME`) in the 254 client but opcode **161** in rs2b2t — proof the opcode table is different (i.e. a different revision, not just a config change). The main packet opcode is read as `this.uu = 255 & this.in.data[0]` then ISAAC-decrypted.
+
+**2. Re-base instead of hand-porting.** Nearly every file differs between 254 and 274 (cache format, rendering, io, sound). Hand-porting 58 file-deltas is error-prone. Instead we **replaced `src/` wholesale with the `274` branch** and re-applied our small bot layer on top. Our fork's only additions over stock upstream are:
+- `src/bot/BotApi.ts` (the whole Bot API — additive), and
+- ~6 hook points in `Client.ts` (import + `initBotApi(this)` in the constructor, a `debugMode` field, the `_botLoginPending` auto-login hook at the top of `titleScreenLoop()`, the hardcoded socket host, and `Examine …(id=)` debug annotations),
+- the socket host in `OnDemand.ts` (274 uses a Web Worker; set `host`/`secured` in the worker init `postMessage`),
+- hosting-flexibility tweaks in `util/JsUtil.ts` + `Client.getJagFile` (see BOTTING_TIPS "GitHub Pages").
+
+**3. Fix `BotApi.ts` field renames.** `BotApi` casts the client to `any`, so it compiles regardless — runtime breakage comes from renamed Client fields. 254 → 274 renames we hit: `chatComId`→`chatModalId`, `redrawSidebar`→`redrawSide`, `redrawChatback`→`redrawChat`, `redrawSideicons`→`redrawIcons`. The 254 `sideTab` field (and `sideOverlayId[]`) was **removed** in 274 — `setTab` now throws instead of silently poking a dead field. Verify coupling by extracting `grep -oE '\bc\.[a-zA-Z_]+' src/bot/BotApi.ts | sort -u` and checking each name exists in the new `Client.ts`.
+
+**4. New build entrypoint.** 274 streams on-demand data via a Web Worker: `new Worker(new URL('./ondemandworker.js', import.meta.url))`. `bundle.ts` must build `src/io/OnDemandWorker.ts` (→ `ondemandworker.js`) as a third entrypoint, or the world won't stream 3D content. The 274 `bundle.ts` already has this + reserved terser property names for the cross-thread message protocol.
 
 ## Understanding the Protocol
 
@@ -38,7 +59,14 @@ const re = /BigInt\("(\d+)"\)/g;
 // Found near ".p1(254)" (the engine revision write)
 ```
 
-The keys turned out to match the defaults in `bundle.ts` (the "original key, used 2003-2010"). But if a server uses custom keys, this extraction technique works.
+For rsleague/rn04 the keys matched the defaults ("original key, used 2003-2010"). **rs2b2t uses custom keys** — extracted the same way from `w1.rs2b2t.com/client/client.js`:
+
+```javascript
+// rs2b2t login writes: this.zq.Ka(BigInt("<modulus>"), BigInt("65537"))
+// modulus (LOGIN_RSAN) = 1174206830...642733  (309 digits), exponent (LOGIN_RSAE) = 65537
+grep -oE '[0-9]{80,}' client.js        // the long literal is the modulus
+```
+Note the argument order: our `out.rsaenc(mod, exp)` matches rs2b2t's `Ka(mod, exp)`, so `LOGIN_RSAN`=modulus, `LOGIN_RSAE`=exponent in `bundle.ts`. These are the keys currently set.
 
 ## How We Found the WebSocket URL
 
