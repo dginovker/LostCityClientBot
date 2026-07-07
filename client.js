@@ -17630,7 +17630,7 @@ class OnDemand extends OnDemandProvider {
     this.worker?.postMessage(message);
   }
   async postWorkerAck(message) {
-    if (globalThis.__HEADLESS) {
+    if (globalThis.__IN_WORKER) {
       return;
     }
     this.startWorker();
@@ -21279,7 +21279,7 @@ class Client extends GameShell {
       this.p12 = PixFont.depack(this.title, "p12_full", false);
       this.b12 = PixFont.depack(this.title, "b12_full", false);
       this.q8 = PixFont.depack(this.title, "q8_full", true);
-      if (!globalThis.__HEADLESS) {
+      if (!globalThis.__IN_WORKER) {
         await this.loadTitleBackground();
         this.loadTitleImages();
       }
@@ -21306,7 +21306,7 @@ class Client extends GameShell {
         this.midiSong = this.getIntParam("music", this.midiSong);
         this.midiFading = true;
         this.onDemand.request(2, this.midiSong);
-        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+        while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
           await this.onDemandLoop();
           await sleep(100);
         }
@@ -21316,7 +21316,7 @@ class Client extends GameShell {
       for (let i2 = 0;i2 < animCount; i2++) {
         this.onDemand.request(1, i2);
       }
-      while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+      while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
         const progress = animCount - this.onDemand.remaining();
         if (progress > 0) {
           await this.drawProgress("Loading animations - " + (progress * 100 / animCount | 0) + "%", 65);
@@ -21333,7 +21333,7 @@ class Client extends GameShell {
         }
       }
       const modelPrefetch = this.onDemand.remaining();
-      while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+      while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
         const progress = modelPrefetch - this.onDemand.remaining();
         if (progress > 0) {
           await this.drawProgress("Loading models - " + (progress * 100 / modelPrefetch | 0) + "%", 70);
@@ -21356,7 +21356,7 @@ class Client extends GameShell {
         this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 0));
         this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 1));
         const mapPrefetch = this.onDemand.remaining();
-        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+        while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
           const progress = mapPrefetch - this.onDemand.remaining();
           if (progress > 0) {
             await this.drawProgress("Loading maps - " + (progress * 100 / mapPrefetch | 0) + "%", 75);
@@ -21887,7 +21887,7 @@ class Client extends GameShell {
     Pix2D.cls();
     this.imageTitle8 = new PixMap(75, 94);
     Pix2D.cls();
-    if (this.title && !globalThis.__HEADLESS) {
+    if (this.title && !globalThis.__IN_WORKER) {
       await this.loadTitleBackground();
       this.loadTitleImages();
     }
@@ -30320,4 +30320,4 @@ export {
   Client
 };
 
-//# debugId=83E71B78121D3EAA64756E2164756E21
+//# debugId=F532C48954B4F66064756E2164756E21
