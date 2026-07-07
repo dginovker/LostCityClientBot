@@ -27999,6 +27999,35 @@ self.onmessage = async (e) => {
     }
     return;
   }
+  if (msg.type === "mouse") {
+    const ev = {
+      clientX: msg.x,
+      clientY: msg.y,
+      button: msg.button || 0,
+      buttons: msg.buttons || 0,
+      preventDefault: noop,
+      stopPropagation: noop,
+      pointerType: "mouse",
+      pointerId: 1,
+      movementX: 0,
+      movementY: 0
+    };
+    const c = fakeCanvas;
+    if (msg.kind === "down") {
+      c.onpointerdown?.(ev);
+      c.onmousedown?.(ev);
+    } else if (msg.kind === "up") {
+      c.onpointerup?.(ev);
+      c.onmouseup?.(ev);
+      g.onmouseup?.(ev);
+    } else if (msg.kind === "move") {
+      c.onpointermove?.(ev);
+      g.onmousemove?.(ev);
+    } else if (msg.kind === "leave") {
+      c.onpointerleave?.(ev);
+    }
+    return;
+  }
   if (msg.type !== "start" || started) {
     return;
   }
@@ -28085,4 +28114,4 @@ self.onmessage = async (e) => {
   }
 };
 
-//# debugId=FAAB1EA8A94E5D8264756E2164756E21
+//# debugId=515C09B0B339292E64756E2164756E21

@@ -136,6 +136,27 @@
     const canvas = document.getElementById('canvas');
     const cctx = canvas.getContext('2d', { alpha:false });
 
+    // ── make the watched view the REAL game: forward mouse input to its worker ───
+    // The frame is a <canvas>, so the browser would offer "Save image…" on right-click, exposing
+    // that it's an image. Instead we block the native menu and forward every mouse event to the
+    // watched bot's worker — right-click shows the RuneScape menu, clicks actually click the game.
+    function forwardMouse(kind) {
+        return (e) => {
+            e.preventDefault();
+            if (fgId === null || !bots.has(fgId)) return;
+            const r = canvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - r.left) * (canvas.width / r.width));
+            const y = Math.round((e.clientY - r.top) * (canvas.height / r.height));
+            bots.get(fgId).worker.postMessage({ type:'mouse', kind, x, y, button: e.button, buttons: e.buttons });
+        };
+    }
+    canvas.addEventListener('mousedown', forwardMouse('down'));
+    canvas.addEventListener('mouseup', forwardMouse('up'));
+    canvas.addEventListener('mousemove', forwardMouse('move'));
+    canvas.addEventListener('mouseleave', forwardMouse('leave'));
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());  // never show the browser image menu
+    canvas.oncontextmenu = () => false;
+
     // ── populate the spawn form ────────────────────────────────────────────────
     function refreshForm() {
         const accSel = document.getElementById('accountSel');

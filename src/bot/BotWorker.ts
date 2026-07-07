@@ -135,6 +135,19 @@ self.onmessage = async (e: MessageEvent): Promise<void> => {
         catch (err) { self.postMessage({ type: 'error', err: 'script parse: ' + String(err) }); }
         return;
     }
+    // Forward a real mouse event into the client so the watched view is the ACTUAL game (right-click
+    // shows the RuneScape menu, not the browser's "save image"). The client assigns its onmouse*/
+    // onpointer* handlers as properties on the fake canvas, so we just call them with a synthetic event.
+    if (msg.type === 'mouse') {
+        const ev: any = { clientX: msg.x, clientY: msg.y, button: msg.button || 0, buttons: msg.buttons || 0,
+            preventDefault: noop, stopPropagation: noop, pointerType: 'mouse', pointerId: 1, movementX: 0, movementY: 0 };
+        const c: any = fakeCanvas;
+        if (msg.kind === 'down') { c.onpointerdown?.(ev); c.onmousedown?.(ev); }
+        else if (msg.kind === 'up') { c.onpointerup?.(ev); c.onmouseup?.(ev); g.onmouseup?.(ev); }
+        else if (msg.kind === 'move') { c.onpointermove?.(ev); g.onmousemove?.(ev); }
+        else if (msg.kind === 'leave') { c.onpointerleave?.(ev); }
+        return;
+    }
     if (msg.type !== 'start' || started) {
         return;
     }
