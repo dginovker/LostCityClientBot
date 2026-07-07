@@ -148,7 +148,7 @@
     // ── spawn a headless bot worker ─────────────────────────────────────────────
     function spawnBot(account, scriptKey) {
         const id = nextId++;
-        const worker = new Worker('/botworker.js', { type:'module' });
+        const worker = new Worker('botworker.js', { type:'module' });
         const bot = { id, worker, account, scriptKey, state:{ stage:'booting' }, cardEl:null };
         bots.set(id, bot);
         worker.onmessage = (e) => onBotMessage(id, e.data);
