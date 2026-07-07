@@ -17939,7 +17939,7 @@ var init_OnDemand = __esm(() => {
       this.worker?.postMessage(message);
     }
     async postWorkerAck(message) {
-      if (globalThis.__HEADLESS) {
+      if (globalThis.__IN_WORKER) {
         return;
       }
       this.startWorker();
@@ -21673,7 +21673,7 @@ var init_Client = __esm(() => {
         this.p12 = PixFont.depack(this.title, "p12_full", false);
         this.b12 = PixFont.depack(this.title, "b12_full", false);
         this.q8 = PixFont.depack(this.title, "q8_full", true);
-        if (!globalThis.__HEADLESS) {
+        if (!globalThis.__IN_WORKER) {
           await this.loadTitleBackground();
           this.loadTitleImages();
         }
@@ -21700,7 +21700,7 @@ var init_Client = __esm(() => {
           this.midiSong = this.getIntParam("music", this.midiSong);
           this.midiFading = true;
           this.onDemand.request(2, this.midiSong);
-          while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+          while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
             await this.onDemandLoop();
             await sleep(100);
           }
@@ -21710,7 +21710,7 @@ var init_Client = __esm(() => {
         for (let i2 = 0;i2 < animCount; i2++) {
           this.onDemand.request(1, i2);
         }
-        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+        while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
           const progress = animCount - this.onDemand.remaining();
           if (progress > 0) {
             await this.drawProgress("Loading animations - " + (progress * 100 / animCount | 0) + "%", 65);
@@ -21727,7 +21727,7 @@ var init_Client = __esm(() => {
           }
         }
         const modelPrefetch = this.onDemand.remaining();
-        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+        while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
           const progress = modelPrefetch - this.onDemand.remaining();
           if (progress > 0) {
             await this.drawProgress("Loading models - " + (progress * 100 / modelPrefetch | 0) + "%", 70);
@@ -21750,7 +21750,7 @@ var init_Client = __esm(() => {
           this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 0));
           this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 1));
           const mapPrefetch = this.onDemand.remaining();
-          while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
+          while (!globalThis.__IN_WORKER && this.onDemand.remaining() > 0) {
             const progress = mapPrefetch - this.onDemand.remaining();
             if (progress > 0) {
               await this.drawProgress("Loading maps - " + (progress * 100 / mapPrefetch | 0) + "%", 75);
@@ -22281,7 +22281,7 @@ var init_Client = __esm(() => {
       Pix2D.cls();
       this.imageTitle8 = new PixMap(75, 94);
       Pix2D.cls();
-      if (this.title && !globalThis.__HEADLESS) {
+      if (this.title && !globalThis.__IN_WORKER) {
         await this.loadTitleBackground();
         this.loadTitleImages();
       }
@@ -30714,6 +30714,7 @@ var init_Client = __esm(() => {
 
 // src/bot/BotWorker.ts
 var g = globalThis;
+g.__IN_WORKER = true;
 g.__HEADLESS = true;
 var noop = () => {};
 var off = new OffscreenCanvas(765, 503);
@@ -30840,6 +30841,22 @@ self.addEventListener("unhandledrejection", (ev) => {
   } catch {}
 });
 var started = false;
+var startFrames = () => {
+  if (self._frameIv)
+    return;
+  self._frameIv = setInterval(async () => {
+    try {
+      const bmp = await createImageBitmap(off);
+      self.postMessage({ type: "frame", bmp }, [bmp]);
+    } catch {}
+  }, 66);
+};
+var stopFrames = () => {
+  if (self._frameIv) {
+    clearInterval(self._frameIv);
+    self._frameIv = null;
+  }
+};
 self.onmessage = async (e) => {
   const msg = e.data;
   if (msg.type === "stop") {
@@ -30847,36 +30864,36 @@ self.onmessage = async (e) => {
     return;
   }
   if (msg.type === "foreground") {
+    const wasHeadless = g.__HEADLESS;
     g.__HEADLESS = false;
-    try {
-      const ctx = off.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, off.width, off.height);
-      }
-      const cl = g.bot?._client;
-      if (cl) {
-        cl.titleFlames?.close?.();
-        cl.redrawFrame = true;
-        if (cl.refresh)
-          cl.refresh();
-      }
-    } catch {}
-    if (!self._frameIv) {
-      self._frameIv = setInterval(async () => {
-        try {
-          const bmp = await createImageBitmap(off);
-          self.postMessage({ type: "frame", bmp }, [bmp]);
-        } catch {}
-      }, 66);
+    if (wasHeadless) {
+      try {
+        const ctx = off.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = "black";
+          ctx.fillRect(0, 0, off.width, off.height);
+        }
+        const cl = g.bot?._client;
+        if (cl) {
+          cl.redrawFrame = true;
+          if (cl.refresh)
+            cl.refresh();
+        }
+      } catch {}
     }
+    startFrames();
     return;
   }
   if (msg.type === "background") {
     g.__HEADLESS = true;
-    if (self._frameIv) {
-      clearInterval(self._frameIv);
-      self._frameIv = null;
+    stopFrames();
+    return;
+  }
+  if (msg.type === "setScript") {
+    try {
+      self._action = msg.script ? new Function("bot", msg.script) : null;
+    } catch (err2) {
+      self.postMessage({ type: "error", err: "script parse: " + String(err2) });
     }
     return;
   }
@@ -30885,7 +30902,7 @@ self.onmessage = async (e) => {
   }
   started = true;
   const m = msg;
-  self.postMessage({ type: "debug", id: m.id, stage: "start-received" });
+  g.__HEADLESS = !m.render;
   g.__BOT_HOST = m.host;
   g.__BOT_SECURE = m.secure;
   if (m.rsan)
@@ -30893,31 +30910,16 @@ self.onmessage = async (e) => {
   if (m.rsae)
     g.__BOT_RSAE = m.rsae;
   try {
-    let action = null;
     try {
-      action = m.script ? new Function("bot", m.script) : null;
+      self._action = m.script ? new Function("bot", m.script) : null;
     } catch (err2) {
       self.postMessage({ type: "error", id: m.id, err: "script parse: " + String(err2) });
-    }
-    try {
-      const r = await fetch("crc");
-      const buf = await r.arrayBuffer();
-      self.postMessage({ type: "fetchTest", status: r.status, len: buf.byteLength, url: r.url });
-    } catch (err2) {
-      self.postMessage({ type: "fetchTest", err: String(err2) });
-    }
-    try {
-      const req = indexedDB.open("__probe", 1);
-      req.onsuccess = () => self.postMessage({ type: "idbTest", ok: true });
-      req.onerror = () => self.postMessage({ type: "idbTest", ok: false, err: "error" });
-      req.onblocked = () => self.postMessage({ type: "idbTest", ok: false, err: "blocked" });
-      setTimeout(() => self.postMessage({ type: "idbTest", ok: false, err: "timeout(2s) — likely hangs the client" }), 2000);
-    } catch (err2) {
-      self.postMessage({ type: "idbTest", err: String(err2) });
     }
     const bootStart = performance.now();
     const { Client: Client2 } = await Promise.resolve().then(() => (init_Client(), exports_Client));
     new Client2(10, false, true);
+    if (!g.__HEADLESS)
+      startFrames();
     let booted = false;
     const tick = m.intervalMs ?? 2000;
     setInterval(() => {
@@ -30952,6 +30954,7 @@ self.onmessage = async (e) => {
           return;
         }
         c.idleTimer = performance.now();
+        const action = self._action;
         if (action)
           action(bot);
         self.postMessage({
@@ -30980,4 +30983,4 @@ self.onmessage = async (e) => {
   }
 };
 
-//# debugId=0D39F674992C2AB664756E2164756E21
+//# debugId=537605CFBEEED9EB64756E2164756E21

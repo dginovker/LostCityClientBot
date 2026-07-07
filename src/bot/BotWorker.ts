@@ -6,7 +6,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const g: any = globalThis;
-g.__HEADLESS = true; // Client.mainredraw() and OnDemand.startWorker() early-return on this
+g.__IN_WORKER = true; // always: skips things that hang/aren't needed in a Worker (JPEG title, prefetch)
+g.__HEADLESS = true;  // per-bot (overridden by start.render): gates rendering (mainredraw/drawProgress)
 
 const noop = (): void => {};
 
@@ -112,9 +113,21 @@ interface StartMsg {
     pass: string;
     script: string;
     intervalMs?: number;
+    render?: boolean; // true → render from boot (watched); false → headless until watched
 }
 
 let started = false;
+
+// ~15fps frame stream from the offscreen canvas to the main thread — only while this bot is watched.
+const startFrames = (): void => {
+    if ((self as any)._frameIv) return;
+    (self as any)._frameIv = setInterval(async () => {
+        try { const bmp = await createImageBitmap(off); self.postMessage({ type: 'frame', bmp }, [bmp]); } catch { /* noop */ }
+    }, 66);
+};
+const stopFrames = (): void => {
+    if ((self as any)._frameIv) { clearInterval((self as any)._frameIv); (self as any)._frameIv = null; }
+};
 
 self.onmessage = async (e: MessageEvent): Promise<void> => {
     const msg = e.data;
@@ -122,28 +135,32 @@ self.onmessage = async (e: MessageEvent): Promise<void> => {
         self.close();
         return;
     }
-    // Bring this bot to the foreground: resume rendering + on-demand model/map streaming, and push
-    // ~15fps frames (as ImageBitmaps) to the main thread to blit onto the visible canvas.
+    // Watch this bot: enable rendering + on-demand streaming and push frames to the main thread.
     if (msg.type === 'foreground') {
+        const wasHeadless = g.__HEADLESS;
         g.__HEADLESS = false;
-        // The bot logged in headless (no rendering), so the static interface frame was never drawn —
-        // its margins still hold title-screen pixels. Clear the canvas and force a full frame redraw.
-        try {
-            const ctx = off.getContext('2d');
-            if (ctx) { ctx.fillStyle = 'black'; ctx.fillRect(0, 0, off.width, off.height); }
-            const cl = g.bot?._client;
-            if (cl) { cl.titleFlames?.close?.(); cl.redrawFrame = true; if (cl.refresh) cl.refresh(); }
-        } catch { /* noop */ }
-        if (!(self as any)._frameIv) {
-            (self as any)._frameIv = setInterval(async () => {
-                try { const bmp = await createImageBitmap(off); self.postMessage({ type: 'frame', bmp }, [bmp]); } catch { /* noop */ }
-            }, 66);
+        // A bot that booted headless never drew the interface frame (its margins hold stale pixels)
+        // and never loaded its scene — clear the canvas and force a redraw; on-demand then catches up.
+        if (wasHeadless) {
+            try {
+                const ctx = off.getContext('2d');
+                if (ctx) { ctx.fillStyle = 'black'; ctx.fillRect(0, 0, off.width, off.height); }
+                const cl = g.bot?._client;
+                if (cl) { cl.redrawFrame = true; if (cl.refresh) cl.refresh(); }
+            } catch { /* noop */ }
         }
+        startFrames();
         return;
     }
     if (msg.type === 'background') {
         g.__HEADLESS = true; // back to headless / lightweight
-        if ((self as any)._frameIv) { clearInterval((self as any)._frameIv); (self as any)._frameIv = null; }
+        stopFrames();
+        return;
+    }
+    // Swap the running script on the fly (the active-bot editor uses this).
+    if (msg.type === 'setScript') {
+        try { (self as any)._action = msg.script ? (new Function('bot', msg.script) as (bot: any) => void) : null; }
+        catch (err) { self.postMessage({ type: 'error', err: 'script parse: ' + String(err) }); }
         return;
     }
     if (msg.type !== 'start' || started) {
@@ -151,43 +168,26 @@ self.onmessage = async (e: MessageEvent): Promise<void> => {
     }
     started = true;
     const m = msg as StartMsg;
-    self.postMessage({ type: 'debug', id: m.id, stage: 'start-received' });
+    // render:true → full client from boot (visible loading/login screens + streamed frames);
+    // render:false → headless & lightweight until the bot is watched.
+    g.__HEADLESS = !(m as any).render;
     g.__BOT_HOST = m.host;
     g.__BOT_SECURE = m.secure;
     if ((m as any).rsan) g.__BOT_RSAN = (m as any).rsan;
     if ((m as any).rsae) g.__BOT_RSAE = (m as any).rsae;
     try {
 
-    let action: ((bot: any) => void) | null = null;
     try {
-        action = m.script ? (new Function('bot', m.script) as (bot: any) => void) : null;
+        (self as any)._action = m.script ? (new Function('bot', m.script) as (bot: any) => void) : null;
     } catch (err) {
         self.postMessage({ type: 'error', id: m.id, err: 'script parse: ' + String(err) });
-    }
-
-    // Does fetch (cache loading) work from inside the worker?
-    try {
-        const r = await fetch('crc');
-        const buf = await r.arrayBuffer();
-        self.postMessage({ type: 'fetchTest', status: r.status, len: buf.byteLength, url: r.url });
-    } catch (err) {
-        self.postMessage({ type: 'fetchTest', err: String(err) });
-    }
-    // Does IndexedDB open in the worker (the client uses it as a cache)?
-    try {
-        const req = (indexedDB as any).open('__probe', 1);
-        req.onsuccess = () => self.postMessage({ type: 'idbTest', ok: true });
-        req.onerror = () => self.postMessage({ type: 'idbTest', ok: false, err: 'error' });
-        req.onblocked = () => self.postMessage({ type: 'idbTest', ok: false, err: 'blocked' });
-        setTimeout(() => self.postMessage({ type: 'idbTest', ok: false, err: 'timeout(2s) — likely hangs the client' }), 2000);
-    } catch (err) {
-        self.postMessage({ type: 'idbTest', err: String(err) });
     }
 
     // Import AFTER the shim is in place; the bundler inlines the whole client here.
     const bootStart = performance.now();
     const { Client } = await import('#/client/Client.js');
-    new Client(10, false, true); // boots headless (mainredraw is a no-op via __HEADLESS)
+    new Client(10, false, true);
+    if (!g.__HEADLESS) startFrames(); // watched-from-boot: stream the loading screen right away
 
     let booted = false;
     const tick = m.intervalMs ?? 2000;
@@ -214,6 +214,7 @@ self.onmessage = async (e: MessageEvent): Promise<void> => {
                 return;
             }
             c.idleTimer = performance.now(); // anti-AFK
+            const action = (self as any)._action;
             if (action) action(bot);
             self.postMessage({
                 type: 'state', id: m.id, ingame: true,

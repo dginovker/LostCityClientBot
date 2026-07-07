@@ -35,10 +35,15 @@
         #yt-meta { display:flex; align-items:center; gap:14px; margin-top:12px; }
         .yt-chan-av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:19px; flex-shrink:0; }
         .yt-chan-text { display:flex; flex-direction:column; min-width:0; }
-        #chanName { font-weight:600; font-size:16px; }
+        .chan-select { background:transparent; border:none; color:var(--text); font-weight:600; font-size:16px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; padding:0; max-width:340px; }
+        .chan-select option { background:#212121; color:var(--text); font-weight:400; }
         #chanSub { color:var(--sub); font-size:13px; }
         #stopFg { margin-left:auto; background:var(--chip); color:var(--text); border:1px solid #303030; border-radius:18px; padding:9px 18px; font-weight:600; font-size:14px; cursor:pointer; }
         #stopFg:hover { background:#3a3a3a; }
+        #active-editor { background:var(--elev); border-radius:12px; padding:10px; margin-top:16px; }
+        #activeEditorText { width:100%; height:220px; resize:vertical; background:#0e0e0e; color:#d6d6d6; border:1px solid #303030; border-radius:8px; padding:10px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; line-height:1.5; outline:none; }
+        .editor-bar { display:flex; align-items:center; justify-content:space-between; margin-top:8px; color:var(--sub); font-size:12px; }
+        #applyBtn { background:#fff; color:#0f0f0f; border:none; border-radius:16px; padding:7px 18px; font-weight:600; font-size:13px; cursor:pointer; }
 
         /* right rail — bot "videos" */
         .bot-rail { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; }
@@ -85,10 +90,17 @@
             <div id="yt-meta">
                 <div class="yt-chan-av" id="chanAv">&#9654;</div>
                 <div class="yt-chan-text">
-                    <span id="chanName">No bot selected</span>
+                    <select id="activeScriptSel" class="chan-select" onchange="onActiveScriptChange()" title="Script running on the watched bot"></select>
                     <span id="chanSub">&mdash;</span>
                 </div>
                 <button id="stopFg" onclick="stopForeground()" style="display:none">Stop watching</button>
+            </div>
+            <div id="active-editor" style="display:none">
+                <textarea id="activeEditorText" spellcheck="false"></textarea>
+                <div class="editor-bar">
+                    <span>Editing the watched bot&rsquo;s script</span>
+                    <button id="applyBtn" onclick="applyActiveScript()">Apply script</button>
+                </div>
             </div>
         </div>
 
@@ -148,28 +160,33 @@
     // ── spawn a headless bot worker ─────────────────────────────────────────────
     function spawnBot(account, scriptKey) {
         const id = nextId++;
+        const willWatch = (fgId === null);   // the first bot renders from boot so you SEE it load
         const worker = new Worker('botworker.js', { type:'module' });
-        const bot = { id, worker, account, scriptKey, state:{ stage:'booting' }, cardEl:null };
+        const bot = { id, worker, account, scriptKey, script: window.SCRIPTS[scriptKey] || '', state:{ stage:'booting' }, cardEl:null };
         bots.set(id, bot);
         worker.onmessage = (e) => onBotMessage(id, e.data);
         worker.onerror = (e) => { bot.state.err = e.message || 'worker error'; renderCard(bot); };
         worker.postMessage({
             type:'start', id, host:HOST, secure:SECURE,
-            user:account, pass:PASS, script: window.SCRIPTS[scriptKey] || '', intervalMs:2000
+            user:account, pass:PASS, script: bot.script, intervalMs:2000, render: willWatch
         });
         renderRail();
         refreshForm();
-        if (fgId === null) foreground(id);   // auto-watch the first bot
+        if (willWatch) foreground(id);       // auto-watch the first bot
     }
 
     function onBotMessage(id, m) {
         const bot = bots.get(id); if (!bot) return;
         if (m.type === 'frame') {
-            if (id === fgId) cctx.drawImage(m.bmp, 0, 0, canvas.width, canvas.height);
+            if (id === fgId) {
+                cctx.drawImage(m.bmp, 0, 0, canvas.width, canvas.height);
+                // first real frame arrived → drop the "starting" placeholder and show the live client
+                if (window._awaitingFrame) { window._awaitingFrame = false; document.getElementById('buffering').style.display = 'none'; }
+            }
             m.bmp.close();
             return;
         }
-        if (m.type === 'state') { bot.state = m; if (id === fgId) updateFgOverlay(); renderCard(bot); }
+        if (m.type === 'state') { bot.state = m; if (id === fgId) updateFgInfo(); renderCard(bot); }
         else if (m.type === 'error') { bot.state.err = (m.err||'').slice(0,80); renderCard(bot); }
     }
 
@@ -179,34 +196,61 @@
         if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
         fgId = id;
         cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
+        // brief placeholder until the worker's first frame (the real loading screen) arrives
+        window._awaitingFrame = true;
+        document.getElementById('buf-text').textContent = 'Starting bot…';
+        document.getElementById('buffering').style.display = 'flex';
         bots.get(id).worker.postMessage({ type:'foreground' });
         document.getElementById('idle-hint').style.display = 'none';
         document.getElementById('stopFg').style.display = '';
-        updateFgOverlay();
+        loadActiveControls(bots.get(id));
+        updateFgInfo();
         renderRail();
     }
 
     function stopForeground() {
         if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
         fgId = null;
+        window._awaitingFrame = false;
         cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
         document.getElementById('buffering').style.display = 'none';
         document.getElementById('idle-hint').style.display = '';
         document.getElementById('stopFg').style.display = 'none';
-        document.getElementById('chanName').textContent = 'No bot selected';
         document.getElementById('chanSub').textContent = '—';
+        document.getElementById('active-editor').style.display = 'none';
         renderRail();
     }
 
-    function updateFgOverlay() {
+    function updateFgInfo() {
         const bot = bots.get(fgId); if (!bot) return;
-        const ov = document.getElementById('buffering'), txt = document.getElementById('buf-text');
         const st = bot.state;
-        if (!st.ingame) { txt.textContent = 'Logging in…'; ov.style.display = 'flex'; }
-        else if (st.sceneState !== 2) { txt.textContent = 'Loading world…'; ov.style.display = 'flex'; }
-        else { ov.style.display = 'none'; }
-        document.getElementById('chanName').textContent = SCRIPT_LABELS[bot.scriptKey] || bot.scriptKey;
         document.getElementById('chanSub').textContent = (st.name || bot.account) + (st.pos ? `  ·  (${st.pos.x}, ${st.pos.z})` : '');
+    }
+
+    // ── active-bot script controls (dropdown + editor, applied live) ─────────────
+    function loadActiveControls(bot) {
+        const sel = document.getElementById('activeScriptSel');
+        if (!sel.options.length) sel.innerHTML = Object.keys(window.SCRIPTS).map(k => `<option value="${k}">${SCRIPT_LABELS[k]||k}</option>`).join('');
+        sel.value = bot.scriptKey;
+        document.getElementById('activeEditorText').value = bot.script;
+        document.getElementById('active-editor').style.display = '';
+    }
+
+    function onActiveScriptChange() {   // picking a preset loads it into the editor and applies it
+        const bot = bots.get(fgId); if (!bot) return;
+        const key = document.getElementById('activeScriptSel').value;
+        bot.scriptKey = key;
+        document.getElementById('activeEditorText').value = window.SCRIPTS[key] || '';
+        applyActiveScript();
+    }
+
+    function applyActiveScript() {      // send the editor's current script to the watched bot
+        const bot = bots.get(fgId); if (!bot) return;
+        bot.script = document.getElementById('activeEditorText').value;
+        bot.worker.postMessage({ type:'setScript', script: bot.script });
+        renderCard(bot);
+        const btn = document.getElementById('applyBtn'); btn.textContent = 'Applied ✓';
+        setTimeout(() => { btn.textContent = 'Apply script'; }, 1200);
     }
 
     function killBot(id, ev) {

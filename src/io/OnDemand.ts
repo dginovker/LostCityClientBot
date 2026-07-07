@@ -354,8 +354,8 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     private async postWorkerAck(message: Record<string, unknown>): Promise<void> {
-        if ((globalThis as any).__HEADLESS) {
-            return; // no on-demand worker in headless mode — the ack would never arrive and hang boot
+        if ((globalThis as any).__IN_WORKER) {
+            return; // skip maininit prefetch in any worker bot — models/maps load lazily in-game instead
         }
         this.startWorker();
 

@@ -861,9 +861,9 @@ export class Client extends GameShell {
             this.b12 = PixFont.depack(this.title, 'b12_full', false);
             this.q8 = PixFont.depack(this.title, 'q8_full', true);
 
-            if (!(globalThis as any).__HEADLESS) {
-                // Title-screen JPEG/sprites are cosmetic; the JPEG decoder needs a DOM image (hangs
-                // in a Worker), and a headless bot never renders the title screen anyway.
+            if (!(globalThis as any).__IN_WORKER) {
+                // The title-screen JPEG decoder needs a DOM <img> and hangs in a Worker, so any bot
+                // (headless OR rendering) skips it. The loading bar + text still draw via drawProgress.
                 await this.loadTitleBackground();
                 this.loadTitleImages();
             }
@@ -897,7 +897,7 @@ export class Client extends GameShell {
                 this.midiFading = true;
                 this.onDemand.request(2, this.midiSong);
 
-                while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
+                while (!(globalThis as any).__IN_WORKER && this.onDemand.remaining() > 0) {
                     await this.onDemandLoop();
                     await sleep(100);
                 }
@@ -910,7 +910,7 @@ export class Client extends GameShell {
                 this.onDemand.request(1, i);
             }
 
-            while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
+            while (!(globalThis as any).__IN_WORKER && this.onDemand.remaining() > 0) {
                 const progress = animCount - this.onDemand.remaining();
                 if (progress > 0) {
                     await this.drawProgress('Loading animations - ' + (((progress * 100) / animCount) | 0) + '%', 65);
@@ -931,7 +931,7 @@ export class Client extends GameShell {
             }
 
             const modelPrefetch = this.onDemand.remaining();
-            while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
+            while (!(globalThis as any).__IN_WORKER && this.onDemand.remaining() > 0) {
                 const progress = modelPrefetch - this.onDemand.remaining();
                 if (progress > 0) {
                     await this.drawProgress('Loading models - ' + (((progress * 100) / modelPrefetch) | 0) + '%', 70);
@@ -963,7 +963,7 @@ export class Client extends GameShell {
                 this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 1));
 
                 const mapPrefetch = this.onDemand.remaining();
-                while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
+                while (!(globalThis as any).__IN_WORKER && this.onDemand.remaining() > 0) {
                     const progress = mapPrefetch - this.onDemand.remaining();
                     if (progress > 0) {
                         await this.drawProgress('Loading maps - ' + (((progress * 100) / mapPrefetch) | 0) + '%', 75);
@@ -1645,9 +1645,8 @@ export class Client extends GameShell {
         this.imageTitle8 = new PixMap(75, 94);
         Pix2D.cls();
 
-        if (this.title && !(globalThis as any).__HEADLESS) {
-            // Headless bots never show the title screen; loading it also starts the flame animation,
-            // which would keep drawing over the left/right margins once the bot is foregrounded.
+        if (this.title && !(globalThis as any).__IN_WORKER) {
+            // JPEG title background hangs in a Worker (needs a DOM <img>); skip it for any bot.
             await this.loadTitleBackground();
             this.loadTitleImages();
         }
