@@ -17581,6 +17581,9 @@ class OnDemand extends OnDemandProvider {
     if (this.worker) {
       return;
     }
+    if (globalThis.__HEADLESS) {
+      return;
+    }
     const worker = new Worker(new URL("./ondemandworker.js", import.meta.url), { type: "module" });
     this.worker = worker;
     this.lastIngame = this.app.ingame;
@@ -17613,17 +17616,23 @@ class OnDemand extends OnDemandProvider {
       type: "init",
       versions: this.versions,
       crcs: this.crcs,
-      host: "w1.rs2b2t.com",
-      secured: true,
+      host: globalThis.__BOT_HOST || "w1.rs2b2t.com",
+      secured: globalThis.__BOT_SECURE ?? true,
       ingame: this.app.ingame,
       dbEnabled: !!this.app.db
     });
+    for (let req = this.requests.head();req !== null; req = this.requests.next()) {
+      worker.postMessage({ type: "request", archive: req.archive, file: req.file });
+    }
   }
   postWorker(message) {
     this.startWorker();
     this.worker?.postMessage(message);
   }
   async postWorkerAck(message) {
+    if (globalThis.__HEADLESS) {
+      return;
+    }
     this.startWorker();
     await new Promise((resolve) => {
       const id = ++this.workerMessageId;
@@ -21270,8 +21279,10 @@ class Client extends GameShell {
       this.p12 = PixFont.depack(this.title, "p12_full", false);
       this.b12 = PixFont.depack(this.title, "b12_full", false);
       this.q8 = PixFont.depack(this.title, "q8_full", true);
-      await this.loadTitleBackground();
-      this.loadTitleImages();
+      if (!globalThis.__HEADLESS) {
+        await this.loadTitleBackground();
+        this.loadTitleImages();
+      }
       const config = await this.getJagFile("config", 30, "config", 2);
       const interfaces = await this.getJagFile("interface", 35, "interface", 3);
       const media = await this.getJagFile("2d graphics", 40, "media", 4);
@@ -21295,7 +21306,7 @@ class Client extends GameShell {
         this.midiSong = this.getIntParam("music", this.midiSong);
         this.midiFading = true;
         this.onDemand.request(2, this.midiSong);
-        while (this.onDemand.remaining() > 0) {
+        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
           await this.onDemandLoop();
           await sleep(100);
         }
@@ -21305,7 +21316,7 @@ class Client extends GameShell {
       for (let i2 = 0;i2 < animCount; i2++) {
         this.onDemand.request(1, i2);
       }
-      while (this.onDemand.remaining() > 0) {
+      while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
         const progress = animCount - this.onDemand.remaining();
         if (progress > 0) {
           await this.drawProgress("Loading animations - " + (progress * 100 / animCount | 0) + "%", 65);
@@ -21322,7 +21333,7 @@ class Client extends GameShell {
         }
       }
       const modelPrefetch = this.onDemand.remaining();
-      while (this.onDemand.remaining() > 0) {
+      while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
         const progress = modelPrefetch - this.onDemand.remaining();
         if (progress > 0) {
           await this.drawProgress("Loading models - " + (progress * 100 / modelPrefetch | 0) + "%", 70);
@@ -21345,7 +21356,7 @@ class Client extends GameShell {
         this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 0));
         this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 1));
         const mapPrefetch = this.onDemand.remaining();
-        while (this.onDemand.remaining() > 0) {
+        while (!globalThis.__HEADLESS && this.onDemand.remaining() > 0) {
           const progress = mapPrefetch - this.onDemand.remaining();
           if (progress > 0) {
             await this.drawProgress("Loading maps - " + (progress * 100 / mapPrefetch | 0) + "%", 75);
@@ -21589,6 +21600,8 @@ class Client extends GameShell {
     await this.onDemandLoop();
   }
   async mainredraw() {
+    if (globalThis.__HEADLESS)
+      return;
     if (this.errorStarted || this.errorLoading || this.errorHost) {
       this.drawError();
       return;
@@ -21770,6 +21783,9 @@ class Client extends GameShell {
     }
   }
   async titleScreenDraw() {
+    if (globalThis.__HEADLESS) {
+      return;
+    }
     await this.prepareTitle();
     this.imageTitle4?.setPixels();
     this.imageTitlebox?.plotSprite(0, 0);
@@ -21871,7 +21887,7 @@ class Client extends GameShell {
     Pix2D.cls();
     this.imageTitle8 = new PixMap(75, 94);
     Pix2D.cls();
-    if (this.title) {
+    if (this.title && !globalThis.__HEADLESS) {
       await this.loadTitleBackground();
       this.loadTitleImages();
     }
@@ -21948,7 +21964,7 @@ class Client extends GameShell {
         this.loginMes2 = "Connecting to server...";
         await this.titleScreenDraw();
       }
-      this.stream = new ClientStream(await ClientStream.openSocket("w1.rs2b2t.com", true));
+      this.stream = new ClientStream(await ClientStream.openSocket(globalThis.__BOT_HOST || "w1.rs2b2t.com", globalThis.__BOT_SECURE ?? true));
       const userhash = JString.toUserhash(username);
       const loginServer = Number(userhash >> 16n) & 31;
       this.out.pos = 0;
@@ -21978,7 +21994,7 @@ class Client extends GameShell {
         this.out.p4(1337);
         this.out.pjstr(username);
         this.out.pjstr(password);
-        this.out.rsaenc(BigInt("117420683091599437363781545043460293895633275635653353309906159820872703885723869096825270694383466833728011835587324760936150761784279979493634580041806369762348843902867397790796219798581737432768036489623686153294697841819355248591000037921789209503314465546289565662596345179694574470836552536702466642733"), BigInt("65537"));
+        this.out.rsaenc(BigInt(globalThis.__BOT_RSAN || "117420683091599437363781545043460293895633275635653353309906159820872703885723869096825270694383466833728011835587324760936150761784279979493634580041806369762348843902867397790796219798581737432768036489623686153294697841819355248591000037921789209503314465546289565662596345179694574470836552536702466642733"), BigInt(globalThis.__BOT_RSAE || "65537"));
         this.loginout.pos = 0;
         if (reconnect) {
           this.loginout.p1(18);
@@ -23710,6 +23726,9 @@ class Client extends GameShell {
   }
   async drawProgress(message, progress) {
     console.log(`${progress}%: ${message}`);
+    if (globalThis.__HEADLESS) {
+      return;
+    }
     this.lastProgressPercent = progress;
     this.lastProgressMessage = message;
     await this.prepareTitle();
@@ -30301,4 +30320,4 @@ export {
   Client
 };
 
-//# debugId=64D4AEEA497CBC2864756E2164756E21
+//# debugId=83E71B78121D3EAA64756E2164756E21
