@@ -3,16 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>🔴 RuneScape 2004 — Chill Skilling Stream | Road to Max - YouTube</title>
+    <title>🔴 2004scape — Live Bots</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FF0000' d='M23 12s0-3.9-.5-5.8c-.3-1-1-1.8-2-2C18.9 4 12 4 12 4s-6.9 0-8.5.4c-1 .2-1.7 1-2 2C1 8.1 1 12 1 12s0 3.9.5 5.8c.3 1 1 1.8 2 2C5.1 20 12 20 12 20s6.9 0 8.5-.4c1-.2 1.7-1 2-2C23 15.9 23 12 23 12z'/%3E%3Cpath fill='%23fff' d='M10 15l5-3-5-3z'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/material-darker.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
     <style>
         :root { --bg:#0f0f0f; --elev:#212121; --text:#f1f1f1; --sub:#aaa; --red:#f00; --green:#2ba640; --chip:#272727; }
         * { box-sizing:border-box; margin:0; padding:0; }
@@ -29,31 +21,53 @@
         .yt-search button { background:#222; border:1px solid #303030; border-radius:0 40px 40px 0; padding:0 20px; color:var(--text); cursor:pointer; font-size:16px; }
         .yt-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f0932b,#eb4d4b); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; }
 
-        #yt-body { max-width:1000px; margin:24px auto; padding:0 24px; }
+        #yt-body { max-width:1400px; margin:24px auto; padding:0 24px; display:flex; gap:24px; align-items:flex-start; }
+        .main-col { flex:1; min-width:0; }
+        #yt-player { position:relative; width:100%; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:765/503; display:flex; align-items:center; justify-content:center; }
+        #canvas { display:block; width:100%; height:100%; image-rendering:auto; }
+        #yt-live { position:absolute; top:12px; left:12px; background:var(--red); color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.5px; z-index:2; }
+        #buffering { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; background:#000; color:#fff; font-size:15px; z-index:3; }
+        #buffering .spin { width:42px; height:42px; border:4px solid #444; border-top-color:#fff; border-radius:50%; animation:sp 1s linear infinite; }
+        @keyframes sp { to { transform:rotate(360deg); } }
+        #idle-hint { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:15px; z-index:1; text-align:center; padding:24px; }
 
-        #yt-player { position:relative; width:100%; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; }
-        #canvas { display:block; max-width:100%; max-height:100%; image-rendering:auto; }
-        #yt-live { position:absolute; top:12px; left:12px; background:var(--red); color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.5px; }
-
-        h1#yt-title { font-size:20px; margin:16px 0 12px; font-weight:600; }
-
-        #yt-meta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-        .yt-chan-av { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:18px; flex-shrink:0; }
+        h1#yt-title { font-size:20px; margin:16px 0 4px; font-weight:600; }
+        #yt-meta { display:flex; align-items:center; gap:14px; margin-top:12px; }
+        .yt-chan-av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:19px; flex-shrink:0; }
         .yt-chan-text { display:flex; flex-direction:column; min-width:0; }
-        select.yt-chan-name { background:transparent; border:none; color:var(--text); font-weight:600; font-size:16px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; padding:0; max-width:300px; }
-        select.yt-chan-name option { background:#212121; color:var(--text); font-weight:400; }
-        #yt-status { color:var(--sub); font-size:12px; }
-        #yt-status.on { color:var(--green); }
-        #runBtn { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px 24px; font-weight:600; font-size:14px; cursor:pointer; }
-        #runBtn.running { background:var(--red); color:#fff; }
-        #yt-meta .spacer { flex:1; }
-        .yt-input { background:var(--chip); border:1px solid #303030; border-radius:18px; color:var(--text); padding:8px 14px; font-size:13px; outline:none; width:130px; }
-        .yt-input:focus { border-color:#3ea6ff; }
+        .chan-select { background:transparent; border:none; color:var(--text); font-weight:600; font-size:16px; cursor:pointer; outline:none; -webkit-appearance:none; appearance:none; padding:0; max-width:340px; }
+        .chan-select option { background:#212121; color:var(--text); font-weight:400; }
+        #chanSub { color:var(--sub); font-size:13px; }
+        #stopFg { margin-left:auto; background:var(--chip); color:var(--text); border:1px solid #303030; border-radius:18px; padding:9px 18px; font-weight:600; font-size:14px; cursor:pointer; }
+        #stopFg:hover { background:#3a3a3a; }
+        #active-editor { background:var(--elev); border-radius:12px; padding:10px; margin-top:16px; }
+        #activeEditorText { width:100%; height:220px; resize:vertical; background:#0e0e0e; color:#d6d6d6; border:1px solid #303030; border-radius:8px; padding:10px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; line-height:1.5; outline:none; }
+        .editor-bar { display:flex; align-items:center; justify-content:space-between; margin-top:8px; color:var(--sub); font-size:12px; }
+        #applyBtn { background:#fff; color:#0f0f0f; border:none; border-radius:16px; padding:7px 18px; font-weight:600; font-size:13px; cursor:pointer; }
 
-        #yt-desc { background:var(--elev); border-radius:12px; padding:8px; margin-top:16px; }
-        .CodeMirror { width:100%; height:300px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:13px; border-radius:8px; }
-        .CodeMirror-hints { z-index:9999; }
-        #editor { display:none; }
+        /* right rail — bot "videos" */
+        .bot-rail { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; }
+        .rail-title { font-size:15px; font-weight:600; color:var(--sub); margin-bottom:2px; }
+        .bot-card { display:flex; gap:10px; cursor:pointer; border-radius:10px; padding:6px; border:2px solid transparent; }
+        .bot-card:hover { background:var(--elev); }
+        .bot-card.active { border-color:var(--red); background:var(--elev); }
+        .bot-thumb { position:relative; width:110px; height:72px; border-radius:8px; flex-shrink:0; background:linear-gradient(135deg,#2c3e50,#1a2530); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .bot-thumb .badge { position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,.8); color:#fff; font-size:10px; padding:1px 4px; border-radius:3px; }
+        .bot-thumb .live { position:absolute; top:4px; left:4px; background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:1px 4px; border-radius:3px; }
+        .bot-thumb .init { font-size:26px; font-weight:800; color:#fff; opacity:.85; }
+        .bot-info { min-width:0; flex:1; display:flex; flex-direction:column; }
+        .bot-info .b-title { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .bot-info .b-sub { font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .bot-info .b-stat { font-size:11px; margin-top:2px; }
+        .b-stat.live { color:var(--green); } .b-stat.load { color:#e0a020; } .b-stat.err { color:var(--red); }
+        .b-kill { align-self:flex-start; margin-left:auto; color:var(--sub); font-size:15px; padding:2px 6px; border-radius:4px; }
+        .b-kill:hover { background:#3a3a3a; color:#fff; }
+
+        .add-card { border:2px dashed #303030; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+        .add-card .plus-row { display:flex; align-items:center; gap:8px; color:var(--sub); font-weight:600; font-size:14px; }
+        .add-card select { width:100%; background:var(--chip); color:var(--text); border:1px solid #303030; border-radius:8px; padding:8px; font-size:13px; }
+        .add-card button { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px; font-weight:600; font-size:14px; cursor:pointer; }
+        .add-card button:disabled { background:#555; color:#999; cursor:not-allowed; }
     </style>
 </head>
 <body>
@@ -65,893 +79,259 @@
     </header>
 
     <div id="yt-body">
-        <div id="yt-player">
-            <canvas id="canvas" width="765" height="503"></canvas>
-            <span id="yt-live">&#9679; LIVE</span>
-        </div>
-
-        <h1 id="yt-title">2004scape &mdash; Live</h1>
-
-        <div id="yt-meta">
-            <div class="yt-chan-av">&#9654;</div>
-            <div class="yt-chan-text">
-                <select id="scriptSelect" class="yt-chan-name">
-                    <option value="paladin">Paladin Pickpocket</option>
-                    <option value="lesser_demon">Lesser Demon (Magic)</option>
-                    <option value="willow_chop">Willow Tree Chopping</option>
-                    <option value="magic_shop">Shop Buyer</option>
-                    <option value="fletch_arrows">Fletch Arrows</option>
-                    <option value="chicken_bones">Chickens + Bury Bones</option>
-                    <option value="flax_spin">Flax Spinner</option>
-                    <option value="fletch_longbow">Fletch Yew Longbow</option>
-                    <option value="string_longbow">String Yew Longbow</option>
-                    <option value="cut_gems">Cut Sapphires (Herquin)</option>
-                    <option value="iron_mine">Iron Miner (Varrock East)</option>
-                    <option value="alch_fire">Alchemy (Fire Runes)</option>
-                    <option value="bear_killer">Bear Killer + Banker</option>
-                    <option value="custom">Custom</option>
-                </select>
-                <span id="yt-status">Stopped</span>
+        <div class="main-col">
+            <div id="yt-player">
+                <canvas id="canvas" width="765" height="503"></canvas>
+                <span id="yt-live">&#9679; LIVE</span>
+                <div id="idle-hint">Add a bot on the right, then click its thumbnail to watch it live.</div>
+                <div id="buffering"><div class="spin"></div><span id="buf-text">Buffering…</span></div>
             </div>
-            <button id="runBtn" onclick="toggleRun()">Start</button>
-            <span class="spacer"></span>
-            <input id="userInput" class="yt-input" type="text" placeholder="username">
-            <input id="passInput" class="yt-input" type="password" placeholder="password">
+            <h1 id="yt-title">2004scape &mdash; Live Bots</h1>
+            <div id="yt-meta">
+                <div class="yt-chan-av" id="chanAv">&#9654;</div>
+                <div class="yt-chan-text">
+                    <select id="activeScriptSel" class="chan-select" onchange="onActiveScriptChange()" title="Script running on the watched bot"></select>
+                    <span id="chanSub">&mdash;</span>
+                </div>
+                <button id="stopFg" onclick="stopForeground()" style="display:none">Stop watching</button>
+            </div>
+            <div id="active-editor" style="display:none">
+                <textarea id="activeEditorText" spellcheck="false"></textarea>
+                <div class="editor-bar">
+                    <span>Editing the watched bot&rsquo;s script</span>
+                    <button id="applyBtn" onclick="applyActiveScript()">Apply script</button>
+                </div>
+            </div>
         </div>
 
-        <div id="yt-desc">
-            <textarea id="editor" spellcheck="false"></textarea>
+        <div class="bot-rail">
+            <div class="rail-title">Bots</div>
+            <div id="cards"></div>
+            <div class="add-card">
+                <div class="plus-row"><span style="font-size:20px">&#43;</span> Add a bot</div>
+                <select id="accountSel"></select>
+                <select id="scriptSel"></select>
+                <button id="spawnBtn" onclick="spawnFromForm()">Spawn bot</button>
+            </div>
         </div>
     </div>
 
-        <script>
-        // Pre-built scripts
-        const SCRIPTS = {
-            paladin: `// Pickpocket Paladins in Ardougne
-bot.closeModal();
-bot.pickpocketByName('paladin');`,
-            lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
-if (!window._ds) window._ds = 0;
-if (!window._atkTicks) window._atkTicks = 0;
-// Autocast setup (8 ticks with waits for server responses)
-if (window._ds === 0) { bot.setTab(0); window._ds = 1; return; }
-if (window._ds === 1) { bot.clickButton(353); window._ds = 2; return; }
-if (window._ds === 2) { window._ds = 3; return; }
-if (window._ds === 3) { bot.clickButton(1834); window._ds = 4; return; }
-if (window._ds === 4) { window._ds = 5; return; }
-if (window._ds === 5) { bot.selectButton(349); window._ds = 6; return; }
-if (window._ds === 6) { window._ds = 7; return; }
-if (window._ds < 8) { window._ds = 8; window._atkTicks = 0; return; }
-// Attack demon
-const demons = bot.findNpc('lesser demon');
-if (demons.length > 0) {
-  bot.attackNpc(demons[0].slot);
-  window._atkTicks++;
-  // If no damage after 5 attack ticks, walk away and redo setup
-  if (window._atkTicks > 5 && demons[0].health === 0) {
-    const p = bot.getPlayer();
-    if (p) bot.walk(p.x + (Math.random() > 0.5 ? 1 : -1), p.z);
-    window._ds = 0;
-    window._atkTicks = 0;
-  }
-}`,
-            willow_chop: `// Chop Willow Trees (logs auto-banked on this server)
-bot.closeModal();
-const trees = bot.findLocs('willow', 15);
-if (trees.length > 0) {
-  // Pick the closest tree
-  const p = bot.getPlayer();
-  let closest = trees[0];
-  let minDist = 999;
-  for (const t of trees) {
-    const d = Math.abs(t.x - p.x) + Math.abs(t.z - p.z);
-    if (d < minDist) { minDist = d; closest = t; }
-  }
-  bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
-}`,
-            magic_shop: `// Shop buyer - trade with nearby shop NPC and buy items
-// Change NPC_NAME and TARGET_OBJ_ID to match your shop and item
-// Use debug mode (bot.setDebug(true)) to see item IDs in examine text
-const NPC_NAME = 'magic store';
-const TARGET_OBJ_ID = 564; // Law rune (use examine to find IDs)
-const c = bot._client;
-if (c.mainModalId !== -1 && c.mainModalId !== 3824) { bot.closeModal(); return; }
-if (c.mainModalId === -1) {
-  const npc = bot.findNpc(NPC_NAME);
-  if (npc.length > 0) bot.interactNpc(npc[0].slot, 'trade');
-  return;
-}
-const items = bot.getShopItems();
-const target = items.find(i => i.objId === TARGET_OBJ_ID);
-if (target && target.count > 0) {
-  bot.buyShopItem(target.slot, 10);
-}`,
-            chicken_bones: `// Kill chickens and bury their bones. Locks onto one chicken until it
-// dies (no target-switching / "I'm already under attack" spam), skipping ones others are fighting.
-const c = bot._client;
-bot.closeModal();
+    <script src="bot-scripts.js"></script>
+    <script>
+    // ── config ────────────────────────────────────────────────────────────────
+    const ACCOUNTS = ['red bracket', 'gree bracket', 'blue bracket'];  // rs2b2t test accounts
+    const HOST = 'w1.rs2b2t.com', SECURE = true, PASS = 'password';
+    const SCRIPT_LABELS = {
+        paladin:'Paladin Pickpocket', lesser_demon:'Lesser Demon (Magic)', willow_chop:'Willow Chopping',
+        magic_shop:'Shop Buyer', chicken_bones:'Chickens + Bury Bones', fletch_arrows:'Fletch Arrows',
+        flax_spin:'Flax Spinner', fletch_longbow:'Fletch Yew Longbow', string_longbow:'String Yew Longbow',
+        cut_gems:'Cut Sapphires', iron_mine:'Iron Miner', alch_fire:'Alchemy (Fire Runes)',
+        bear_killer:'Bear Killer + Banker', custom:'Idle (close modals)'
+    };
+    const DEFAULT_SCRIPT = 'chicken_bones';
 
-// Stick with our current chicken until it's dead — don't grab another.
-const st = (window._chickenTarget = window._chickenTarget || { slot: -1 });
-if (st.slot !== -1) {
-  const t = bot.getNpcs().find(n => n.slot === st.slot && /chicken/i.test(n.name || ''));
-  if (t && bot.isInCombat()) return;   // still fighting it — do nothing else
-  st.slot = -1;                         // it's dead / gone / we're no longer in combat
-}
+    // ── state ─────────────────────────────────────────────────────────────────
+    const bots = new Map();        // id -> { id, worker, account, scriptKey, state, cardEl }
+    let nextId = 1, fgId = null;
+    const canvas = document.getElementById('canvas');
+    const cctx = canvas.getContext('2d', { alpha:false });
 
-// Idle: bury bones, grab bones off the ground, or start on a new chicken.
-const bone = bot.getInventory().find(i => i.name === 'Bones');
-if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
-
-const drop = bot.getGroundItems(10).find(g => g.name === 'Bones');
-if (drop) { bot.pickupGroundItem(drop.objId, drop.x, drop.z); return; }
-
-// Attack the NEAREST chicken nobody else is fighting, and remember it.
-const px = c.localPlayer.routeX[0], pz = c.localPlayer.routeZ[0];
-const target = bot.findNpc('chicken', n => !n.inCombat && !n.interacting)
-  .sort((a, b) => (Math.abs(a.x - px) + Math.abs(a.z - pz)) - (Math.abs(b.x - px) + Math.abs(b.z - pz)))[0];
-if (target) { st.slot = target.slot; bot.attackNpc(target.slot); }`,
-            fletch_arrows: `// Fletch arrows: use feather on arrow shaft
-bot.closeModal();
-const FEATHER = 315;     // runtime ID
-const ARROW_SHAFT = 53;  // runtime ID
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-const inv = IfType.list[3214];
-let featherSlot = -1, shaftSlot = -1;
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  if (inv.linkObjType[i] === FEATHER && featherSlot === -1) featherSlot = i;
-  if (inv.linkObjType[i] === ARROW_SHAFT && shaftSlot === -1) shaftSlot = i;
-}
-if (featherSlot >= 0 && shaftSlot >= 0) {
-  bot.useItemOnItem(FEATHER, featherSlot, ARROW_SHAFT, shaftSlot);
-}`,
-            flax_spin: `// Flax Spinner: pick flax -> spin on wheel -> bank bowstring -> repeat
-// Close non-bank modals (welcome screen etc)
-const c0 = bot._client;
-if (c0.mainModalId !== -1 && c0.mainModalId !== 5292) bot.closeModal();
-const FLAX = 1780;        // runtime ID
-const BOWSTRING = 1778;   // runtime ID
-const FLAX_FIELD = {x:2738, z:3441};
-const DOOR_POS = {x:2714, z:3475};
-const LADDER_POS = {x:2712, z:3473};
-const BANK_POS = {x:2724, z:3493};
-if (!window._fs) window._fs = 'pick_flax';
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-const inv = IfType.list[3214];
-// Count items
-let flaxSlot = -1, flaxCount = 0, itemCount = 0;
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  if (inv.linkObjType[i] > 0) itemCount++;
-  if (inv.linkObjType[i] === FLAX) { flaxCount++; if (flaxSlot === -1) flaxSlot = i; }
-}
-const invFull = itemCount >= 28;
-const st = window._fs;
-// Helper: open only CLOSED doors (locId 1530), skip open ones (1531)
-function openDoorIfClosed() {
-  const doors = bot.findLocs('Door', 3).filter(d => d.locId === 1530);
-  if (doors.length > 0) return bot.interactLoc(doors[0].typecode, doors[0].x, doors[0].z, 'open');
-  return false;
-}
-// State machine
-if (st === 'pick_flax') {
-  if (invFull && flaxCount > 0) { window._fs = 'walk_to_house'; return; }
-  if (invFull && flaxCount === 0) { window._fs = 'walk_to_bank'; return; }
-  if (!bot.isNear(FLAX_FIELD.x, FLAX_FIELD.z, 5)) { bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z); return; }
-  const flax = bot.findLocs('Flax', 10);
-  if (flax.length > 0) bot.interactLoc(flax[0].typecode, flax[0].x, flax[0].z, 'pick');
-} else if (st === 'walk_to_house') {
-  if (openDoorIfClosed()) return;
-  if (!bot.isNear(LADDER_POS.x, LADDER_POS.z, 3)) { bot.walkTo(DOOR_POS.x, DOOR_POS.z); return; }
-  window._fs = 'climb_up';
-} else if (st === 'climb_up') {
-  const ladder = bot.findLocs('Ladder', 5);
-  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
-  window._fs = 'spin_flax';
-} else if (st === 'spin_flax') {
-  if (flaxCount === 0) { window._fs = 'climb_down'; return; }
-  bot.useItemOnLoc(FLAX, flaxSlot, 'Spinning wheel');
-} else if (st === 'climb_down') {
-  const ladder = bot.findLocs('Ladder', 10);
-  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
-  window._fs = 'walk_to_bank';
-} else if (st === 'walk_to_bank') {
-  if (openDoorIfClosed()) return;
-  if (!bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(BANK_POS.x, BANK_POS.z); return; }
-  // Use closest usable booth (locId 2213) with use-quickly
-  const pos2 = bot.getWorldPos();
-  const banks = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
-    .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos2.x)+Math.abs(a.z+c.mapBuildBaseZ-pos2.z)) -
-                   (Math.abs(b.x+c.mapBuildBaseX-pos2.x)+Math.abs(b.z+c.mapBuildBaseZ-pos2.z)));
-  if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
-  window._fs = 'deposit';
-} else if (st === 'deposit') {
-  if (c.mainModalId === -1) {
-    // Bank not open - re-open closest usable booth
-    const pos3 = bot.getWorldPos();
-    const banks2 = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
-      .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos3.x)+Math.abs(a.z+c.mapBuildBaseZ-pos3.z)) -
-                     (Math.abs(b.x+c.mapBuildBaseX-pos3.x)+Math.abs(b.z+c.mapBuildBaseZ-pos3.z)));
-    if (banks2.length > 0) bot.interactLoc(banks2[0].typecode, banks2[0].x, banks2[0].z, 'use-quickly');
-    return;
-  }
-  // Deposit ALL items via bank_side:inv (2006)
-  const bankInv = IfType.list[2006];
-  for (let i = 0; i < bankInv.linkObjType.length; i++) {
-    if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
-  }
-  bot.closeModal();
-  window._fs = 'walk_to_flax';
-} else if (st === 'walk_to_flax') {
-  if (openDoorIfClosed()) return;
-  // Step out of bank first if still inside
-  if (bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(2722, 3488); return; }
-  // If flax is nearby, start picking. Otherwise keep walking.
-  if (bot.findLocs('Flax', 10).length > 0) { window._fs = 'pick_flax'; return; }
-  bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z);
-}`,
-            fletch_longbow: `// Fletch Yew Longbows (FAST): burst-fletch + fast bank polling
-// Zero server-side p_delay: burst ALL fletch commands at once (~7s for 27 logs)
-// Fast 100ms polling for bank state transitions instead of waiting 2s per step
-const KNIFE = 947;
-const YEW_LOG = 1516;
-const LONGBOW_BTN = 145;
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-// Skip if active fast loop is running; only clear stale ones from previous script session
-if (!window._flGen) window._flGen = 0;
-if (window._fastLoop) {
-  if (window._flActive === window._flGen) return; // active loop, skip
-  clearInterval(window._fastLoop); window._fastLoop = null; // stale loop, clear
-}
-window._flGen++;
-// Close non-bank modals (welcome screen etc)
-if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
-// Helper: read inventory
-function getInv() {
-  const inv = IfType.list[3214];
-  let ks = -1; const ls = [];
-  for (let i = 0; i < inv.linkObjType.length; i++) {
-    if (inv.linkObjType[i] === KNIFE && ks === -1) ks = i;
-    if (inv.linkObjType[i] === YEW_LOG) ls.push(i);
-  }
-  return {knifeSlot: ks, logSlots: ls};
-}
-const {knifeSlot, logSlots} = getInv();
-// If we have logs + knife, go straight to fletching
-if (knifeSlot >= 0 && logSlots.length > 0) {
-  window._botProtectChatComId = 139;
-  for (const ls of logSlots) {
-    bot.useItemOnItem(KNIFE, knifeSlot, YEW_LOG, ls);
-    bot.clickButton(LONGBOW_BTN);
-  }
-  console.log('[BOT] Burst-sent ' + logSlots.length + ' fletch commands');
-  // Fast-poll until all logs consumed, then bank
-  window._flActive = window._flGen;
-  window._fastLoop = setInterval(() => {
-    c.idleTimer = performance.now();
-    if (!c.ingame) return;
-    if (c.chatComId !== -1 && c.chatComId !== 139) bot.dismissDialog();
-    const {logSlots: remaining} = getInv();
-    if (remaining.length === 0) {
-      clearInterval(window._fastLoop); window._fastLoop = null;
-      window._botProtectChatComId = 0;
-    }
-  }, 200);
-  return;
-}
-// Otherwise: bank for supplies
-// Open bank
-const pos = bot.getWorldPos();
-const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
-  .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
-                 (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
-if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
-// Fast-poll until bank opens, then deposit+withdraw+close in one shot
-window._flActive = window._flGen;
-window._fastLoop = setInterval(() => {
-  c.idleTimer = performance.now();
-  if (!c.ingame) return;
-  if (c.mainModalId !== 5292) return; // bank not open yet
-  clearInterval(window._fastLoop); window._fastLoop = null;
-  // Deposit everything EXCEPT the knife
-  const bankInv = IfType.list[2006];
-  for (let i = 0; i < bankInv.linkObjType.length; i++) {
-    if (bankInv.linkObjType[i] > 0 && bankInv.linkObjType[i] !== KNIFE) {
-      bot.depositAll(bankInv.linkObjType[i], i);
-    }
-  }
-  // Wait for server to update bank contents, then withdraw logs and close
-  setTimeout(() => {
-    if (c.mainModalId !== 5292) return; // bank closed unexpectedly
-    const bankItems = bot.getBankItems();
-    const logs = bankItems.find(i => i.objId === YEW_LOG);
-    if (logs) {
-      bot.withdrawAll(logs.objId, logs.slot);
-    } else {
-      console.log('[BOT] No yew logs in bank! Stopping.');
-      bot.stopScript();
-      return;
-    }
-    setTimeout(() => { bot.closeModal(); }, 600);
-  }, 600);
-}, 100);`,
-            string_longbow: `// String Yew Longbows (FAST): burst-string + fast bank polling
-// No dialog, no p_delay: just OPHELDU = 1 USER_EVENT per string
-// 5 strings per tick = 14 strings in ~1.7 seconds!
-const BOW_U = 67;       // Yew longbow (u) runtime ID
-const BOWSTRING = 1778; // Bowstring runtime ID
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-// Skip if active fast loop is running; only clear stale ones
-if (!window._flGen) window._flGen = 0;
-if (window._fastLoop) {
-  if (window._flActive === window._flGen) return;
-  clearInterval(window._fastLoop); window._fastLoop = null;
-}
-window._flGen++;
-// Close non-bank modals
-if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
-// Helper: read inventory
-function getInv() {
-  const inv = IfType.list[3214];
-  const bows = [], strings = [];
-  for (let i = 0; i < inv.linkObjType.length; i++) {
-    if (inv.linkObjType[i] === BOW_U) bows.push(i);
-    if (inv.linkObjType[i] === BOWSTRING) strings.push(i);
-  }
-  return {bows, strings, pairs: Math.min(bows.length, strings.length)};
-}
-const {bows, strings, pairs} = getInv();
-// If we have bows + strings, burst-string them all
-if (pairs > 0) {
-  // No dialog needed — just OPHELDU for each pair
-  for (let i = 0; i < pairs; i++) {
-    bot.useItemOnItem(BOWSTRING, strings[i], BOW_U, bows[i]);
-  }
-  console.log('[BOT] Burst-sent ' + pairs + ' string commands');
-  // Fast-poll until all bows are strung
-  window._flActive = window._flGen;
-  window._fastLoop = setInterval(() => {
-    c.idleTimer = performance.now();
-    if (!c.ingame) return;
-    const {pairs: remaining} = getInv();
-    if (remaining === 0) {
-      clearInterval(window._fastLoop); window._fastLoop = null;
-    }
-  }, 200);
-  return;
-}
-// Otherwise: bank for supplies
-const pos = bot.getWorldPos();
-const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
-  .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
-                 (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
-if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
-// Fast-poll until bank opens, then deposit + withdraw
-window._flActive = window._flGen;
-window._fastLoop = setInterval(() => {
-  c.idleTimer = performance.now();
-  if (!c.ingame) return;
-  if (c.mainModalId !== 5292) return;
-  clearInterval(window._fastLoop); window._fastLoop = null;
-  // Deposit everything
-  const bankInv = IfType.list[2006];
-  for (let i = 0; i < bankInv.linkObjType.length; i++) {
-    if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
-  }
-  // Wait for server to update, then withdraw 14 unstrung + 14 bowstrings
-  setTimeout(() => {
-    if (c.mainModalId !== 5292) return;
-    const bankItems = bot.getBankItems();
-    const bowBank = bankItems.find(i => i.objId === BOW_U);
-    const strBank = bankItems.find(i => i.objId === BOWSTRING);
-    if (!bowBank || !strBank) {
-      console.log('[BOT] Missing supplies! Stopping.');
-      bot.stopScript();
-      return;
-    }
-    // Withdraw 14 of each (10+4x1) to fill 28 slots
-    function withdraw10(objId, slot) {
-      c.menuAction[0] = 555; // INV_BUTTON3 = Withdraw 10
-      c.menuParamA[0] = objId - 1;
-      c.menuParamB[0] = slot;
-      c.menuParamC[0] = 5382;
-      c.doAction(0);
-    }
-    // 14 bows: 10 + 4x1
-    withdraw10(BOW_U, bowBank.slot);
-    for (let i = 0; i < 4; i++) bot.withdrawOne(BOW_U, bowBank.slot);
-    // 14 bowstrings: 10 + 4x1
-    withdraw10(BOWSTRING, strBank.slot);
-    for (let i = 0; i < 4; i++) bot.withdrawOne(BOWSTRING, strBank.slot);
-    // Poll until all 14 of each appear in inventory before closing bank
-    // (10 withdraw commands take ~2 server ticks to process)
-    const closePoll = setInterval(() => {
-      const {pairs: p} = getInv();
-      if (p >= 14) { clearInterval(closePoll); bot.closeModal(); }
-    }, 200);
-    // Safety timeout: close after 3s regardless
-    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === 5292) bot.closeModal(); }, 3000);
-  }, 600);
-}, 100);`,
-            cut_gems: `// Cut Sapphires at Herquin's: buy uncut -> burst cut -> sell cut -> repeat
-// Gem cutting has zero p_delay and zero dialog: 1 OPHELDU per cut = 5 cuts/tick
-const CHISEL = 1756;
-const UNCUT_SAPPHIRE = 1624;
-const CUT_SAPPHIRE = 1608;
-const SHOP_MODAL = 3824;
-const SHOP_COM = 3900;  // shop inventory (buy from)
-const SHOP_SIDE = 3823; // player inventory in shop (sell from)
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-// Generation-based fast loop guard
-if (!window._flGen) window._flGen = 0;
-if (window._fastLoop) {
-  if (window._flActive === window._flGen) return;
-  clearInterval(window._fastLoop); window._fastLoop = null;
-}
-window._flGen++;
-// Close non-shop modals
-if (c.mainModalId !== -1 && c.mainModalId !== SHOP_MODAL) { bot.closeModal(); return; }
-// Helper: read inventory
-function getInv() {
-  const inv = IfType.list[3214];
-  let chiselSlot = -1; const uncuts = [], cuts = [];
-  let totalItems = 0;
-  for (let i = 0; i < inv.linkObjType.length; i++) {
-    if (inv.linkObjType[i] > 0) totalItems++;
-    if (inv.linkObjType[i] === CHISEL && chiselSlot === -1) chiselSlot = i;
-    if (inv.linkObjType[i] === UNCUT_SAPPHIRE) uncuts.push(i);
-    if (inv.linkObjType[i] === CUT_SAPPHIRE) cuts.push(i);
-  }
-  return {chiselSlot, uncuts, cuts, totalItems};
-}
-// Helper: sell 10 of an item on shop_side:inv
-function sell10(objId, slot) {
-  c.menuAction[0] = 331; // INV_BUTTON4 = Sell 10
-  c.menuParamA[0] = objId - 1;
-  c.menuParamB[0] = slot;
-  c.menuParamC[0] = SHOP_SIDE;
-  c.doAction(0);
-}
-const {chiselSlot, uncuts, cuts, totalItems} = getInv();
-// If we have uncuts + chisel, cut them in batches of 10 (bottom-up) per tick
-if (chiselSlot >= 0 && uncuts.length > 0) {
-  const BATCH_SIZE = 10;
-  function sendBatch() {
-    const {chiselSlot: cs, uncuts: remaining} = getInv();
-    if (cs < 0 || remaining.length === 0) {
-      clearInterval(window._fastLoop); window._fastLoop = null;
-      return;
-    }
-    // Target bottom slots first — avoids anim blocking issues
-    const toSend = remaining.slice(-BATCH_SIZE);
-    for (const slot of toSend) {
-      bot.useItemOnItem(CHISEL, cs, UNCUT_SAPPHIRE, slot);
-    }
-  }
-  sendBatch();
-  console.log('[BOT] Cutting ' + uncuts.length + ' gems (10/tick, bottom-up)');
-  window._flActive = window._flGen;
-  window._fastLoop = setInterval(() => {
-    c.idleTimer = performance.now();
-    if (!c.ingame) return;
-    const {uncuts: remaining} = getInv();
-    if (remaining.length === 0) {
-      clearInterval(window._fastLoop); window._fastLoop = null;
-      return;
-    }
-    sendBatch();
-  }, 600);
-  return;
-}
-// Otherwise: open shop, sell cuts, buy uncuts
-if (c.mainModalId !== SHOP_MODAL) {
-  const herquin = bot.findNpc('herquin');
-  if (herquin.length > 0) bot.interactNpc(herquin[0].slot, 'trade');
-  window._flActive = window._flGen;
-  window._fastLoop = setInterval(() => {
-    c.idleTimer = performance.now();
-    if (!c.ingame) return;
-    if (c.mainModalId !== SHOP_MODAL) return; // shop not open yet
-    clearInterval(window._fastLoop); window._fastLoop = null;
-    doShopOps();
-  }, 100);
-  return;
-}
-// Shop already open
-doShopOps();
-function doShopOps() {
-  const {cuts: curCuts, uncuts: curUncuts} = getInv();
-  const freeSlots = 28 - 2; // chisel + coins
-  // Step 1: sell all cut sapphires (sell10 x3 covers up to 30)
-  if (curCuts.length > 0) {
-    sell10(CUT_SAPPHIRE, curCuts[0]);
-    sell10(CUT_SAPPHIRE, curCuts[0]);
-    sell10(CUT_SAPPHIRE, curCuts[0]);
-  }
-  // Step 2: seed shop if stock < 10 by selling uncuts back
-  // (shop never drops below base stock, so buy10 needs stock >= 10)
-  const shopItems = bot.getShopItems();
-  const uncutStock = shopItems.find(i => i.objId === UNCUT_SAPPHIRE);
-  if (uncutStock && uncutStock.count < 10 && curUncuts.length > 0) {
-    sell10(UNCUT_SAPPHIRE, curUncuts[0]); // sell up to 10 to seed
-    console.log('[BOT] Seeding shop stock (was ' + uncutStock.count + ')');
-  }
-  // Step 3: poll until sells complete, then buy with 3x buy10
-  const doBuy = () => {
-    // 3x buy10 = up to 30 items, capped by inventory space
-    bot.buyShopItem(0, 10);
-    bot.buyShopItem(0, 10);
-    bot.buyShopItem(0, 10);
-    console.log('[BOT] Sent 3x buy10');
-    // Poll until inventory full, then close
-    const closePoll = setInterval(() => {
-      c.idleTimer = performance.now();
-      const {uncuts: have} = getInv();
-      if (have.length >= freeSlots) {
-        clearInterval(closePoll);
-        bot.closeModal();
-      }
-    }, 200);
-    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 10000);
-  };
-  if (curCuts.length > 0) {
-    const sellPoll = setInterval(() => {
-      c.idleTimer = performance.now();
-      if (c.mainModalId !== SHOP_MODAL) { clearInterval(sellPoll); return; }
-      const {cuts: remaining} = getInv();
-      if (remaining.length === 0) { clearInterval(sellPoll); doBuy(); }
-    }, 200);
-  } else {
-    doBuy();
-  }
-}`,
-            iron_mine: `// Iron Miner (Varrock East) - power mines iron, drops ore, handles randoms
-// Random events: maze/boxes/talk/flee auto-handled by startScript.
-// Also handles: pickaxe head reattach, strange plant, junk dropping, death walk-back.
-const IRON_ROCK = 2092;
-const IRON_ORE = 441;
-const MINE = {x: 3285, z: 3368};
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-const inv = IfType.list[3214];
-const pos = bot.getWorldPos();
-if (!pos) return;
-// Walk to mine if not nearby (handles death/teleport recovery)
-if (Math.abs(pos.x - MINE.x) > 15 || Math.abs(pos.z - MINE.z) > 15) {
-  bot.walkTo(MINE.x, MINE.z);
-  return;
-}
-// Reattach broken pickaxe (head ID 481-491 odd + handle 467)
-let hs = -1, hds = -1;
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  if (inv.linkObjType[i] === 467) hs = i;
-  if (inv.linkObjType[i] >= 481 && inv.linkObjType[i] <= 491 && inv.linkObjType[i] % 2 === 1) hds = i;
-}
-if (hs >= 0 && hds >= 0) {
-  bot.useItemOnItem(inv.linkObjType[hds], hds, inv.linkObjType[hs], hs);
-  return;
-}
-// Pick up pickaxe head from ground
-const gnd = bot.getGroundItems(5);
-for (const g of gnd) {
-  if (g.objId >= 481 && g.objId <= 491 && g.objId % 2 === 1) {
-    bot.pickupGroundItem(g.objId, g.x, g.z); return;
-  }
-}
-// Pick strange plant
-const plants = bot.findLocs('Strange plant', 5);
-if (plants.length > 0) {
-  bot.interactLoc(plants[0].typecode, plants[0].x, plants[0].z, 'pick'); return;
-}
-// Count items — identify ore and junk
-let total = 0, oreSlot = -1, junkSlot = -1;
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  const id = inv.linkObjType[i];
-  if (id <= 0) continue;
-  total++;
-  if (id === IRON_ORE && oreSlot === -1) oreSlot = i;
-  // Junk = anything that isn't ore, pickaxe, dramen, coins, runes, or pickaxe parts
-  if (junkSlot === -1 && id !== IRON_ORE && id !== 773 && id !== 996 && id !== 467
-    && !(id >= 481 && id <= 491) && !(id >= 1266 && id <= 1276)
-    && !(id >= 555 && id <= 566)) junkSlot = i;
-}
-// Drop ore when full
-if (total >= 28 && oreSlot >= 0) {
-  c.menuAction[0] = 100; c.menuParamA[0] = IRON_ORE - 1;
-  c.menuParamB[0] = oreSlot; c.menuParamC[0] = 3214; c.doAction(0);
-  return;
-}
-// Drop junk at 27+ to prevent inventory lock from random event drops
-if (total >= 27 && junkSlot >= 0) {
-  c.menuAction[0] = 100; c.menuParamA[0] = inv.linkObjType[junkSlot] - 1;
-  c.menuParamB[0] = junkSlot; c.menuParamC[0] = 3214; c.doAction(0);
-  return;
-}
-// Mine closest iron rock
-const rocks = bot.findLocs('Rocks', 15).filter(r => r.locId === IRON_ROCK);
-if (rocks.length > 0) {
-  let closest = rocks[0], minD = 999;
-  for (const r of rocks) {
-    const d = Math.abs(r.x + c.mapBuildBaseX - pos.x) + Math.abs(r.z + c.mapBuildBaseZ - pos.z);
-    if (d < minD) { minD = d; closest = r; }
-  }
-  bot.interactLoc(closest.typecode, closest.x, closest.z, 'mine');
-}`,
-            alch_fire: `// Alchemy trainer: Low Alch fire runes until 55 Magic, then High Alch
-bot.closeModal();
-const LOW_ALCH = 1162;
-const HIGH_ALCH = 1178;
-const FIRE_RUNE = 555; // runtime ID
-const c = bot._client;
-const IfType = c.chatInterface.constructor;
-const inv = IfType.list[3214];
-const magicLvl = c.statBaseLevel[6];
-// Find fire runes in inventory
-let fireSlot = -1;
-for (let i = 0; i < inv.linkObjType.length; i++) {
-  if (inv.linkObjType[i] === FIRE_RUNE) { fireSlot = i; break; }
-}
-if (fireSlot < 0) { console.log('[BOT] No fire runes in inventory!'); return; }
-const spell = magicLvl >= 55 ? HIGH_ALCH : LOW_ALCH;
-bot.setTab(6); // magic tab
-bot.castSpellOnItem(spell, FIRE_RUNE, fireSlot);
-`,
-            bear_killer: `// Bear Killer + Looter + Banker (Ardy bears)
-// Kills bears, loots all ground items, banks at Ardy south when inventory full.
-// AFKs if HP drops below 30 (natural regen recovers it).
-const BEAR_AREA = {x: 2700, z: 3332};
-const BANK_POS = {x: 2656, z: 3286};
-const HP_THRESHOLD = 30;
-const BEAR_TYPE_ID = 105;
-const c = bot._client;
-const lp = c.localPlayer;
-const pos = bot.getWorldPos();
-if (!pos || !lp) return;
-// Close welcome modal (but not bank modal)
-if (c.mainModalId !== -1 && c.mainModalId !== 5292) bot.closeModal();
-// HP safety
-const currentHP = c.statEffectiveLevel[3];
-if (currentHP < HP_THRESHOLD) return;
-// Init state
-if (!window._bearState) window._bearState = 'killing';
-if (!window._bearBankPollId) window._bearBankPollId = null;
-const state = window._bearState;
-const IfType = c.chatInterface.constructor;
-// === WALKING TO BANK ===
-if (state === 'walking_to_bank') {
-  if (bot.isNear(BANK_POS.x, BANK_POS.z, 5)) {
-    const banks = bot.findLocs('bank booth', 10);
-    if (banks.length > 0) {
-      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
-      window._bearState = 'banking';
-      if (window._bearBankPollId) clearInterval(window._bearBankPollId);
-      window._bearBankPollId = setInterval(() => {
-        if (c.mainModalId !== 5292) return;
-        clearInterval(window._bearBankPollId);
-        window._bearBankPollId = null;
-        const bankInv = IfType.list[2006];
-        for (let i = 0; i < bankInv.linkObjType.length; i++) {
-          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
-        }
-        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
-      }, 100);
-    } else { bot.walkTo(BANK_POS.x, BANK_POS.z); }
-    return;
-  }
-  bot.walkTo(BANK_POS.x, BANK_POS.z);
-  return;
-}
-// === BANKING ===
-if (state === 'banking') {
-  if (c.mainModalId !== 5292 && !window._bearBankPollId) {
-    const banks = bot.findLocs('bank booth', 10);
-    if (banks.length > 0) {
-      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
-      window._bearBankPollId = setInterval(() => {
-        if (c.mainModalId !== 5292) return;
-        clearInterval(window._bearBankPollId); window._bearBankPollId = null;
-        const bankInv = IfType.list[2006];
-        for (let i = 0; i < bankInv.linkObjType.length; i++) {
-          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
-        }
-        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
-      }, 100);
-    } else { window._bearState = 'walking_to_bank'; }
-  }
-  return;
-}
-// === WALKING TO BEARS ===
-if (state === 'walking_to_bears') {
-  if (bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 15)) { window._bearState = 'killing'; window._bearFailedLoots = {}; return; }
-  bot.walkTo(BEAR_AREA.x, BEAR_AREA.z);
-  return;
-}
-// === KILLING / LOOTING ===
-const inv = IfType.list[3214];
-let invCount = 0;
-for (let i = 0; i < 28; i++) { if (inv.linkObjType[i] > 0) invCount++; }
-if (invCount >= 28) { window._bearState = 'walking_to_bank'; return; }
-// Loot ground items when not in combat (skip unreachable ones)
-if (!window._bearFailedLoots) window._bearFailedLoots = {};
-const groundItems = bot.getGroundItems(10);
-if (lp.faceEntity === -1) {
-  for (const item of groundItems) {
-    const key = item.objId + ',' + item.x + ',' + item.z;
-    if (window._bearFailedLoots[key]) continue;
-    bot.pickupGroundItem(item.objId, item.x, item.z);
-    window._bearFailedLoots[key] = 1;
-    return;
-  }
-}
-// Skip if already fighting
-if (lp.faceEntity !== -1) return;
-// Attack a bear
-const bears = bot.getNpcs().filter(n => n.typeId === BEAR_TYPE_ID);
-const target = bears.find(b => b.health === 0) || bears[0];
-if (target) { bot.attackNpc(target.slot); }
-else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BEAR_AREA.z); }`,
-            custom: `// Write your custom script here
-// Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
-// bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
-// bot.getGroundItems(radius), bot.pickupGroundItem(objId, x, z)
-// bot.useHeldItem(objId, slot), bot.pickpocket(slot), bot.walk(x, z)
-// bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
-// bot.selectButton(comId), bot.setTab(tabId)
-// bot.getShopItems(), bot.buyShopItem(slot, qty)
-// bot.getMessages(n), bot.getStats(), bot.dismissDialog(), bot.closeModal()
-`,
+    // ── make the watched view the REAL game: forward mouse input to its worker ───
+    // The frame is a <canvas>, so the browser would offer "Save image…" on right-click, exposing
+    // that it's an image. Instead we block the native menu and forward every mouse event to the
+    // watched bot's worker — right-click shows the RuneScape menu, clicks actually click the game.
+    function forwardMouse(kind) {
+        return (e) => {
+            e.preventDefault();
+            if (fgId === null || !bots.has(fgId)) return;
+            const r = canvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - r.left) * (canvas.width / r.width));
+            const y = Math.round((e.clientY - r.top) * (canvas.height / r.height));
+            bots.get(fgId).worker.postMessage({ type:'mouse', kind, x, y, button: e.button, buttons: e.buttons });
         };
+    }
+    canvas.addEventListener('mousedown', forwardMouse('down'));
+    canvas.addEventListener('mouseup', forwardMouse('up'));
+    canvas.addEventListener('mousemove', forwardMouse('move'));
+    canvas.addEventListener('mouseleave', forwardMouse('leave'));
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());  // never show the browser image menu
+    canvas.oncontextmenu = () => false;
 
-        const editorEl = document.getElementById('editor');
-        const select = document.getElementById('scriptSelect');
-
-        // Build bot API completions dynamically from window.bot
-        function getBotMethods() {
-            if (!window.bot) return [];
-            return Object.keys(window.bot).filter(k => typeof window.bot[k] === 'function')
-                .map(k => {
-                    const fn = window.bot[k];
-                    const params = fn.toString().match(/\(([^)]*)\)/)?.[1] || '';
-                    return k + '(' + params + ')';
-                });
+    // ── populate the spawn form ────────────────────────────────────────────────
+    function refreshForm() {
+        const accSel = document.getElementById('accountSel');
+        const used = new Set([...bots.values()].map(b => b.account));
+        accSel.innerHTML = ACCOUNTS.map(a => `<option value="${a}" ${used.has(a)?'disabled':''}>${a}${used.has(a)?' (in use)':''}</option>`).join('');
+        const scrSel = document.getElementById('scriptSel');
+        if (!scrSel.options.length) {
+            scrSel.innerHTML = Object.keys(window.SCRIPTS).map(k => `<option value="${k}" ${k===DEFAULT_SCRIPT?'selected':''}>${SCRIPT_LABELS[k]||k}</option>`).join('');
         }
+        const free = ACCOUNTS.filter(a => !used.has(a));
+        document.getElementById('spawnBtn').disabled = free.length === 0;
+        if (free.length) accSel.value = free[0];
+    }
 
-        // Field names that appear across bot API return values (getNpcs, getGroundItems,
-        // getInventory, getBankItems, ...). Not type-aware, but surfaces what's available.
-        const API_FIELDS = [
-            'slot', 'typeId', 'name', 'x', 'z', 'health', 'totalHealth', 'inCombat', 'interacting',
-            'objId', 'id', 'count', 'kind', 'index', 'level', 'desc', 'model',
-        ];
+    function spawnFromForm() {
+        const account = document.getElementById('accountSel').value;
+        const scriptKey = document.getElementById('scriptSel').value;
+        if (!account || [...bots.values()].some(b => b.account === account)) return;
+        spawnBot(account, scriptKey);
+    }
 
-        function botHint(cm) {
-            const cur = cm.getCursor();
-            const line = cm.getLine(cur.line);
-            const end = cur.ch;
-            let start = end;
-            while (start > 0 && /\w/.test(line.charAt(start - 1))) start--;   // the word only (stop at the dot)
-            const word = line.slice(start, end);
-            const prop = line.slice(0, start).match(/([\w)\]]+)\s*\.\s*$/);   // "<expr>." => property access
-
-            let list;
-            if (prop && prop[1] === 'bot') {
-                list = getBotMethods().filter(m => m.startsWith(word))
-                    .map(m => ({ text: m.replace(/\(.*\)/, '('), displayText: m }));
-            } else if (prop) {
-                list = API_FIELDS.filter(f => f.startsWith(word)).map(f => ({ text: f, displayText: f }));
-            } else {
-                list = ['bot', 'const', 'let', 'return', 'if', 'for', 'while', 'function']
-                    .filter(t => t.startsWith(word)).map(t => ({ text: t, displayText: t }));
-            }
-            return { list, from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
-        }
-
-        const cm = CodeMirror.fromTextArea(editorEl, {
-            mode: 'javascript',
-            theme: 'material-darker',
-            lineNumbers: true,
-            tabSize: 2,
-            indentWithTabs: false,
-            matchBrackets: true,
-            extraKeys: {
-                'Ctrl-Space': function(cm) { cm.showHint({ hint: botHint }); },
-                '.': function(cm) {
-                    cm.replaceSelection('.');
-                    const cur = cm.getCursor();
-                    const line = cm.getLine(cur.line);
-                    // Trigger autocomplete after any "identifier." (property access), not just "bot."
-                    if (/[\w)\]]/.test(line.charAt(cur.ch - 2))) {
-                        cm.showHint({ hint: botHint, completeSingle: false });
-                    }
-                },
-            },
+    // ── spawn a headless bot worker ─────────────────────────────────────────────
+    function spawnBot(account, scriptKey) {
+        const id = nextId++;
+        const willWatch = (fgId === null);   // the first bot renders from boot so you SEE it load
+        const worker = new Worker('botworker.js', { type:'module' });
+        const bot = { id, worker, account, scriptKey, script: window.SCRIPTS[scriptKey] || '', state:{ stage:'booting' }, cardEl:null };
+        bots.set(id, bot);
+        worker.onmessage = (e) => onBotMessage(id, e.data);
+        worker.onerror = (e) => { bot.state.err = e.message || 'worker error'; renderCard(bot); };
+        worker.postMessage({
+            type:'start', id, host:HOST, secure:SECURE,
+            user:account, pass:PASS, script: bot.script, intervalMs:2000, render: willWatch
         });
+        renderRail();
+        refreshForm();
+        if (willWatch) foreground(id);       // auto-watch the first bot
+    }
 
-        // Bump this whenever the built-in SCRIPTS change, so a deployed preset update replaces any
-        // stale copy the browser cached from a previous visit. Edits still persist within a version.
-        const SCRIPTS_VERSION = '2';
-        if (localStorage.getItem('bot_scripts_version') !== SCRIPTS_VERSION) {
-            localStorage.removeItem('bot_code');
-            localStorage.setItem('bot_scripts_version', SCRIPTS_VERSION);
-        }
-
-        // Restore the last selected script AND its editor content on reload. (Bug: the browser
-        // restored the <select> value but the editor always reset to the first script.) Also
-        // persist edits so refreshing doesn't wipe changes.
-        const savedScript = localStorage.getItem('bot_script');
-        const savedCode = localStorage.getItem('bot_code');
-        if (savedScript && SCRIPTS[savedScript] !== undefined) select.value = savedScript;
-        cm.setValue(savedCode != null ? savedCode : (SCRIPTS[select.value] || SCRIPTS['paladin']));
-
-        // Selecting a preset replaces the editor content; typing persists edits.
-        select.addEventListener('change', () => {
-            localStorage.setItem('bot_script', select.value);
-            cm.setValue(SCRIPTS[select.value] || '');
-        });
-        cm.on('change', () => localStorage.setItem('bot_code', cm.getValue()));
-
-        // Persist username/password in localStorage
-        const userInput = document.getElementById('userInput');
-        const passInput = document.getElementById('passInput');
-        userInput.value = localStorage.getItem('bot_user') || '';
-        passInput.value = localStorage.getItem('bot_pass') || '';
-        userInput.addEventListener('input', () => localStorage.setItem('bot_user', userInput.value));
-        passInput.addEventListener('input', () => localStorage.setItem('bot_pass', passInput.value));
-
-        // ===== Run/Stop toggle: "Subscribe" becomes Start/Stop and reflects script state =====
-        let _running = false;
-        function setRun(running) {
-            _running = running;
-            const btn = document.getElementById('runBtn');
-            const status = document.getElementById('yt-status');
-            btn.textContent = running ? 'Stop' : 'Start';
-            btn.classList.toggle('running', running);
-            status.textContent = running ? '\u25CF Running' : 'Stopped';
-            status.classList.toggle('on', running);
-        }
-        function toggleRun() { _running ? stopScript() : startScript(); }
-
-        function startScript() {
-            const user = userInput.value;
-            const pass = passInput.value;
-            if (!user || !pass) {
-                alert('Enter username and password');
-                return;
+    function onBotMessage(id, m) {
+        const bot = bots.get(id); if (!bot) return;
+        if (m.type === 'frame') {
+            if (id === fgId) {
+                cctx.drawImage(m.bmp, 0, 0, canvas.width, canvas.height);
+                // first real frame arrived → drop the "starting" placeholder and show the live client
+                if (window._awaitingFrame) { window._awaitingFrame = false; document.getElementById('buffering').style.display = 'none'; }
             }
-
-            const code = cm.getValue();
-            const actionFn = new Function('bot', code);
-
-            window.bot.startScript(user, pass, () => {
-                actionFn(window.bot);
-            });
-
-            setRun(true);
+            m.bmp.close();
+            return;
         }
+        if (m.type === 'state') { bot.state = m; if (id === fgId) updateFgInfo(); renderCard(bot); }
+        else if (m.type === 'error') { bot.state.err = (m.err||'').slice(0,80); renderCard(bot); }
+    }
 
-        function stopScript() {
-            window.bot.stopScript();
-            setRun(false);
+    // ── foreground / watch a bot ────────────────────────────────────────────────
+    function foreground(id) {
+        if (fgId === id) return;
+        if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
+        fgId = id;
+        cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
+        // brief placeholder until the worker's first frame (the real loading screen) arrives
+        window._awaitingFrame = true;
+        document.getElementById('buf-text').textContent = 'Starting bot…';
+        document.getElementById('buffering').style.display = 'flex';
+        bots.get(id).worker.postMessage({ type:'foreground' });
+        document.getElementById('idle-hint').style.display = 'none';
+        document.getElementById('stopFg').style.display = '';
+        loadActiveControls(bots.get(id));
+        updateFgInfo();
+        renderRail();
+    }
+
+    function stopForeground() {
+        if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
+        fgId = null;
+        window._awaitingFrame = false;
+        cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('buffering').style.display = 'none';
+        document.getElementById('idle-hint').style.display = '';
+        document.getElementById('stopFg').style.display = 'none';
+        document.getElementById('chanSub').textContent = '—';
+        document.getElementById('active-editor').style.display = 'none';
+        renderRail();
+    }
+
+    function updateFgInfo() {
+        const bot = bots.get(fgId); if (!bot) return;
+        const st = bot.state;
+        document.getElementById('chanSub').textContent = (st.name || bot.account) + (st.pos ? `  ·  (${st.pos.x}, ${st.pos.z})` : '');
+    }
+
+    // ── active-bot script controls (dropdown + editor, applied live) ─────────────
+    function loadActiveControls(bot) {
+        const sel = document.getElementById('activeScriptSel');
+        if (!sel.options.length) sel.innerHTML = Object.keys(window.SCRIPTS).map(k => `<option value="${k}">${SCRIPT_LABELS[k]||k}</option>`).join('');
+        sel.value = bot.scriptKey;
+        document.getElementById('activeEditorText').value = bot.script;
+        document.getElementById('active-editor').style.display = '';
+    }
+
+    function onActiveScriptChange() {   // picking a preset loads it into the editor and applies it
+        const bot = bots.get(fgId); if (!bot) return;
+        const key = document.getElementById('activeScriptSel').value;
+        bot.scriptKey = key;
+        document.getElementById('activeEditorText').value = window.SCRIPTS[key] || '';
+        applyActiveScript();
+    }
+
+    function applyActiveScript() {      // send the editor's current script to the watched bot
+        const bot = bots.get(fgId); if (!bot) return;
+        bot.script = document.getElementById('activeEditorText').value;
+        bot.worker.postMessage({ type:'setScript', script: bot.script });
+        renderCard(bot);
+        const btn = document.getElementById('applyBtn'); btn.textContent = 'Applied ✓';
+        setTimeout(() => { btn.textContent = 'Apply script'; }, 1200);
+    }
+
+    function killBot(id, ev) {
+        ev && ev.stopPropagation();
+        const bot = bots.get(id); if (!bot) return;
+        try { bot.worker.terminate(); } catch(e){}
+        bots.delete(id);
+        if (fgId === id) stopForeground();
+        renderRail(); refreshForm();
+    }
+
+    // ── render the rail + cards ──────────────────────────────────────────────────
+    function statusOf(st) {
+        if (st.err) return { cls:'err', txt:'error' };
+        if (!st.stage && !st.ingame && st.loginscreen !== undefined) {
+            if ((st.msg||'').includes('already logged in')) return { cls:'err', txt:'account in use' };
+            return { cls:'load', txt:'logging in…' };
         }
+        if (st.stage === 'booting') return { cls:'load', txt:'booting…' };
+        if (!st.ingame) return { cls:'load', txt:'logging in…' };
+        return { cls:'live', txt:'● in game' };
+    }
 
-        // Prevent canvas from stealing keyboard focus from the editor/inputs
-        document.getElementById('canvas').addEventListener('mousedown', () => {
-            // Only take focus if not typing in an input
-            if (document.activeElement === editor ||
-                document.activeElement === document.getElementById('userInput') ||
-                document.activeElement === document.getElementById('passInput')) {
-                // don't steal focus
-            }
-        });
-    </script>
-    <script type="module">
-        const { Client } = await import('./client.js?v=' + Date.now());
-        (() => {
-            new Client(10, false, true);
-        })();
+    function renderCard(bot) {
+        if (!bot.cardEl) return renderRail();
+        const st = bot.state, s = statusOf(st);
+        bot.cardEl.className = 'bot-card' + (bot.id === fgId ? ' active' : '');
+        bot.cardEl.querySelector('.b-sub').textContent = (st.name || bot.account);
+        const stat = bot.cardEl.querySelector('.b-stat');
+        stat.className = 'b-stat ' + s.cls; stat.textContent = s.txt;
+        bot.cardEl.querySelector('.live').style.display = (bot.id === fgId) ? '' : 'none';
+    }
+
+    function renderRail() {
+        const wrap = document.getElementById('cards');
+        wrap.innerHTML = '';
+        for (const bot of bots.values()) {
+            const st = bot.state, s = statusOf(st);
+            const el = document.createElement('div');
+            el.className = 'bot-card' + (bot.id === fgId ? ' active' : '');
+            el.onclick = () => foreground(bot.id);
+            el.innerHTML = `
+                <div class="bot-thumb">
+                    <span class="live" style="display:${bot.id===fgId?'':'none'}">&#9679; LIVE</span>
+                    <span class="init">${(bot.account[0]||'?').toUpperCase()}</span>
+                    <span class="badge">${SCRIPT_LABELS[bot.scriptKey]||bot.scriptKey}</span>
+                </div>
+                <div class="bot-info">
+                    <span class="b-title">${bot.account}</span>
+                    <span class="b-sub">${st.name || bot.account}</span>
+                    <span class="b-stat ${s.cls}">${s.txt}</span>
+                </div>
+                <span class="b-kill" title="Stop bot">&times;</span>`;
+            el.querySelector('.b-kill').onclick = (ev) => killBot(bot.id, ev);
+            bot.cardEl = el;
+            wrap.appendChild(el);
+        }
+    }
+
+    refreshForm();
     </script>
 </body>
 </html>
