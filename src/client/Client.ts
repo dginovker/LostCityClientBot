@@ -861,8 +861,12 @@ export class Client extends GameShell {
             this.b12 = PixFont.depack(this.title, 'b12_full', false);
             this.q8 = PixFont.depack(this.title, 'q8_full', true);
 
-            await this.loadTitleBackground();
-            this.loadTitleImages();
+            if (!(globalThis as any).__HEADLESS) {
+                // Title-screen JPEG/sprites are cosmetic; the JPEG decoder needs a DOM image (hangs
+                // in a Worker), and a headless bot never renders the title screen anyway.
+                await this.loadTitleBackground();
+                this.loadTitleImages();
+            }
 
             const config: JagFile = await this.getJagFile('config', 30, 'config', 2);
             const interfaces: JagFile = await this.getJagFile('interface', 35, 'interface', 3);
@@ -893,7 +897,7 @@ export class Client extends GameShell {
                 this.midiFading = true;
                 this.onDemand.request(2, this.midiSong);
 
-                while (this.onDemand.remaining() > 0) {
+                while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
                     await this.onDemandLoop();
                     await sleep(100);
                 }
@@ -906,7 +910,7 @@ export class Client extends GameShell {
                 this.onDemand.request(1, i);
             }
 
-            while (this.onDemand.remaining() > 0) {
+            while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
                 const progress = animCount - this.onDemand.remaining();
                 if (progress > 0) {
                     await this.drawProgress('Loading animations - ' + (((progress * 100) / animCount) | 0) + '%', 65);
@@ -927,7 +931,7 @@ export class Client extends GameShell {
             }
 
             const modelPrefetch = this.onDemand.remaining();
-            while (this.onDemand.remaining() > 0) {
+            while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
                 const progress = modelPrefetch - this.onDemand.remaining();
                 if (progress > 0) {
                     await this.drawProgress('Loading models - ' + (((progress * 100) / modelPrefetch) | 0) + '%', 70);
@@ -959,7 +963,7 @@ export class Client extends GameShell {
                 this.onDemand.request(3, this.onDemand.getMapFile(48, 148, 1));
 
                 const mapPrefetch = this.onDemand.remaining();
-                while (this.onDemand.remaining() > 0) {
+                while (!(globalThis as any).__HEADLESS && this.onDemand.remaining() > 0) {
                     const progress = mapPrefetch - this.onDemand.remaining();
                     if (progress > 0) {
                         await this.drawProgress('Loading maps - ' + (((progress * 100) / mapPrefetch) | 0) + '%', 75);
@@ -1280,6 +1284,7 @@ export class Client extends GameShell {
     }
 
     override async mainredraw() {
+        if ((globalThis as any).__HEADLESS) return; // headless bot: run logic (mainloop), skip all rendering
         if (this.errorStarted || this.errorLoading || this.errorHost) {
             this.drawError();
             return;
@@ -1506,6 +1511,10 @@ export class Client extends GameShell {
     }
 
     private async titleScreenDraw(): Promise<void> {
+        if ((globalThis as any).__HEADLESS) {
+            return; // headless bots never show the title screen; drawing it with unloaded title
+            // assets throws and leaves stale title pixels (box/flames) that bleed into the foreground.
+        }
         await this.prepareTitle();
         this.imageTitle4?.setPixels();
         this.imageTitlebox?.plotSprite(0, 0);
@@ -1636,7 +1645,9 @@ export class Client extends GameShell {
         this.imageTitle8 = new PixMap(75, 94);
         Pix2D.cls();
 
-        if (this.title) {
+        if (this.title && !(globalThis as any).__HEADLESS) {
+            // Headless bots never show the title screen; loading it also starts the flame animation,
+            // which would keep drawing over the left/right margins once the bot is foregrounded.
             await this.loadTitleBackground();
             this.loadTitleImages();
         }
@@ -1743,7 +1754,7 @@ export class Client extends GameShell {
                 await this.titleScreenDraw();
             }
 
-            this.stream = new ClientStream(await ClientStream.openSocket('w1.rs2b2t.com', true));
+            this.stream = new ClientStream(await ClientStream.openSocket((globalThis as any).__BOT_HOST || 'w1.rs2b2t.com', (globalThis as any).__BOT_SECURE ?? true));
 
             const userhash = JString.toUserhash(username);
             const loginServer = Number(userhash >> 16n) & 0x1f;
@@ -1779,7 +1790,7 @@ export class Client extends GameShell {
                 this.out.p4(1337); // uid
                 this.out.pjstr(username);
                 this.out.pjstr(password);
-                this.out.rsaenc(BigInt(process.env.LOGIN_RSAN!), BigInt(process.env.LOGIN_RSAE!));
+                this.out.rsaenc(BigInt((globalThis as any).__BOT_RSAN || process.env.LOGIN_RSAN!), BigInt((globalThis as any).__BOT_RSAE || process.env.LOGIN_RSAE!));
 
                 this.loginout.pos = 0;
                 if (reconnect) {
@@ -3858,6 +3869,12 @@ export class Client extends GameShell {
 
     override async drawProgress(message: string, progress: number): Promise<void> {
         console.log(`${progress}%: ${message}`);
+
+        if ((globalThis as any).__HEADLESS) {
+            // Headless bots don't render a loading screen. This method paints the title flames/box/brick
+            // onto the canvas; skipping it keeps that stale content out of the foreground render.
+            return;
+        }
 
         this.lastProgressPercent = progress;
         this.lastProgressMessage = message;

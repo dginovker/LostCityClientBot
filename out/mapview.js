@@ -3643,9 +3643,6 @@ class GameShell {
     canvas.oncontextmenu = (e) => {
       e.preventDefault();
     };
-    window.oncontextmenu = (e) => {
-      e.preventDefault();
-    };
     await this.drawProgress("Loading...", 0);
     await this.maininit();
     let ntime = 0;
@@ -3751,7 +3748,6 @@ class GameShell {
     canvas.oncontextmenu = null;
     window.onmouseup = null;
     window.onmousemove = null;
-    window.oncontextmenu = null;
   }
   setFramerate(rate) {
     this.deltime = 1000 / rate | 0;
@@ -7559,4 +7555,4 @@ export {
   MapView
 };
 
-//# debugId=E752CD92518AD2DA64756E2164756E21
+//# debugId=4E495569DCE7158464756E2164756E21

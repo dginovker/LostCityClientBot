@@ -1,0 +1,700 @@
+// Shared bot script presets (extracted from index.html). Loaded by index.html + multibot.html.
+        window.SCRIPTS = {
+            paladin: `// Pickpocket Paladins in Ardougne
+bot.closeModal();
+bot.pickpocketByName('paladin');`,
+            lesser_demon: `// Attack Lesser Demon with Wind Bolt autocast
+if (!window._ds) window._ds = 0;
+if (!window._atkTicks) window._atkTicks = 0;
+// Autocast setup (8 ticks with waits for server responses)
+if (window._ds === 0) { bot.setTab(0); window._ds = 1; return; }
+if (window._ds === 1) { bot.clickButton(353); window._ds = 2; return; }
+if (window._ds === 2) { window._ds = 3; return; }
+if (window._ds === 3) { bot.clickButton(1834); window._ds = 4; return; }
+if (window._ds === 4) { window._ds = 5; return; }
+if (window._ds === 5) { bot.selectButton(349); window._ds = 6; return; }
+if (window._ds === 6) { window._ds = 7; return; }
+if (window._ds < 8) { window._ds = 8; window._atkTicks = 0; return; }
+// Attack demon
+const demons = bot.findNpc('lesser demon');
+if (demons.length > 0) {
+  bot.attackNpc(demons[0].slot);
+  window._atkTicks++;
+  // If no damage after 5 attack ticks, walk away and redo setup
+  if (window._atkTicks > 5 && demons[0].health === 0) {
+    const p = bot.getPlayer();
+    if (p) bot.walk(p.x + (Math.random() > 0.5 ? 1 : -1), p.z);
+    window._ds = 0;
+    window._atkTicks = 0;
+  }
+}`,
+            willow_chop: `// Chop Willow Trees (logs auto-banked on this server)
+bot.closeModal();
+const trees = bot.findLocs('willow', 15);
+if (trees.length > 0) {
+  // Pick the closest tree
+  const p = bot.getPlayer();
+  let closest = trees[0];
+  let minDist = 999;
+  for (const t of trees) {
+    const d = Math.abs(t.x - p.x) + Math.abs(t.z - p.z);
+    if (d < minDist) { minDist = d; closest = t; }
+  }
+  bot.interactLoc(closest.typecode, closest.x, closest.z, 'chop');
+}`,
+            magic_shop: `// Shop buyer - trade with nearby shop NPC and buy items
+// Change NPC_NAME and TARGET_OBJ_ID to match your shop and item
+// Use debug mode (bot.setDebug(true)) to see item IDs in examine text
+const NPC_NAME = 'magic store';
+const TARGET_OBJ_ID = 564; // Law rune (use examine to find IDs)
+const c = bot._client;
+if (c.mainModalId !== -1 && c.mainModalId !== 3824) { bot.closeModal(); return; }
+if (c.mainModalId === -1) {
+  const npc = bot.findNpc(NPC_NAME);
+  if (npc.length > 0) bot.interactNpc(npc[0].slot, 'trade');
+  return;
+}
+const items = bot.getShopItems();
+const target = items.find(i => i.objId === TARGET_OBJ_ID);
+if (target && target.count > 0) {
+  bot.buyShopItem(target.slot, 10);
+}`,
+            chicken_bones: `// Kill chickens and bury their bones. Locks onto one chicken until it
+// dies (no target-switching / "I'm already under attack" spam), skipping ones others are fighting.
+const c = bot._client;
+bot.closeModal();
+
+// Stick with our current chicken until it's dead — don't grab another.
+const st = (window._chickenTarget = window._chickenTarget || { slot: -1 });
+if (st.slot !== -1) {
+  const t = bot.getNpcs().find(n => n.slot === st.slot && /chicken/i.test(n.name || ''));
+  if (t && bot.isInCombat()) return;   // still fighting it — do nothing else
+  st.slot = -1;                         // it's dead / gone / we're no longer in combat
+}
+
+// Idle: bury bones, grab bones off the ground, or start on a new chicken.
+const bone = bot.getInventory().find(i => i.name === 'Bones');
+if (bone) { bot.useHeldItem(bone.id, bone.slot); return; }
+
+const drop = bot.getGroundItems(10).find(g => g.name === 'Bones');
+if (drop) { bot.pickupGroundItem(drop.objId, drop.x, drop.z); return; }
+
+// Attack the NEAREST chicken nobody else is fighting, and remember it.
+const px = c.localPlayer.routeX[0], pz = c.localPlayer.routeZ[0];
+const target = bot.findNpc('chicken', n => !n.inCombat && !n.interacting)
+  .sort((a, b) => (Math.abs(a.x - px) + Math.abs(a.z - pz)) - (Math.abs(b.x - px) + Math.abs(b.z - pz)))[0];
+if (target) { st.slot = target.slot; bot.attackNpc(target.slot); }`,
+            fletch_arrows: `// Fletch arrows: use feather on arrow shaft
+bot.closeModal();
+const FEATHER = 315;     // runtime ID
+const ARROW_SHAFT = 53;  // runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+let featherSlot = -1, shaftSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === FEATHER && featherSlot === -1) featherSlot = i;
+  if (inv.linkObjType[i] === ARROW_SHAFT && shaftSlot === -1) shaftSlot = i;
+}
+if (featherSlot >= 0 && shaftSlot >= 0) {
+  bot.useItemOnItem(FEATHER, featherSlot, ARROW_SHAFT, shaftSlot);
+}`,
+            flax_spin: `// Flax Spinner: pick flax -> spin on wheel -> bank bowstring -> repeat
+// Close non-bank modals (welcome screen etc)
+const c0 = bot._client;
+if (c0.mainModalId !== -1 && c0.mainModalId !== 5292) bot.closeModal();
+const FLAX = 1780;        // runtime ID
+const BOWSTRING = 1778;   // runtime ID
+const FLAX_FIELD = {x:2738, z:3441};
+const DOOR_POS = {x:2714, z:3475};
+const LADDER_POS = {x:2712, z:3473};
+const BANK_POS = {x:2724, z:3493};
+if (!window._fs) window._fs = 'pick_flax';
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+// Count items
+let flaxSlot = -1, flaxCount = 0, itemCount = 0;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] > 0) itemCount++;
+  if (inv.linkObjType[i] === FLAX) { flaxCount++; if (flaxSlot === -1) flaxSlot = i; }
+}
+const invFull = itemCount >= 28;
+const st = window._fs;
+// Helper: open only CLOSED doors (locId 1530), skip open ones (1531)
+function openDoorIfClosed() {
+  const doors = bot.findLocs('Door', 3).filter(d => d.locId === 1530);
+  if (doors.length > 0) return bot.interactLoc(doors[0].typecode, doors[0].x, doors[0].z, 'open');
+  return false;
+}
+// State machine
+if (st === 'pick_flax') {
+  if (invFull && flaxCount > 0) { window._fs = 'walk_to_house'; return; }
+  if (invFull && flaxCount === 0) { window._fs = 'walk_to_bank'; return; }
+  if (!bot.isNear(FLAX_FIELD.x, FLAX_FIELD.z, 5)) { bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z); return; }
+  const flax = bot.findLocs('Flax', 10);
+  if (flax.length > 0) bot.interactLoc(flax[0].typecode, flax[0].x, flax[0].z, 'pick');
+} else if (st === 'walk_to_house') {
+  if (openDoorIfClosed()) return;
+  if (!bot.isNear(LADDER_POS.x, LADDER_POS.z, 3)) { bot.walkTo(DOOR_POS.x, DOOR_POS.z); return; }
+  window._fs = 'climb_up';
+} else if (st === 'climb_up') {
+  const ladder = bot.findLocs('Ladder', 5);
+  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
+  window._fs = 'spin_flax';
+} else if (st === 'spin_flax') {
+  if (flaxCount === 0) { window._fs = 'climb_down'; return; }
+  bot.useItemOnLoc(FLAX, flaxSlot, 'Spinning wheel');
+} else if (st === 'climb_down') {
+  const ladder = bot.findLocs('Ladder', 10);
+  if (ladder.length > 0) bot.interactLoc(ladder[0].typecode, ladder[0].x, ladder[0].z, 'climb');
+  window._fs = 'walk_to_bank';
+} else if (st === 'walk_to_bank') {
+  if (openDoorIfClosed()) return;
+  if (!bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(BANK_POS.x, BANK_POS.z); return; }
+  // Use closest usable booth (locId 2213) with use-quickly
+  const pos2 = bot.getWorldPos();
+  const banks = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
+    .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos2.x)+Math.abs(a.z+c.mapBuildBaseZ-pos2.z)) -
+                   (Math.abs(b.x+c.mapBuildBaseX-pos2.x)+Math.abs(b.z+c.mapBuildBaseZ-pos2.z)));
+  if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+  window._fs = 'deposit';
+} else if (st === 'deposit') {
+  if (c.mainModalId === -1) {
+    // Bank not open - re-open closest usable booth
+    const pos3 = bot.getWorldPos();
+    const banks2 = bot.findLocs('Bank booth', 5).filter(b => b.locId === 2213)
+      .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos3.x)+Math.abs(a.z+c.mapBuildBaseZ-pos3.z)) -
+                     (Math.abs(b.x+c.mapBuildBaseX-pos3.x)+Math.abs(b.z+c.mapBuildBaseZ-pos3.z)));
+    if (banks2.length > 0) bot.interactLoc(banks2[0].typecode, banks2[0].x, banks2[0].z, 'use-quickly');
+    return;
+  }
+  // Deposit ALL items via bank_side:inv (2006)
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) { bot.depositAll(bankInv.linkObjType[i], i); return; }
+  }
+  bot.closeModal();
+  window._fs = 'walk_to_flax';
+} else if (st === 'walk_to_flax') {
+  if (openDoorIfClosed()) return;
+  // Step out of bank first if still inside
+  if (bot.isNear(BANK_POS.x, BANK_POS.z, 3)) { bot.walkTo(2722, 3488); return; }
+  // If flax is nearby, start picking. Otherwise keep walking.
+  if (bot.findLocs('Flax', 10).length > 0) { window._fs = 'pick_flax'; return; }
+  bot.walkTo(FLAX_FIELD.x, FLAX_FIELD.z);
+}`,
+            fletch_longbow: `// Fletch Yew Longbows (FAST): burst-fletch + fast bank polling
+// Zero server-side p_delay: burst ALL fletch commands at once (~7s for 27 logs)
+// Fast 100ms polling for bank state transitions instead of waiting 2s per step
+const KNIFE = 947;
+const YEW_LOG = 1516;
+const LONGBOW_BTN = 145;
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Skip if active fast loop is running; only clear stale ones from previous script session
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return; // active loop, skip
+  clearInterval(window._fastLoop); window._fastLoop = null; // stale loop, clear
+}
+window._flGen++;
+// Close non-bank modals (welcome screen etc)
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
+// Helper: read inventory
+function getInv() {
+  const inv = IfType.list[3214];
+  let ks = -1; const ls = [];
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] === KNIFE && ks === -1) ks = i;
+    if (inv.linkObjType[i] === YEW_LOG) ls.push(i);
+  }
+  return {knifeSlot: ks, logSlots: ls};
+}
+const {knifeSlot, logSlots} = getInv();
+// If we have logs + knife, go straight to fletching
+if (knifeSlot >= 0 && logSlots.length > 0) {
+  window._botProtectChatComId = 139;
+  for (const ls of logSlots) {
+    bot.useItemOnItem(KNIFE, knifeSlot, YEW_LOG, ls);
+    bot.clickButton(LONGBOW_BTN);
+  }
+  console.log('[BOT] Burst-sent ' + logSlots.length + ' fletch commands');
+  // Fast-poll until all logs consumed, then bank
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    if (c.chatComId !== -1 && c.chatComId !== 139) bot.dismissDialog();
+    const {logSlots: remaining} = getInv();
+    if (remaining.length === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+      window._botProtectChatComId = 0;
+    }
+  }, 200);
+  return;
+}
+// Otherwise: bank for supplies
+// Open bank
+const pos = bot.getWorldPos();
+const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
+  .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
+                 (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
+if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+// Fast-poll until bank opens, then deposit+withdraw+close in one shot
+window._flActive = window._flGen;
+window._fastLoop = setInterval(() => {
+  c.idleTimer = performance.now();
+  if (!c.ingame) return;
+  if (c.mainModalId !== 5292) return; // bank not open yet
+  clearInterval(window._fastLoop); window._fastLoop = null;
+  // Deposit everything EXCEPT the knife
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0 && bankInv.linkObjType[i] !== KNIFE) {
+      bot.depositAll(bankInv.linkObjType[i], i);
+    }
+  }
+  // Wait for server to update bank contents, then withdraw logs and close
+  setTimeout(() => {
+    if (c.mainModalId !== 5292) return; // bank closed unexpectedly
+    const bankItems = bot.getBankItems();
+    const logs = bankItems.find(i => i.objId === YEW_LOG);
+    if (logs) {
+      bot.withdrawAll(logs.objId, logs.slot);
+    } else {
+      console.log('[BOT] No yew logs in bank! Stopping.');
+      bot.stopScript();
+      return;
+    }
+    setTimeout(() => { bot.closeModal(); }, 600);
+  }, 600);
+}, 100);`,
+            string_longbow: `// String Yew Longbows (FAST): burst-string + fast bank polling
+// No dialog, no p_delay: just OPHELDU = 1 USER_EVENT per string
+// 5 strings per tick = 14 strings in ~1.7 seconds!
+const BOW_U = 67;       // Yew longbow (u) runtime ID
+const BOWSTRING = 1778; // Bowstring runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Skip if active fast loop is running; only clear stale ones
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+}
+window._flGen++;
+// Close non-bank modals
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) { bot.closeModal(); return; }
+// Helper: read inventory
+function getInv() {
+  const inv = IfType.list[3214];
+  const bows = [], strings = [];
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] === BOW_U) bows.push(i);
+    if (inv.linkObjType[i] === BOWSTRING) strings.push(i);
+  }
+  return {bows, strings, pairs: Math.min(bows.length, strings.length)};
+}
+const {bows, strings, pairs} = getInv();
+// If we have bows + strings, burst-string them all
+if (pairs > 0) {
+  // No dialog needed — just OPHELDU for each pair
+  for (let i = 0; i < pairs; i++) {
+    bot.useItemOnItem(BOWSTRING, strings[i], BOW_U, bows[i]);
+  }
+  console.log('[BOT] Burst-sent ' + pairs + ' string commands');
+  // Fast-poll until all bows are strung
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    const {pairs: remaining} = getInv();
+    if (remaining === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+    }
+  }, 200);
+  return;
+}
+// Otherwise: bank for supplies
+const pos = bot.getWorldPos();
+const banks = bot.findLocs('Bank booth', 15).filter(b => b.locId === 2213)
+  .sort((a,b) => (Math.abs(a.x+c.mapBuildBaseX-pos.x)+Math.abs(a.z+c.mapBuildBaseZ-pos.z)) -
+                 (Math.abs(b.x+c.mapBuildBaseX-pos.x)+Math.abs(b.z+c.mapBuildBaseZ-pos.z)));
+if (banks.length > 0) bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+// Fast-poll until bank opens, then deposit + withdraw
+window._flActive = window._flGen;
+window._fastLoop = setInterval(() => {
+  c.idleTimer = performance.now();
+  if (!c.ingame) return;
+  if (c.mainModalId !== 5292) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+  // Deposit everything
+  const bankInv = IfType.list[2006];
+  for (let i = 0; i < bankInv.linkObjType.length; i++) {
+    if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+  }
+  // Wait for server to update, then withdraw 14 unstrung + 14 bowstrings
+  setTimeout(() => {
+    if (c.mainModalId !== 5292) return;
+    const bankItems = bot.getBankItems();
+    const bowBank = bankItems.find(i => i.objId === BOW_U);
+    const strBank = bankItems.find(i => i.objId === BOWSTRING);
+    if (!bowBank || !strBank) {
+      console.log('[BOT] Missing supplies! Stopping.');
+      bot.stopScript();
+      return;
+    }
+    // Withdraw 14 of each (10+4x1) to fill 28 slots
+    function withdraw10(objId, slot) {
+      c.menuAction[0] = 555; // INV_BUTTON3 = Withdraw 10
+      c.menuParamA[0] = objId - 1;
+      c.menuParamB[0] = slot;
+      c.menuParamC[0] = 5382;
+      c.doAction(0);
+    }
+    // 14 bows: 10 + 4x1
+    withdraw10(BOW_U, bowBank.slot);
+    for (let i = 0; i < 4; i++) bot.withdrawOne(BOW_U, bowBank.slot);
+    // 14 bowstrings: 10 + 4x1
+    withdraw10(BOWSTRING, strBank.slot);
+    for (let i = 0; i < 4; i++) bot.withdrawOne(BOWSTRING, strBank.slot);
+    // Poll until all 14 of each appear in inventory before closing bank
+    // (10 withdraw commands take ~2 server ticks to process)
+    const closePoll = setInterval(() => {
+      const {pairs: p} = getInv();
+      if (p >= 14) { clearInterval(closePoll); bot.closeModal(); }
+    }, 200);
+    // Safety timeout: close after 3s regardless
+    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === 5292) bot.closeModal(); }, 3000);
+  }, 600);
+}, 100);`,
+            cut_gems: `// Cut Sapphires at Herquin's: buy uncut -> burst cut -> sell cut -> repeat
+// Gem cutting has zero p_delay and zero dialog: 1 OPHELDU per cut = 5 cuts/tick
+const CHISEL = 1756;
+const UNCUT_SAPPHIRE = 1624;
+const CUT_SAPPHIRE = 1608;
+const SHOP_MODAL = 3824;
+const SHOP_COM = 3900;  // shop inventory (buy from)
+const SHOP_SIDE = 3823; // player inventory in shop (sell from)
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+// Generation-based fast loop guard
+if (!window._flGen) window._flGen = 0;
+if (window._fastLoop) {
+  if (window._flActive === window._flGen) return;
+  clearInterval(window._fastLoop); window._fastLoop = null;
+}
+window._flGen++;
+// Close non-shop modals
+if (c.mainModalId !== -1 && c.mainModalId !== SHOP_MODAL) { bot.closeModal(); return; }
+// Helper: read inventory
+function getInv() {
+  const inv = IfType.list[3214];
+  let chiselSlot = -1; const uncuts = [], cuts = [];
+  let totalItems = 0;
+  for (let i = 0; i < inv.linkObjType.length; i++) {
+    if (inv.linkObjType[i] > 0) totalItems++;
+    if (inv.linkObjType[i] === CHISEL && chiselSlot === -1) chiselSlot = i;
+    if (inv.linkObjType[i] === UNCUT_SAPPHIRE) uncuts.push(i);
+    if (inv.linkObjType[i] === CUT_SAPPHIRE) cuts.push(i);
+  }
+  return {chiselSlot, uncuts, cuts, totalItems};
+}
+// Helper: sell 10 of an item on shop_side:inv
+function sell10(objId, slot) {
+  c.menuAction[0] = 331; // INV_BUTTON4 = Sell 10
+  c.menuParamA[0] = objId - 1;
+  c.menuParamB[0] = slot;
+  c.menuParamC[0] = SHOP_SIDE;
+  c.doAction(0);
+}
+const {chiselSlot, uncuts, cuts, totalItems} = getInv();
+// If we have uncuts + chisel, cut them in batches of 10 (bottom-up) per tick
+if (chiselSlot >= 0 && uncuts.length > 0) {
+  const BATCH_SIZE = 10;
+  function sendBatch() {
+    const {chiselSlot: cs, uncuts: remaining} = getInv();
+    if (cs < 0 || remaining.length === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+      return;
+    }
+    // Target bottom slots first — avoids anim blocking issues
+    const toSend = remaining.slice(-BATCH_SIZE);
+    for (const slot of toSend) {
+      bot.useItemOnItem(CHISEL, cs, UNCUT_SAPPHIRE, slot);
+    }
+  }
+  sendBatch();
+  console.log('[BOT] Cutting ' + uncuts.length + ' gems (10/tick, bottom-up)');
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    const {uncuts: remaining} = getInv();
+    if (remaining.length === 0) {
+      clearInterval(window._fastLoop); window._fastLoop = null;
+      return;
+    }
+    sendBatch();
+  }, 600);
+  return;
+}
+// Otherwise: open shop, sell cuts, buy uncuts
+if (c.mainModalId !== SHOP_MODAL) {
+  const herquin = bot.findNpc('herquin');
+  if (herquin.length > 0) bot.interactNpc(herquin[0].slot, 'trade');
+  window._flActive = window._flGen;
+  window._fastLoop = setInterval(() => {
+    c.idleTimer = performance.now();
+    if (!c.ingame) return;
+    if (c.mainModalId !== SHOP_MODAL) return; // shop not open yet
+    clearInterval(window._fastLoop); window._fastLoop = null;
+    doShopOps();
+  }, 100);
+  return;
+}
+// Shop already open
+doShopOps();
+function doShopOps() {
+  const {cuts: curCuts, uncuts: curUncuts} = getInv();
+  const freeSlots = 28 - 2; // chisel + coins
+  // Step 1: sell all cut sapphires (sell10 x3 covers up to 30)
+  if (curCuts.length > 0) {
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+    sell10(CUT_SAPPHIRE, curCuts[0]);
+  }
+  // Step 2: seed shop if stock < 10 by selling uncuts back
+  // (shop never drops below base stock, so buy10 needs stock >= 10)
+  const shopItems = bot.getShopItems();
+  const uncutStock = shopItems.find(i => i.objId === UNCUT_SAPPHIRE);
+  if (uncutStock && uncutStock.count < 10 && curUncuts.length > 0) {
+    sell10(UNCUT_SAPPHIRE, curUncuts[0]); // sell up to 10 to seed
+    console.log('[BOT] Seeding shop stock (was ' + uncutStock.count + ')');
+  }
+  // Step 3: poll until sells complete, then buy with 3x buy10
+  const doBuy = () => {
+    // 3x buy10 = up to 30 items, capped by inventory space
+    bot.buyShopItem(0, 10);
+    bot.buyShopItem(0, 10);
+    bot.buyShopItem(0, 10);
+    console.log('[BOT] Sent 3x buy10');
+    // Poll until inventory full, then close
+    const closePoll = setInterval(() => {
+      c.idleTimer = performance.now();
+      const {uncuts: have} = getInv();
+      if (have.length >= freeSlots) {
+        clearInterval(closePoll);
+        bot.closeModal();
+      }
+    }, 200);
+    setTimeout(() => { clearInterval(closePoll); if (c.mainModalId === SHOP_MODAL) bot.closeModal(); }, 10000);
+  };
+  if (curCuts.length > 0) {
+    const sellPoll = setInterval(() => {
+      c.idleTimer = performance.now();
+      if (c.mainModalId !== SHOP_MODAL) { clearInterval(sellPoll); return; }
+      const {cuts: remaining} = getInv();
+      if (remaining.length === 0) { clearInterval(sellPoll); doBuy(); }
+    }, 200);
+  } else {
+    doBuy();
+  }
+}`,
+            iron_mine: `// Iron Miner (Varrock East) - power mines iron, drops ore, handles randoms
+// Random events: maze/boxes/talk/flee auto-handled by startScript.
+// Also handles: pickaxe head reattach, strange plant, junk dropping, death walk-back.
+const IRON_ROCK = 2092;
+const IRON_ORE = 441;
+const MINE = {x: 3285, z: 3368};
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+const pos = bot.getWorldPos();
+if (!pos) return;
+// Walk to mine if not nearby (handles death/teleport recovery)
+if (Math.abs(pos.x - MINE.x) > 15 || Math.abs(pos.z - MINE.z) > 15) {
+  bot.walkTo(MINE.x, MINE.z);
+  return;
+}
+// Reattach broken pickaxe (head ID 481-491 odd + handle 467)
+let hs = -1, hds = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === 467) hs = i;
+  if (inv.linkObjType[i] >= 481 && inv.linkObjType[i] <= 491 && inv.linkObjType[i] % 2 === 1) hds = i;
+}
+if (hs >= 0 && hds >= 0) {
+  bot.useItemOnItem(inv.linkObjType[hds], hds, inv.linkObjType[hs], hs);
+  return;
+}
+// Pick up pickaxe head from ground
+const gnd = bot.getGroundItems(5);
+for (const g of gnd) {
+  if (g.objId >= 481 && g.objId <= 491 && g.objId % 2 === 1) {
+    bot.pickupGroundItem(g.objId, g.x, g.z); return;
+  }
+}
+// Pick strange plant
+const plants = bot.findLocs('Strange plant', 5);
+if (plants.length > 0) {
+  bot.interactLoc(plants[0].typecode, plants[0].x, plants[0].z, 'pick'); return;
+}
+// Count items — identify ore and junk
+let total = 0, oreSlot = -1, junkSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  const id = inv.linkObjType[i];
+  if (id <= 0) continue;
+  total++;
+  if (id === IRON_ORE && oreSlot === -1) oreSlot = i;
+  // Junk = anything that isn't ore, pickaxe, dramen, coins, runes, or pickaxe parts
+  if (junkSlot === -1 && id !== IRON_ORE && id !== 773 && id !== 996 && id !== 467
+    && !(id >= 481 && id <= 491) && !(id >= 1266 && id <= 1276)
+    && !(id >= 555 && id <= 566)) junkSlot = i;
+}
+// Drop ore when full
+if (total >= 28 && oreSlot >= 0) {
+  c.menuAction[0] = 100; c.menuParamA[0] = IRON_ORE - 1;
+  c.menuParamB[0] = oreSlot; c.menuParamC[0] = 3214; c.doAction(0);
+  return;
+}
+// Drop junk at 27+ to prevent inventory lock from random event drops
+if (total >= 27 && junkSlot >= 0) {
+  c.menuAction[0] = 100; c.menuParamA[0] = inv.linkObjType[junkSlot] - 1;
+  c.menuParamB[0] = junkSlot; c.menuParamC[0] = 3214; c.doAction(0);
+  return;
+}
+// Mine closest iron rock
+const rocks = bot.findLocs('Rocks', 15).filter(r => r.locId === IRON_ROCK);
+if (rocks.length > 0) {
+  let closest = rocks[0], minD = 999;
+  for (const r of rocks) {
+    const d = Math.abs(r.x + c.mapBuildBaseX - pos.x) + Math.abs(r.z + c.mapBuildBaseZ - pos.z);
+    if (d < minD) { minD = d; closest = r; }
+  }
+  bot.interactLoc(closest.typecode, closest.x, closest.z, 'mine');
+}`,
+            alch_fire: `// Alchemy trainer: Low Alch fire runes until 55 Magic, then High Alch
+bot.closeModal();
+const LOW_ALCH = 1162;
+const HIGH_ALCH = 1178;
+const FIRE_RUNE = 555; // runtime ID
+const c = bot._client;
+const IfType = c.chatInterface.constructor;
+const inv = IfType.list[3214];
+const magicLvl = c.statBaseLevel[6];
+// Find fire runes in inventory
+let fireSlot = -1;
+for (let i = 0; i < inv.linkObjType.length; i++) {
+  if (inv.linkObjType[i] === FIRE_RUNE) { fireSlot = i; break; }
+}
+if (fireSlot < 0) { console.log('[BOT] No fire runes in inventory!'); return; }
+const spell = magicLvl >= 55 ? HIGH_ALCH : LOW_ALCH;
+bot.setTab(6); // magic tab
+bot.castSpellOnItem(spell, FIRE_RUNE, fireSlot);
+`,
+            bear_killer: `// Bear Killer + Looter + Banker (Ardy bears)
+// Kills bears, loots all ground items, banks at Ardy south when inventory full.
+// AFKs if HP drops below 30 (natural regen recovers it).
+const BEAR_AREA = {x: 2700, z: 3332};
+const BANK_POS = {x: 2656, z: 3286};
+const HP_THRESHOLD = 30;
+const BEAR_TYPE_ID = 105;
+const c = bot._client;
+const lp = c.localPlayer;
+const pos = bot.getWorldPos();
+if (!pos || !lp) return;
+// Close welcome modal (but not bank modal)
+if (c.mainModalId !== -1 && c.mainModalId !== 5292) bot.closeModal();
+// HP safety
+const currentHP = c.statEffectiveLevel[3];
+if (currentHP < HP_THRESHOLD) return;
+// Init state
+if (!window._bearState) window._bearState = 'killing';
+if (!window._bearBankPollId) window._bearBankPollId = null;
+const state = window._bearState;
+const IfType = c.chatInterface.constructor;
+// === WALKING TO BANK ===
+if (state === 'walking_to_bank') {
+  if (bot.isNear(BANK_POS.x, BANK_POS.z, 5)) {
+    const banks = bot.findLocs('bank booth', 10);
+    if (banks.length > 0) {
+      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+      window._bearState = 'banking';
+      if (window._bearBankPollId) clearInterval(window._bearBankPollId);
+      window._bearBankPollId = setInterval(() => {
+        if (c.mainModalId !== 5292) return;
+        clearInterval(window._bearBankPollId);
+        window._bearBankPollId = null;
+        const bankInv = IfType.list[2006];
+        for (let i = 0; i < bankInv.linkObjType.length; i++) {
+          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+        }
+        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
+      }, 100);
+    } else { bot.walkTo(BANK_POS.x, BANK_POS.z); }
+    return;
+  }
+  bot.walkTo(BANK_POS.x, BANK_POS.z);
+  return;
+}
+// === BANKING ===
+if (state === 'banking') {
+  if (c.mainModalId !== 5292 && !window._bearBankPollId) {
+    const banks = bot.findLocs('bank booth', 10);
+    if (banks.length > 0) {
+      bot.interactLoc(banks[0].typecode, banks[0].x, banks[0].z, 'use-quickly');
+      window._bearBankPollId = setInterval(() => {
+        if (c.mainModalId !== 5292) return;
+        clearInterval(window._bearBankPollId); window._bearBankPollId = null;
+        const bankInv = IfType.list[2006];
+        for (let i = 0; i < bankInv.linkObjType.length; i++) {
+          if (bankInv.linkObjType[i] > 0) bot.depositAll(bankInv.linkObjType[i], i);
+        }
+        setTimeout(() => { bot.closeModal(); window._bearState = 'walking_to_bears'; }, 600);
+      }, 100);
+    } else { window._bearState = 'walking_to_bank'; }
+  }
+  return;
+}
+// === WALKING TO BEARS ===
+if (state === 'walking_to_bears') {
+  if (bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 15)) { window._bearState = 'killing'; window._bearFailedLoots = {}; return; }
+  bot.walkTo(BEAR_AREA.x, BEAR_AREA.z);
+  return;
+}
+// === KILLING / LOOTING ===
+const inv = IfType.list[3214];
+let invCount = 0;
+for (let i = 0; i < 28; i++) { if (inv.linkObjType[i] > 0) invCount++; }
+if (invCount >= 28) { window._bearState = 'walking_to_bank'; return; }
+// Loot ground items when not in combat (skip unreachable ones)
+if (!window._bearFailedLoots) window._bearFailedLoots = {};
+const groundItems = bot.getGroundItems(10);
+if (lp.faceEntity === -1) {
+  for (const item of groundItems) {
+    const key = item.objId + ',' + item.x + ',' + item.z;
+    if (window._bearFailedLoots[key]) continue;
+    bot.pickupGroundItem(item.objId, item.x, item.z);
+    window._bearFailedLoots[key] = 1;
+    return;
+  }
+}
+// Skip if already fighting
+if (lp.faceEntity !== -1) return;
+// Attack a bear
+const bears = bot.getNpcs().filter(n => n.typeId === BEAR_TYPE_ID);
+const target = bears.find(b => b.health === 0) || bears[0];
+if (target) { bot.attackNpc(target.slot); }
+else if (!bot.isNear(BEAR_AREA.x, BEAR_AREA.z, 10)) { bot.walkTo(BEAR_AREA.x, BEAR_AREA.z); }`,
+            custom: `// Write your custom script here
+// Available: bot.getNpcs(), bot.getPlayer(), bot.findNpc(name)
+// bot.findLocs(name, radius), bot.interactLoc(typecode, x, z, 'option')
+// bot.getGroundItems(radius), bot.pickupGroundItem(objId, x, z)
+// bot.useHeldItem(objId, slot), bot.pickpocket(slot), bot.walk(x, z)
+// bot.attackNpc(slot), bot.interactNpc(slot, 'option'), bot.clickButton(comId)
+// bot.selectButton(comId), bot.setTab(tabId)
+// bot.getShopItems(), bot.buyShopItem(slot, qty)
+// bot.getMessages(n), bot.getStats(), bot.dismissDialog(), bot.closeModal()
+`,
+        };

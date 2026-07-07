@@ -6,7 +6,10 @@ const path = require('path');
 
 const PORT = 8080;
 const STATIC_DIR = path.join(__dirname, 'out');
-const UPSTREAM = 'w1.rs2b2t.com';
+// Default rs2b2t (https). For a local server, run: BOT_UPSTREAM=localhost:8888 node serve.cjs
+const UPSTREAM = process.env.BOT_UPSTREAM || 'w1.rs2b2t.com';
+const [UP_HOST, UP_PORT] = UPSTREAM.split(':');
+const UP_HTTPS = !UP_PORT && !UPSTREAM.startsWith('localhost'); // host-only => rs2b2t over https; host:port => local http
 
 const MIME = {
     '.html': 'text/html',
@@ -22,7 +25,8 @@ const CACHE_FILES = new Set(['crc', 'title', 'config', 'interface', 'media', 've
 
 function proxyToUpstream(req, res) {
     const options = {
-        hostname: UPSTREAM,
+        hostname: UP_HOST,
+        port: UP_PORT || (UP_HTTPS ? 443 : 80),
         path: req.url,
         method: req.method,
         headers: {
@@ -31,7 +35,7 @@ function proxyToUpstream(req, res) {
         },
     };
 
-    const proxy = https.request(options, (upstream) => {
+    const proxy = (UP_HTTPS ? https : http).request(options, (upstream) => {
         res.writeHead(upstream.statusCode, upstream.headers);
         upstream.pipe(res);
     });

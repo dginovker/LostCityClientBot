@@ -289,6 +289,9 @@ export default class OnDemand extends OnDemandProvider {
         if (this.worker) {
             return;
         }
+        if ((globalThis as any).__HEADLESS) {
+            return; // headless bots don't render, so no model/map streaming — skip the nested worker
+        }
 
         const worker = new Worker(new URL('./ondemandworker.js', import.meta.url), { type: 'module' });
         this.worker = worker;
@@ -331,11 +334,18 @@ export default class OnDemand extends OnDemandProvider {
             type: 'init',
             versions: this.versions,
             crcs: this.crcs,
-            host: 'w1.rs2b2t.com',
-            secured: true,
+            host: (globalThis as any).__BOT_HOST || 'w1.rs2b2t.com',
+            secured: (globalThis as any).__BOT_SECURE ?? true,
             ingame: this.app.ingame,
             dbEnabled: !!this.app.db
         });
+
+        // Re-send requests queued while there was no worker (e.g. a headless bot's login scene,
+        // whose map requests were enqueued but never delivered). Without this, promoting a headless
+        // bot to the foreground would sit on "Loading - please wait" forever.
+        for (let req = this.requests.head(); req !== null; req = this.requests.next()) {
+            worker.postMessage({ type: 'request', archive: req.archive, file: req.file });
+        }
     }
 
     private postWorker(message: unknown): void {
@@ -344,6 +354,9 @@ export default class OnDemand extends OnDemandProvider {
     }
 
     private async postWorkerAck(message: Record<string, unknown>): Promise<void> {
+        if ((globalThis as any).__HEADLESS) {
+            return; // no on-demand worker in headless mode — the ack would never arrive and hang boot
+        }
         this.startWorker();
 
         await new Promise<void>((resolve): void => {

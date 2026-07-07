@@ -155,7 +155,8 @@ const prod = args[0] !== 'dev';
 const entrypoints = [
     'src/client/Client.ts',
     'src/mapview/MapView.ts',
-    'src/io/OnDemandWorker.ts'
+    'src/io/OnDemandWorker.ts',
+    'src/bot/BotWorker.ts'
 ];
 
 for (const file of entrypoints) {

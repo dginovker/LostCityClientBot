@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>🔴 2004scape — Live Bots</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FF0000' d='M23 12s0-3.9-.5-5.8c-.3-1-1-1.8-2-2C18.9 4 12 4 12 4s-6.9 0-8.5.4c-1 .2-1.7 1-2 2C1 8.1 1 12 1 12s0 3.9.5 5.8c.3 1 1 1.8 2 2C5.1 20 12 20 12 20s6.9 0 8.5-.4c1-.2 1.7-1 2-2C23 15.9 23 12 23 12z'/%3E%3Cpath fill='%23fff' d='M10 15l5-3-5-3z'/%3E%3C/svg%3E">
+    <style>
+        :root { --bg:#0f0f0f; --elev:#212121; --text:#f1f1f1; --sub:#aaa; --red:#f00; --green:#2ba640; --chip:#272727; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        html,body { background:var(--bg); color:var(--text); font-family:Roboto,Arial,Helvetica,sans-serif; }
+        a { color:inherit; text-decoration:none; }
+
+        #yt-header { position:sticky; top:0; z-index:100; height:56px; display:flex; align-items:center; gap:16px; padding:0 16px; background:var(--bg); }
+        .yt-burger { font-size:20px; cursor:pointer; }
+        .yt-logo { display:flex; align-items:center; gap:5px; font-weight:700; font-size:20px; letter-spacing:-1.2px; }
+        .yt-logo .play { background:var(--red); color:#fff; border-radius:5px; padding:1px 5px; font-size:13px; line-height:1; }
+        .yt-search-wrap { flex:1; display:flex; justify-content:center; }
+        .yt-search { display:flex; width:100%; max-width:560px; }
+        .yt-search input { flex:1; background:#121212; border:1px solid #303030; border-right:none; border-radius:40px 0 0 40px; color:var(--text); padding:9px 16px; font-size:15px; outline:none; }
+        .yt-search button { background:#222; border:1px solid #303030; border-radius:0 40px 40px 0; padding:0 20px; color:var(--text); cursor:pointer; font-size:16px; }
+        .yt-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#f0932b,#eb4d4b); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#fff; }
+
+        #yt-body { max-width:1400px; margin:24px auto; padding:0 24px; display:flex; gap:24px; align-items:flex-start; }
+        .main-col { flex:1; min-width:0; }
+        #yt-player { position:relative; width:100%; background:#000; border-radius:12px; overflow:hidden; aspect-ratio:765/503; display:flex; align-items:center; justify-content:center; }
+        #canvas { display:block; width:100%; height:100%; image-rendering:auto; }
+        #yt-live { position:absolute; top:12px; left:12px; background:var(--red); color:#fff; font-size:12px; font-weight:700; padding:3px 8px; border-radius:4px; letter-spacing:.5px; z-index:2; }
+        #buffering { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; background:#000; color:#fff; font-size:15px; z-index:3; }
+        #buffering .spin { width:42px; height:42px; border:4px solid #444; border-top-color:#fff; border-radius:50%; animation:sp 1s linear infinite; }
+        @keyframes sp { to { transform:rotate(360deg); } }
+        #idle-hint { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--sub); font-size:15px; z-index:1; text-align:center; padding:24px; }
+
+        h1#yt-title { font-size:20px; margin:16px 0 4px; font-weight:600; }
+        #yt-meta { display:flex; align-items:center; gap:14px; margin-top:12px; }
+        .yt-chan-av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#6ab04c,#22a6b3); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:19px; flex-shrink:0; }
+        .yt-chan-text { display:flex; flex-direction:column; min-width:0; }
+        #chanName { font-weight:600; font-size:16px; }
+        #chanSub { color:var(--sub); font-size:13px; }
+        #stopFg { margin-left:auto; background:var(--chip); color:var(--text); border:1px solid #303030; border-radius:18px; padding:9px 18px; font-weight:600; font-size:14px; cursor:pointer; }
+        #stopFg:hover { background:#3a3a3a; }
+
+        /* right rail — bot "videos" */
+        .bot-rail { width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; }
+        .rail-title { font-size:15px; font-weight:600; color:var(--sub); margin-bottom:2px; }
+        .bot-card { display:flex; gap:10px; cursor:pointer; border-radius:10px; padding:6px; border:2px solid transparent; }
+        .bot-card:hover { background:var(--elev); }
+        .bot-card.active { border-color:var(--red); background:var(--elev); }
+        .bot-thumb { position:relative; width:110px; height:72px; border-radius:8px; flex-shrink:0; background:linear-gradient(135deg,#2c3e50,#1a2530); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .bot-thumb .badge { position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,.8); color:#fff; font-size:10px; padding:1px 4px; border-radius:3px; }
+        .bot-thumb .live { position:absolute; top:4px; left:4px; background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:1px 4px; border-radius:3px; }
+        .bot-thumb .init { font-size:26px; font-weight:800; color:#fff; opacity:.85; }
+        .bot-info { min-width:0; flex:1; display:flex; flex-direction:column; }
+        .bot-info .b-title { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .bot-info .b-sub { font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .bot-info .b-stat { font-size:11px; margin-top:2px; }
+        .b-stat.live { color:var(--green); } .b-stat.load { color:#e0a020; } .b-stat.err { color:var(--red); }
+        .b-kill { align-self:flex-start; margin-left:auto; color:var(--sub); font-size:15px; padding:2px 6px; border-radius:4px; }
+        .b-kill:hover { background:#3a3a3a; color:#fff; }
+
+        .add-card { border:2px dashed #303030; border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+        .add-card .plus-row { display:flex; align-items:center; gap:8px; color:var(--sub); font-weight:600; font-size:14px; }
+        .add-card select { width:100%; background:var(--chip); color:var(--text); border:1px solid #303030; border-radius:8px; padding:8px; font-size:13px; }
+        .add-card button { background:#fff; color:#0f0f0f; border:none; border-radius:18px; padding:9px; font-weight:600; font-size:14px; cursor:pointer; }
+        .add-card button:disabled { background:#555; color:#999; cursor:not-allowed; }
+    </style>
+</head>
+<body>
+    <header id="yt-header">
+        <span class="yt-burger">&#9776;</span>
+        <span class="yt-logo"><span class="play">&#9654;</span>YouTube</span>
+        <div class="yt-search-wrap"><div class="yt-search"><input placeholder="Search" spellcheck="false"><button>&#128269;</button></div></div>
+        <div class="yt-avatar">D</div>
+    </header>
+
+    <div id="yt-body">
+        <div class="main-col">
+            <div id="yt-player">
+                <canvas id="canvas" width="765" height="503"></canvas>
+                <span id="yt-live">&#9679; LIVE</span>
+                <div id="idle-hint">Add a bot on the right, then click its thumbnail to watch it live.</div>
+                <div id="buffering"><div class="spin"></div><span id="buf-text">Buffering…</span></div>
+            </div>
+            <h1 id="yt-title">2004scape &mdash; Live Bots</h1>
+            <div id="yt-meta">
+                <div class="yt-chan-av" id="chanAv">&#9654;</div>
+                <div class="yt-chan-text">
+                    <span id="chanName">No bot selected</span>
+                    <span id="chanSub">&mdash;</span>
+                </div>
+                <button id="stopFg" onclick="stopForeground()" style="display:none">Stop watching</button>
+            </div>
+        </div>
+
+        <div class="bot-rail">
+            <div class="rail-title">Bots</div>
+            <div id="cards"></div>
+            <div class="add-card">
+                <div class="plus-row"><span style="font-size:20px">&#43;</span> Add a bot</div>
+                <select id="accountSel"></select>
+                <select id="scriptSel"></select>
+                <button id="spawnBtn" onclick="spawnFromForm()">Spawn bot</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="bot-scripts.js"></script>
+    <script>
+    // ── config ────────────────────────────────────────────────────────────────
+    const ACCOUNTS = ['red bracket', 'gree bracket', 'blue bracket'];  // rs2b2t test accounts
+    const HOST = 'w1.rs2b2t.com', SECURE = true, PASS = 'password';
+    const SCRIPT_LABELS = {
+        paladin:'Paladin Pickpocket', lesser_demon:'Lesser Demon (Magic)', willow_chop:'Willow Chopping',
+        magic_shop:'Shop Buyer', chicken_bones:'Chickens + Bury Bones', fletch_arrows:'Fletch Arrows',
+        flax_spin:'Flax Spinner', fletch_longbow:'Fletch Yew Longbow', string_longbow:'String Yew Longbow',
+        cut_gems:'Cut Sapphires', iron_mine:'Iron Miner', alch_fire:'Alchemy (Fire Runes)',
+        bear_killer:'Bear Killer + Banker', custom:'Idle (close modals)'
+    };
+    const DEFAULT_SCRIPT = 'chicken_bones';
+
+    // ── state ─────────────────────────────────────────────────────────────────
+    const bots = new Map();        // id -> { id, worker, account, scriptKey, state, cardEl }
+    let nextId = 1, fgId = null;
+    const canvas = document.getElementById('canvas');
+    const cctx = canvas.getContext('2d', { alpha:false });
+
+    // ── populate the spawn form ────────────────────────────────────────────────
+    function refreshForm() {
+        const accSel = document.getElementById('accountSel');
+        const used = new Set([...bots.values()].map(b => b.account));
+        accSel.innerHTML = ACCOUNTS.map(a => `<option value="${a}" ${used.has(a)?'disabled':''}>${a}${used.has(a)?' (in use)':''}</option>`).join('');
+        const scrSel = document.getElementById('scriptSel');
+        if (!scrSel.options.length) {
+            scrSel.innerHTML = Object.keys(window.SCRIPTS).map(k => `<option value="${k}" ${k===DEFAULT_SCRIPT?'selected':''}>${SCRIPT_LABELS[k]||k}</option>`).join('');
+        }
+        const free = ACCOUNTS.filter(a => !used.has(a));
+        document.getElementById('spawnBtn').disabled = free.length === 0;
+        if (free.length) accSel.value = free[0];
+    }
+
+    function spawnFromForm() {
+        const account = document.getElementById('accountSel').value;
+        const scriptKey = document.getElementById('scriptSel').value;
+        if (!account || [...bots.values()].some(b => b.account === account)) return;
+        spawnBot(account, scriptKey);
+    }
+
+    // ── spawn a headless bot worker ─────────────────────────────────────────────
+    function spawnBot(account, scriptKey) {
+        const id = nextId++;
+        const worker = new Worker('/botworker.js', { type:'module' });
+        const bot = { id, worker, account, scriptKey, state:{ stage:'booting' }, cardEl:null };
+        bots.set(id, bot);
+        worker.onmessage = (e) => onBotMessage(id, e.data);
+        worker.onerror = (e) => { bot.state.err = e.message || 'worker error'; renderCard(bot); };
+        worker.postMessage({
+            type:'start', id, host:HOST, secure:SECURE,
+            user:account, pass:PASS, script: window.SCRIPTS[scriptKey] || '', intervalMs:2000
+        });
+        renderRail();
+        refreshForm();
+        if (fgId === null) foreground(id);   // auto-watch the first bot
+    }
+
+    function onBotMessage(id, m) {
+        const bot = bots.get(id); if (!bot) return;
+        if (m.type === 'frame') {
+            if (id === fgId) cctx.drawImage(m.bmp, 0, 0, canvas.width, canvas.height);
+            m.bmp.close();
+            return;
+        }
+        if (m.type === 'state') { bot.state = m; if (id === fgId) updateFgOverlay(); renderCard(bot); }
+        else if (m.type === 'error') { bot.state.err = (m.err||'').slice(0,80); renderCard(bot); }
+    }
+
+    // ── foreground / watch a bot ────────────────────────────────────────────────
+    function foreground(id) {
+        if (fgId === id) return;
+        if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
+        fgId = id;
+        cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
+        bots.get(id).worker.postMessage({ type:'foreground' });
+        document.getElementById('idle-hint').style.display = 'none';
+        document.getElementById('stopFg').style.display = '';
+        updateFgOverlay();
+        renderRail();
+    }
+
+    function stopForeground() {
+        if (fgId !== null && bots.has(fgId)) bots.get(fgId).worker.postMessage({ type:'background' });
+        fgId = null;
+        cctx.fillStyle = '#000'; cctx.fillRect(0, 0, canvas.width, canvas.height);
+        document.getElementById('buffering').style.display = 'none';
+        document.getElementById('idle-hint').style.display = '';
+        document.getElementById('stopFg').style.display = 'none';
+        document.getElementById('chanName').textContent = 'No bot selected';
+        document.getElementById('chanSub').textContent = '—';
+        renderRail();
+    }
+
+    function updateFgOverlay() {
+        const bot = bots.get(fgId); if (!bot) return;
+        const ov = document.getElementById('buffering'), txt = document.getElementById('buf-text');
+        const st = bot.state;
+        if (!st.ingame) { txt.textContent = 'Logging in…'; ov.style.display = 'flex'; }
+        else if (st.sceneState !== 2) { txt.textContent = 'Loading world…'; ov.style.display = 'flex'; }
+        else { ov.style.display = 'none'; }
+        document.getElementById('chanName').textContent = SCRIPT_LABELS[bot.scriptKey] || bot.scriptKey;
+        document.getElementById('chanSub').textContent = (st.name || bot.account) + (st.pos ? `  ·  (${st.pos.x}, ${st.pos.z})` : '');
+    }
+
+    function killBot(id, ev) {
+        ev && ev.stopPropagation();
+        const bot = bots.get(id); if (!bot) return;
+        try { bot.worker.terminate(); } catch(e){}
+        bots.delete(id);
+        if (fgId === id) stopForeground();
+        renderRail(); refreshForm();
+    }
+
+    // ── render the rail + cards ──────────────────────────────────────────────────
+    function statusOf(st) {
+        if (st.err) return { cls:'err', txt:'error' };
+        if (!st.stage && !st.ingame && st.loginscreen !== undefined) {
+            if ((st.msg||'').includes('already logged in')) return { cls:'err', txt:'account in use' };
+            return { cls:'load', txt:'logging in…' };
+        }
+        if (st.stage === 'booting') return { cls:'load', txt:'booting…' };
+        if (!st.ingame) return { cls:'load', txt:'logging in…' };
+        return { cls:'live', txt:'● in game' };
+    }
+
+    function renderCard(bot) {
+        if (!bot.cardEl) return renderRail();
+        const st = bot.state, s = statusOf(st);
+        bot.cardEl.className = 'bot-card' + (bot.id === fgId ? ' active' : '');
+        bot.cardEl.querySelector('.b-sub').textContent = (st.name || bot.account);
+        const stat = bot.cardEl.querySelector('.b-stat');
+        stat.className = 'b-stat ' + s.cls; stat.textContent = s.txt;
+        bot.cardEl.querySelector('.live').style.display = (bot.id === fgId) ? '' : 'none';
+    }
+
+    function renderRail() {
+        const wrap = document.getElementById('cards');
+        wrap.innerHTML = '';
+        for (const bot of bots.values()) {
+            const st = bot.state, s = statusOf(st);
+            const el = document.createElement('div');
+            el.className = 'bot-card' + (bot.id === fgId ? ' active' : '');
+            el.onclick = () => foreground(bot.id);
+            el.innerHTML = `
+                <div class="bot-thumb">
+                    <span class="live" style="display:${bot.id===fgId?'':'none'}">&#9679; LIVE</span>
+                    <span class="init">${(bot.account[0]||'?').toUpperCase()}</span>
+                    <span class="badge">${SCRIPT_LABELS[bot.scriptKey]||bot.scriptKey}</span>
+                </div>
+                <div class="bot-info">
+                    <span class="b-title">${bot.account}</span>
+                    <span class="b-sub">${st.name || bot.account}</span>
+                    <span class="b-stat ${s.cls}">${s.txt}</span>
+                </div>
+                <span class="b-kill" title="Stop bot">&times;</span>`;
+            el.querySelector('.b-kill').onclick = (ev) => killBot(bot.id, ev);
+            bot.cardEl = el;
+            wrap.appendChild(el);
+        }
+    }
+
+    refreshForm();
+    </script>
+</body>
+</html>
