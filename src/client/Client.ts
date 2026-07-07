@@ -1,11 +1,7 @@
-import { playWave, setWaveVolume } from '#3rdparty/audio.js';
-import { stopMidi, setMidiVolume, playMidi } from '#3rdparty/tinymidipcm.js';
-
 import ClientBuild from '#/client/ClientBuild.js';
 import { ClientCode } from '#/client/ClientCode.js';
 import GameShell from '#/client/GameShell.js';
 import { MiniMenuAction } from '#/client/MiniMenuAction.js';
-import MobileKeyboard from '#/client/MobileKeyboard.js';
 import MouseTracking from '#/client/MouseTracking.js';
 import Skill from '#/client/Skill.js';
 import TitleFlames from '#/client/TitleFlames.js';
@@ -67,10 +63,7 @@ import { ServerProt, ServerProtSizes } from '#/io/ServerProt.js';
 
 import { reverseDnsLookup } from '#/util/WebDns.js';
 
-import WordFilter from '#/wordfilter/WordFilter.js';
 import WordPack from '#/wordfilter/WordPack.js';
-
-import JagFX from '#/sound/JagFX.js';
 
 import { initBotApi } from '#/bot/BotApi.js';
 
@@ -515,24 +508,6 @@ export class Client extends GameShell {
     private minimapFlagX: number = 0;
     private minimapFlagZ: number = 0;
 
-    private midiActive: boolean = true;
-    private midiVolume: number = 0;
-    private midiSong: number = -1;
-    private nextMidiSong: number = -1;
-    private nextMusicDelay: number = 0;
-    private midiFading: boolean = true;
-
-    private waveEnabled: boolean = true;
-    private waveVolume: number = 0;
-    private waveCount: number = 0;
-    private waveIds: Int32Array = new Int32Array(50);
-    private waveLoops: Int32Array = new Int32Array(50);
-    private waveDelay: Int32Array = new Int32Array(50);
-    private lastWaveId: number = -1;
-    private lastWaveLoops: number = -1;
-    private lastWaveLength: number = 0;
-    private lastWaveStartTime: number = 0;
-
     private cinemaCam: boolean = false;
     private camShake: boolean[] = new TypedArray1d(5, false);
     private camShakeAxis: Int32Array = new Int32Array(5);
@@ -608,9 +583,6 @@ export class Client extends GameShell {
         ClientBuild.lowMem = false;
     }
 
-    saveMidi(data: Uint8Array, fading: boolean) {
-        playMidi(data, this.midiVolume, fading);
-    }
 
     private getIntParam(name: string, fallback: number = 0): number {
         const value: string | null = this.searchParams.get(name);
@@ -829,11 +801,6 @@ export class Client extends GameShell {
     // ----
 
     override async maininit() {
-        if (this.isMobile && Client.lowMem) {
-            // force mobile on low detail mode to 30 fps
-            this.setTargetedFramerate(30);
-        }
-
         if (this.alreadyStarted) {
             this.errorStarted = true;
             return;
@@ -872,8 +839,6 @@ export class Client extends GameShell {
             const interfaces: JagFile = await this.getJagFile('interface', 35, 'interface', 3);
             const media: JagFile = await this.getJagFile('2d graphics', 40, 'media', 4);
             const textures: JagFile = await this.getJagFile('textures', 45, 'textures', 6);
-            const wordenc: JagFile = await this.getJagFile('chat system', 50, 'wordenc', 7);
-            const sounds: JagFile = await this.getJagFile('sound effects', 55, 'sounds', 8);
 
             this.mapl = new Uint8Array3d(BuildArea.LEVELS, BuildArea.SIZE, BuildArea.SIZE);
             this.groundh = new Int32Array3d(BuildArea.LEVELS, BuildArea.SIZE + 1, BuildArea.SIZE + 1);
@@ -890,18 +855,6 @@ export class Client extends GameShell {
             this.onDemand = new OnDemand(versionlist, this);
             AnimFrame.init(this.onDemand.getAnimFrameCount());
             Model.init(this.onDemand.getFileCount(0), this.onDemand);
-
-            if (!Client.lowMem) {
-                this.midiSong = 0; // scape_main
-                this.midiSong = this.getIntParam('music', this.midiSong);
-                this.midiFading = true;
-                this.onDemand.request(2, this.midiSong);
-
-                while (!(globalThis as any).__IN_WORKER && this.onDemand.remaining() > 0) {
-                    await this.onDemandLoop();
-                    await sleep(100);
-                }
-            }
 
             await this.drawProgress('Requesting animations', 65);
 
@@ -1005,15 +958,6 @@ export class Client extends GameShell {
             }
 
             await this.onDemand.prefetchMaps(Client.memServer);
-
-            if (!Client.lowMem) {
-                const midiCount = this.onDemand.getFileCount(2);
-                for (let i = 1; i < midiCount; i++) {
-                    if (this.onDemand.isMidiJingle(i)) {
-                        await this.onDemand.prefetchPriority(2, i, 1);
-                    }
-                }
-            }
 
             await this.drawProgress('Unpacking media', 80);
 
@@ -1181,11 +1125,6 @@ export class Client extends GameShell {
             VarpType.init(config);
             VarBitType.init(config);
 
-            if (!Client.lowMem) {
-                await this.drawProgress('Unpacking sounds', 90);
-                const soundsDat = sounds.read('sounds.dat');
-                JagFX.init(new Packet(soundsDat));
-            }
 
             await this.drawProgress('Unpacking interfaces', 95);
 
@@ -1249,7 +1188,6 @@ export class Client extends GameShell {
             }
 
             World.resetVisCalc(distance, 500, 800, 512, 334);
-            WordFilter.unpack(wordenc);
 
             if (!this.mouseTrackingInterval) {
                 this.mouseTrackingInterval = setInterval(() => {
@@ -1296,10 +1234,6 @@ export class Client extends GameShell {
             await this.titleScreenDraw();
         } else {
             this.gameDraw();
-        }
-
-        if (this.isMobile) {
-            MobileKeyboard.draw();
         }
 
         this.scrollCycle = 0;
@@ -1356,10 +1290,6 @@ export class Client extends GameShell {
                 }
             } else if (req.archive === 1) {
                 AnimFrame.unpack(req.data);
-            } else if (req.archive === 2) {
-                if (this.midiSong === req.file) {
-                    this.saveMidi(req.data, this.midiFading);
-                }
             } else if (req.archive === 3) {
                 if (this.mapBuildGroundData && this.mapBuildLocationData && this.sceneState === 1) {
                     for (let i = 0; i < this.mapBuildGroundData.length; i++) {
@@ -1853,7 +1783,6 @@ export class Client extends GameShell {
                 this.useMode = 0;
                 this.targetMode = 0;
                 this.sceneState = 0;
-                this.waveCount = 0;
 
                 this.macroCameraX = ((Math.random() * 100.0) | 0) - 50;
                 this.macroCameraZ = ((Math.random() * 110.0) | 0) - 55;
@@ -2219,7 +2148,6 @@ export class Client extends GameShell {
 
         this.checkMinimap();
         this.locChangeDoQueue();
-        await this.soundsDoQueue();
 
         if (now - this.timeoutTimer > 15_000) {
             // no packets received recently, connection lost
@@ -2358,7 +2286,7 @@ export class Client extends GameShell {
             this.mouseClickButton = 0;
         }
 
-        const checkClickInput = !this.isMobile || (this.isMobile && !MobileKeyboard.isWithinCanvasKeyboard(this.mouseClickX, this.mouseClickY));
+        const checkClickInput = true; // mobile keyboard removed
 
         if (checkClickInput) {
             this.mouseLoop();
@@ -2495,11 +2423,6 @@ export class Client extends GameShell {
         for (let level: number = 0; level < BuildArea.LEVELS; level++) {
             this.collision[level]?.reset();
         }
-
-        stopMidi(false);
-        this.nextMidiSong = -1;
-        this.midiSong = -1;
-        this.nextMusicDelay = 0;
     }
 
     private clearCaches(): void {
@@ -2922,10 +2845,6 @@ export class Client extends GameShell {
                     break;
                 }
             }
-
-            if (this.isMobile) {
-                MobileKeyboard.show();
-            }
         }
     }
 
@@ -3024,7 +2943,7 @@ export class Client extends GameShell {
                                 this.out.psize1(this.out.pos - start);
 
                                 this.socialInput = JString.toSentenceCase(this.socialInput);
-                                this.socialInput = WordFilter.filter(this.socialInput);
+                                // chat censoring removed; socialInput sent as typed
                                 this.addChat(6, this.socialInput, JString.toScreenName(JString.toRawUsername(this.socialUserhash)));
 
                                 if (this.chatPrivateMode === 2) {
@@ -3192,7 +3111,7 @@ export class Client extends GameShell {
                                 this.out.psize1(this.out.pos - start);
 
                                 this.chatInput = JString.toSentenceCase(this.chatInput);
-                                this.chatInput = WordFilter.filter(this.chatInput);
+                                // chat censoring removed; chatInput sent as typed
 
                                 if (this.localPlayer && this.localPlayer.name) {
                                     this.localPlayer.chatMessage = this.chatInput;
@@ -3436,53 +3355,6 @@ export class Client extends GameShell {
 
         if ((tmp < 0 && deltaYaw > 0) || (tmp > 0 && deltaYaw < 0)) {
             this.camYaw = yaw;
-        }
-    }
-
-    async soundsDoQueue() {
-        for (let wave: number = 0; wave < this.waveCount; wave++) {
-            if (this.waveDelay[wave] <= 0) {
-                try {
-                    const buf: Packet | null = JagFX.generate(this.waveIds[wave], this.waveLoops[wave]);
-                    if (!buf) {
-                        throw new Error();
-                    }
-
-                    if (performance.now() + ((buf.pos / 22) | 0) > this.lastWaveStartTime + ((this.lastWaveLength / 22) | 0)) {
-                        this.lastWaveLength = buf.pos;
-                        this.lastWaveStartTime = performance.now();
-                        this.lastWaveId = this.waveIds[wave];
-                        this.lastWaveLoops = this.waveLoops[wave];
-                        await playWave(buf.data.slice(0, buf.pos));
-                    }
-                } catch (_e) {
-                    // empty
-                }
-
-                this.waveCount--;
-                for (let i: number = wave; i < this.waveCount; i++) {
-                    this.waveIds[i] = this.waveIds[i + 1];
-                    this.waveLoops[i] = this.waveLoops[i + 1];
-                    this.waveDelay[i] = this.waveDelay[i + 1];
-                }
-                wave--;
-            } else {
-                this.waveDelay[wave]--;
-            }
-        }
-
-        if (this.nextMusicDelay > 0) {
-            this.nextMusicDelay -= 20;
-
-            if (this.nextMusicDelay < 0) {
-                this.nextMusicDelay = 0;
-            }
-
-            if (this.nextMusicDelay === 0 && this.midiActive && !Client.lowMem) {
-                this.midiSong = this.nextMidiSong;
-                this.midiFading = true;
-                this.onDemand?.request(2, this.midiSong);
-            }
         }
     }
 
@@ -6536,7 +6408,7 @@ export class Client extends GameShell {
                         this.privateMessageCount = (this.privateMessageCount + 1) % 100;
 
                         const uncompressed: string = WordPack.unpack(this.in, this.psize - 13);
-                        const filtered: string = WordFilter.filter(uncompressed);
+                        const filtered: string = uncompressed; // chat censoring removed
 
                         if (staffModLevel === 2 || staffModLevel === 3) {
                             this.addChat(7, filtered, '@cr2@' + JString.toScreenName(JString.toRawUsername(from)));
@@ -6800,10 +6672,6 @@ export class Client extends GameShell {
                 this.dialogInput = '';
                 this.redrawChat = true;
 
-                if (this.isMobile) {
-                    MobileKeyboard.show();
-                }
-
                 this.ptype = -1;
                 return true;
             }
@@ -7051,50 +6919,22 @@ export class Client extends GameShell {
             }
 
             if (this.ptype === ServerProt.SYNTH_SOUND) {
-                const soundId: number = this.in.g2();
-                const loops: number = this.in.g1();
-                const delay: number = this.in.g2();
-
-                if (this.waveEnabled && !Client.lowMem && this.waveCount < 50) {
-                    this.waveIds[this.waveCount] = soundId;
-                    this.waveLoops[this.waveCount] = loops;
-                    this.waveDelay[this.waveCount] = delay + JagFX.delays[soundId];
-                    this.waveCount++;
-                }
-
+                this.in.g2(); // soundId — audio removed; still consume the bytes to keep the stream aligned
+                this.in.g1(); // loops
+                this.in.g2(); // delay
                 this.ptype = -1;
                 return true;
             }
 
             if (this.ptype === ServerProt.MIDI_SONG) {
-                let songId: number = this.in.g2();
-                if (songId == 65535) {
-                    songId = -1;
-                }
-
-                if (this.nextMidiSong != songId && this.midiActive && !Client.lowMem && this.nextMusicDelay === 0) {
-                    this.midiSong = songId;
-                    this.midiFading = true;
-                    this.onDemand?.request(2, this.midiSong);
-                }
-
-                this.nextMidiSong = songId;
-
+                this.in.g2(); // songId — audio removed
                 this.ptype = -1;
                 return true;
             }
 
             if (this.ptype === ServerProt.MIDI_JINGLE) {
-                const jingleId: number = this.in.g2();
-                const delay: number = this.in.g2();
-
-                if (this.midiActive && !Client.lowMem) {
-                    this.midiSong = jingleId;
-                    this.midiFading = false;
-                    this.onDemand?.request(2, this.midiSong);
-                    this.nextMusicDelay = delay;
-                }
-
+                this.in.g2(); // jingleId — audio removed
+                this.in.g2(); // delay
                 this.ptype = -1;
                 return true;
             }
@@ -7958,7 +7798,7 @@ export class Client extends GameShell {
                 if (!ignored && this.chatDisabled === 0) {
                     try {
                         const uncompressed: string = WordPack.unpack(buf, length);
-                        const filtered: string = WordFilter.filter(uncompressed);
+                        const filtered: string = uncompressed; // chat censoring removed
                         player.chatMessage = filtered;
                         player.chatColour = colourEffect >> 8;
                         player.chatEffect = colourEffect & 0xff;
@@ -8293,9 +8133,6 @@ export class Client extends GameShell {
             return;
         }
 
-        if (this.isMobile && this.dialogInputOpen && this.insideChatPopup()) {
-            return;
-        }
 
         let button: number = this.mouseClickButton;
         if (this.targetMode === 1 && this.mouseClickX >= 516 && this.mouseClickY >= 160 && this.mouseClickX <= 765 && this.mouseClickY <= 205) {
@@ -10653,60 +10490,6 @@ export class Client extends GameShell {
 
             ObjType.spriteCache?.clear();
             this.redrawFrame = true;
-        } else if (clientcode === 3) {
-            const lastMidiActive: boolean = this.midiActive;
-
-            if (value === 0) {
-                this.midiVolume = 0; // +0 dB
-                this.midiActive = true;
-            } else if (value === 1) {
-                this.midiVolume = -4; // -4 dB
-                this.midiActive = true;
-            } else if (value === 2) {
-                this.midiVolume = -8; // -8 dB
-                this.midiActive = true;
-            } else if (value === 3) {
-                this.midiVolume = -12; // -12 dB
-                this.midiActive = true;
-            } else if (value === 4) {
-                this.midiActive = false;
-            }
-
-            if (this.midiActive) {
-                setMidiVolume(this.midiVolume);
-            }
-
-            if (this.midiActive !== lastMidiActive) {
-                if (this.midiActive) {
-                    this.midiSong = this.nextMidiSong;
-                    this.midiFading = true;
-                    this.onDemand?.request(2, this.midiSong);
-                } else {
-                    stopMidi(false);
-                }
-
-                this.nextMusicDelay = 0;
-            }
-        } else if (clientcode === 4) {
-            if (value === 0) {
-                this.waveVolume = 0; // +0 dB
-                this.waveEnabled = true;
-            } else if (value === 1) {
-                this.waveVolume = -4; // -4 dB
-                this.waveEnabled = true;
-            } else if (value === 2) {
-                this.waveVolume = -8; // -8 dB
-                this.waveEnabled = true;
-            } else if (value === 3) {
-                this.waveVolume = -12; // -12 dB
-                this.waveEnabled = true;
-            } else if (value === 4) {
-                this.waveEnabled = false;
-            }
-
-            if (this.waveEnabled) {
-                setWaveVolume(this.waveVolume);
-            }
         } else if (clientcode === 5) {
             this.oneMouseButton = value;
         } else if (clientcode === 6) {
@@ -11665,10 +11448,6 @@ export class Client extends GameShell {
     private panning: boolean = false;
 
     override pointerDown(x: number, y: number, e: PointerEvent) {
-        if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
-            MobileKeyboard.captureMouseDown(x, y);
-            return;
-        }
 
         if (e.pointerType !== 'mouse') {
             // custom: touchscreen support
@@ -11702,10 +11481,6 @@ export class Client extends GameShell {
     }
 
     override pointerUp(x: number, y: number, e: PointerEvent) {
-        if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && !this.exceedsGrabThreshold(20)) {
-            MobileKeyboard.captureMouseUp(x, y);
-            return;
-        }
 
         if (e.pointerType !== 'mouse') {
             // custom: touchscreen support
@@ -11733,15 +11508,6 @@ export class Client extends GameShell {
                 this.keyHeld[4] = 0;
                 return;
             } else {
-                if (!MobileKeyboard.isDisplayed() && this.insideMobileInput()) {
-                    // show keyboard when tapping in an input area
-                    MobileKeyboard.show(x, y, e.clientX, e.clientY);
-                } else if (MobileKeyboard.isDisplayed() && !MobileKeyboard.isWithinCanvasKeyboard(x, y)) {
-                    // hide keyboard when tapping outside of an input area
-                    MobileKeyboard.hide();
-                    this.refresh();
-                }
-
                 // within click threshold: activate mouse button
                 this.nextMouseClickX = x;
                 this.nextMouseClickY = y;
@@ -11827,8 +11593,6 @@ export class Client extends GameShell {
 
             if (this.dragging) {
                 // no-op
-            } else if (MobileKeyboard.isWithinCanvasKeyboard(x, y) && this.exceedsGrabThreshold(20)) {
-                MobileKeyboard.notifyTouchMove(x, y);
             } else if (this.startedInGame && !this.isGameObscured() && this.exceedsGrabThreshold(20)) {
                 // moving camera
                 this.panning = true;

@@ -476,11 +476,6 @@ export default abstract class GameShell {
     }
 
     private onkeyup(e: KeyboardEvent) {
-        // if (e.isTrusted && MobileKeyboard.isDisplayed()) {
-        //     // physical keyboard started typing, hide virtual
-        //     MobileKeyboard.hide();
-        //     this.refresh();
-        // }
 
         this.idleTimer = performance.now();
 
@@ -568,13 +563,6 @@ export default abstract class GameShell {
         );
     }
 
-    protected get isMobile(): boolean {
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|Windows Phone|Mobile/i.test(navigator.userAgent)) {
-            return true;
-        }
-
-        return this.isTouchDevice;
-    }
 
     private isFullScreen() {
         return document.fullscreenElement !== null;

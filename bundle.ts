@@ -146,15 +146,12 @@ if (!fs.existsSync('out')) {
     fs.mkdirSync('out');
 }
 
-fs.copyFileSync('src/3rdparty/tinymidipcm/tinymidipcm.wasm', 'out/tinymidipcm.wasm');
-fs.copyFileSync('src/3rdparty/tinymidipcm/SCC1_Florestan.sf2', 'out/SCC1_Florestan.sf2');
-
 const args = process.argv.slice(2);
 const prod = args[0] !== 'dev';
 
+// The page runs everything in Workers: botworker.js bundles the whole Client and spawns
+// ondemandworker.js. There's no standalone main-thread client or map-viewer anymore.
 const entrypoints = [
-    'src/client/Client.ts',
-    'src/mapview/MapView.ts',
     'src/io/OnDemandWorker.ts',
     'src/bot/BotWorker.ts'
 ];

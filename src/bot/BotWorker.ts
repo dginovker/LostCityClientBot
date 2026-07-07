@@ -67,34 +67,6 @@ if (typeof g.localStorage === 'undefined') {
         get length() { return Object.keys(store).length; },
     };
 }
-// Workers can't output audio. Stub AudioContext with objects whose every method is a no-op and
-// every property read returns a no-op-or-0, so no audio call ever throws and breaks the game loop.
-if (typeof g.AudioContext === 'undefined' && typeof g.webkitAudioContext === 'undefined') {
-    const audioNode = (): any => new Proxy({ value: 0, gain: null as any }, {
-        get: (t: any, p) => {
-            if (p === 'gain' || p === 'frequency' || p === 'detune') { return t[p] || (t[p] = audioNode()); }
-            if (p === 'getChannelData') { return () => new Float32Array(0); } // OOB writes are silent no-ops
-            if (p in t) return t[p];
-            return noop; // connect, start, stop, setValueAtTime, cancelScheduledValues, ...
-        },
-        set: (t: any, p, v) => { t[p] = v; return true; },
-    });
-    g.AudioContext = g.webkitAudioContext = class {
-        destination = audioNode();
-        currentTime = 0;
-        sampleRate = 22050;
-        state = 'running';
-        createBuffer() { return audioNode(); }
-        createBufferSource() { return audioNode(); }
-        createGain() { return audioNode(); }
-        createOscillator() { return audioNode(); }
-        createDynamicsCompressor() { return audioNode(); }
-        decodeAudioData() { return Promise.resolve(audioNode()); }
-        resume() { return Promise.resolve(); }
-        suspend() { return Promise.resolve(); }
-        close() { return Promise.resolve(); }
-    };
-}
 
 // Surface anything that would otherwise die silently inside the worker.
 self.addEventListener('error', (ev: any) => {
